@@ -175,8 +175,8 @@
                         <div class="article-meta-info">
     <span class="article-date article-meta-item">
         <i class="fas fa-edit"></i>&nbsp;
-        <span class="pc">2023-06-09 12:00:00</span>
-        <span class="mobile">2023-06-09 12:00</span>
+        <span class="pc">2023-06-10 14:57:56</span>
+        <span class="mobile">2023-06-10 14:57</span>
     </span>
     
     
@@ -195,12 +195,12 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>4.9k Words</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>5.5k Words</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>19 Mins</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>22 Mins</span>
         </span>
     
     
@@ -384,12 +384,38 @@ item-style2</font>，所以我们代码这样写就可以了：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">url4 = <span class="string">r&quot;http://www.news.cn/comments/index.html&quot;</span></span><br><span class="line">r = requests.get(url4, headers=headers, proxies=proxies)</span><br><span class="line">soup = BeautifulSoup(r.content, <span class="string">&quot;html.parser&quot;</span>)</span><br><span class="line">links = soup.select(<span class="string">&#x27;[class=&quot;item item-style2&quot;] a&#x27;</span>)</span><br><span class="line">links = [link.get(<span class="string">&#x27;href&#x27;</span>) <span class="keyword">for</span> link <span class="keyword">in</span> links]</span><br><span class="line">links = [<span class="string">&quot;http://www.news.cn&quot;</span> + link <span class="keyword">for</span> link <span class="keyword">in</span> links <span class="keyword">if</span> <span class="string">&quot;http&quot;</span> <span class="keyword">not</span> <span class="keyword">in</span> link]</span><br></pre></td></tr></table></figure>
 <p>结果只有八条链接，然后我们点击加载，然后观察Network的抓包情况，结果如下：</p>
 <p><img src="https://cdn.staticaly.com/gh/chenkai66/picx-images-hosting@master/20230610/新华社_加载_Network.ppdq6q5f4r4.webp" alt="新华社_加载_Network"></p>
+<p>我们点击链接之后发现并不是像之前一样需要一次一次地读取，而是很贴心地把所有内容都展示了出来：</p>
+<p><img src="https://cdn.staticaly.com/gh/chenkai66/picx-images-hosting@master/20230610/新华社_全部内容.630pve9gl6g0.webp" alt="新华社_全部内容"></p>
+<p>然而当我们像之前一样直接对 requests 后的数据转为 json
+时却遇到报错：<font color="Green">Exception Value: Expecting value: line 1
+column 1 (char
+0)</font>，这说明我们不能再像之前一样简单读取了，这个问题有可能来自以下三种情况：</p>
+<ul>
+<li>non-JSON conforming quoting</li>
+<li>XML/HTML output (that is, a string starting with &lt;), or</li>
+<li>incompatible character encoding</li>
+</ul>
+<p>但我们对这三种情况不会一一分析，因为而欧美的目的是要解决问题，因此下面直接提出两种方法解决这个问题。</p>
+<p>第一个方法是将数据copy到本地（应该有更好的办法）保存为json格式再读取：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&quot;data/新华社.json&quot;</span>, encoding=<span class="string">&#x27;utf-8&#x27;</span>, errors=<span class="string">&#x27;ignore&#x27;</span>) <span class="keyword">as</span> json_data:</span><br><span class="line">    data = json.load(json_data, strict=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
+<p>第二个方法是利用 <font color="Purple">urllib.request.urlopen</font>
+来读取对应 url 的 JSON 文件：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> urllib</span><br><span class="line">url = <span class="string">r&quot;http://www.news.cn/comments/ds_8e0f870f8f8b4643a239608debe7f2ee.json&quot;</span></span><br><span class="line">response = urllib.request.urlopen(url)</span><br><span class="line">data = json.loads(response.read())</span><br></pre></td></tr></table></figure>
+<p>后续获取链接的代码为：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">data = data[<span class="string">&quot;datasource&quot;</span>]</span><br><span class="line">link_xinhua = [<span class="string">&quot;http://www.news.cn&quot;</span> + dt[<span class="string">&quot;publishUrl&quot;</span>] <span class="keyword">for</span> dt <span class="keyword">in</span> data <span class="keyword">if</span> <span class="string">&quot;http&quot;</span> <span class="keyword">not</span> <span class="keyword">in</span> dt[<span class="string">&quot;publishUrl&quot;</span>]]</span><br><span class="line">link_xinhua = <span class="built_in">list</span>(<span class="built_in">set</span>(link_xinhua))</span><br></pre></td></tr></table></figure>
+<p>最终我们获取了969条文章链接，下一步我们需要根据链接爬取文章内容，与前面内容基本一致，在这里我们还补充了爬取标题的部分，需要使用到的是
+span 标签的 <font color="Blue">get_text()</font>
+函数，最终的完整代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">text_xinhua = []</span><br><span class="line">title_xinhua = []</span><br><span class="line"><span class="keyword">for</span> url_ui <span class="keyword">in</span> tqdm(<span class="built_in">range</span>(<span class="built_in">len</span>(link_xinhua))):</span><br><span class="line">    time.sleep(<span class="number">0.5</span>)</span><br><span class="line">    url = link_xinhua[url_ui]</span><br><span class="line">    r = requests.get(url, headers=headers, proxies=proxies)</span><br><span class="line">    soup = BeautifulSoup(r.text, <span class="string">&quot;html.parser&quot;</span>)</span><br><span class="line">    content = soup.select(<span class="string">&#x27;[class=&quot;main-left left&quot;] p&#x27;</span>)</span><br><span class="line">    title = soup.select(<span class="string">&#x27;[class=&quot;head-line clearfix&quot;] span[class=&quot;title&quot;]&#x27;</span>)</span><br><span class="line">    title = [span.get_text() <span class="keyword">for</span> span <span class="keyword">in</span> title][<span class="number">0</span>]</span><br><span class="line">    i_te = <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> content:</span><br><span class="line">        i_te += i.text</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(i_te) != <span class="number">0</span>:</span><br><span class="line">        text_xinhua.append(i_te)</span><br><span class="line">        title_xinhua.append(title)</span><br><span class="line">df = pd.DataFrame(&#123;<span class="string">&quot;title&quot;</span>: title_xinhua, <span class="string">&quot;text&quot;</span>: text_xinhua&#125;)</span><br><span class="line">df.to_excel(<span class="string">&quot;data/xinhua.xlsx&quot;</span>, index=<span class="literal">False</span>, header=<span class="literal">False</span>)</span><br></pre></td></tr></table></figure>
 <h1 id="参考链接">参考链接</h1>
 <ol type="1">
 <li><a class="link" target="_blank" rel="noopener" href="http://c.biancheng.net/python_spider/case06.html">Python爬虫抓取动态加载数据<i class="fas fa-external-link-alt"></i></a></li>
 <li><a class="link" target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1429372">Python乱码问题怎么解决<i class="fas fa-external-link-alt"></i></a></li>
 <li><a class="link" target="_blank" rel="noopener" href="https://www.eolink.com/news/post/15835.html">python
 requests返回对象的content和text方法的区别<i class="fas fa-external-link-alt"></i></a></li>
+<li><a class="link" target="_blank" rel="noopener" href="https://stackoverflow.com/questions/16573332/jsondecodeerror-expecting-value-line-1-column-1-char-0">JSON格式网页直接读取有问题怎么办，解决思路一<i class="fas fa-external-link-alt"></i></a></li>
+<li><a class="link" target="_blank" rel="noopener" href="https://stackoverflow.com/questions/3969726/attributeerror-module-object-has-no-attribute-urlopen">JSON格式网页直接读取有问题怎么办，解决思路二<i class="fas fa-external-link-alt"></i></a></li>
+<li><a class="link" target="_blank" rel="noopener" href="https://blog.csdn.net/sxf_123456/article/details/103689379">获取span标签中间的内容<i class="fas fa-external-link-alt"></i></a></li>
 </ol>
 
         </div>
@@ -400,7 +426,7 @@ requests返回对象的content和text方法的区别<i class="fas fa-external-li
     <ul>
         <li>Post title：Python爬虫实战——外网爬取加页面滚动</li>
         <li>Post author：Chen Kai</li>
-        <li>Create time：2023-06-09 12:00:00</li>
+        <li>Create time：2023-06-10 14:57:56</li>
         <li>
             Post link：https://www.chenk.top/Python爬虫实战——外网爬取加页面滚动显示/
         </li>
