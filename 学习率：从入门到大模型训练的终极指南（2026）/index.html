@@ -207,12 +207,12 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>6.3k Words</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>6.2k Words</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>25 Mins</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>24 Mins</span>
         </span>
     
     
@@ -228,206 +228,155 @@
         
 
         <div class="article-content markdown-body">
-            <p>学习率（Learning Rate,
-LR）是深度学习里<strong>最重要、也最容易“看起来像玄学”的超参数</strong>。它既像汽车的油门（决定你每一步走多快），也像方向盘的灵敏度（太敏感会蛇形走位甚至翻车，太迟钝又永远到不了目的地）。</p>
-<p>这篇文章会从最简单的二次函数出发，把“学习率为什么会影响稳定性、为什么训练后期要降学习率、为什么
-warmup 常见”讲清楚。</p>
+            <p>学习率（Learning Rate, LR）是深度学习里<strong>最重要、也最容易“看起来像玄学”的超参数</strong>。它既像汽车的油门（决定你每一步走多快），也像方向盘的灵敏度（太敏感会蛇形走位甚至翻车，太迟钝又永远到不了目的地）。</p>
+<p>这篇文章会从最简单的二次函数出发，把“学习率为什么会影响稳定性、为什么训练后期要降学习率、为什么 warmup 常见”讲清楚。</p>
 <span id="more"></span>
 <hr>
-<h1 id="一句话把学习率讲清楚">0. 一句话把学习率讲清楚</h1>
+<h1>一句话把学习率讲清楚</h1>
 <p>把训练想象成“在雾里下山”：</p>
 <ul>
-<li><strong>参数 <span class="math inline">\(\theta\)</span></strong>
-是你的位置；</li>
-<li><strong>损失 <span class="math inline">\(L(\theta)\)</span></strong>
-是海拔（越低越好）；</li>
-<li><strong>梯度 <span class="math inline">\(\nabla
-L(\theta)\)</span></strong> 是“坡度方向提示”；</li>
-<li><strong>学习率 <span class="math inline">\(\eta\)</span></strong>
-是“你每一步迈多大”。</li>
+<li><strong>参数 $\theta$</strong> 是你的位置；</li>
+<li><strong>损失 $L(\theta)$</strong> 是海拔（越低越好）；</li>
+<li><strong>梯度 $\nabla L(\theta)$</strong> 是“坡度方向提示”；</li>
+<li><strong>学习率 $\eta$</strong> 是“你每一步迈多大”。</li>
 </ul>
 <p>你每一步大致按下面走：</p>
-<p><span class="math display">\[
-\theta_{t+1}=\theta_t-\eta_t\, g_t
-\]</span></p>
-<p>其中 <span class="math inline">\(g_t\)</span>
-是你看到的梯度（通常是小批量 mini-batch 的随机梯度）。</p>
+<p>$$<br>
+\theta_{t+1}=\theta_t-\eta_t, g_t<br>
+$$</p>
+<p>其中 $g_t$ 是你看到的梯度（通常是小批量 mini-batch 的随机梯度）。</p>
 <p>学习率的核心矛盾就一句话：</p>
 <blockquote>
-<p><strong><span class="math inline">\(\eta\)</span>
-越大越快，但越容易不稳定；<span class="math inline">\(\eta\)</span>
-越小越稳，但越慢、也可能卡住。</strong></p>
+<p><strong>$\eta$ 越大越快，但越容易不稳定；$\eta$ 越小越稳，但越慢、也可能卡住。</strong></p>
 </blockquote>
 <p>接下来我们用“从最简单的二次函数”开始，把这句话拆开讲透。</p>
 <hr>
-<h1 id="最小可用数学为什么太大就炸太小就慢">1.
-最小可用数学：为什么“太大就炸，太小就慢”</h1>
-<h2 id="从一维抛物线开始最重要的直觉">1.1
-从一维抛物线开始（最重要的直觉）</h2>
+<h1>最小可用数学：为什么“太大就炸，太小就慢”</h1>
+<h2 id="从一维抛物线开始（最重要的直觉）"><a class="header-anchor" href="#从一维抛物线开始（最重要的直觉）">¶</a>从一维抛物线开始（最重要的直觉）</h2>
 <p>考虑最简单的损失：</p>
-<p><span class="math display">\[
-L(\theta)=\frac{1}{2}a\theta^2,\quad a&gt;0
-\]</span></p>
+<p>$$<br>
+L(\theta)=\frac{1}{2}a\theta^2,\quad a&gt;0<br>
+$$</p>
 <p>梯度是：</p>
-<p><span class="math display">\[
-\nabla L(\theta)=a\theta
-\]</span></p>
+<p>$$<br>
+\nabla L(\theta)=a\theta<br>
+$$</p>
 <p>做梯度下降：</p>
-<p><span class="math display">\[
-\theta_{t+1}=\theta_t-\eta\,a\theta_t=(1-\eta a)\theta_t
-\]</span></p>
-<p>你看到一个关键系数：<span class="math inline">\((1-\eta
-a)\)</span>。它决定了收敛还是发散：</p>
+<p>$$<br>
+\theta_{t+1}=\theta_t-\eta,a\theta_t=(1-\eta a)\theta_t<br>
+$$</p>
+<p>你看到一个关键系数：$(1-\eta a)$。它决定了收敛还是发散：</p>
 <ul>
-<li>若 <span class="math inline">\(\lvert 1-\eta
-a\rvert&lt;1\)</span>，会收敛；</li>
-<li>若 <span class="math inline">\(\lvert 1-\eta
-a\rvert&gt;1\)</span>，会发散（来回跳并越跳越大）。</li>
+<li>若 $\lvert 1-\eta a\rvert&lt;1$，会收敛；</li>
+<li>若 $\lvert 1-\eta a\rvert&gt;1$，会发散（来回跳并越跳越大）。</li>
 </ul>
 <p>于是得到稳定条件：</p>
-<p><span class="math display">\[
-0&lt;\eta&lt;\frac{2}{a}
-\]</span></p>
-<p><strong>类比</strong>：你下山时每一步都按“坡度”迈。如果坡太陡（<span class="math inline">\(a\)</span> 大），同样的步幅（<span class="math inline">\(\eta\)</span>）更容易跨过谷底到另一边再反弹；坡越缓（<span class="math inline">\(a\)</span> 小），你可以迈更大步仍然不翻车。</p>
-<h2 id="多维情况下最陡的方向决定是否爆炸">1.2
-多维情况下，“最陡的方向”决定是否爆炸</h2>
-<p>把 <span class="math inline">\(a\)</span> 推广到多维二次型：</p>
-<p><span class="math display">\[
-L(\theta)=\frac{1}{2}\theta^\top H\theta
-\]</span></p>
-<p>其中 <span class="math inline">\(H\)</span> 是
-Hessian（曲率矩阵）。稳定性由最大特征值 <span class="math inline">\(\lambda_{\max}(H)\)</span> 主导：</p>
-<p><span class="math display">\[
-0&lt;\eta&lt;\frac{2}{\lambda_{\max}(H)}
-\]</span></p>
+<p>$$<br>
+0&lt;\eta&lt;\frac{2}{a}<br>
+$$</p>
+<p><strong>类比</strong>：你下山时每一步都按“坡度”迈。如果坡太陡（$a$ 大），同样的步幅（$\eta$）更容易跨过谷底到另一边再反弹；坡越缓（$a$ 小），你可以迈更大步仍然不翻车。</p>
+<h2 id="多维情况下，“最陡的方向”决定是否爆炸"><a class="header-anchor" href="#多维情况下，“最陡的方向”决定是否爆炸">¶</a>多维情况下，“最陡的方向”决定是否爆炸</h2>
+<p>把 $a$ 推广到多维二次型：</p>
+<p>$$<br>
+L(\theta)=\frac{1}{2}\theta^\top H\theta<br>
+$$</p>
+<p>其中 $H$ 是 Hessian（曲率矩阵）。稳定性由最大特征值 $\lambda_{\max}(H)$ 主导：</p>
+<p>$$<br>
+0&lt;\eta&lt;\frac{2}{\lambda_{\max}(H)}<br>
+$$</p>
 <p><strong>一句话</strong>：训练是否会炸，往往由“最陡那条方向”决定。</p>
 <p><strong>类比</strong>：你在山谷里走路，整体看起来很平缓，但某一条方向上突然很陡（比如悬崖边）。你迈步时只要有分量朝那条方向，就可能摔下去。</p>
-<h2 id="gif二维椭圆谷底里为什么会走成之字">1.2.1
-GIF：二维“椭圆谷底”里为什么会走成“之”字</h2>
+<h2 id="GIF：二维“椭圆谷底”里为什么会走成“之”字"><a class="header-anchor" href="#GIF：二维“椭圆谷底”里为什么会走成“之”字">¶</a>GIF：二维“椭圆谷底”里为什么会走成“之”字</h2>
 <p>二维二次函数是理解“曲率不均匀导致震荡”的最佳玩具模型。考虑：</p>
-<p><span class="math display">\[
-f(x,y)=\frac{1}{2}(a_x x^2+a_y y^2)
-\]</span></p>
-<p>当 <span class="math inline">\(a_y\gg a_x\)</span> 时，<span class="math inline">\(y\)</span> 方向更“陡”，同一个学习率 <span class="math inline">\(\eta\)</span> 会在 <span class="math inline">\(y\)</span>
-方向产生更强的回弹，于是轨迹常常呈现“之”字形（尤其是没加动量时）。</p>
+<p>$$<br>
+f(x,y)=\frac{1}{2}(a_x x^2+a_y y^2)<br>
+$$</p>
+<p>当 $a_y\gg a_x$ 时，$y$ 方向更“陡”，同一个学习率 $\eta$ 会在 $y$ 方向产生更强的回弹，于是轨迹常常呈现“之”字形（尤其是没加动量时）。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">ax, ay = <span class="number">1.0</span>, <span class="number">12.0</span></span><br><span class="line">eta = <span class="number">0.12</span></span><br><span class="line">x = np.array([<span class="number">2.0</span>, <span class="number">1.5</span>])</span><br><span class="line"></span><br><span class="line">path = [x.copy()]</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">45</span>):</span><br><span class="line">    g = np.array([ax * x[<span class="number">0</span>], ay * x[<span class="number">1</span>]])</span><br><span class="line">    x = x - eta * g</span><br><span class="line">    path.append(x.copy())</span><br></pre></td></tr></table></figure>
-<figure>
-<img src="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/gd_path_2d.gif" alt="2D 二次函数上的梯度下降轨迹（GIF）">
-<figcaption aria-hidden="true">2D
-二次函数上的梯度下降轨迹（GIF）</figcaption>
-</figure>
-<h2 id="为什么深度网络更难曲率在训练中会变">1.3
-为什么深度网络更难：曲率在训练中会变</h2>
-<p>真实神经网络不是二次函数，<span class="math inline">\(H\)</span>
-会随训练变化；更麻烦的是：</p>
+<p><img src="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/gd_path_2d.gif" alt="2D 二次函数上的梯度下降轨迹（GIF）"></p>
+<h2 id="为什么深度网络更难：曲率在训练中会变"><a class="header-anchor" href="#为什么深度网络更难：曲率在训练中会变">¶</a>为什么深度网络更难：曲率在训练中会变</h2>
+<p>真实神经网络不是二次函数，$H$ 会随训练变化；更麻烦的是：</p>
 <ul>
 <li>梯度是随机的（mini-batch）；</li>
 <li>不同层/不同参数的“有效尺度”差异巨大；</li>
 <li>还会有动量、归一化、权重衰减、裁剪等“附加物理”。</li>
 </ul>
-<p>所以现代训练几乎不会只用一个常数学习率跑到底，而是用<strong>学习率调度（schedule）</strong>：<span class="math inline">\(\eta_t\)</span> 随时间变化。</p>
-<h2 id="更进一步l-光滑l-smooth告诉你学习率上限从哪来">1.4
-更进一步：<span class="math inline">\(L\)</span>-光滑（L-smooth）告诉你“学习率上限”从哪来</h2>
-<p>上面的二次函数例子有个隐藏前提：曲率 <span class="math inline">\(a\)</span>
-固定不变。更一般地，优化里常见一个假设叫 <strong><span class="math inline">\(L\)</span>-光滑</strong>：</p>
+<p>所以现代训练几乎不会只用一个常数学习率跑到底，而是用<strong>学习率调度（schedule）</strong>：$\eta_t$ 随时间变化。</p>
+<h2 id="更进一步：-L-光滑（L-smooth）告诉你“学习率上限”从哪来"><a class="header-anchor" href="#更进一步：-L-光滑（L-smooth）告诉你“学习率上限”从哪来">¶</a>更进一步：$L$-光滑（L-smooth）告诉你“学习率上限”从哪来</h2>
+<p>上面的二次函数例子有个隐藏前提：曲率 $a$ 固定不变。更一般地，优化里常见一个假设叫 <strong>$L$-光滑</strong>：</p>
 <blockquote>
 <p>梯度不会变化得太快（损失曲线不会突然“折成直角”）。</p>
 </blockquote>
-<p>一种常见表述是：对任意 <span class="math inline">\(x,y\)</span>，有</p>
-<p><span class="math display">\[
-\|\nabla f(x)-\nabla f(y)\|\le L\|x-y\|
-\]</span></p>
-<p>这意味着“局部曲率”不会超过某个上界 <span class="math inline">\(L\)</span>（你可以把 <span class="math inline">\(L\)</span>
-理解为“最陡的最大程度”）。在这种情况下，梯度下降取</p>
-<p><span class="math display">\[
-0&lt;\eta \le \frac{1}{L}
-\]</span></p>
+<p>一种常见表述是：对任意 $x,y$，有</p>
+<p>$$<br>
+|\nabla f(x)-\nabla f(y)|\le L|x-y|<br>
+$$</p>
+<p>这意味着“局部曲率”不会超过某个上界 $L$（你可以把 $L$ 理解为“最陡的最大程度”）。在这种情况下，梯度下降取</p>
+<p>$$<br>
+0&lt;\eta \le \frac{1}{L}<br>
+$$</p>
 <p>通常就能保证每步不至于把损失抬高（直观上是“别一步跨太大”）。</p>
-<p><strong>类比</strong>：你在一个城市里开车，<span class="math inline">\(L\)</span>
-像“这座城市里最陡的下坡路的坡度上限”。如果你把油门踩到超过这个城市道路条件能承受的程度，你迟早会在某个最陡路段失控。</p>
-<h2 id="强凸strongly-convex与为什么后期需要降低学习率">1.5
-强凸（strongly convex）与“为什么后期需要降低学习率”</h2>
-<p>如果函数在最优点附近像一个“碗”，并且碗的曲率不会太小（<span class="math inline">\(\mu\)</span>-强凸），那么会有更快的收敛性质。你可以把这理解成：</p>
+<p><strong>类比</strong>：你在一个城市里开车，$L$ 像“这座城市里最陡的下坡路的坡度上限”。如果你把油门踩到超过这个城市道路条件能承受的程度，你迟早会在某个最陡路段失控。</p>
+<h2 id="强凸（strongly-convex）与“为什么后期需要降低学习率”"><a class="header-anchor" href="#强凸（strongly-convex）与“为什么后期需要降低学习率”">¶</a>强凸（strongly convex）与“为什么后期需要降低学习率”</h2>
+<p>如果函数在最优点附近像一个“碗”，并且碗的曲率不会太小（$\mu$-强凸），那么会有更快的收敛性质。你可以把这理解成：</p>
 <ul>
 <li>碗太浅：你靠近最低点后，坡度很小，继续用大步长会来回晃；</li>
 <li>碗够“硬”：你能更快被拉回最低点附近。</li>
 </ul>
-<p>很多理论告诉我们：在随机梯度（有噪声）下，学习率通常需要逐步变小，才能把“最后那点抖动”压下去。这就是
-schedule 后期 decay/cooldown
-的一个根源：<strong>让你从“探索”切换到“精修”。</strong></p>
-<h2 id="一维二次函数里稳定-临界-发散长什么样">1.6 一维二次函数里“稳定 /
-临界 / 发散”长什么样</h2>
-<p>用 <span class="math inline">\(L(\theta)=\frac{1}{2}a\theta^2\)</span>
-这个最简单模型，你可以用一小段代码亲眼看到：</p>
+<p>很多理论告诉我们：在随机梯度（有噪声）下，学习率通常需要逐步变小，才能把“最后那点抖动”压下去。这就是 schedule 后期 decay/cooldown 的一个根源：<strong>让你从“探索”切换到“精修”。</strong></p>
+<h2 id="一维二次函数里“稳定-临界-发散”长什么样"><a class="header-anchor" href="#一维二次函数里“稳定-临界-发散”长什么样">¶</a>一维二次函数里“稳定 / 临界 / 发散”长什么样</h2>
+<p>用 $L(\theta)=\frac{1}{2}a\theta^2$ 这个最简单模型，你可以用一小段代码亲眼看到：</p>
 <ul>
-<li><strong>稳定</strong>：<span class="math inline">\(0&lt;\eta&lt;\frac{2}{a}\)</span>，参数与 loss
-都会快速衰减；\</li>
-<li><strong>临界</strong>：<span class="math inline">\(\eta\approx
-\frac{2}{a}\)</span>，会在谷底两侧来回“弹跳”，loss 降得很慢；\</li>
-<li><strong>发散</strong>：<span class="math inline">\(\eta&gt;\frac{2}{a}\)</span>，振幅越来越大，loss
-直接爆炸。</li>
+<li><strong>稳定</strong>：$0&lt;\eta&lt;\frac{2}{a}$，参数与 loss 都会快速衰减；\</li>
+<li><strong>临界</strong>：$\eta\approx \frac{2}{a}$，会在谷底两侧来回“弹跳”，loss 降得很慢；\</li>
+<li><strong>发散</strong>：$\eta&gt;\frac{2}{a}$，振幅越来越大，loss 直接爆炸。</li>
 </ul>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"></span><br><span class="line">a = <span class="number">4.0</span></span><br><span class="line">steps = <span class="number">60</span></span><br><span class="line">theta0 = <span class="number">2.0</span></span><br><span class="line">etas = [<span class="number">0.3</span>, <span class="number">2.0</span> / a, <span class="number">0.7</span>]  <span class="comment"># stable / borderline / unstable</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">eta: <span class="built_in">float</span></span>):</span><br><span class="line">    theta = theta0</span><br><span class="line">    thetas, losses = [], []</span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(steps):</span><br><span class="line">        g = a * theta</span><br><span class="line">        theta = theta - eta * g</span><br><span class="line">        thetas.append(theta)</span><br><span class="line">        losses.append(<span class="number">0.5</span> * a * theta * theta)</span><br><span class="line">    <span class="keyword">return</span> np.array(thetas), np.array(losses)</span><br><span class="line"></span><br><span class="line">ths1, l1 = run(etas[<span class="number">0</span>])</span><br><span class="line">ths2, l2 = run(etas[<span class="number">1</span>])</span><br><span class="line">ths3, l3 = run(etas[<span class="number">2</span>])</span><br><span class="line"></span><br><span class="line">plt.figure(figsize=(<span class="number">9</span>, <span class="number">4.5</span>), dpi=<span class="number">160</span>)</span><br><span class="line">plt.subplot(<span class="number">1</span>, <span class="number">2</span>, <span class="number">1</span>)</span><br><span class="line">plt.plot(ths1, label=<span class="string">f&quot;stable eta=<span class="subst">&#123;etas[<span class="number">0</span>]:<span class="number">.2</span>f&#125;</span>&quot;</span>)</span><br><span class="line">plt.plot(ths2, label=<span class="string">f&quot;borderline eta=<span class="subst">&#123;etas[<span class="number">1</span>]:<span class="number">.2</span>f&#125;</span>&quot;</span>)</span><br><span class="line">plt.plot(ths3, label=<span class="string">f&quot;unstable eta=<span class="subst">&#123;etas[<span class="number">2</span>]:<span class="number">.2</span>f&#125;</span>&quot;</span>)</span><br><span class="line">plt.title(<span class="string">&quot;Parameter trajectory $\\theta_t$&quot;</span>)</span><br><span class="line">plt.xlabel(<span class="string">&quot;step&quot;</span>)</span><br><span class="line">plt.ylabel(<span class="string">&quot;$\\theta$&quot;</span>)</span><br><span class="line">plt.legend(frameon=<span class="literal">False</span>, fontsize=<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line">plt.subplot(<span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>)</span><br><span class="line">plt.semilogy(l1 + <span class="number">1e-18</span>, label=<span class="string">&quot;stable&quot;</span>)</span><br><span class="line">plt.semilogy(l2 + <span class="number">1e-18</span>, label=<span class="string">&quot;borderline&quot;</span>)</span><br><span class="line">plt.semilogy(l3 + <span class="number">1e-18</span>, label=<span class="string">&quot;unstable&quot;</span>)</span><br><span class="line">plt.title(<span class="string">&quot;Loss trajectory (log scale)&quot;</span>)</span><br><span class="line">plt.xlabel(<span class="string">&quot;step&quot;</span>)</span><br><span class="line">plt.ylabel(<span class="string">&quot;$L(\\theta)$&quot;</span>)</span><br><span class="line">plt.legend(frameon=<span class="literal">False</span>, fontsize=<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line">plt.tight_layout()</span><br><span class="line">plt.savefig(<span class="string">&quot;gd_stability_1d.png&quot;</span>)</span><br><span class="line">plt.close()</span><br></pre></td></tr></table></figure>
-<figure>
-<img src="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/gd_stability_1d.png" alt="一维二次函数：学习率太大为什么会炸">
-<figcaption aria-hidden="true">一维二次函数：学习率太大为什么会炸</figcaption>
-</figure>
+<p><img src="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/gd_stability_1d.png" alt="一维二次函数：学习率太大为什么会炸"></p>
 <hr>
-<h1 id="学习率与噪声为什么-batch-size-会影响学习率">2.
-学习率与“噪声”：为什么 batch size 会影响学习率</h1>
-<h2 id="随机梯度的两张脸方向有用噪声也很大">2.1
-随机梯度的两张脸：方向有用，噪声也很大</h2>
+<h1>学习率与“噪声”：为什么 batch size 会影响学习率</h1>
+<h2 id="随机梯度的两张脸：方向有用，噪声也很大"><a class="header-anchor" href="#随机梯度的两张脸：方向有用，噪声也很大">¶</a>随机梯度的两张脸：方向有用，噪声也很大</h2>
 <p>mini-batch 梯度可以看成：</p>
-<p><span class="math display">\[
-g_t=\nabla L(\theta_t)+\xi_t
-\]</span></p>
-<p>其中 <span class="math inline">\(\xi_t\)</span>
-是噪声（随机性）。这件事带来两种效应：</p>
+<p>$$<br>
+g_t=\nabla L(\theta_t)+\xi_t<br>
+$$</p>
+<p>其中 $\xi_t$ 是噪声（随机性）。这件事带来两种效应：</p>
 <ul>
 <li>好处：噪声让你不容易困在“很尖的坏坑”，像在地形里加了点抖动；</li>
 <li>坏处：噪声让大步长更容易“抖飞”，训练不稳定。</li>
 </ul>
 <p><strong>类比</strong>：你蒙眼下山，手里拿指南针（梯度方向），但指南针会抖（噪声）。你走得越快（学习率大），抖动造成的偏差越大。</p>
-<h2 id="经典经验线性缩放法则与-warmup大-batch-训练">2.2
-经典经验：线性缩放法则与 warmup（大 batch 训练）</h2>
+<h2 id="经典经验：线性缩放法则与-warmup（大-batch-训练）"><a class="header-anchor" href="#经典经验：线性缩放法则与-warmup（大-batch-训练）">¶</a>经典经验：线性缩放法则与 warmup（大 batch 训练）</h2>
 <p>很多设置里，增大 batch size 可以减少梯度噪声，因此人们常用经验：</p>
 <ul>
-<li>batch 变大 <span class="math inline">\(k\)</span> 倍，学习率也乘
-<span class="math inline">\(k\)</span>（线性缩放）；</li>
-<li>但训练初期“系统还没稳定”，所以先用 warmup
-把学习率从小慢慢升到目标值。</li>
+<li>batch 变大 $k$ 倍，学习率也乘 $k$（线性缩放）；</li>
+<li>但训练初期“系统还没稳定”，所以先用 warmup 把学习率从小慢慢升到目标值。</li>
 </ul>
 <p>warmup 的典型形式（线性 warmup）：</p>
-<p><span class="math display">\[
-\eta_t=\eta_{\text{init}}+(\eta_{\text{target}}-\eta_{\text{init}})\frac{t}{T_{\text{warm}}}
-\]</span></p>
-<p>近年的研究进一步解释了 warmup 的作用：它往往不是“为了收集 Adam
-的统计量”这么简单，而是<strong>帮助模型进入更“好条件”的区域，从而能承受更大的目标学习率</strong>（见后文“最新进展”部分）。</p>
+<p>$$<br>
+\eta_t=\eta_{\text{init}}+(\eta_{\text{target}}-\eta_{\text{init}})\frac{t}{T_{\text{warm}}}<br>
+$$</p>
+<p>近年的研究进一步解释了 warmup 的作用：它往往不是“为了收集 Adam 的统计量”这么简单，而是<strong>帮助模型进入更“好条件”的区域，从而能承受更大的目标学习率</strong>（见后文“最新进展”部分）。</p>
 <hr>
-<h1 id="动量学习率的隐形放大器">3. 动量：学习率的“隐形放大器”</h1>
-<h2 id="sgd-momentum-的更新与直觉">3.1 SGD + Momentum 的更新与直觉</h2>
+<h1>动量：学习率的“隐形放大器”</h1>
+<h2 id="SGD-Momentum-的更新与直觉"><a class="header-anchor" href="#SGD-Momentum-的更新与直觉">¶</a>SGD + Momentum 的更新与直觉</h2>
 <p>动量（以经典形式为例）：</p>
-<p><span class="math display">\[
-v_t=\beta v_{t-1}+g_t,\quad \theta_{t+1}=\theta_t-\eta v_t
-\]</span></p>
-<p>其中 <span class="math inline">\(\beta\in(0,1)\)</span> 常取
-0.9。</p>
+<p>$$<br>
+v_t=\beta v_{t-1}+g_t,\quad \theta_{t+1}=\theta_t-\eta v_t<br>
+$$</p>
+<p>其中 $\beta\in(0,1)$ 常取 0.9。</p>
 <p><strong>类比</strong>：你推一个很重的购物车下坡：</p>
 <ul>
-<li><span class="math inline">\(g_t\)</span> 是你当下看到的坡度；</li>
-<li><span class="math inline">\(v_t\)</span> 是车的速度（带惯性）；</li>
-<li><span class="math inline">\(\beta\)</span>
-越大，车越“刹不住”，但也越能穿过小坑洼；</li>
-<li>学习率 <span class="math inline">\(\eta\)</span>
-相当于“你给速度换算成位移的比例”。</li>
+<li>$g_t$ 是你当下看到的坡度；</li>
+<li>$v_t$ 是车的速度（带惯性）；</li>
+<li>$\beta$ 越大，车越“刹不住”，但也越能穿过小坑洼；</li>
+<li>学习率 $\eta$ 相当于“你给速度换算成位移的比例”。</li>
 </ul>
-<h2 id="为什么动量会让你更容易过冲">3.2
-为什么动量会让你更容易“过冲”</h2>
+<h2 id="为什么动量会让你更容易“过冲”"><a class="header-anchor" href="#为什么动量会让你更容易“过冲”">¶</a>为什么动量会让你更容易“过冲”</h2>
 <p>直觉上，动量会把一段时间内的梯度方向叠加起来，相当于“长期沿一个方向加速”。因此：</p>
 <ul>
-<li>同样的 <span class="math inline">\(\eta\)</span>，加动量后等效步长更大；</li>
-<li>所以很多时候 <strong>SGD+momentum
-的可用学习率上限会更低</strong>，否则会更容易震荡。</li>
+<li>同样的 $\eta$，加动量后等效步长更大；</li>
+<li>所以很多时候 <strong>SGD+momentum 的可用学习率上限会更低</strong>，否则会更容易震荡。</li>
 </ul>
 <p>这也是为什么一些训练 recipe 会写：</p>
 <ul>
@@ -436,110 +385,86 @@ v_t=\beta v_{t-1}+g_t,\quad \theta_{t+1}=\theta_t-\eta v_t
 <li>或者配合更强的正则化（weight decay、label smoothing 等）稳住。</li>
 </ul>
 <hr>
-<h1 id="自适应优化器学习率变成一组学习率">4.
-自适应优化器：学习率“变成一组学习率”</h1>
-<p>如果说 SGD 的学习率是一把锤子（全局同一个 <span class="math inline">\(\eta\)</span>），那么 Adam
-类方法像是一套“带扭矩控制的电动螺丝刀”：不同参数会自动用不同的步长。</p>
-<h2 id="adam-的核心公式一定要看懂">4.1 Adam
-的核心公式（一定要看懂）</h2>
+<h1>自适应优化器：学习率“变成一组学习率”</h1>
+<p>如果说 SGD 的学习率是一把锤子（全局同一个 $\eta$），那么 Adam 类方法像是一套“带扭矩控制的电动螺丝刀”：不同参数会自动用不同的步长。</p>
+<h2 id="Adam-的核心公式（一定要看懂）"><a class="header-anchor" href="#Adam-的核心公式（一定要看懂）">¶</a>Adam 的核心公式（一定要看懂）</h2>
 <p>Adam（省略一些细节，只保留关键结构）：</p>
-<p><span class="math display">\[
-m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t
-\]</span></p>
-<p><span class="math display">\[
-v_t=\beta_2 v_{t-1}+(1-\beta_2)g_t^{\odot 2}
-\]</span></p>
-<p><span class="math display">\[
-\theta_{t+1}=\theta_t-\eta\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}
-\]</span></p>
-<p>其中 <span class="math inline">\(g_t^{\odot 2}\)</span>
-表示逐元素平方；<span class="math inline">\(\hat m_t,\hat v_t\)</span>
-是偏置修正后的估计。</p>
+<p>$$<br>
+m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t<br>
+$$</p>
+<p>$$<br>
+v_t=\beta_2 v_{t-1}+(1-\beta_2)g_t^{\odot 2}<br>
+$$</p>
+<p>$$<br>
+\theta_{t+1}=\theta_t-\eta\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}<br>
+$$</p>
+<p>其中 $g_t^{\odot 2}$ 表示逐元素平方；$\hat m_t,\hat v_t$ 是偏置修正后的估计。</p>
 <p>你应该抓住一句话：</p>
 <blockquote>
-<p><strong>Adam 的“有效学习率”大致是 <span class="math inline">\(\eta /
-(\sqrt{\hat
-v_t}+\epsilon)\)</span></strong>，所以每个参数的步长会随其梯度尺度自动缩放。</p>
+<p><strong>Adam 的“有效学习率”大致是 $\eta / (\sqrt{\hat v_t}+\epsilon)$</strong>，所以每个参数的步长会随其梯度尺度自动缩放。</p>
 </blockquote>
 <p><strong>类比</strong>：同一辆车在不同路面（不同参数维度）行驶。路面越颠（梯度方差越大），系统自动把那一侧轮子的扭矩（步长）调小，避免打滑。</p>
-<h2 id="为什么-adam-仍然需要-warmup而且经常更需要">4.2 为什么 Adam
-仍然需要 warmup（而且经常更需要）</h2>
+<h2 id="为什么-Adam-仍然需要-warmup（而且经常更需要）"><a class="header-anchor" href="#为什么-Adam-仍然需要-warmup（而且经常更需要）">¶</a>为什么 Adam 仍然需要 warmup（而且经常更需要）</h2>
 <p>很多人以为：Adam 都自适应了，为什么还要 warmup？</p>
-<p>一个关键原因：<strong>训练初期的统计量不稳定 +
-某些方向的“预条件化曲率”很大</strong>，导致你如果一上来就用目标学习率，容易出现大幅抖动（loss
-spike）甚至训练失败。</p>
-<p>这也是近年关于 warmup 的理论解释里经常出现的关键词：<strong>sharpness
-/ preconditioned sharpness</strong>（可理解为“有效曲率”）。</p>
+<p>一个关键原因：<strong>训练初期的统计量不稳定 + 某些方向的“预条件化曲率”很大</strong>，导致你如果一上来就用目标学习率，容易出现大幅抖动（loss spike）甚至训练失败。</p>
+<p>这也是近年关于 warmup 的理论解释里经常出现的关键词：<strong>sharpness / preconditioned sharpness</strong>（可理解为“有效曲率”）。</p>
 <hr>
-<h1 id="学习率调度schedule大全从老办法到大模型默认">5.
-学习率调度（schedule）大全：从老办法到大模型默认</h1>
+<h1>学习率调度（schedule）大全：从老办法到大模型默认</h1>
 <p>把 schedule 看成“训练过程的配速策略”：</p>
 <ul>
 <li>前期：探索更大范围（跑得快）</li>
 <li>中期：稳定推进（匀速）</li>
 <li>后期：精细收敛（减速、微调）</li>
 </ul>
-<p>先看一张“最常用曲线”对比图（同样由 <span class="math inline">\(\\texttt{lr_viz.py}\)</span> 生成）：</p>
-<figure>
-<img src="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/lr_schedules.png" alt="三种常见学习率曲线：Constant / Warmup+Cosine / WSD">
-<figcaption aria-hidden="true">三种常见学习率曲线：Constant /
-Warmup+Cosine / WSD</figcaption>
-</figure>
-<h2 id="常数学习率constant">5.1 常数学习率（Constant）</h2>
-<p><span class="math display">\[
-\eta_t=\eta_0
-\]</span></p>
+<p>先看一张“最常用曲线”对比图（同样由 $\texttt{lr_viz.py}$ 生成）：</p>
+<p><img src="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/lr_schedules.png" alt="三种常见学习率曲线：Constant / Warmup+Cosine / WSD"></p>
+<h2 id="常数学习率（Constant）"><a class="header-anchor" href="#常数学习率（Constant）">¶</a>常数学习率（Constant）</h2>
+<p>$$<br>
+\eta_t=\eta_0<br>
+$$</p>
 <p>优点：简单。</p>
-<p>缺点：几乎总会在“速度 vs
-稳定”之间两难：要么前期太慢，要么后期太抖。</p>
-<h2 id="step-decay台阶式">5.2 Step decay（台阶式）</h2>
-<p>例如每到某些 epoch 乘以 <span class="math inline">\(\gamma\)</span>：</p>
-<p><span class="math display">\[
-\eta \leftarrow \gamma\eta,\quad \gamma\in(0,1)
-\]</span></p>
+<p>缺点：几乎总会在“速度 vs 稳定”之间两难：要么前期太慢，要么后期太抖。</p>
+<h2 id="Step-decay（台阶式）"><a class="header-anchor" href="#Step-decay（台阶式）">¶</a>Step decay（台阶式）</h2>
+<p>例如每到某些 epoch 乘以 $\gamma$：</p>
+<p>$$<br>
+\eta \leftarrow \gamma\eta,\quad \gamma\in(0,1)<br>
+$$</p>
 <p>类比：跑步时每过一段路程突然把速度降一档。</p>
 <p>优点：实现简单。</p>
 <p>缺点：变化不平滑，可能造成训练指标突然波动。</p>
-<h2 id="exponential-decay指数衰减">5.3 Exponential
-decay（指数衰减）</h2>
-<p><span class="math display">\[
-\eta_t=\eta_0\cdot \gamma^t
-\]</span></p>
+<h2 id="Exponential-decay（指数衰减）"><a class="header-anchor" href="#Exponential-decay（指数衰减）">¶</a>Exponential decay（指数衰减）</h2>
+<p>$$<br>
+\eta_t=\eta_0\cdot \gamma^t<br>
+$$</p>
 <p>优点：平滑。</p>
 <p>缺点：后期可能衰得太快，等效“刹车过早”，尤其在长训练中。</p>
-<h2 id="cosine-decay余弦退火深度学习最常用之一">5.4 Cosine
-decay（余弦退火，深度学习最常用之一）</h2>
+<h2 id="Cosine-decay（余弦退火，深度学习最常用之一）"><a class="header-anchor" href="#Cosine-decay（余弦退火，深度学习最常用之一）">¶</a>Cosine decay（余弦退火，深度学习最常用之一）</h2>
 <p>（最常见版本：从峰值衰到一个最小值）</p>
-<p><span class="math display">\[
-\eta_t=\eta_{\min}+\frac{1}{2}(\eta_{\max}-\eta_{\min})\left(1+\cos\left(\pi\frac{t}{T}\right)\right)
-\]</span></p>
+<p>$$<br>
+\eta_t=\eta_{\min}+\frac{1}{2}(\eta_{\max}-\eta_{\min})\left(1+\cos\left(\pi\frac{t}{T}\right)\right)<br>
+$$</p>
 <p><strong>直觉</strong>：一开始减速慢（保持探索），后面减速快（冲向收敛）。</p>
 <p>大模型训练中常见结构是：</p>
 <ul>
-<li>warmup：线性升到 <span class="math inline">\(\eta_{\max}\)</span></li>
-<li>cosine：从 <span class="math inline">\(\eta_{\max}\)</span> 退到
-<span class="math inline">\(\eta_{\min}\)</span></li>
+<li>warmup：线性升到 $\eta_{\max}$</li>
+<li>cosine：从 $\eta_{\max}$ 退到 $\eta_{\min}$</li>
 </ul>
-<h2 id="cosine-warm-restartssgdr">5.5 Cosine warm restarts（SGDR）</h2>
+<h2 id="Cosine-warm-restarts（SGDR）"><a class="header-anchor" href="#Cosine-warm-restarts（SGDR）">¶</a>Cosine warm restarts（SGDR）</h2>
 <p>余弦衰到低点后又“重启”到高学习率，再衰一次。</p>
 <p>直觉：像周期性“冲坡”，有时能跳出局部坏盆地。</p>
-<p>在现代大模型预训练中，<strong>不如纯一次性 cosine / WSD
-常见</strong>，但在一些中小模型与某些任务上仍有价值。</p>
-<h2 id="one-cycle超级收敛思想">5.6 One-cycle（超级收敛思想）</h2>
+<p>在现代大模型预训练中，<strong>不如纯一次性 cosine / WSD 常见</strong>，但在一些中小模型与某些任务上仍有价值。</p>
+<h2 id="One-cycle（超级收敛思想）"><a class="header-anchor" href="#One-cycle（超级收敛思想）">¶</a>One-cycle（超级收敛思想）</h2>
 <p>核心：学习率先升后降（并配合动量反向变化）。</p>
 <p>直觉：前期把学习率推到接近稳定边界，加速探索；后期快速降下来收敛。</p>
 <p>很适合“训练步数较短、希望快速到一个不错解”的场景。</p>
-<h2 id="逆平方根transformer-经典-schedule">5.7 逆平方根（Transformer
-经典 schedule）</h2>
+<h2 id="逆平方根（Transformer-经典-schedule）"><a class="header-anchor" href="#逆平方根（Transformer-经典-schedule）">¶</a>逆平方根（Transformer 经典 schedule）</h2>
 <p>在 Transformer 早期训练 recipe 中很常见的一类形式（示意）：</p>
-<p><span class="math display">\[
-\eta_t \propto \min\left(t^{-1/2}, t\cdot T_{\text{warm}}^{-3/2}\right)
-\]</span></p>
-<p>直觉：warmup 后开始按 <span class="math inline">\(t^{-1/2}\)</span>
-缓慢衰减。</p>
+<p>$$<br>
+\eta_t \propto \min\left(t^{-1/2}, t\cdot T_{\text{warm}}^{-3/2}\right)<br>
+$$</p>
+<p>直觉：warmup 后开始按 $t^{-1/2}$ 缓慢衰减。</p>
 <p>这类 schedule 的精神是：<strong>长期训练别衰太快</strong>。</p>
-<h2 id="wsdwarmupstabledecay近年大模型训练的重要趋势">5.8
-WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势</h2>
+<h2 id="WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势"><a class="header-anchor" href="#WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势">¶</a>WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势</h2>
 <p>WSD 的核心形状：</p>
 <ul>
 <li>warmup：上升</li>
@@ -549,37 +474,27 @@ WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势</h2>
 <p>直觉：中段“匀速巡航”，最后“进站刹车”。</p>
 <p>为什么它近年很受欢迎？</p>
 <ul>
-<li>它比 cosine
-更“可复用”：你可以先训练一段稳定期，后面想延长训练时不必从头设计一个依赖总步数的半周期
-cosine。</li>
-<li>很多工作观察到 cooldown
-开始时损失会出现“明显下降”，像模型终于被允许“精细贴合”盆地。</li>
+<li>它比 cosine 更“可复用”：你可以先训练一段稳定期，后面想延长训练时不必从头设计一个依赖总步数的半周期 cosine。</li>
+<li>很多工作观察到 cooldown 开始时损失会出现“明显下降”，像模型终于被允许“精细贴合”盆地。</li>
 </ul>
 <p>（后文会结合 2025 的理论解释更详细讲。）</p>
 <hr>
-<h1 id="从能跑到跑得好一套可操作的学习率调参流程">6.
-从“能跑”到“跑得好”：一套可操作的学习率调参流程</h1>
+<h1>从“能跑”到“跑得好”：一套可操作的学习率调参流程</h1>
 <p>下面给一套你可以在绝大多数任务里复用的流程（从小白视角写，但足够深）。</p>
-<h2 id="先搞清楚你训练失败到底是哪种失败">6.1
-先搞清楚：你训练失败到底是哪种失败？</h2>
+<h2 id="先搞清楚：你训练失败到底是哪种失败？"><a class="header-anchor" href="#先搞清楚：你训练失败到底是哪种失败？">¶</a>先搞清楚：你训练失败到底是哪种失败？</h2>
 <p>训练“坏掉”常见有三类：</p>
-<ol type="1">
+<ol>
 <li><strong>直接发散</strong>：loss 变成 NaN/inf，或者几步内冲天。</li>
 <li><strong>抖动不收敛</strong>：loss 在高位大幅波动，指标上不去。</li>
-<li><strong>看似稳定但学不动</strong>：loss
-缓慢下降甚至平台期很早出现。</li>
+<li><strong>看似稳定但学不动</strong>：loss 缓慢下降甚至平台期很早出现。</li>
 </ol>
 <p>对应的学习率结论通常是：</p>
 <ul>
-<li>(1)(2)：<span class="math inline">\(\eta\)</span>
-太大（或动量太大、或缺少 warmup、或裁剪/正则不够）</li>
-<li>(3)：<span class="math inline">\(\eta\)</span> 太小（或 schedule
-衰减太快、或 batch 太小噪声太大）</li>
+<li>(1)(2)：$\eta$ 太大（或动量太大、或缺少 warmup、或裁剪/正则不够）</li>
+<li>(3)：$\eta$ 太小（或 schedule 衰减太快、或 batch 太小噪声太大）</li>
 </ul>
-<h2 id="用-lr-range-test-快速找可行区间强烈推荐">6.2 用 “LR range test”
-快速找可行区间（强烈推荐）</h2>
-<p>经典做法：在很短的训练里，让学习率从很小指数增长到很大，观察 loss
-什么时候开始明显上升/发散。</p>
+<h2 id="用-“LR-range-test”-快速找可行区间（强烈推荐）"><a class="header-anchor" href="#用-“LR-range-test”-快速找可行区间（强烈推荐）">¶</a>用 “LR range test” 快速找可行区间（强烈推荐）</h2>
+<p>经典做法：在很短的训练里，让学习率从很小指数增长到很大，观察 loss 什么时候开始明显上升/发散。</p>
 <p>直觉：你在“试探油门”，找到“刚好不翻车”的上限。</p>
 <p>简化版伪代码（PyTorch）：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">lr_range_test</span>(<span class="params">model, loader, loss_fn, optimizer, lr_min=<span class="number">1e-7</span>, lr_max=<span class="number">10</span>, num_steps=<span class="number">200</span></span>):</span><br><span class="line">    model.train()</span><br><span class="line">    <span class="comment"># 指数增长</span></span><br><span class="line">    mult = (lr_max / lr_min) ** (<span class="number">1</span> / (num_steps - <span class="number">1</span>))</span><br><span class="line">    lr = lr_min</span><br><span class="line">    <span class="keyword">for</span> g <span class="keyword">in</span> optimizer.param_groups:</span><br><span class="line">        g[<span class="string">&quot;lr&quot;</span>] = lr</span><br><span class="line"></span><br><span class="line">    losses = []</span><br><span class="line">    lrs = []</span><br><span class="line">    it = <span class="built_in">iter</span>(loader)</span><br><span class="line">    <span class="keyword">for</span> step <span class="keyword">in</span> <span class="built_in">range</span>(num_steps):</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            x, y = <span class="built_in">next</span>(it)</span><br><span class="line">        <span class="keyword">except</span> StopIteration:</span><br><span class="line">            it = <span class="built_in">iter</span>(loader)</span><br><span class="line">            x, y = <span class="built_in">next</span>(it)</span><br><span class="line"></span><br><span class="line">        optimizer.zero_grad(set_to_none=<span class="literal">True</span>)</span><br><span class="line">        pred = model(x)</span><br><span class="line">        loss = loss_fn(pred, y)</span><br><span class="line">        loss.backward()</span><br><span class="line">        optimizer.step()</span><br><span class="line"></span><br><span class="line">        losses.append(loss.item())</span><br><span class="line">        lrs.append(lr)</span><br><span class="line"></span><br><span class="line">        lr *= mult</span><br><span class="line">        <span class="keyword">for</span> g <span class="keyword">in</span> optimizer.param_groups:</span><br><span class="line">            g[<span class="string">&quot;lr&quot;</span>] = lr</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> lrs, losses</span><br></pre></td></tr></table></figure>
@@ -588,24 +503,19 @@ cosine。</li>
 <li>初期 loss 下降（学习开始）</li>
 <li>到某个点开始抖动甚至上升（接近稳定边界）</li>
 </ul>
-<p>经验：把“刚开始明显变差前”的学习率当作 <span class="math inline">\(\eta_{\max}\)</span> 的量级，然后正式训练用它的
-0.3～1 倍（按任务调整）。</p>
-<h2 id="选择-schedule小模型-vs-大模型的经验差异">6.3 选择
-schedule：小模型 vs 大模型的经验差异</h2>
+<p>经验：把“刚开始明显变差前”的学习率当作 $\eta_{\max}$ 的量级，然后正式训练用它的 0.3～1 倍（按任务调整）。</p>
+<h2 id="6-3-选择-schedule：小模型-vs-大模型的经验差异"><a class="header-anchor" href="#6-3-选择-schedule：小模型-vs-大模型的经验差异">¶</a>6.3 选择 schedule：小模型 vs 大模型的经验差异</h2>
 <ul>
-<li><strong>中小模型（训练步数不算特别长）</strong>：cosine / one-cycle
-往往很稳妥。</li>
-<li><strong>大模型预训练（训练极长、可能要多次续训）</strong>：WSD 或
-schedule-free 值得优先考虑。</li>
+<li><strong>中小模型（训练步数不算特别长）</strong>：cosine / one-cycle 往往很稳妥。</li>
+<li><strong>大模型预训练（训练极长、可能要多次续训）</strong>：WSD 或 schedule-free 值得优先考虑。</li>
 </ul>
 <p>一个很实用的默认（尤其是 AdamW）：</p>
 <ul>
 <li>warmup：1%～5% steps（大 batch 或很深模型倾向更长）</li>
-<li>stable：大部分训练保持 <span class="math inline">\(\eta_{\max}\)</span></li>
-<li>cooldown：最后 10%～20% steps 线性降到 <span class="math inline">\(\eta_{\min}\)</span>（比如 <span class="math inline">\(\eta_{\max}\)</span> 的 0.1 倍或更小）</li>
+<li>stable：大部分训练保持 $\eta_{\max}$</li>
+<li>cooldown：最后 10%～20% steps 线性降到 $\eta_{\min}$（比如 $\eta_{\max}$ 的 0.1 倍或更小）</li>
 </ul>
-<h2 id="学习率batch权重衰减三者要一起看">6.4
-“学习率、batch、权重衰减”三者要一起看</h2>
+<h2 id="6-4-“学习率、batch、权重衰减”三者要一起看"><a class="header-anchor" href="#6-4-“学习率、batch、权重衰减”三者要一起看">¶</a>6.4 “学习率、batch、权重衰减”三者要一起看</h2>
 <p>很多人只调学习率，然后觉得“怎么总是不稳”。实际上这三者高度耦合：</p>
 <ul>
 <li>batch 影响梯度噪声；</li>
@@ -624,115 +534,77 @@ schedule-free 值得优先考虑。</li>
 <li>适当加 weight decay</li>
 <li>或者延长 warmup</li>
 </ul>
-<p>会比一味降 <span class="math inline">\(\eta_{\max}\)</span>
-更好，因为降 <span class="math inline">\(\eta_{\max}\)</span>
-往往会牺牲最终效果或训练效率。</p>
+<p>会比一味降 $\eta_{\max}$ 更好，因为降 $\eta_{\max}$ 往往会牺牲最终效果或训练效率。</p>
 <hr>
-<h1 id="代码从零实现常用-schedulepytorch">7. 代码：从零实现常用
-schedule（PyTorch）</h1>
-<p>下面给一个“够用且清晰”的实现：warmup + cosine / warmup +
-WSD（cooldown 线性）。</p>
-<h2 id="warmup-cosine">7.1 Warmup + Cosine</h2>
+<h1>7. 代码：从零实现常用 schedule（PyTorch）</h1>
+<p>下面给一个“够用且清晰”的实现：warmup + cosine / warmup + WSD（cooldown 线性）。</p>
+<h2 id="7-1-Warmup-Cosine"><a class="header-anchor" href="#7-1-Warmup-Cosine">¶</a>7.1 Warmup + Cosine</h2>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> math</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">lr_warmup_cosine</span>(<span class="params">step, total_steps, warmup_steps, lr_max, lr_min=<span class="number">0.0</span></span>):</span><br><span class="line">    <span class="keyword">if</span> step &lt; warmup_steps:</span><br><span class="line">        <span class="comment"># 线性 warmup</span></span><br><span class="line">        <span class="keyword">return</span> lr_max * (step + <span class="number">1</span>) / <span class="built_in">max</span>(<span class="number">1</span>, warmup_steps)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># cosine decay</span></span><br><span class="line">    t = step - warmup_steps</span><br><span class="line">    T = <span class="built_in">max</span>(<span class="number">1</span>, total_steps - warmup_steps)</span><br><span class="line">    cos = <span class="number">0.5</span> * (<span class="number">1.0</span> + math.cos(math.pi * t / T))</span><br><span class="line">    <span class="keyword">return</span> lr_min + (lr_max - lr_min) * cos</span><br></pre></td></tr></table></figure>
-<h2 id="warmup-stable-decaywsd">7.2 Warmup + Stable + Decay（WSD）</h2>
+<h2 id="7-2-Warmup-Stable-Decay（WSD）"><a class="header-anchor" href="#7-2-Warmup-Stable-Decay（WSD）">¶</a>7.2 Warmup + Stable + Decay（WSD）</h2>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">lr_wsd</span>(<span class="params">step, total_steps, warmup_steps, cooldown_steps, lr_max, lr_min=<span class="number">0.0</span></span>):</span><br><span class="line">    <span class="comment"># warmup</span></span><br><span class="line">    <span class="keyword">if</span> step &lt; warmup_steps:</span><br><span class="line">        <span class="keyword">return</span> lr_max * (step + <span class="number">1</span>) / <span class="built_in">max</span>(<span class="number">1</span>, warmup_steps)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># stable</span></span><br><span class="line">    stable_end = total_steps - cooldown_steps</span><br><span class="line">    <span class="keyword">if</span> step &lt; stable_end:</span><br><span class="line">        <span class="keyword">return</span> lr_max</span><br><span class="line"></span><br><span class="line">    <span class="comment"># cooldown: 线性衰减到 lr_min</span></span><br><span class="line">    t = step - stable_end</span><br><span class="line">    T = <span class="built_in">max</span>(<span class="number">1</span>, cooldown_steps)</span><br><span class="line">    frac = <span class="built_in">min</span>(<span class="number">1.0</span>, (t + <span class="number">1</span>) / T)</span><br><span class="line">    <span class="keyword">return</span> lr_max + (lr_min - lr_max) * frac</span><br></pre></td></tr></table></figure>
-<h2 id="把它接到-optimizer-上训练循环骨架">7.3 把它接到 optimizer
-上（训练循环骨架）</h2>
+<h2 id="7-3-把它接到-optimizer-上（训练循环骨架）"><a class="header-anchor" href="#7-3-把它接到-optimizer-上（训练循环骨架）">¶</a>7.3 把它接到 optimizer 上（训练循环骨架）</h2>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">train_one_epoch</span>(<span class="params">model, loader, optimizer, step_offset, total_steps, schedule_fn, device=<span class="string">&quot;cuda&quot;</span></span>):</span><br><span class="line">    model.train()</span><br><span class="line">    step = step_offset</span><br><span class="line">    <span class="keyword">for</span> x, y <span class="keyword">in</span> loader:</span><br><span class="line">        x, y = x.to(device), y.to(device)</span><br><span class="line"></span><br><span class="line">        lr = schedule_fn(step, total_steps)</span><br><span class="line">        <span class="keyword">for</span> g <span class="keyword">in</span> optimizer.param_groups:</span><br><span class="line">            g[<span class="string">&quot;lr&quot;</span>] = lr</span><br><span class="line"></span><br><span class="line">        optimizer.zero_grad(set_to_none=<span class="literal">True</span>)</span><br><span class="line">        pred = model(x)</span><br><span class="line">        loss = torch.nn.functional.cross_entropy(pred, y)</span><br><span class="line">        loss.backward()</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 可选：梯度裁剪，常用于大模型稳定性</span></span><br><span class="line">        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=<span class="number">1.0</span>)</span><br><span class="line"></span><br><span class="line">        optimizer.step()</span><br><span class="line">        step += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> step</span><br></pre></td></tr></table></figure>
 <p>你可以像这样传入 schedule：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">schedule_fn = <span class="keyword">lambda</span> step, total_steps: lr_wsd(</span><br><span class="line">    step=step,</span><br><span class="line">    total_steps=total_steps,</span><br><span class="line">    warmup_steps=<span class="built_in">int</span>(<span class="number">0.02</span> * total_steps),</span><br><span class="line">    cooldown_steps=<span class="built_in">int</span>(<span class="number">0.10</span> * total_steps),</span><br><span class="line">    lr_max=<span class="number">3e-4</span>,</span><br><span class="line">    lr_min=<span class="number">3e-5</span>,</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="最新研究进展大家在学学习率什么">8.
-最新研究进展：大家在“学学习率”什么？</h1>
+<h1>8. 最新研究进展：大家在“学学习率”什么？</h1>
 <p>如果你把学习率看成“油门曲线”，那么近年的研究大致沿着三条路在推进：</p>
-<ol type="1">
-<li><strong>更好的油门曲线</strong>：cosine 之外，WSD、power-law
-family、token/batch agnostic schedule。</li>
-<li><strong>把油门交给系统</strong>：schedule-free（不需要指定总步数的
-schedule）、甚至 learning-rate-free（让算法自动估计合适步长）。</li>
-<li><strong>解释为什么有效</strong>：warmup、cooldown
-的机制解释，稳定边界、曲率/尖锐度（sharpness）视角，和大模型不稳定的预测。</li>
+<ol>
+<li><strong>更好的油门曲线</strong>：cosine 之外，WSD、power-law family、token/batch agnostic schedule。</li>
+<li><strong>把油门交给系统</strong>：schedule-free（不需要指定总步数的 schedule）、甚至 learning-rate-free（让算法自动估计合适步长）。</li>
+<li><strong>解释为什么有效</strong>：warmup、cooldown 的机制解释，稳定边界、曲率/尖锐度（sharpness）视角，和大模型不稳定的预测。</li>
 </ol>
 <p>下面按时间线串起来。</p>
-<h2 id="learning-rate-free-的代表d-adaptation">8.1
-2023：Learning-rate-free 的代表——D-Adaptation</h2>
+<h2 id="8-1-2023：Learning-rate-free-的代表——D-Adaptation"><a class="header-anchor" href="#8-1-2023：Learning-rate-free-的代表——D-Adaptation">¶</a>8.1 2023：Learning-rate-free 的代表——D-Adaptation</h2>
 <p>一句话：<strong>尽量不让你手动调 base learning rate</strong>。</p>
 <p>D-Adaptation（2023，Meta）提出用一种理论驱动的方式自动估计步长尺度，使得在很多任务上能接近手调学习率的效果。</p>
-<p>你可以把它理解成：传统方法需要你告诉系统“从起点到终点大概有多远”（步长尺度），而
-D-Adaptation
-试图在训练过程中估计这个“距离尺度”，从而自动设定合适的步长。</p>
-<p>参考：<span class="math inline">\(\texttt{https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/}\)</span></p>
-<h2 id="schedule-free-adamwthe-road-less-scheduled">8.2
-2024：Schedule-Free AdamW（The Road Less Scheduled）</h2>
-<p>经典痛点：很多 schedule 需要你提前知道总训练步数 <span class="math inline">\(T\)</span>（例如 cosine
-的半周期要对齐训练长度）。但现实中你经常会：</p>
+<p>你可以把它理解成：传统方法需要你告诉系统“从起点到终点大概有多远”（步长尺度），而 D-Adaptation 试图在训练过程中估计这个“距离尺度”，从而自动设定合适的步长。</p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/">https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/<i class="fas fa-external-link-alt"></i></a>}$</p>
+<h2 id="8-2-2024：Schedule-Free-AdamW（The-Road-Less-Scheduled）"><a class="header-anchor" href="#8-2-2024：Schedule-Free-AdamW（The-Road-Less-Scheduled）">¶</a>8.2 2024：Schedule-Free AdamW（The Road Less Scheduled）</h2>
+<p>经典痛点：很多 schedule 需要你提前知道总训练步数 $T$（例如 cosine 的半周期要对齐训练长度）。但现实中你经常会：</p>
 <ul>
 <li>训练到一半发现还想继续；</li>
 <li>或者想做不同训练预算的对比；</li>
 <li>或者数据/算力不确定。</li>
 </ul>
-<p>Schedule-Free AdamW（2024）提出一种做法：<strong>干脆不显式做
-schedule，但性能能与有 schedule 的方法竞争</strong>。</p>
-<p>直觉理解：它把“调度”和“迭代平均”等思想统一起来，让算法在不需要知道停止时间
-<span class="math inline">\(T\)</span>
-的情况下，仍能走出类似“先快后慢”的有效轨迹。</p>
-<p>参考：<span class="math inline">\(\texttt{https://arxiv.org/abs/2405.15682}\)</span></p>
-<h2 id="why-warmupwarmup-机制被更系统地解释">8.3 2024：Why
-Warmup?——warmup 机制被更系统地解释</h2>
-<p>2024 的一条重要结论是：warmup
-的主要收益往往是<strong>让网络能承受更大的目标学习率</strong>，而不是仅仅“让
-Adam 统计量更准”。</p>
+<p>Schedule-Free AdamW（2024）提出一种做法：<strong>干脆不显式做 schedule，但性能能与有 schedule 的方法竞争</strong>。</p>
+<p>直觉理解：它把“调度”和“迭代平均”等思想统一起来，让算法在不需要知道停止时间 $T$ 的情况下，仍能走出类似“先快后慢”的有效轨迹。</p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2405.15682">https://arxiv.org/abs/2405.15682<i class="fas fa-external-link-alt"></i></a>}$</p>
+<h2 id="8-3-2024：Why-Warmup-——warmup-机制被更系统地解释"><a class="header-anchor" href="#8-3-2024：Why-Warmup-——warmup-机制被更系统地解释">¶</a>8.3 2024：Why Warmup?——warmup 机制被更系统地解释</h2>
+<p>2024 的一条重要结论是：warmup 的主要收益往往是<strong>让网络能承受更大的目标学习率</strong>，而不是仅仅“让 Adam 统计量更准”。</p>
 <p>这会改变你调参的思路：</p>
 <ul>
 <li>你不是在问“warmup 要不要”</li>
-<li>而是在问“我希望最终的 <span class="math inline">\(\eta_{\text{target}}\)</span>
-能有多大、稳定边界在哪，warmup 帮我把边界推到哪里”</li>
+<li>而是在问“我希望最终的 $\eta_{\text{target}}$ 能有多大、稳定边界在哪，warmup 帮我把边界推到哪里”</li>
 </ul>
-<p>参考：<span class="math inline">\(\texttt{https://arxiv.org/html/2406.09405v1}\)</span></p>
-<h2 id="power-scheduler对-batch-size-与-token-数不敏感">8.4 2024：Power
-Scheduler——对 batch size 与 token 数不敏感</h2>
-<p>大模型预训练的现实痛点是：你经常会换 batch size、换训练
-tokens（预算变化），而最优学习率也会跟着漂移。</p>
-<p>Power Scheduler（2024）发现并利用一种 <strong>学习率、batch
-size、训练 tokens 的幂律关系</strong>，构建出对 batch/token
-更“免调”的调度方式，并强调与 <span class="math inline">\(\mu\)</span>P
-等参数化结合的可迁移性。</p>
-<p>参考：<span class="math inline">\(\texttt{https://arxiv.org/abs/2408.13359}\)</span></p>
-<h2 id="用小模型复现大模型不稳定学习率稳定性研究">8.5
-2023–2024：用“小模型复现大模型不稳定”——学习率稳定性研究</h2>
-<p>大模型训练常见“同样超参，小模型没事，大模型炸了”的现象。Wortsman
-等工作提出：很多不稳定性其实能在小模型里通过更高学习率复现，从而可以用更低成本研究：</p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/html/2406.09405v1">https://arxiv.org/html/2406.09405v1<i class="fas fa-external-link-alt"></i></a>}$</p>
+<h2 id="8-4-2024：Power-Scheduler——对-batch-size-与-token-数不敏感"><a class="header-anchor" href="#8-4-2024：Power-Scheduler——对-batch-size-与-token-数不敏感">¶</a>8.4 2024：Power Scheduler——对 batch size 与 token 数不敏感</h2>
+<p>大模型预训练的现实痛点是：你经常会换 batch size、换训练 tokens（预算变化），而最优学习率也会跟着漂移。</p>
+<p>Power Scheduler（2024）发现并利用一种 <strong>学习率、batch size、训练 tokens 的幂律关系</strong>，构建出对 batch/token 更“免调”的调度方式，并强调与 $\mu$P 等参数化结合的可迁移性。</p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2408.13359">https://arxiv.org/abs/2408.13359<i class="fas fa-external-link-alt"></i></a>}$</p>
+<h2 id="8-5-2023–2024：用“小模型复现大模型不稳定”——学习率稳定性研究"><a class="header-anchor" href="#8-5-2023–2024：用“小模型复现大模型不稳定”——学习率稳定性研究">¶</a>8.5 2023–2024：用“小模型复现大模型不稳定”——学习率稳定性研究</h2>
+<p>大模型训练常见“同样超参，小模型没事，大模型炸了”的现象。Wortsman 等工作提出：很多不稳定性其实能在小模型里通过更高学习率复现，从而可以用更低成本研究：</p>
 <ul>
-<li>哪些干预能降低对学习率的敏感性（warmup、weight
-decay、参数化等）；</li>
+<li>哪些干预能降低对学习率的敏感性（warmup、weight decay、参数化等）；</li>
 <li>能否在训练早期通过某些信号预测后续不稳定。</li>
 </ul>
-<p>参考：<span class="math inline">\(\texttt{https://arxiv.org/abs/2309.14322}\)</span></p>
-<h2 id="no-more-adam把关键放回学习率尺度">8.6 2024：No More
-Adam?——把关键放回“学习率尺度”</h2>
-<p>一条很“反直觉但很有启发”的路线是：也许 Adam
-的优势很大部分来自“不同参数组的有效学习率尺度被自动调平”。</p>
-<p>2024 的 SGD-SaI 提出在初始化时基于某种信号（例如
-g-SNR）对不同参数组做学习率缩放，从而用更接近 SGD 的方法获得接近 AdamW
-的效果，并且显著减少优化器状态的显存占用。</p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2309.14322">https://arxiv.org/abs/2309.14322<i class="fas fa-external-link-alt"></i></a>}$</p>
+<h2 id="8-6-2024：No-More-Adam-——把关键放回“学习率尺度”"><a class="header-anchor" href="#8-6-2024：No-More-Adam-——把关键放回“学习率尺度”">¶</a>8.6 2024：No More Adam?——把关键放回“学习率尺度”</h2>
+<p>一条很“反直觉但很有启发”的路线是：也许 Adam 的优势很大部分来自“不同参数组的有效学习率尺度被自动调平”。</p>
+<p>2024 的 SGD-SaI 提出在初始化时基于某种信号（例如 g-SNR）对不同参数组做学习率缩放，从而用更接近 SGD 的方法获得接近 AdamW 的效果，并且显著减少优化器状态的显存占用。</p>
 <p>这对学习率研究的意义是：<strong>学习率不只是一个数，而是一个“与参数尺度/信噪比耦合的系统设计问题”。</strong></p>
-<p>参考：<span class="math inline">\(\texttt{https://arxiv.org/abs/2412.11768}\)</span></p>
-<h2 id="cosine-vs-wsd-的理论联系凸优化视角">8.7 2025：cosine vs WSD
-的理论联系（凸优化视角）</h2>
-<p>2025 的一条很有意思的观察是：一些大模型训练中的学习率曲线（尤其是 WSD
-的 cooldown）在形状上和某些凸优化理论界非常接近，并且 cooldown
-的收益在界里体现为“去掉了对数项”等。</p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2412.11768">https://arxiv.org/abs/2412.11768<i class="fas fa-external-link-alt"></i></a>}$</p>
+<h2 id="8-7-2025：cosine-vs-WSD-的理论联系（凸优化视角）"><a class="header-anchor" href="#8-7-2025：cosine-vs-WSD-的理论联系（凸优化视角）">¶</a>8.7 2025：cosine vs WSD 的理论联系（凸优化视角）</h2>
+<p>2025 的一条很有意思的观察是：一些大模型训练中的学习率曲线（尤其是 WSD 的 cooldown）在形状上和某些凸优化理论界非常接近，并且 cooldown 的收益在界里体现为“去掉了对数项”等。</p>
 <p>你不需要完全理解那套界，但你可以记住结论：</p>
 <ul>
-<li>WSD 的 cooldown
-不是“玄学的最后一脚刹车”，它能在一些理论模型中被解释为更好的收敛项；</li>
+<li>WSD 的 cooldown 不是“玄学的最后一脚刹车”，它能在一些理论模型中被解释为更好的收敛项；</li>
 <li>这也提供了在不同 schedule 间迁移 base learning rate 的思路。</li>
 </ul>
-<p>参考：<span class="math inline">\(\texttt{https://arxiv.org/html/2501.18965v1}\)</span></p>
+<p>参考：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/html/2501.18965v1">https://arxiv.org/html/2501.18965v1<i class="fas fa-external-link-alt"></i></a>}$</p>
 <hr>
-<h1 id="faq最常见的学习率问题小白高频">9.
-FAQ：最常见的学习率问题（小白高频）</h1>
-<h2 id="我该用-adamw-还是-sgd">9.1 “我该用 AdamW 还是 SGD？”</h2>
+<h1>9. FAQ：最常见的学习率问题（小白高频）</h1>
+<h2 id="9-1-“我该用-AdamW-还是-SGD？”"><a class="header-anchor" href="#9-1-“我该用-AdamW-还是-SGD？”">¶</a>9.1 “我该用 AdamW 还是 SGD？”</h2>
 <p>如果你是小白并且目标是“先跑通、稳定产出”：</p>
 <ul>
 <li>默认：AdamW + warmup + cosine/WSD。</li>
@@ -741,18 +613,16 @@ FAQ：最常见的学习率问题（小白高频）</h1>
 <ul>
 <li>SGD（通常配动量）仍然很强，但更依赖调参经验。</li>
 </ul>
-<h2 id="loss-一开始就炸怎么办">9.2 “loss 一开始就炸怎么办？”</h2>
+<h2 id="9-2-“loss-一开始就炸怎么办？”"><a class="header-anchor" href="#9-2-“loss-一开始就炸怎么办？”">¶</a>9.2 “loss 一开始就炸怎么办？”</h2>
 <p>按优先级排查（从最有效到次要）：</p>
 <ul>
-<li>把 <span class="math inline">\(\eta_{\max}\)</span>
-降一个数量级试试；</li>
+<li>把 $\eta_{\max}$ 降一个数量级试试；</li>
 <li>增加 warmup（或把 warmup 起点设得更小）；</li>
 <li>打开梯度裁剪；</li>
 <li>检查混合精度（loss scaling）与数值稳定；</li>
 <li>适当增加 weight decay（尤其是大模型）。</li>
 </ul>
-<h2 id="loss-不炸但不怎么降怎么办">9.3 “loss
-不炸但不怎么降怎么办？”</h2>
+<h2 id="9-3-“loss-不炸但不怎么降怎么办？”"><a class="header-anchor" href="#9-3-“loss-不炸但不怎么降怎么办？”">¶</a>9.3 “loss 不炸但不怎么降怎么办？”</h2>
 <p>常见原因：</p>
 <ul>
 <li>学习率太小；</li>
@@ -763,46 +633,39 @@ FAQ：最常见的学习率问题（小白高频）</h1>
 <p>策略：</p>
 <ul>
 <li>做 LR range test 找上限；</li>
-<li>让中段更长时间保持在较大 <span class="math inline">\(\eta\)</span>（WSD 的 stable 部分很适合）。</li>
+<li>让中段更长时间保持在较大 $\eta$（WSD 的 stable 部分很适合）。</li>
 </ul>
 <hr>
-<h1 id="一页速查表把怎么选学习率落地">10.
-一页速查表（把“怎么选学习率”落地）</h1>
-<h2 id="adamw-常见起手式通用">10.1 AdamW 常见起手式（通用）</h2>
+<h1>10. 一页速查表（把“怎么选学习率”落地）</h1>
+<h2 id="10-1-AdamW-常见起手式（通用）"><a class="header-anchor" href="#10-1-AdamW-常见起手式（通用）">¶</a>10.1 AdamW 常见起手式（通用）</h2>
 <ul>
 <li><strong>schedule</strong>：warmup + cosine 或 warmup + WSD</li>
 <li><strong>warmup</strong>：1%～5%</li>
 <li><strong>cooldown（若用 WSD）</strong>：10%～20%</li>
-<li><strong>梯度裁剪</strong>：<span class="math inline">\(\text{max\_norm}=1.0\)</span>（大模型常用）</li>
+<li><strong>梯度裁剪</strong>：$\text{max_norm}=1.0$（大模型常用）</li>
 </ul>
-<h2 id="你应该关注的-3-个指标比看-loss更直接">10.2 你应该关注的 3
-个指标（比“看 loss”更直接）</h2>
+<h2 id="10-2-你应该关注的-3-个指标（比“看-loss”更直接）"><a class="header-anchor" href="#10-2-你应该关注的-3-个指标（比“看-loss”更直接）">¶</a>10.2 你应该关注的 3 个指标（比“看 loss”更直接）</h2>
 <ul>
-<li><strong>训练是否接近稳定边界</strong>：是否出现持续的 loss spike /
-梯度范数爆炸迹象</li>
+<li><strong>训练是否接近稳定边界</strong>：是否出现持续的 loss spike / 梯度范数爆炸迹象</li>
 <li><strong>有效步长是否过小</strong>：学习太慢、长期平台</li>
-<li><strong>对学习率的敏感性</strong>：轻微改动 <span class="math inline">\(\eta\)</span>
-是否导致结果大幅变化（越敏感越说明你在边界附近/系统不稳）</li>
+<li><strong>对学习率的敏感性</strong>：轻微改动 $\eta$ 是否导致结果大幅变化（越敏感越说明你在边界附近/系统不稳）</li>
 </ul>
-<h2 id="当你不知道选-cosine-还是-wsd">10.3 当你不知道选 cosine 还是
-WSD</h2>
+<h2 id="10-3-当你不知道选-cosine-还是-WSD"><a class="header-anchor" href="#10-3-当你不知道选-cosine-还是-WSD">¶</a>10.3 当你不知道选 cosine 还是 WSD</h2>
 <ul>
 <li>训练长度固定、不会续训：cosine 很稳妥；</li>
 <li>训练长度可能变化、需要续训/多预算对比：优先 WSD；</li>
-<li>想尽量少调 schedule：可以关注 schedule-free / learning-rate-free
-方向（但要看你代码栈是否方便接入）。</li>
+<li>想尽量少调 schedule：可以关注 schedule-free / learning-rate-free 方向（但要看你代码栈是否方便接入）。</li>
 </ul>
 <hr>
-<h1 id="参考资料按本文提到的关键脉络">参考资料（按本文提到的关键脉络）</h1>
+<h1>参考资料（按本文提到的关键脉络）</h1>
 <ul>
-<li>D-Adaptation（learning-rate-free）：<span class="math inline">\(\texttt{https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/}\)</span></li>
-<li>Schedule-Free AdamW（The Road Less Scheduled）：<span class="math inline">\(\texttt{https://arxiv.org/abs/2405.15682}\)</span></li>
-<li>Why Warmup the Learning Rate?（warmup 机制）：<span class="math inline">\(\texttt{https://arxiv.org/html/2406.09405v1}\)</span></li>
-<li>Power Scheduler（batch/token agnostic）：<span class="math inline">\(\texttt{https://arxiv.org/abs/2408.13359}\)</span></li>
-<li>Small-scale proxies for large-scale Transformer
-instabilities（学习率稳定性）：<span class="math inline">\(\texttt{https://arxiv.org/abs/2309.14322}\)</span></li>
-<li>Convex theory 与大模型 LR schedule 的一致性（2025）：<span class="math inline">\(\texttt{https://arxiv.org/html/2501.18965v1}\)</span></li>
-<li>No More Adam（学习率尺度/参数组缩放）：<span class="math inline">\(\texttt{https://arxiv.org/abs/2412.11768}\)</span></li>
+<li>D-Adaptation（learning-rate-free）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/">https://ai.meta.com/research/publications/learning-rate-free-learning-by-d-adaptation/<i class="fas fa-external-link-alt"></i></a>}$</li>
+<li>Schedule-Free AdamW（The Road Less Scheduled）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2405.15682">https://arxiv.org/abs/2405.15682<i class="fas fa-external-link-alt"></i></a>}$</li>
+<li>Why Warmup the Learning Rate?（warmup 机制）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/html/2406.09405v1">https://arxiv.org/html/2406.09405v1<i class="fas fa-external-link-alt"></i></a>}$</li>
+<li>Power Scheduler（batch/token agnostic）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2408.13359">https://arxiv.org/abs/2408.13359<i class="fas fa-external-link-alt"></i></a>}$</li>
+<li>Small-scale proxies for large-scale Transformer instabilities（学习率稳定性）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2309.14322">https://arxiv.org/abs/2309.14322<i class="fas fa-external-link-alt"></i></a>}$</li>
+<li>Convex theory 与大模型 LR schedule 的一致性（2025）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/html/2501.18965v1">https://arxiv.org/html/2501.18965v1<i class="fas fa-external-link-alt"></i></a>}$</li>
+<li>No More Adam（学习率尺度/参数组缩放）：$\texttt{<a class="link" target="_blank" rel="noopener" href="https://arxiv.org/abs/2412.11768">https://arxiv.org/abs/2412.11768<i class="fas fa-external-link-alt"></i></a>}$</li>
 </ul>
 
         </div>
@@ -1071,47 +934,7 @@ instabilities（学习率稳定性）：<span class="math inline">\(\texttt{http
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%8A%8A%E5%AD%A6%E4%B9%A0%E7%8E%87%E8%AE%B2%E6%B8%85%E6%A5%9A"><span class="nav-number">1.</span> <span class="nav-text">0. 一句话把学习率讲清楚</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9C%80%E5%B0%8F%E5%8F%AF%E7%94%A8%E6%95%B0%E5%AD%A6%E4%B8%BA%E4%BB%80%E4%B9%88%E5%A4%AA%E5%A4%A7%E5%B0%B1%E7%82%B8%E5%A4%AA%E5%B0%8F%E5%B0%B1%E6%85%A2"><span class="nav-number">2.</span> <span class="nav-text">1.
-最小可用数学：为什么“太大就炸，太小就慢”</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E4%B8%80%E7%BB%B4%E6%8A%9B%E7%89%A9%E7%BA%BF%E5%BC%80%E5%A7%8B%E6%9C%80%E9%87%8D%E8%A6%81%E7%9A%84%E7%9B%B4%E8%A7%89"><span class="nav-number">2.1.</span> <span class="nav-text">1.1
-从一维抛物线开始（最重要的直觉）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E7%BB%B4%E6%83%85%E5%86%B5%E4%B8%8B%E6%9C%80%E9%99%A1%E7%9A%84%E6%96%B9%E5%90%91%E5%86%B3%E5%AE%9A%E6%98%AF%E5%90%A6%E7%88%86%E7%82%B8"><span class="nav-number">2.2.</span> <span class="nav-text">1.2
-多维情况下，“最陡的方向”决定是否爆炸</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#gif%E4%BA%8C%E7%BB%B4%E6%A4%AD%E5%9C%86%E8%B0%B7%E5%BA%95%E9%87%8C%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E8%B5%B0%E6%88%90%E4%B9%8B%E5%AD%97"><span class="nav-number">2.3.</span> <span class="nav-text">1.2.1
-GIF：二维“椭圆谷底”里为什么会走成“之”字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B7%B1%E5%BA%A6%E7%BD%91%E7%BB%9C%E6%9B%B4%E9%9A%BE%E6%9B%B2%E7%8E%87%E5%9C%A8%E8%AE%AD%E7%BB%83%E4%B8%AD%E4%BC%9A%E5%8F%98"><span class="nav-number">2.4.</span> <span class="nav-text">1.3
-为什么深度网络更难：曲率在训练中会变</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E8%BF%9B%E4%B8%80%E6%AD%A5l-%E5%85%89%E6%BB%91l-smooth%E5%91%8A%E8%AF%89%E4%BD%A0%E5%AD%A6%E4%B9%A0%E7%8E%87%E4%B8%8A%E9%99%90%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="nav-number">2.5.</span> <span class="nav-text">1.4
-更进一步：\(L\)-光滑（L-smooth）告诉你“学习率上限”从哪来</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%BA%E5%87%B8strongly-convex%E4%B8%8E%E4%B8%BA%E4%BB%80%E4%B9%88%E5%90%8E%E6%9C%9F%E9%9C%80%E8%A6%81%E9%99%8D%E4%BD%8E%E5%AD%A6%E4%B9%A0%E7%8E%87"><span class="nav-number">2.6.</span> <span class="nav-text">1.5
-强凸（strongly convex）与“为什么后期需要降低学习率”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E7%BB%B4%E4%BA%8C%E6%AC%A1%E5%87%BD%E6%95%B0%E9%87%8C%E7%A8%B3%E5%AE%9A-%E4%B8%B4%E7%95%8C-%E5%8F%91%E6%95%A3%E9%95%BF%E4%BB%80%E4%B9%88%E6%A0%B7"><span class="nav-number">2.7.</span> <span class="nav-text">1.6 一维二次函数里“稳定 &#x2F;
-临界 &#x2F; 发散”长什么样</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%8E%87%E4%B8%8E%E5%99%AA%E5%A3%B0%E4%B8%BA%E4%BB%80%E4%B9%88-batch-size-%E4%BC%9A%E5%BD%B1%E5%93%8D%E5%AD%A6%E4%B9%A0%E7%8E%87"><span class="nav-number">3.</span> <span class="nav-text">2.
-学习率与“噪声”：为什么 batch size 会影响学习率</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E6%A2%AF%E5%BA%A6%E7%9A%84%E4%B8%A4%E5%BC%A0%E8%84%B8%E6%96%B9%E5%90%91%E6%9C%89%E7%94%A8%E5%99%AA%E5%A3%B0%E4%B9%9F%E5%BE%88%E5%A4%A7"><span class="nav-number">3.1.</span> <span class="nav-text">2.1
-随机梯度的两张脸：方向有用，噪声也很大</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%8F%E5%85%B8%E7%BB%8F%E9%AA%8C%E7%BA%BF%E6%80%A7%E7%BC%A9%E6%94%BE%E6%B3%95%E5%88%99%E4%B8%8E-warmup%E5%A4%A7-batch-%E8%AE%AD%E7%BB%83"><span class="nav-number">3.2.</span> <span class="nav-text">2.2
-经典经验：线性缩放法则与 warmup（大 batch 训练）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8A%A8%E9%87%8F%E5%AD%A6%E4%B9%A0%E7%8E%87%E7%9A%84%E9%9A%90%E5%BD%A2%E6%94%BE%E5%A4%A7%E5%99%A8"><span class="nav-number">4.</span> <span class="nav-text">3. 动量：学习率的“隐形放大器”</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#sgd-momentum-%E7%9A%84%E6%9B%B4%E6%96%B0%E4%B8%8E%E7%9B%B4%E8%A7%89"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 SGD + Momentum 的更新与直觉</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8A%A8%E9%87%8F%E4%BC%9A%E8%AE%A9%E4%BD%A0%E6%9B%B4%E5%AE%B9%E6%98%93%E8%BF%87%E5%86%B2"><span class="nav-number">4.2.</span> <span class="nav-text">3.2
-为什么动量会让你更容易“过冲”</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%87%AA%E9%80%82%E5%BA%94%E4%BC%98%E5%8C%96%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%8E%87%E5%8F%98%E6%88%90%E4%B8%80%E7%BB%84%E5%AD%A6%E4%B9%A0%E7%8E%87"><span class="nav-number">5.</span> <span class="nav-text">4.
-自适应优化器：学习率“变成一组学习率”</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#adam-%E7%9A%84%E6%A0%B8%E5%BF%83%E5%85%AC%E5%BC%8F%E4%B8%80%E5%AE%9A%E8%A6%81%E7%9C%8B%E6%87%82"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 Adam
-的核心公式（一定要看懂）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88-adam-%E4%BB%8D%E7%84%B6%E9%9C%80%E8%A6%81-warmup%E8%80%8C%E4%B8%94%E7%BB%8F%E5%B8%B8%E6%9B%B4%E9%9C%80%E8%A6%81"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 为什么 Adam
-仍然需要 warmup（而且经常更需要）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%8E%87%E8%B0%83%E5%BA%A6schedule%E5%A4%A7%E5%85%A8%E4%BB%8E%E8%80%81%E5%8A%9E%E6%B3%95%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E9%BB%98%E8%AE%A4"><span class="nav-number">6.</span> <span class="nav-text">5.
-学习率调度（schedule）大全：从老办法到大模型默认</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E6%95%B0%E5%AD%A6%E4%B9%A0%E7%8E%87constant"><span class="nav-number">6.1.</span> <span class="nav-text">5.1 常数学习率（Constant）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#step-decay%E5%8F%B0%E9%98%B6%E5%BC%8F"><span class="nav-number">6.2.</span> <span class="nav-text">5.2 Step decay（台阶式）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exponential-decay%E6%8C%87%E6%95%B0%E8%A1%B0%E5%87%8F"><span class="nav-number">6.3.</span> <span class="nav-text">5.3 Exponential
-decay（指数衰减）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cosine-decay%E4%BD%99%E5%BC%A6%E9%80%80%E7%81%AB%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%9C%80%E5%B8%B8%E7%94%A8%E4%B9%8B%E4%B8%80"><span class="nav-number">6.4.</span> <span class="nav-text">5.4 Cosine
-decay（余弦退火，深度学习最常用之一）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cosine-warm-restartssgdr"><span class="nav-number">6.5.</span> <span class="nav-text">5.5 Cosine warm restarts（SGDR）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#one-cycle%E8%B6%85%E7%BA%A7%E6%94%B6%E6%95%9B%E6%80%9D%E6%83%B3"><span class="nav-number">6.6.</span> <span class="nav-text">5.6 One-cycle（超级收敛思想）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%86%E5%B9%B3%E6%96%B9%E6%A0%B9transformer-%E7%BB%8F%E5%85%B8-schedule"><span class="nav-number">6.7.</span> <span class="nav-text">5.7 逆平方根（Transformer
-经典 schedule）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#wsdwarmupstabledecay%E8%BF%91%E5%B9%B4%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E9%87%8D%E8%A6%81%E8%B6%8B%E5%8A%BF"><span class="nav-number">6.8.</span> <span class="nav-text">5.8
-WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%8E%E8%83%BD%E8%B7%91%E5%88%B0%E8%B7%91%E5%BE%97%E5%A5%BD%E4%B8%80%E5%A5%97%E5%8F%AF%E6%93%8D%E4%BD%9C%E7%9A%84%E5%AD%A6%E4%B9%A0%E7%8E%87%E8%B0%83%E5%8F%82%E6%B5%81%E7%A8%8B"><span class="nav-number">7.</span> <span class="nav-text">6.
-从“能跑”到“跑得好”：一套可操作的学习率调参流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E6%90%9E%E6%B8%85%E6%A5%9A%E4%BD%A0%E8%AE%AD%E7%BB%83%E5%A4%B1%E8%B4%A5%E5%88%B0%E5%BA%95%E6%98%AF%E5%93%AA%E7%A7%8D%E5%A4%B1%E8%B4%A5"><span class="nav-number">7.1.</span> <span class="nav-text">6.1
-先搞清楚：你训练失败到底是哪种失败？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8-lr-range-test-%E5%BF%AB%E9%80%9F%E6%89%BE%E5%8F%AF%E8%A1%8C%E5%8C%BA%E9%97%B4%E5%BC%BA%E7%83%88%E6%8E%A8%E8%8D%90"><span class="nav-number">7.2.</span> <span class="nav-text">6.2 用 “LR range test”
-快速找可行区间（强烈推荐）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%89%E6%8B%A9-schedule%E5%B0%8F%E6%A8%A1%E5%9E%8B-vs-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E7%9A%84%E7%BB%8F%E9%AA%8C%E5%B7%AE%E5%BC%82"><span class="nav-number">7.3.</span> <span class="nav-text">6.3 选择
-schedule：小模型 vs 大模型的经验差异</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%8E%87batch%E6%9D%83%E9%87%8D%E8%A1%B0%E5%87%8F%E4%B8%89%E8%80%85%E8%A6%81%E4%B8%80%E8%B5%B7%E7%9C%8B"><span class="nav-number">7.4.</span> <span class="nav-text">6.4
-“学习率、batch、权重衰减”三者要一起看</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E4%BB%8E%E9%9B%B6%E5%AE%9E%E7%8E%B0%E5%B8%B8%E7%94%A8-schedulepytorch"><span class="nav-number">8.</span> <span class="nav-text">7. 代码：从零实现常用
-schedule（PyTorch）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#warmup-cosine"><span class="nav-number">8.1.</span> <span class="nav-text">7.1 Warmup + Cosine</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#warmup-stable-decaywsd"><span class="nav-number">8.2.</span> <span class="nav-text">7.2 Warmup + Stable + Decay（WSD）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8A%8A%E5%AE%83%E6%8E%A5%E5%88%B0-optimizer-%E4%B8%8A%E8%AE%AD%E7%BB%83%E5%BE%AA%E7%8E%AF%E9%AA%A8%E6%9E%B6"><span class="nav-number">8.3.</span> <span class="nav-text">7.3 把它接到 optimizer
-上（训练循环骨架）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9C%80%E6%96%B0%E7%A0%94%E7%A9%B6%E8%BF%9B%E5%B1%95%E5%A4%A7%E5%AE%B6%E5%9C%A8%E5%AD%A6%E5%AD%A6%E4%B9%A0%E7%8E%87%E4%BB%80%E4%B9%88"><span class="nav-number">9.</span> <span class="nav-text">8.
-最新研究进展：大家在“学学习率”什么？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#learning-rate-free-%E7%9A%84%E4%BB%A3%E8%A1%A8d-adaptation"><span class="nav-number">9.1.</span> <span class="nav-text">8.1
-2023：Learning-rate-free 的代表——D-Adaptation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#schedule-free-adamwthe-road-less-scheduled"><span class="nav-number">9.2.</span> <span class="nav-text">8.2
-2024：Schedule-Free AdamW（The Road Less Scheduled）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#why-warmupwarmup-%E6%9C%BA%E5%88%B6%E8%A2%AB%E6%9B%B4%E7%B3%BB%E7%BB%9F%E5%9C%B0%E8%A7%A3%E9%87%8A"><span class="nav-number">9.3.</span> <span class="nav-text">8.3 2024：Why
-Warmup?——warmup 机制被更系统地解释</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#power-scheduler%E5%AF%B9-batch-size-%E4%B8%8E-token-%E6%95%B0%E4%B8%8D%E6%95%8F%E6%84%9F"><span class="nav-number">9.4.</span> <span class="nav-text">8.4 2024：Power
-Scheduler——对 batch size 与 token 数不敏感</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8%E5%B0%8F%E6%A8%A1%E5%9E%8B%E5%A4%8D%E7%8E%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%B8%8D%E7%A8%B3%E5%AE%9A%E5%AD%A6%E4%B9%A0%E7%8E%87%E7%A8%B3%E5%AE%9A%E6%80%A7%E7%A0%94%E7%A9%B6"><span class="nav-number">9.5.</span> <span class="nav-text">8.5
-2023–2024：用“小模型复现大模型不稳定”——学习率稳定性研究</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#no-more-adam%E6%8A%8A%E5%85%B3%E9%94%AE%E6%94%BE%E5%9B%9E%E5%AD%A6%E4%B9%A0%E7%8E%87%E5%B0%BA%E5%BA%A6"><span class="nav-number">9.6.</span> <span class="nav-text">8.6 2024：No More
-Adam?——把关键放回“学习率尺度”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cosine-vs-wsd-%E7%9A%84%E7%90%86%E8%AE%BA%E8%81%94%E7%B3%BB%E5%87%B8%E4%BC%98%E5%8C%96%E8%A7%86%E8%A7%92"><span class="nav-number">9.7.</span> <span class="nav-text">8.7 2025：cosine vs WSD
-的理论联系（凸优化视角）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#faq%E6%9C%80%E5%B8%B8%E8%A7%81%E7%9A%84%E5%AD%A6%E4%B9%A0%E7%8E%87%E9%97%AE%E9%A2%98%E5%B0%8F%E7%99%BD%E9%AB%98%E9%A2%91"><span class="nav-number">10.</span> <span class="nav-text">9.
-FAQ：最常见的学习率问题（小白高频）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%91%E8%AF%A5%E7%94%A8-adamw-%E8%BF%98%E6%98%AF-sgd"><span class="nav-number">10.1.</span> <span class="nav-text">9.1 “我该用 AdamW 还是 SGD？”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#loss-%E4%B8%80%E5%BC%80%E5%A7%8B%E5%B0%B1%E7%82%B8%E6%80%8E%E4%B9%88%E5%8A%9E"><span class="nav-number">10.2.</span> <span class="nav-text">9.2 “loss 一开始就炸怎么办？”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#loss-%E4%B8%8D%E7%82%B8%E4%BD%86%E4%B8%8D%E6%80%8E%E4%B9%88%E9%99%8D%E6%80%8E%E4%B9%88%E5%8A%9E"><span class="nav-number">10.3.</span> <span class="nav-text">9.3 “loss
-不炸但不怎么降怎么办？”</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E9%A1%B5%E9%80%9F%E6%9F%A5%E8%A1%A8%E6%8A%8A%E6%80%8E%E4%B9%88%E9%80%89%E5%AD%A6%E4%B9%A0%E7%8E%87%E8%90%BD%E5%9C%B0"><span class="nav-number">11.</span> <span class="nav-text">10.
-一页速查表（把“怎么选学习率”落地）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#adamw-%E5%B8%B8%E8%A7%81%E8%B5%B7%E6%89%8B%E5%BC%8F%E9%80%9A%E7%94%A8"><span class="nav-number">11.1.</span> <span class="nav-text">10.1 AdamW 常见起手式（通用）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%A0%E5%BA%94%E8%AF%A5%E5%85%B3%E6%B3%A8%E7%9A%84-3-%E4%B8%AA%E6%8C%87%E6%A0%87%E6%AF%94%E7%9C%8B-loss%E6%9B%B4%E7%9B%B4%E6%8E%A5"><span class="nav-number">11.2.</span> <span class="nav-text">10.2 你应该关注的 3
-个指标（比“看 loss”更直接）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BD%93%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E9%80%89-cosine-%E8%BF%98%E6%98%AF-wsd"><span class="nav-number">11.3.</span> <span class="nav-text">10.3 当你不知道选 cosine 还是
-WSD</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99%E6%8C%89%E6%9C%AC%E6%96%87%E6%8F%90%E5%88%B0%E7%9A%84%E5%85%B3%E9%94%AE%E8%84%89%E7%BB%9C"><span class="nav-number">12.</span> <span class="nav-text">参考资料（按本文提到的关键脉络）</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">一句话把学习率讲清楚</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">最小可用数学：为什么“太大就炸，太小就慢”</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%8E%E4%B8%80%E7%BB%B4%E6%8A%9B%E7%89%A9%E7%BA%BF%E5%BC%80%E5%A7%8B%EF%BC%88%E6%9C%80%E9%87%8D%E8%A6%81%E7%9A%84%E7%9B%B4%E8%A7%89%EF%BC%89"><span class="nav-number">2.1.</span> <span class="nav-text">从一维抛物线开始（最重要的直觉）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E7%BB%B4%E6%83%85%E5%86%B5%E4%B8%8B%EF%BC%8C%E2%80%9C%E6%9C%80%E9%99%A1%E7%9A%84%E6%96%B9%E5%90%91%E2%80%9D%E5%86%B3%E5%AE%9A%E6%98%AF%E5%90%A6%E7%88%86%E7%82%B8"><span class="nav-number">2.2.</span> <span class="nav-text">多维情况下，“最陡的方向”决定是否爆炸</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GIF%EF%BC%9A%E4%BA%8C%E7%BB%B4%E2%80%9C%E6%A4%AD%E5%9C%86%E8%B0%B7%E5%BA%95%E2%80%9D%E9%87%8C%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E8%B5%B0%E6%88%90%E2%80%9C%E4%B9%8B%E2%80%9D%E5%AD%97"><span class="nav-number">2.3.</span> <span class="nav-text">GIF：二维“椭圆谷底”里为什么会走成“之”字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B7%B1%E5%BA%A6%E7%BD%91%E7%BB%9C%E6%9B%B4%E9%9A%BE%EF%BC%9A%E6%9B%B2%E7%8E%87%E5%9C%A8%E8%AE%AD%E7%BB%83%E4%B8%AD%E4%BC%9A%E5%8F%98"><span class="nav-number">2.4.</span> <span class="nav-text">为什么深度网络更难：曲率在训练中会变</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E8%BF%9B%E4%B8%80%E6%AD%A5%EF%BC%9A-L-%E5%85%89%E6%BB%91%EF%BC%88L-smooth%EF%BC%89%E5%91%8A%E8%AF%89%E4%BD%A0%E2%80%9C%E5%AD%A6%E4%B9%A0%E7%8E%87%E4%B8%8A%E9%99%90%E2%80%9D%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="nav-number">2.5.</span> <span class="nav-text">更进一步：$L$-光滑（L-smooth）告诉你“学习率上限”从哪来</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%BA%E5%87%B8%EF%BC%88strongly-convex%EF%BC%89%E4%B8%8E%E2%80%9C%E4%B8%BA%E4%BB%80%E4%B9%88%E5%90%8E%E6%9C%9F%E9%9C%80%E8%A6%81%E9%99%8D%E4%BD%8E%E5%AD%A6%E4%B9%A0%E7%8E%87%E2%80%9D"><span class="nav-number">2.6.</span> <span class="nav-text">强凸（strongly convex）与“为什么后期需要降低学习率”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E7%BB%B4%E4%BA%8C%E6%AC%A1%E5%87%BD%E6%95%B0%E9%87%8C%E2%80%9C%E7%A8%B3%E5%AE%9A-%E4%B8%B4%E7%95%8C-%E5%8F%91%E6%95%A3%E2%80%9D%E9%95%BF%E4%BB%80%E4%B9%88%E6%A0%B7"><span class="nav-number">2.7.</span> <span class="nav-text">一维二次函数里“稳定 &#x2F; 临界 &#x2F; 发散”长什么样</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">学习率与“噪声”：为什么 batch size 会影响学习率</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E6%A2%AF%E5%BA%A6%E7%9A%84%E4%B8%A4%E5%BC%A0%E8%84%B8%EF%BC%9A%E6%96%B9%E5%90%91%E6%9C%89%E7%94%A8%EF%BC%8C%E5%99%AA%E5%A3%B0%E4%B9%9F%E5%BE%88%E5%A4%A7"><span class="nav-number">3.1.</span> <span class="nav-text">随机梯度的两张脸：方向有用，噪声也很大</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%8F%E5%85%B8%E7%BB%8F%E9%AA%8C%EF%BC%9A%E7%BA%BF%E6%80%A7%E7%BC%A9%E6%94%BE%E6%B3%95%E5%88%99%E4%B8%8E-warmup%EF%BC%88%E5%A4%A7-batch-%E8%AE%AD%E7%BB%83%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">经典经验：线性缩放法则与 warmup（大 batch 训练）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">动量：学习率的“隐形放大器”</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#SGD-Momentum-%E7%9A%84%E6%9B%B4%E6%96%B0%E4%B8%8E%E7%9B%B4%E8%A7%89"><span class="nav-number">4.1.</span> <span class="nav-text">SGD + Momentum 的更新与直觉</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8A%A8%E9%87%8F%E4%BC%9A%E8%AE%A9%E4%BD%A0%E6%9B%B4%E5%AE%B9%E6%98%93%E2%80%9C%E8%BF%87%E5%86%B2%E2%80%9D"><span class="nav-number">4.2.</span> <span class="nav-text">为什么动量会让你更容易“过冲”</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">自适应优化器：学习率“变成一组学习率”</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Adam-%E7%9A%84%E6%A0%B8%E5%BF%83%E5%85%AC%E5%BC%8F%EF%BC%88%E4%B8%80%E5%AE%9A%E8%A6%81%E7%9C%8B%E6%87%82%EF%BC%89"><span class="nav-number">5.1.</span> <span class="nav-text">Adam 的核心公式（一定要看懂）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88-Adam-%E4%BB%8D%E7%84%B6%E9%9C%80%E8%A6%81-warmup%EF%BC%88%E8%80%8C%E4%B8%94%E7%BB%8F%E5%B8%B8%E6%9B%B4%E9%9C%80%E8%A6%81%EF%BC%89"><span class="nav-number">5.2.</span> <span class="nav-text">为什么 Adam 仍然需要 warmup（而且经常更需要）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">学习率调度（schedule）大全：从老办法到大模型默认</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E6%95%B0%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%88Constant%EF%BC%89"><span class="nav-number">6.1.</span> <span class="nav-text">常数学习率（Constant）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-decay%EF%BC%88%E5%8F%B0%E9%98%B6%E5%BC%8F%EF%BC%89"><span class="nav-number">6.2.</span> <span class="nav-text">Step decay（台阶式）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Exponential-decay%EF%BC%88%E6%8C%87%E6%95%B0%E8%A1%B0%E5%87%8F%EF%BC%89"><span class="nav-number">6.3.</span> <span class="nav-text">Exponential decay（指数衰减）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Cosine-decay%EF%BC%88%E4%BD%99%E5%BC%A6%E9%80%80%E7%81%AB%EF%BC%8C%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%9C%80%E5%B8%B8%E7%94%A8%E4%B9%8B%E4%B8%80%EF%BC%89"><span class="nav-number">6.4.</span> <span class="nav-text">Cosine decay（余弦退火，深度学习最常用之一）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Cosine-warm-restarts%EF%BC%88SGDR%EF%BC%89"><span class="nav-number">6.5.</span> <span class="nav-text">Cosine warm restarts（SGDR）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#One-cycle%EF%BC%88%E8%B6%85%E7%BA%A7%E6%94%B6%E6%95%9B%E6%80%9D%E6%83%B3%EF%BC%89"><span class="nav-number">6.6.</span> <span class="nav-text">One-cycle（超级收敛思想）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%86%E5%B9%B3%E6%96%B9%E6%A0%B9%EF%BC%88Transformer-%E7%BB%8F%E5%85%B8-schedule%EF%BC%89"><span class="nav-number">6.7.</span> <span class="nav-text">逆平方根（Transformer 经典 schedule）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WSD%EF%BC%88Warmup%E2%80%93Stable%E2%80%93Decay%EF%BC%89%EF%BC%9A%E8%BF%91%E5%B9%B4%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E9%87%8D%E8%A6%81%E8%B6%8B%E5%8A%BF"><span class="nav-number">6.8.</span> <span class="nav-text">WSD（Warmup–Stable–Decay）：近年大模型训练的重要趋势</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">从“能跑”到“跑得好”：一套可操作的学习率调参流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E6%90%9E%E6%B8%85%E6%A5%9A%EF%BC%9A%E4%BD%A0%E8%AE%AD%E7%BB%83%E5%A4%B1%E8%B4%A5%E5%88%B0%E5%BA%95%E6%98%AF%E5%93%AA%E7%A7%8D%E5%A4%B1%E8%B4%A5%EF%BC%9F"><span class="nav-number">7.1.</span> <span class="nav-text">先搞清楚：你训练失败到底是哪种失败？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%A8-%E2%80%9CLR-range-test%E2%80%9D-%E5%BF%AB%E9%80%9F%E6%89%BE%E5%8F%AF%E8%A1%8C%E5%8C%BA%E9%97%B4%EF%BC%88%E5%BC%BA%E7%83%88%E6%8E%A8%E8%8D%90%EF%BC%89"><span class="nav-number">7.2.</span> <span class="nav-text">用 “LR range test” 快速找可行区间（强烈推荐）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-3-%E9%80%89%E6%8B%A9-schedule%EF%BC%9A%E5%B0%8F%E6%A8%A1%E5%9E%8B-vs-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E7%9A%84%E7%BB%8F%E9%AA%8C%E5%B7%AE%E5%BC%82"><span class="nav-number">7.3.</span> <span class="nav-text">6.3 选择 schedule：小模型 vs 大模型的经验差异</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-4-%E2%80%9C%E5%AD%A6%E4%B9%A0%E7%8E%87%E3%80%81batch%E3%80%81%E6%9D%83%E9%87%8D%E8%A1%B0%E5%87%8F%E2%80%9D%E4%B8%89%E8%80%85%E8%A6%81%E4%B8%80%E8%B5%B7%E7%9C%8B"><span class="nav-number">7.4.</span> <span class="nav-text">6.4 “学习率、batch、权重衰减”三者要一起看</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">7. 代码：从零实现常用 schedule（PyTorch）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-Warmup-Cosine"><span class="nav-number">8.1.</span> <span class="nav-text">7.1 Warmup + Cosine</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-Warmup-Stable-Decay%EF%BC%88WSD%EF%BC%89"><span class="nav-number">8.2.</span> <span class="nav-text">7.2 Warmup + Stable + Decay（WSD）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-3-%E6%8A%8A%E5%AE%83%E6%8E%A5%E5%88%B0-optimizer-%E4%B8%8A%EF%BC%88%E8%AE%AD%E7%BB%83%E5%BE%AA%E7%8E%AF%E9%AA%A8%E6%9E%B6%EF%BC%89"><span class="nav-number">8.3.</span> <span class="nav-text">7.3 把它接到 optimizer 上（训练循环骨架）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">9.</span> <span class="nav-text">8. 最新研究进展：大家在“学学习率”什么？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#8-1-2023%EF%BC%9ALearning-rate-free-%E7%9A%84%E4%BB%A3%E8%A1%A8%E2%80%94%E2%80%94D-Adaptation"><span class="nav-number">9.1.</span> <span class="nav-text">8.1 2023：Learning-rate-free 的代表——D-Adaptation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-2-2024%EF%BC%9ASchedule-Free-AdamW%EF%BC%88The-Road-Less-Scheduled%EF%BC%89"><span class="nav-number">9.2.</span> <span class="nav-text">8.2 2024：Schedule-Free AdamW（The Road Less Scheduled）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-3-2024%EF%BC%9AWhy-Warmup-%E2%80%94%E2%80%94warmup-%E6%9C%BA%E5%88%B6%E8%A2%AB%E6%9B%B4%E7%B3%BB%E7%BB%9F%E5%9C%B0%E8%A7%A3%E9%87%8A"><span class="nav-number">9.3.</span> <span class="nav-text">8.3 2024：Why Warmup?——warmup 机制被更系统地解释</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-4-2024%EF%BC%9APower-Scheduler%E2%80%94%E2%80%94%E5%AF%B9-batch-size-%E4%B8%8E-token-%E6%95%B0%E4%B8%8D%E6%95%8F%E6%84%9F"><span class="nav-number">9.4.</span> <span class="nav-text">8.4 2024：Power Scheduler——对 batch size 与 token 数不敏感</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-5-2023%E2%80%932024%EF%BC%9A%E7%94%A8%E2%80%9C%E5%B0%8F%E6%A8%A1%E5%9E%8B%E5%A4%8D%E7%8E%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%B8%8D%E7%A8%B3%E5%AE%9A%E2%80%9D%E2%80%94%E2%80%94%E5%AD%A6%E4%B9%A0%E7%8E%87%E7%A8%B3%E5%AE%9A%E6%80%A7%E7%A0%94%E7%A9%B6"><span class="nav-number">9.5.</span> <span class="nav-text">8.5 2023–2024：用“小模型复现大模型不稳定”——学习率稳定性研究</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-6-2024%EF%BC%9ANo-More-Adam-%E2%80%94%E2%80%94%E6%8A%8A%E5%85%B3%E9%94%AE%E6%94%BE%E5%9B%9E%E2%80%9C%E5%AD%A6%E4%B9%A0%E7%8E%87%E5%B0%BA%E5%BA%A6%E2%80%9D"><span class="nav-number">9.6.</span> <span class="nav-text">8.6 2024：No More Adam?——把关键放回“学习率尺度”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-7-2025%EF%BC%9Acosine-vs-WSD-%E7%9A%84%E7%90%86%E8%AE%BA%E8%81%94%E7%B3%BB%EF%BC%88%E5%87%B8%E4%BC%98%E5%8C%96%E8%A7%86%E8%A7%92%EF%BC%89"><span class="nav-number">9.7.</span> <span class="nav-text">8.7 2025：cosine vs WSD 的理论联系（凸优化视角）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">10.</span> <span class="nav-text">9. FAQ：最常见的学习率问题（小白高频）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#9-1-%E2%80%9C%E6%88%91%E8%AF%A5%E7%94%A8-AdamW-%E8%BF%98%E6%98%AF-SGD%EF%BC%9F%E2%80%9D"><span class="nav-number">10.1.</span> <span class="nav-text">9.1 “我该用 AdamW 还是 SGD？”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-2-%E2%80%9Closs-%E4%B8%80%E5%BC%80%E5%A7%8B%E5%B0%B1%E7%82%B8%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F%E2%80%9D"><span class="nav-number">10.2.</span> <span class="nav-text">9.2 “loss 一开始就炸怎么办？”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-3-%E2%80%9Closs-%E4%B8%8D%E7%82%B8%E4%BD%86%E4%B8%8D%E6%80%8E%E4%B9%88%E9%99%8D%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F%E2%80%9D"><span class="nav-number">10.3.</span> <span class="nav-text">9.3 “loss 不炸但不怎么降怎么办？”</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">11.</span> <span class="nav-text">10. 一页速查表（把“怎么选学习率”落地）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#10-1-AdamW-%E5%B8%B8%E8%A7%81%E8%B5%B7%E6%89%8B%E5%BC%8F%EF%BC%88%E9%80%9A%E7%94%A8%EF%BC%89"><span class="nav-number">11.1.</span> <span class="nav-text">10.1 AdamW 常见起手式（通用）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-2-%E4%BD%A0%E5%BA%94%E8%AF%A5%E5%85%B3%E6%B3%A8%E7%9A%84-3-%E4%B8%AA%E6%8C%87%E6%A0%87%EF%BC%88%E6%AF%94%E2%80%9C%E7%9C%8B-loss%E2%80%9D%E6%9B%B4%E7%9B%B4%E6%8E%A5%EF%BC%89"><span class="nav-number">11.2.</span> <span class="nav-text">10.2 你应该关注的 3 个指标（比“看 loss”更直接）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-3-%E5%BD%93%E4%BD%A0%E4%B8%8D%E7%9F%A5%E9%81%93%E9%80%89-cosine-%E8%BF%98%E6%98%AF-WSD"><span class="nav-number">11.3.</span> <span class="nav-text">10.3 当你不知道选 cosine 还是 WSD</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">12.</span> <span class="nav-text">参考资料（按本文提到的关键脉络）</span></a></li></ol>
     </div>
 </div>
         </aside>
