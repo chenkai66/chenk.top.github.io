@@ -46,6 +46,7 @@ window.addEventListener('DOMContentLoaded', () => {
     KEEP.initHeaderShrink();
     KEEP.initModeToggle();
     KEEP.initBack2Top();
+    KEEP.initLangSwitch && KEEP.initLangSwitch();
 
     if (KEEP.theme_config.local_search.enable === true) {
       KEEP.initLocalSearch();
