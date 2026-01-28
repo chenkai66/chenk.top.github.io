@@ -25,7 +25,7 @@
 
     <script id="hexo-configurations">
     let KEEP = window.KEEP || {};
-    KEEP.hexo_config = {"hostname":"chenk.top","root":"/","language":"en","default_language":"zh-CN","languages":["zh-CN","en","default"],"path":"search.json"};
+    KEEP.hexo_config = {"hostname":"chenk.top","root":"/","language":"en","default_language":"zh-CN","languages":["zh-CN","en"],"path":"search.json"};
     KEEP.theme_config = {"toc":{"enable":true,"number":true,"expand_all":true,"init_open":true},"style":{"primary_color":"#0066CC","avatar":"/images/avatar.svg","favicon":"/images/logo.svg","article_img_align":"left","left_side_width":"260px","content_max_width":"920px","hover":{"shadow":false,"scale":false},"first_screen":{"enable":true,"background_img":"/images/bg.svg","description":"Keep writing and Keep loving."},"scroll":{"progress_bar":{"enable":true},"percent":{"enable":false}}},"local_search":{"enable":true,"preload":true},"code_copy":{"enable":true,"style":"default"},"pjax":{"enable":true},"lazyload":{"enable":false},"version":"3.4.5"};
     KEEP.language_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
   </script>
@@ -199,7 +199,7 @@
                     <div class="author">
                         <span class="name">Chen Kai</span>
                         
-                            <span class="author-label">CTO</span>
+                            <span class="author-label">BOSS</span>
                         
                     </div>
                     <div class="meta-info">
@@ -251,45 +251,27 @@
         
 
         <div class="article-content markdown-body">
-            <p>Package management is more than “install / upgrade / remove”: what
-matters in practice is understanding what a package actually drops onto
-your system (binaries, config, shared libraries, service units) and how
-different toolchains handle dependencies and versions (e.g.,
-<code>dpkg/apt</code> vs <code>rpm/yum/dnf</code>). This post walks
-through the core concepts and the most common workflows you’ll use on
-real servers, including mirror setup (e.g., Aliyun mirrors) and quick
-verification steps. It also extends beyond “just use the package
-manager” by covering two production-grade escape hatches: building from
-source (Nginx as an example) and setting up portable binary
-distributions (Java as an example), so you’re not stuck when
-repositories or versions don’t match your constraints.</p>
+            <p>Package management is more than “install / upgrade / remove”: what matters in practice is understanding what a package actually drops onto your system (binaries, config, shared libraries, service units) and how different toolchains handle dependencies and versions (e.g., <code>dpkg/apt</code> vs <code>rpm/yum/dnf</code>). This post walks through the core concepts and the most common workflows you’ll use on real servers, including mirror setup (e.g., Aliyun mirrors) and quick verification steps. It also extends beyond “just use the package manager” by covering two production-grade escape hatches: building from source (Nginx as an example) and setting up portable binary distributions (Java as an example), so you’re not stuck when repositories or versions don’t match your constraints.</p>
 <span id="more"></span>
-<h1 id="一软件包的概念与管理">一、软件包的概念与管理</h1>
-<h2 id="软件包组成">1. 软件包组成</h2>
+<h1>一、软件包的概念与管理</h1>
+<h2 id="1-软件包组成-v2"><a class="header-anchor" href="#1-软件包组成-v2">¶</a>1. 软件包组成</h2>
 <p>软件包是将程序、库文件、配置文件以及文档等打包在一起的文件，方便安装、升级和卸载。软件包能自动处理依赖关系，简化软件管理。一个标准的软件包通常包括以下内容：</p>
-<h3 id="二进制命令可执行文件">二进制命令（可执行文件）</h3>
-<p>经过编译的程序源代码，生成的可执行二进制文件。例如，在 Linux
-系统中，<code>/usr/bin/</code>
-目录下的可执行文件通常来自安装的软件包，如
-<code>vim</code>、<code>gcc</code> 等。</p>
-<h3 id="配置文件configuration-files">配置文件（Configuration
-Files）</h3>
-<p>存放应用程序的默认配置，通常位于 <code>/etc/</code>
-目录下。例如：</p>
+<h3 id="二进制命令（可执行文件）-v2"><a class="header-anchor" href="#二进制命令（可执行文件）-v2">¶</a>二进制命令（可执行文件）</h3>
+<p>经过编译的程序源代码，生成的可执行二进制文件。例如，在 Linux 系统中，<code>/usr/bin/</code> 目录下的可执行文件通常来自安装的软件包，如 <code>vim</code>、<code>gcc</code> 等。</p>
+<h3 id="配置文件（Configuration-Files）-v2"><a class="header-anchor" href="#配置文件（Configuration-Files）-v2">¶</a>配置文件（Configuration Files）</h3>
+<p>存放应用程序的默认配置，通常位于 <code>/etc/</code> 目录下。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/etc/nginx/nginx.conf  <span class="comment"># Nginx 的配置文件</span></span><br><span class="line">/etc/mysql/my.cnf    <span class="comment"># MySQL 的配置文件</span></span><br></pre></td></tr></table></figure>
-<h3 id="数据文件data-files">数据文件（Data Files）</h3>
+<h3 id="数据文件（Data-Files）-v2"><a class="header-anchor" href="#数据文件（Data-Files）-v2">¶</a>数据文件（Data Files）</h3>
 <p>应用程序所需的数据，如数据库文件、默认资源等。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/mysql/   <span class="comment"># MySQL 数据库存放目录</span></span><br><span class="line">/var/www/html/    <span class="comment"># Web 服务器默认站点目录</span></span><br></pre></td></tr></table></figure>
-<h3 id="依赖库shared-libraries">依赖库（Shared Libraries）</h3>
-<p>共享库是可执行文件运行时依赖的动态链接库，通常存放在
-<code>/usr/lib/</code> 或 <code>/lib/</code> 目录下。例如：</p>
+<h3 id="依赖库（Shared-Libraries）-v2"><a class="header-anchor" href="#依赖库（Shared-Libraries）-v2">¶</a>依赖库（Shared Libraries）</h3>
+<p>共享库是可执行文件运行时依赖的动态链接库，通常存放在 <code>/usr/lib/</code> 或 <code>/lib/</code> 目录下。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/libssl.so</span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6</span><br></pre></td></tr></table></figure>
 <p><strong>（5）文档（Documentation）</strong></p>
-<p>软件的说明文档、手册页、版权声明等，通常存放在
-<code>/usr/share/doc/</code> 目录。例如：</p>
+<p>软件的说明文档、手册页、版权声明等，通常存放在 <code>/usr/share/doc/</code> 目录。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">/usr/share/man/man1/nginx.1.gz</span><br></pre></td></tr></table></figure>
-<h2 id="linux-软件包">2. Linux 软件包</h2>
-<h3 id="软件包格式对比">软件包格式对比</h3>
+<h2 id="2-Linux-软件包-v2"><a class="header-anchor" href="#2-Linux-软件包-v2">¶</a>2. Linux 软件包</h2>
+<h3 id="软件包格式对比-v2"><a class="header-anchor" href="#软件包格式对比-v2">¶</a>软件包格式对比</h3>
 <p>Linux 发行版不同，软件包的格式也有所不同。主要分为以下几类：</p>
 <table>
 <thead>
@@ -327,37 +309,21 @@ Files）</h3>
 </tr>
 </tbody>
 </table>
-<h3 id="常见操作示例">常见操作示例</h3>
-<p>下面主要介绍 RPM 包的常见操作，RPM（Red Hat Package Manager）用于 Red
-Hat/CentOS 等系统。常见操作包括安装、升级、卸载和查询软件包信息，而 Yum
-是基于 RPM 包管理的工具。Ubuntu 默认使用 DEB
-包管理（dpkg/apt），但在某些情况下可能会遇到 RPM 包，使用工具如
-<code>alien</code> 可将 RPM 包转换为 DEB
-包进行安装。一些使用示例如下：</p>
+<h3 id="常见操作示例-v2"><a class="header-anchor" href="#常见操作示例-v2">¶</a>常见操作示例</h3>
+<p>下面主要介绍 RPM 包的常见操作，RPM（Red Hat Package Manager）用于 Red Hat/CentOS 等系统。常见操作包括安装、升级、卸载和查询软件包信息，而 Yum 是基于 RPM 包管理的工具。Ubuntu 默认使用 DEB 包管理（dpkg/apt），但在某些情况下可能会遇到 RPM 包，使用工具如 <code>alien</code> 可将 RPM 包转换为 DEB 包进行安装。一些使用示例如下：</p>
 <p><strong>将 RPM 包转换为 DEB 包</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install alien</span><br><span class="line">sudo alien -d package.rpm</span><br><span class="line">sudo dpkg -i package.deb</span><br></pre></td></tr></table></figure>
-<p>RPM 依赖冲突解决：当安装 RPM
-包遇到依赖问题时，需要手动安装缺少的依赖或使用工具解决依赖冲突。转换为
-DEB 包后，可借助 apt 的自动依赖解析功能。</p>
+<p>RPM 依赖冲突解决：当安装 RPM 包遇到依赖问题时，需要手动安装缺少的依赖或使用工具解决依赖冲突。转换为 DEB 包后，可借助 apt 的自动依赖解析功能。</p>
 <p><strong>常用 RPM 命令</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rpm -ivh package.rpm    # 安装 RPM 包</span><br><span class="line">rpm -Uvh package.rpm    # 升级 RPM 包</span><br><span class="line">rpm -e packagename      # 卸载软件包</span><br><span class="line">rpm -qa                 # 列出所有已安装 RPM 包</span><br><span class="line">rpm -qi packagename     # 查询某个包的信息</span><br><span class="line">rpm -qf /path/to/file   # 查找某个文件所属的 RPM 包</span><br></pre></td></tr></table></figure>
-<p><strong>光盘获取 RPM
-包</strong>：如果软件包存放在光盘上，需要先挂载光盘，然后使用 RPM
-命令进行安装：</p>
+<p><strong>光盘获取 RPM 包</strong>：如果软件包存放在光盘上，需要先挂载光盘，然后使用 RPM 命令进行安装：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo mount /dev/cdrom /mnt</span><br><span class="line"><span class="built_in">cd</span> /mnt</span><br><span class="line">sudo rpm -ivh package.rpm</span><br></pre></td></tr></table></figure>
 <p><strong><code>yum</code> 安装包</strong></p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装软件包：</span></span><br><span class="line">yum install packagename</span><br><span class="line"></span><br><span class="line"><span class="comment"># 卸载软件包：</span></span><br><span class="line">yum remove packagename</span><br><span class="line"></span><br><span class="line"><span class="comment"># 搜索软件包：</span></span><br><span class="line">yum search keyword</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看包信息：</span></span><br><span class="line">yum info packagename</span><br></pre></td></tr></table></figure>
-<p><code>apt</code> 与 <code>yum</code>
-的操作逻辑相似，但底层依赖管理和软件包格式不同。</p>
+<p><code>apt</code> 与 <code>yum</code> 的操作逻辑相似，但底层依赖管理和软件包格式不同。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 更新软件源：</span></span><br><span class="line">sudo apt update</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装软件包：</span></span><br><span class="line">sudo apt install packagename</span><br><span class="line"></span><br><span class="line"><span class="comment"># 卸载软件包：</span></span><br><span class="line">sudo apt remove packagename</span><br><span class="line"></span><br><span class="line"><span class="comment"># 搜索软件包：</span></span><br><span class="line">apt search keyword</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看包信息：</span></span><br><span class="line">apt show packagename</span><br></pre></td></tr></table></figure>
-<h3 id="dpkg-vs-rpm-命令对比表"><code>dpkg</code> vs <code>rpm</code>
-命令对比表</h3>
-<table style="width:100%;">
-<colgroup>
-<col style="width: 29%">
-<col style="width: 35%">
-<col style="width: 34%">
-</colgroup>
+<h3 id="dpkg-vs-rpm-命令对比表-v2"><a class="header-anchor" href="#dpkg-vs-rpm-命令对比表-v2">¶</a><code>dpkg</code> vs <code>rpm</code> 命令对比表</h3>
+<table>
 <thead>
 <tr>
 <th><strong>操作</strong></th>
@@ -393,8 +359,8 @@ DEB 包后，可借助 apt 的自动依赖解析功能。</p>
 </tr>
 <tr>
 <td><strong>查询特定软件包</strong></td>
-<td><code>dpkg -l | grep package</code></td>
-<td><code>rpm -q package</code></td>
+<td>`dpkg -l</td>
+<td>grep package`</td>
 </tr>
 <tr>
 <td><strong>查看文件所属软件包</strong></td>
@@ -413,8 +379,8 @@ DEB 包后，可借助 apt 的自动依赖解析功能。</p>
 </tr>
 <tr>
 <td><strong>检查软件包依赖</strong></td>
-<td><code>dpkg -I package.deb | grep Depends</code></td>
-<td><code>rpm -qpR package.rpm</code></td>
+<td>`dpkg -I package.deb</td>
+<td>grep Depends`</td>
 </tr>
 <tr>
 <td><strong>列出某软件包的依赖</strong></td>
@@ -432,69 +398,62 @@ DEB 包后，可借助 apt 的自动依赖解析功能。</p>
 <td><code>rpm -V package</code></td>
 </tr>
 <tr>
-<td><strong>提取 <code>.deb</code> 或 <code>.rpm</code>
-文件</strong></td>
+<td><strong>提取 <code>.deb</code> 或 <code>.rpm</code> 文件</strong></td>
 <td><code>dpkg -x package.deb /target/dir</code></td>
-<td><code>rpm2cpio package.rpm | cpio -idmv</code></td>
+<td>`rpm2cpio package.rpm</td>
 </tr>
 </tbody>
 </table>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250210215953126.png" alt="image-20250210215953126">
-<figcaption aria-hidden="true">image-20250210215953126</figcaption>
-</figure>
-<h2 id="替换为阿里云源">3. 替换为阿里云源</h2>
-<h3 id="备份原始源">📌 备份原始源</h3>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250210215953126.png" alt="image-20250210215953126"></p>
+<h2 id="3-替换为阿里云源-v2"><a class="header-anchor" href="#3-替换为阿里云源-v2">¶</a>3. 替换为阿里云源</h2>
+<h3 id="📌-备份原始源-v2"><a class="header-anchor" href="#📌-备份原始源-v2">¶</a>📌 备份原始源</h3>
 <p>在修改软件源之前，建议先备份原来的 sources.list 以防万一：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/apt/sources.list /etc/apt/sources.list.bak</span><br></pre></td></tr></table></figure>
 <p>这样如果有问题，你可以恢复：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mv</span> /etc/apt/sources.list.bak /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
-<h3 id="替换-sources.list-为阿里云源">📌 替换 sources.list
-为阿里云源</h3>
+<h3 id="📌-替换-sources-list-为阿里云源-v2"><a class="header-anchor" href="#📌-替换-sources-list-为阿里云源-v2">¶</a>📌 替换 sources.list 为阿里云源</h3>
 <p><strong>✅ 方法 1：手动编辑</strong></p>
 <p>使用 <code>vim</code> 或 <code>nano</code> 编辑 sources.list：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
-<p>删除原内容，替换为以下 <strong>阿里云镜像源</strong>（适用于
-<strong>Ubuntu 22.04、20.04、18.04</strong>）：</p>
+<p>删除原内容，替换为以下 <strong>阿里云镜像源</strong>（适用于 <strong>Ubuntu 22.04、20.04、18.04</strong>）：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 默认官方源</span></span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse</span><br><span class="line"></span><br><span class="line"><span class="comment"># 源码仓库（可选）</span></span><br><span class="line">deb-src http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse</span><br><span class="line">deb-src http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse</span><br><span class="line">deb-src http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse</span><br><span class="line">deb-src http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse</span><br></pre></td></tr></table></figure>
-<p>要注意 <code>bionic</code> 适用于 <strong>Ubuntu
-18.04</strong>，并且注意结合系统架构。</p>
+<p>要注意 <code>bionic</code> 适用于 <strong>Ubuntu 18.04</strong>，并且注意结合系统架构。</p>
 <p><strong>✅ 方法 2：自动替换</strong></p>
 <p>如果你不想手动编辑，可以直接运行：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*archive.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*security.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
-<h3 id="更新软件仓库">📌 更新软件仓库</h3>
+<h3 id="📌-更新软件仓库-v2"><a class="header-anchor" href="#📌-更新软件仓库-v2">¶</a>📌 更新软件仓库</h3>
 <p>执行：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update &amp;&amp; sudo apt upgrade -y</span><br></pre></td></tr></table></figure>
 <p>这将使用新的 <strong>阿里云镜像源</strong> 下载最新的软件包。</p>
-<h3 id="确认修改成功">📌 确认修改成功</h3>
+<h3 id="📌-确认修改成功-v2"><a class="header-anchor" href="#📌-确认修改成功-v2">¶</a>📌 确认修改成功</h3>
 <p>你可以运行：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
-<p>如果输出包含 mirrors.aliyun.com，说明修改成功。</p>
+<p>如果输出包含 <a class="link" target="_blank" rel="noopener" href="http://mirrors.aliyun.com">mirrors.aliyun.com<i class="fas fa-external-link-alt"></i></a>，说明修改成功。</p>
 <p>然后尝试安装软件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install vim -y</span><br></pre></td></tr></table></figure>
 <p>如果安装速度明显变快，就说明 <strong>阿里云源生效</strong> 了！🚀</p>
-<h1 id="二程序编译与解释">二、程序编译与解释</h1>
+<h1>二、程序编译与解释</h1>
 <ul>
-<li><strong>编译型语言</strong>
+<li>
+<p><strong>编译型语言</strong></p>
 <ul>
-<li><strong>原理</strong>：程序在运行前经过编译器转换为机器语言，再由操作系统执行。<br>
+<li><strong>原理</strong>：程序在运行前经过编译器转换为机器语言，再由操作系统执行。</li>
+<li><strong>优点</strong>：执行效率高；代码优化较好；通常适合需要高性能计算的场景。</li>
+<li><strong>缺点</strong>：编译过程耗时；调试过程较复杂。</li>
+<li><strong>实例</strong>：使用 gcc 编译 C 程序：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -o hello hello.c</span><br><span class="line">./hello</span><br></pre></td></tr></table></figure>
 </li>
-<li><strong>优点</strong>：执行效率高；代码优化较好；通常适合需要高性能计算的场景。<br>
+</ul>
 </li>
-<li><strong>缺点</strong>：编译过程耗时；调试过程较复杂。<br>
-</li>
-<li><strong>实例</strong>：使用 gcc 编译 C 程序： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -o hello hello.c</span><br><span class="line">./hello</span><br></pre></td></tr></table></figure></li>
-</ul></li>
-<li><strong>解释型语言</strong>
+<li>
+<p><strong>解释型语言</strong></p>
 <ul>
-<li><strong>原理</strong>：源代码在运行时由解释器逐行解析执行。<br>
+<li><strong>原理</strong>：源代码在运行时由解释器逐行解析执行。</li>
+<li><strong>优点</strong>：开发周期短，调试方便；跨平台性好。</li>
+<li><strong>缺点</strong>：运行速度较慢；需要解释器支持。</li>
+<li><strong>实例</strong>：使用 Python 执行脚本：<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 hello.py</span><br></pre></td></tr></table></figure>
 </li>
-<li><strong>优点</strong>：开发周期短，调试方便；跨平台性好。<br>
+</ul>
 </li>
-<li><strong>缺点</strong>：运行速度较慢；需要解释器支持。<br>
-</li>
-<li><strong>实例</strong>：使用 Python 执行脚本： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 hello.py</span><br></pre></td></tr></table></figure></li>
-</ul></li>
 </ul>
 <p>不同语言的应用范围不一样：</p>
 <ul>
@@ -502,7 +461,8 @@ DEB 包后，可借助 apt 的自动依赖解析功能。</p>
 <ul>
 <li>C/C++：httpd、nginx</li>
 <li>golang：docker</li>
-</ul></li>
+</ul>
+</li>
 <li>应用级开发：
 <ul>
 <li>Java：Hadoop、Hbase</li>
@@ -510,105 +470,109 @@ DEB 包后，可借助 apt 的自动依赖解析功能。</p>
 <li>Pert</li>
 <li>Ruby</li>
 <li>PHP</li>
-</ul></li>
 </ul>
-<p>我们以 Golang 和 Python
-为例，比较这两种语言在性能、开发效率和生态系统方面的差异：</p>
-<ul>
-<li><p><strong>Golang (Go)</strong></p>
-<ul>
-<li><p><strong>特点</strong>：编译型语言，性能高、并发编程原生支持，适用于网络服务和分布式系统开发。<br>
-</p></li>
-<li><p><strong>缺点</strong>：语法相对严格，生态系统虽然不断发展但相对
-Python 略小。<br>
-</p></li>
-<li><p><strong>示例</strong>：一个简单的 Go 程序： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cat &lt;&lt; &#x27;EOF&#x27; &gt; hello.go</span><br><span class="line">package main</span><br><span class="line">import &quot;fmt&quot;</span><br><span class="line">func main() &#123;</span><br><span class="line">    fmt.Println(&quot;Hello, Golang!&quot;)</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line">go run hello.go</span><br></pre></td></tr></table></figure></p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208153904973.png" alt="image-20250208153904973">
-<figcaption aria-hidden="true">image-20250208153904973</figcaption>
-</figure>
-<p><code>build</code> 之后就将源码以及相关依赖打包进文件
-<code>hello</code> 了，一次编译，到处运行（这也是 docker
-的理念），如果不编译就一定要机器上有对应的编译器。</p></li>
-</ul></li>
-<li><p><strong>Python</strong></p>
-<ul>
-<li><p><strong>特点</strong>：语法简洁、开发速度快、拥有丰富的第三方库，适用于数据分析、Web
-开发和自动化脚本。</p></li>
-<li><p><strong>缺点</strong>：运行速度相对较慢，不适合极端高性能计算。</p></li>
-<li><p><strong>示例</strong>：一个简单的 Python 脚本：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cat &lt;&lt; &#x27;EOF&#x27; &gt; hello.py</span><br><span class="line">#!/usr/bin/env python3</span><br><span class="line">print(&quot;Hello, Python!&quot;)</span><br><span class="line">EOF</span><br><span class="line">python3 hello.py</span><br></pre></td></tr></table></figure></li>
-</ul></li>
+</li>
 </ul>
-<h1 id="三源码编译与二进制配置">三、源码编译与二进制配置</h1>
+<p>我们以 Golang 和 Python 为例，比较这两种语言在性能、开发效率和生态系统方面的差异：</p>
+<ul>
+<li>
+<p><strong>Golang (Go)</strong></p>
+<ul>
+<li>
+<p><strong>特点</strong>：编译型语言，性能高、并发编程原生支持，适用于网络服务和分布式系统开发。</p>
+</li>
+<li>
+<p><strong>缺点</strong>：语法相对严格，生态系统虽然不断发展但相对 Python 略小。</p>
+</li>
+<li>
+<p><strong>示例</strong>：一个简单的 Go 程序：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">cat &lt;&lt; &#x27;EOF&#x27; &gt; hello.go</span><br><span class="line">package main</span><br><span class="line">import &quot;fmt&quot;</span><br><span class="line">func main() &#123;</span><br><span class="line">    fmt.Println(&quot;Hello, Golang!&quot;)</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line">go run hello.go</span><br></pre></td></tr></table></figure>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208153904973.png" alt="image-20250208153904973"></p>
+<p><code>build</code> 之后就将源码以及相关依赖打包进文件 <code>hello</code> 了，一次编译，到处运行（这也是 docker 的理念），如果不编译就一定要机器上有对应的编译器。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>Python</strong></p>
+<ul>
+<li>
+<p><strong>特点</strong>：语法简洁、开发速度快、拥有丰富的第三方库，适用于数据分析、Web 开发和自动化脚本。</p>
+</li>
+<li>
+<p><strong>缺点</strong>：运行速度相对较慢，不适合极端高性能计算。</p>
+</li>
+<li>
+<p><strong>示例</strong>：一个简单的 Python 脚本：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cat &lt;&lt; &#x27;EOF&#x27; &gt; hello.py</span><br><span class="line">#!/usr/bin/env python3</span><br><span class="line">print(&quot;Hello, Python!&quot;)</span><br><span class="line">EOF</span><br><span class="line">python3 hello.py</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+</ul>
+<h1>三、源码编译与二进制配置</h1>
 <p>在 Linux 中，软件可以通过源码编译或二进制免安装方式进行部署。</p>
 <ul>
-<li><strong>二进制包</strong>：已经编译好的可执行文件及其依赖文件（如
-Ubuntu 下的 DEB 包）。安装快速、方便，但可定制性较低。<br>
-</li>
+<li><strong>二进制包</strong>：已经编译好的可执行文件及其依赖文件（如 Ubuntu 下的 DEB 包）。安装快速、方便，但可定制性较低。</li>
 <li><strong>源码包</strong>：包含程序的源代码，需要经过编译生成可执行文件。提供更高的定制化和优化空间，但安装过程较复杂。</li>
 </ul>
-<h2 id="源码编译以淘宝-nginx-为例">1. 源码编译（以淘宝 Nginx 为例）</h2>
+<h2 id="1-源码编译（以淘宝-Nginx-为例）-v2"><a class="header-anchor" href="#1-源码编译（以淘宝-Nginx-为例）-v2">¶</a>1. 源码编译（以淘宝 Nginx 为例）</h2>
 <p><strong>步骤</strong>：</p>
-<ol type="1">
-<li><p>下载源码：从淘宝镜像或官方源下载 Nginx
-源码包，可以复制链接地址后去虚拟机 <code>wget</code></p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235532884.png" alt="image-20250208235532884">
-<figcaption aria-hidden="true">image-20250208235532884</figcaption>
-</figure></li>
-<li><p>解压源码包： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf nginx-1.xx.tar.gz</span><br></pre></td></tr></table></figure></p></li>
-<li><p>配置编译参数： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd nginx-1.xx</span><br><span class="line">./configure --prefix=/usr/local/nginx --with-http_ssl_module</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li>
+<p>下载源码：从淘宝镜像或官方源下载 Nginx 源码包，可以复制链接地址后去虚拟机 <code>wget</code></p>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235532884.png" alt="image-20250208235532884"></p>
+</li>
+<li>
+<p>解压源码包：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf nginx-1.xx.tar.gz</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>配置编译参数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd nginx-1.xx</span><br><span class="line">./configure --prefix=/usr/local/nginx --with-http_ssl_module</span><br></pre></td></tr></table></figure>
 <p>逐步将需要的包都安装完后，将会返回如下结果说明成功了：</p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235125749.png" alt="image-20250208235125749">
-<figcaption aria-hidden="true">image-20250208235125749</figcaption>
-</figure>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235125749.png" alt="image-20250208235125749"></p>
 <p>查看当前目录会发现多了个 <code>Makefile</code>：</p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235736672.png" alt="image-20250208235736672">
-<figcaption aria-hidden="true">image-20250208235736672</figcaption>
-</figure>
-<p>只有 <code>make install</code> 成功后，才会生成指定的
-<code>nginx</code> 路径。</p></li>
-<li><p>编译并安装： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">make</span><br><span class="line">sudo make install</span><br><span class="line">## 或者直接</span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure></p>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235736672.png" alt="image-20250208235736672"></p>
+<p>只有 <code>make install</code> 成功后，才会生成指定的 <code>nginx</code> 路径。</p>
+</li>
+<li>
+<p>编译并安装：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">make</span><br><span class="line">sudo make install</span><br><span class="line">## 或者直接</span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
 <p>经过一长串的编译，结果如下：</p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235927988.png" alt="image-20250208235927988">
-<figcaption aria-hidden="true">image-20250208235927988</figcaption>
-</figure></li>
-<li><p>查看安装的路径，会发现包含这四个文件：</p>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250208235927988.png" alt="image-20250208235927988"></p>
+</li>
+<li>
+<p>查看安装的路径，会发现包含这四个文件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ls</span></span><br><span class="line">conf  html  logs  sbin</span><br></pre></td></tr></table></figure>
-<p>分别对应配置文件、前端 HTML
-页面、日志文件和可执行的二进制文件。</p></li>
-<li><p>启动 Tengine：</p>
-<p>在 <code>nginx.conf</code> 文件里配置完端口号启动
-<code>./sbin/nginx</code>：</p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250209001323246.png" alt="image-20250209001323246">
-<figcaption aria-hidden="true">image-20250209001323246</figcaption>
-</figure></li>
+<p>分别对应配置文件、前端 HTML 页面、日志文件和可执行的二进制文件。</p>
+</li>
+<li>
+<p>启动 Tengine：</p>
+<p>在 <code>nginx.conf</code> 文件里配置完端口号启动 <code>./sbin/nginx</code>：</p>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250209001323246.png" alt="image-20250209001323246"></p>
+</li>
 </ol>
 <p>编译过程允许你自定义安装路径和模块，适用于需要特定功能或优化的场景。</p>
-<h2 id="二进制免安装配置以-java-为例">2. 二进制免安装配置（以 Java
-为例）</h2>
+<h2 id="2-二进制免安装配置（以-Java-为例）-v2"><a class="header-anchor" href="#2-二进制免安装配置（以-Java-为例）-v2">¶</a>2. 二进制免安装配置（以 Java 为例）</h2>
 <p><strong>步骤</strong>：</p>
-<ol type="1">
-<li><p><a class="link" target="_blank" rel="noopener" href="https://www.java.com/en/download/manual.jsp">下载 Java
-二进制包<i class="fas fa-external-link-alt"></i></a>（通常为压缩文件）。</p>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250209004010589.png" alt="image-20250209004010589">
-<figcaption aria-hidden="true">image-20250209004010589</figcaption>
-</figure></li>
-<li><p>解压文件到指定目录（或者使用SFTP进行主机和虚拟机之间传输）：
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf jdk-xx_linux-x64_bin.tar.gz -C /opt</span><br></pre></td></tr></table></figure></p></li>
-<li><p>配置环境变量： 编辑 <code>~/.bashrc</code> 添加：</p>
+<ol>
+<li>
+<p><a class="link" target="_blank" rel="noopener" href="https://www.java.com/en/download/manual.jsp">下载 Java 二进制包<i class="fas fa-external-link-alt"></i></a>（通常为压缩文件）。</p>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250209004010589.png" alt="image-20250209004010589"></p>
+</li>
+<li>
+<p>解压文件到指定目录（或者使用SFTP进行主机和虚拟机之间传输）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -zxvf jdk-xx_linux-x64_bin.tar.gz -C /opt</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>配置环境变量：<br>
+编辑 <code>~/.bashrc</code> 添加：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">export JAVA_HOME=/opt/jdk-xx</span><br><span class="line">export PATH=$JAVA_HOME/bin:$PATH</span><br></pre></td></tr></table></figure>
-<figure>
-<img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250209004248120.png" alt="image-20250209004248120">
-<figcaption aria-hidden="true">image-20250209004248120</figcaption>
-</figure></li>
-<li><p>使配置生效： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source ~/.bashrc</span><br></pre></td></tr></table></figure></p></li>
+<p><img src="/Linux%20%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/image-20250209004248120.png" alt="image-20250209004248120"></p>
+</li>
+<li>
+<p>使配置生效：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source ~/.bashrc</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
 <p>这种方式无需安装程序，直接解压配置，便于快速部署和版本切换。</p>
 
@@ -885,11 +849,7 @@ Ubuntu 下的 DEB 包）。安装快速、方便，但可定制性较低。<br>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%9A%84%E6%A6%82%E5%BF%B5%E4%B8%8E%E7%AE%A1%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">一、软件包的概念与管理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%BB%84%E6%88%90"><span class="nav-number">1.1.</span> <span class="nav-text">1. 软件包组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%91%BD%E4%BB%A4%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%96%87%E4%BB%B6"><span class="nav-number">1.1.1.</span> <span class="nav-text">二进制命令（可执行文件）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6configuration-files"><span class="nav-number">1.1.2.</span> <span class="nav-text">配置文件（Configuration
-Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%96%87%E4%BB%B6data-files"><span class="nav-number">1.1.3.</span> <span class="nav-text">数据文件（Data Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E5%BA%93shared-libraries"><span class="nav-number">1.1.4.</span> <span class="nav-text">依赖库（Shared Libraries）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#linux-%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">1.2.</span> <span class="nav-text">2. Linux 软件包</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6%E5%8C%85%E6%A0%BC%E5%BC%8F%E5%AF%B9%E6%AF%94"><span class="nav-number">1.2.1.</span> <span class="nav-text">软件包格式对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E6%93%8D%E4%BD%9C%E7%A4%BA%E4%BE%8B"><span class="nav-number">1.2.2.</span> <span class="nav-text">常见操作示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dpkg-vs-rpm-%E5%91%BD%E4%BB%A4%E5%AF%B9%E6%AF%94%E8%A1%A8"><span class="nav-number">1.2.3.</span> <span class="nav-text">dpkg vs rpm
-命令对比表</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%BF%E6%8D%A2%E4%B8%BA%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">1.3.</span> <span class="nav-text">3. 替换为阿里云源</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%87%E4%BB%BD%E5%8E%9F%E5%A7%8B%E6%BA%90"><span class="nav-number">1.3.1.</span> <span class="nav-text">📌 备份原始源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%BF%E6%8D%A2-sources.list-%E4%B8%BA%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">1.3.2.</span> <span class="nav-text">📌 替换 sources.list
-为阿里云源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93"><span class="nav-number">1.3.3.</span> <span class="nav-text">📌 更新软件仓库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A1%AE%E8%AE%A4%E4%BF%AE%E6%94%B9%E6%88%90%E5%8A%9F"><span class="nav-number">1.3.4.</span> <span class="nav-text">📌 确认修改成功</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E7%A8%8B%E5%BA%8F%E7%BC%96%E8%AF%91%E4%B8%8E%E8%A7%A3%E9%87%8A"><span class="nav-number">2.</span> <span class="nav-text">二、程序编译与解释</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91%E4%B8%8E%E4%BA%8C%E8%BF%9B%E5%88%B6%E9%85%8D%E7%BD%AE"><span class="nav-number">3.</span> <span class="nav-text">三、源码编译与二进制配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91%E4%BB%A5%E6%B7%98%E5%AE%9D-nginx-%E4%B8%BA%E4%BE%8B"><span class="nav-number">3.1.</span> <span class="nav-text">1. 源码编译（以淘宝 Nginx 为例）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%85%8D%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E4%BB%A5-java-%E4%B8%BA%E4%BE%8B"><span class="nav-number">3.2.</span> <span class="nav-text">2. 二进制免安装配置（以 Java
-为例）</span></a></li></ol></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">一、软件包的概念与管理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%BB%84%E6%88%90-v2"><span class="nav-number">1.1.</span> <span class="nav-text">1. 软件包组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%91%BD%E4%BB%A4%EF%BC%88%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%96%87%E4%BB%B6%EF%BC%89-v2"><span class="nav-number">1.1.1.</span> <span class="nav-text">二进制命令（可执行文件）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%EF%BC%88Configuration-Files%EF%BC%89-v2"><span class="nav-number">1.1.2.</span> <span class="nav-text">配置文件（Configuration Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%96%87%E4%BB%B6%EF%BC%88Data-Files%EF%BC%89-v2"><span class="nav-number">1.1.3.</span> <span class="nav-text">数据文件（Data Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E5%BA%93%EF%BC%88Shared-Libraries%EF%BC%89-v2"><span class="nav-number">1.1.4.</span> <span class="nav-text">依赖库（Shared Libraries）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Linux-%E8%BD%AF%E4%BB%B6%E5%8C%85-v2"><span class="nav-number">1.2.</span> <span class="nav-text">2. Linux 软件包</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6%E5%8C%85%E6%A0%BC%E5%BC%8F%E5%AF%B9%E6%AF%94-v2"><span class="nav-number">1.2.1.</span> <span class="nav-text">软件包格式对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E6%93%8D%E4%BD%9C%E7%A4%BA%E4%BE%8B-v2"><span class="nav-number">1.2.2.</span> <span class="nav-text">常见操作示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dpkg-vs-rpm-%E5%91%BD%E4%BB%A4%E5%AF%B9%E6%AF%94%E8%A1%A8-v2"><span class="nav-number">1.2.3.</span> <span class="nav-text">dpkg vs rpm 命令对比表</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%9B%BF%E6%8D%A2%E4%B8%BA%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90-v2"><span class="nav-number">1.3.</span> <span class="nav-text">3. 替换为阿里云源</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%93%8C-%E5%A4%87%E4%BB%BD%E5%8E%9F%E5%A7%8B%E6%BA%90-v2"><span class="nav-number">1.3.1.</span> <span class="nav-text">📌 备份原始源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%93%8C-%E6%9B%BF%E6%8D%A2-sources-list-%E4%B8%BA%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90-v2"><span class="nav-number">1.3.2.</span> <span class="nav-text">📌 替换 sources.list 为阿里云源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%93%8C-%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93-v2"><span class="nav-number">1.3.3.</span> <span class="nav-text">📌 更新软件仓库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%93%8C-%E7%A1%AE%E8%AE%A4%E4%BF%AE%E6%94%B9%E6%88%90%E5%8A%9F-v2"><span class="nav-number">1.3.4.</span> <span class="nav-text">📌 确认修改成功</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">二、程序编译与解释</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">三、源码编译与二进制配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91%EF%BC%88%E4%BB%A5%E6%B7%98%E5%AE%9D-Nginx-%E4%B8%BA%E4%BE%8B%EF%BC%89-v2"><span class="nav-number">3.1.</span> <span class="nav-text">1. 源码编译（以淘宝 Nginx 为例）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%85%8D%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%EF%BC%88%E4%BB%A5-Java-%E4%B8%BA%E4%BE%8B%EF%BC%89-v2"><span class="nav-number">3.2.</span> <span class="nav-text">2. 二进制免安装配置（以 Java 为例）</span></a></li></ol></li></ol>
     </div>
 </div>
         </aside>
