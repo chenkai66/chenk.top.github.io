@@ -184,6 +184,11 @@
 
                 
                     <div class="fade-in-down-animation">
+    
+    
+    
+    
+
     <div class="article-content-container">
 
         <div class="article-title">
@@ -204,6 +209,10 @@
                     </div>
                     <div class="meta-info">
                         <div class="article-meta-info">
+    
+    
+    
+    
     <span class="article-date article-meta-item">
         <i class="fas fa-edit"></i>&nbsp;
         <span class="pc">2025-02-18 00:00:00</span>
@@ -216,11 +225,11 @@
             <ul>
                 
                     <li>
-                        <a href="/tags/Linux/">Linux</a>&nbsp;
+                        <a href="/en/tags/Linux/">Linux</a>&nbsp;
                     </li>
                 
                     <li>
-                        | <a href="/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">云计算</a>&nbsp;
+                        | <a href="/en/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">云计算</a>&nbsp;
                     </li>
                 
             </ul>
@@ -230,12 +239,12 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>11.1k Words</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>11.3k Words</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>40 Mins</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>41 Mins</span>
         </span>
     
     
@@ -251,53 +260,66 @@
         
 
         <div class="article-content markdown-body">
-            <p>磁盘相关的问题，很多时候不是“记几个命令”就能解决：分区表怎么选、文件系统怎么挂、扩容怎么尽量少停机、删文件为什么空间不立刻回来，背后都有明确的机制约束。本文从热/冷存储与磁盘结构切入，串起 RAID 与 LVM 的落地用法、MBR/GPT 分区与 <code>fdisk</code>/<code>gdisk</code> 的实际操作、格式化与挂载的完整流程，并补上 <code>/dev</code> 特殊设备、inode 与硬/软链接、文件删除原理这些最容易踩坑但又最“救命”的细节。读完你应该能按步骤把一块新盘从“识别—分区—格式化—挂载—扩容—排障”走通。</p>
+            <p>磁盘相关的问题，很多时候不是“记几个命令”就能解决：分区表怎么选、文件系统怎么挂、扩容怎么尽量少停机、删文件为什么空间不立刻回来，背后都有明确的机制约束。本文从热/冷存储与磁盘结构切入，串起
+RAID 与 LVM 的落地用法、MBR/GPT 分区与
+<code>fdisk</code>/<code>gdisk</code>
+的实际操作、格式化与挂载的完整流程，并补上 <code>/dev</code>
+特殊设备、inode
+与硬/软链接、文件删除原理这些最容易踩坑但又最“救命”的细节。读完你应该能按步骤把一块新盘从“识别—分区—格式化—挂载—扩容—排障”走通。</p>
 <span id="more"></span>
-<h1>一、网站存储</h1>
+<h1 id="一网站存储">一、网站存储</h1>
 <p>数据存储是网站架构的一大重点，关于存储方案我们通常需要考虑硬件角度和软件角度，本文我们只关注硬件角度。</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/20210701123415976-1024x556.png" alt="img"></p>
-<h2 id="1-存储层的设计"><a class="header-anchor" href="#1-存储层的设计">¶</a>1. 存储层的设计</h2>
-<p><strong>热存储（Hot Storage）</strong>：存储需要频繁访问的数据。通常使用 SSD（固态硬盘），例如数据库存储。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/20210701123415976-1024x556.png" alt="img">
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<h2 id="存储层的设计">1. 存储层的设计</h2>
+<p><strong>热存储（Hot
+Storage）</strong>：存储需要频繁访问的数据。通常使用
+SSD（固态硬盘），例如数据库存储。</p>
 <ul>
 <li>SSD 基于 NAND 闪存技术，具有更快的读写速度和更高的耐用性。</li>
 <li>通过电子电荷存储数据，每个单元存储一个或多个比特的数据。</li>
 <li>和顺序读写比起来，固态硬盘的随机读写慢不了多少，随件写入效率略微降低，随机读取能力也就下降一半左右。</li>
-<li>固态硬盘写入数据前要对齐，所以有独特的 <code>trim</code> 指令。文件删除以后，操作系统会挑选空余时间自动执行 <code>trim</code>，而不是下次使用的时候再对齐，机械硬盘不需要对齐，直接覆盖就行了。所以机械硬盘的数据在没有覆盖之前都是可以恢复了，固态硬盘一般在回收站里面删除以后很快就执行了 <code>trim</code> 命令，几乎不能再恢复数据了。</li>
+<li>固态硬盘写入数据前要对齐，所以有独特的 <code>trim</code>
+指令。文件删除以后，操作系统会挑选空余时间自动执行
+<code>trim</code>，而不是下次使用的时候再对齐，机械硬盘不需要对齐，直接覆盖就行了。所以机械硬盘的数据在没有覆盖之前都是可以恢复了，固态硬盘一般在回收站里面删除以后很快就执行了
+<code>trim</code> 命令，几乎不能再恢复数据了。</li>
 </ul>
-<p><strong><a class="link" target="_blank" rel="noopener" href="https://www.cnblogs.com/cxygg/p/16389505.html">冷存储<i class="fas fa-external-link-alt"></i></a>（Cold Storage）</strong>：用于长期存储访问频率低的数据。可以使用 HDD（机械硬盘）或分布式存储系统。</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/4f588e4702ddcda3b22aa8b231cbbc47.png" alt="机械硬盘结构"></p>
+<p><strong><a class="link" target="_blank" rel="noopener" href="https://www.cnblogs.com/cxygg/p/16389505.html">冷存储<i class="fas fa-external-link-alt"></i></a>（Cold
+Storage）</strong>：用于长期存储访问频率低的数据。可以使用
+HDD（机械硬盘）或分布式存储系统。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/4f588e4702ddcda3b22aa8b231cbbc47.png" alt="机械硬盘结构">
+<figcaption aria-hidden="true">机械硬盘结构</figcaption>
+</figure>
 <ul>
-<li>
-<p>HDD 通过磁性盘片和磁头来读取和写入数据，硬盘存储设备和电磁有关因此也被称为磁盘：磁头在盘片上移动，通过磁性变化来写入和读取数据。机械硬盘里有很多张磁盘。</p>
-</li>
-<li>
-<p>数据存储分为多个<strong>扇区</strong>和<strong>轨道</strong>。</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/1435314-20220619000212007-1461023647.webp" alt="img"></p>
+<li><p>HDD
+通过磁性盘片和磁头来读取和写入数据，硬盘存储设备和电磁有关因此也被称为磁盘：磁头在盘片上移动，通过磁性变化来写入和读取数据。机械硬盘里有很多张磁盘。</p></li>
+<li><p>数据存储分为多个<strong>扇区</strong>和<strong>轨道</strong>。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/1435314-20220619000212007-1461023647.webp" alt="img">
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
 <ul>
-<li>
-<p>一个磁盘里面有一到多个盘片，盘片可以可以单面或者双面的。单面盘片只有一个面有磁头，双面盘片两个面都有磁头。多盘片，双盘面的磁盘，是协同工作的，这时候他们机械臂的位置相同，盘面相对位置恒定，理论上多盘片之间可以相互配合共同读写，多盘片的硬盘，也并不会成倍的提升读写性能，大概只能归结于工艺原因，并不能做到多盘片协同工作。</p>
-</li>
-<li>
-<p>一个扇区模默认大小是512字节，也就是 0.5KB。如下图，我们格式化硬盘的时候，可以指定分配单元大小，理论上一个分配单元最小值就是一个扇区。</p>
-<p><img src="https://img2022.cnblogs.com/blog/1435314/202206/1435314-20220619000532622-448669195.png" alt="img"></p>
-</li>
-<li>
-<p>操作系统的分配单元大小叫做簇（或者块 block），一个簇由一到多个连续扇区组成，一个文件只能被连续的存储在一个或者多个簇里面。比如我4K对齐(操作系统指定1个簇由8个扇区构成)，那么我即便有的文件只有1个字节，那么它也会占用4K的存储空间。</p>
-</li>
-<li>
-<p>有时候我们文件显示存储空间是0，这是操作系统优化的结果，太小的文件，占用一个簇太浪费，我们可以公用区域存放，这个文件如果再大一点，或者公共区域放不下了，就会直接分配单独的一个簇存储。</p>
-</li>
-</ul>
-</li>
-<li>
-<p>对机械硬盘而言，转速和缓存是高性能的指标</p>
+<li><p>一个磁盘里面有一到多个盘片，盘片可以可以单面或者双面的。单面盘片只有一个面有磁头，双面盘片两个面都有磁头。多盘片，双盘面的磁盘，是协同工作的，这时候他们机械臂的位置相同，盘面相对位置恒定，理论上多盘片之间可以相互配合共同读写，多盘片的硬盘，也并不会成倍的提升读写性能，大概只能归结于工艺原因，并不能做到多盘片协同工作。</p></li>
+<li><p>一个扇区模默认大小是512字节，也就是
+0.5KB。如下图，我们格式化硬盘的时候，可以指定分配单元大小，理论上一个分配单元最小值就是一个扇区。</p>
+<figure>
+<img src="https://img2022.cnblogs.com/blog/1435314/202206/1435314-20220619000532622-448669195.png" alt="img">
+<figcaption aria-hidden="true">img</figcaption>
+</figure></li>
+<li><p>操作系统的分配单元大小叫做簇（或者块
+block），一个簇由一到多个连续扇区组成，一个文件只能被连续的存储在一个或者多个簇里面。比如我4K对齐(操作系统指定1个簇由8个扇区构成)，那么我即便有的文件只有1个字节，那么它也会占用4K的存储空间。</p></li>
+<li><p>有时候我们文件显示存储空间是0，这是操作系统优化的结果，太小的文件，占用一个簇太浪费，我们可以公用区域存放，这个文件如果再大一点，或者公共区域放不下了，就会直接分配单独的一个簇存储。</p></li>
+</ul></li>
+<li><p>对机械硬盘而言，转速和缓存是高性能的指标</p>
 <ul>
 <li>常见的是 7200 rpm（转每分钟）+ 64 MB 的缓存配置</li>
-<li>一些需要高负载和大型数据传输的高性能服务器会配置 10000 或 15000 rpm + 128 MB 甚至更高的缓存</li>
-</ul>
-</li>
-<li>
-<p>磁盘读写过程：</p>
+<li>一些需要高负载和大型数据传输的高性能服务器会配置 10000 或 15000 rpm
++ 128 MB 甚至更高的缓存</li>
+</ul></li>
+<li><p>磁盘读写过程：</p>
 <ul>
 <li>通过地址确定需要读取的数据所在的磁道，和扇区。</li>
 <li>机械摆臂移动磁头到指定磁道位置（等待机械结构移动）</li>
@@ -305,77 +327,80 @@
 <li>如果数数据是在相邻扇区，或者相邻的蔟，那么就能连续的读取，这种叫做顺序读取</li>
 <li>如果所需数据位于不同扇区，不同磁道，那么需要不断移动机械臂，和等待磁盘转动到指定扇区，这种就是随机读写。</li>
 </ul>
-<p>机械硬盘随机读写慢的原因主要就是两次等待机械机构移动到指定位置。摆臂移动时间大概是6-8毫秒，7200转的硬盘一秒钟转120圈，每圈时间8.3毫秒，平均半圈是4 毫秒的样子。所以7200转的机械银盘随机读取的平均延时在10多毫秒。机械硬盘顺序读写速度比随机读写快80倍以上，差异巨大。</p>
-</li>
+<p>机械硬盘随机读写慢的原因主要就是两次等待机械机构移动到指定位置。摆臂移动时间大概是6-8毫秒，7200转的硬盘一秒钟转120圈，每圈时间8.3毫秒，平均半圈是4
+毫秒的样子。所以7200转的机械银盘随机读取的平均延时在10多毫秒。机械硬盘顺序读写速度比随机读写快80倍以上，差异巨大。</p></li>
 </ul>
-<p><strong>对象存储</strong>：如 AWS S3、阿里云 OSS，用于存储大量不常访问的文件和数据。</p>
+<p><strong>对象存储</strong>：如 AWS S3、阿里云
+OSS，用于存储大量不常访问的文件和数据。</p>
 <ul>
-<li>在 Hadoop 分布式文件系统（HDFS）中使用对象存储来处理大规模数据。</li>
+<li>在 Hadoop
+分布式文件系统（HDFS）中使用对象存储来处理大规模数据。</li>
 </ul>
-<h2 id="2-存储的数据备份（RAID磁盘阵列技术）"><a class="header-anchor" href="#2-存储的数据备份（RAID磁盘阵列技术）">¶</a>2. 存储的数据备份（RAID磁盘阵列技术）</h2>
-<p>使用 <code>raid</code> 磁盘阵列技术进行磁盘备份，以保证数据安全性。</p>
-<h3 id="RAID-的基本概念"><a class="header-anchor" href="#RAID-的基本概念">¶</a>RAID 的基本概念</h3>
+<h2 id="存储的数据备份raid磁盘阵列技术">2.
+存储的数据备份（RAID磁盘阵列技术）</h2>
+<p>使用 <code>raid</code>
+磁盘阵列技术进行磁盘备份，以保证数据安全性。</p>
+<h3 id="raid-的基本概念">RAID 的基本概念</h3>
 <ul>
-<li><strong>RAID（Redundant Array of Independent Disks）</strong>：将多个硬盘组合在一起形成一个逻辑单元，以提高数据冗余和/或性能。</li>
+<li><strong>RAID（Redundant Array of Independent
+Disks）</strong>：将多个硬盘组合在一起形成一个逻辑单元，以提高数据冗余和/或性能。</li>
 <li><strong>RAID 级别</strong>：
 <ul>
-<li><strong>RAID 0</strong>：数据条带化，分布到多个磁盘上，提高读写性能，但没有冗余，单个磁盘故障将导致数据丢失。</li>
-<li><strong>RAID 1</strong>：镜像，数据在两个磁盘上完全复制，提高数据安全性，但存储空间减半。</li>
-<li><strong>RAID 5</strong>：条带化+奇偶校验，至少需要三块磁盘，具有数据冗余和较好的性能平衡。</li>
-<li><strong>RAID 6</strong>：类似 RAID 5，但使用双重奇偶校验，可以容忍两块磁盘同时故障。</li>
-<li><strong>RAID 10</strong>：结合 RAID 0 和 RAID 1，先进行镜像再条带化，提供高性能和冗余，但成本较高。</li>
+<li><strong>RAID
+0</strong>：数据条带化，分布到多个磁盘上，提高读写性能，但没有冗余，单个磁盘故障将导致数据丢失。</li>
+<li><strong>RAID
+1</strong>：镜像，数据在两个磁盘上完全复制，提高数据安全性，但存储空间减半。</li>
+<li><strong>RAID
+5</strong>：条带化+奇偶校验，至少需要三块磁盘，具有数据冗余和较好的性能平衡。</li>
+<li><strong>RAID 6</strong>：类似 RAID
+5，但使用双重奇偶校验，可以容忍两块磁盘同时故障。</li>
+<li><strong>RAID 10</strong>：结合 RAID 0 和 RAID
+1，先进行镜像再条带化，提供高性能和冗余，但成本较高。</li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<h3 id="软件-RAID（软-RAID）"><a class="header-anchor" href="#软件-RAID（软-RAID）">¶</a>软件 RAID（软 RAID）</h3>
-<p>软件 RAID 是由操作系统通过软件实现 RAID 功能，而不是依赖硬件 RAID 控制器。常见工具包括 Linux 下的 <code>mdadm</code>。优点是：</p>
+<h3 id="软件-raid软-raid">软件 RAID（软 RAID）</h3>
+<p>软件 RAID 是由操作系统通过软件实现 RAID 功能，而不是依赖硬件 RAID
+控制器。常见工具包括 Linux 下的 <code>mdadm</code>。优点是：</p>
 <ul>
 <li>成本低，无需专用硬件。</li>
 <li>灵活性高，可动态调整 RAID 配置。</li>
 </ul>
-<p>对应的缺点是占用 CPU 资源，对系统性能有一定影响（现代 CPU 通常能很好地应对）。</p>
-<h3 id="软件-RAID-命令实践"><a class="header-anchor" href="#软件-RAID-命令实践">¶</a>软件 RAID 命令实践</h3>
+<p>对应的缺点是占用 CPU 资源，对系统性能有一定影响（现代 CPU
+通常能很好地应对）。</p>
+<h3 id="软件-raid-命令实践">软件 RAID 命令实践</h3>
 <ul>
-<li>
-<p><strong>创建 RAID</strong>：例如，创建一个 RAID 1 镜像：</p>
+<li><p><strong>创建 RAID</strong>：例如，创建一个 RAID 1 镜像：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sda1 /dev/sdb1</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>/dev/md0</code>：新创建的 RAID 设备</li>
 <li><code>--level=1</code>：指定 RAID 1（镜像）</li>
 <li><code>--raid-devices=2</code>：使用两个磁盘分区</li>
 <li><code>/dev/sda1 /dev/sdb1</code>：参与 RAID 的设备</li>
-</ul>
-</li>
-<li>
-<p><strong>查看 RAID 状态</strong>：使用如下命令检查 RAID 设备状态：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/mdstat</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p><strong>管理 RAID</strong>：添加、移除、重建等操作都可以使用 <code>mdadm</code> 进行管理。例如：</p>
+</ul></li>
+<li><p><strong>查看 RAID 状态</strong>：使用如下命令检查 RAID
+设备状态：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/mdstat</span><br></pre></td></tr></table></figure></li>
+<li><p><strong>管理 RAID</strong>：添加、移除、重建等操作都可以使用
+<code>mdadm</code> 进行管理。例如：</p>
 <ul>
-<li>
-<p><strong>停止 RAID</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm --stop /dev/md0</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p><strong>移除设备</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm /dev/md0 --fail /dev/sda1 --remove /dev/sda1</span><br></pre></td></tr></table></figure>
-</li>
+<li><p><strong>停止 RAID</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm --stop /dev/md0</span><br></pre></td></tr></table></figure></li>
+<li><p><strong>移除设备</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm /dev/md0 --fail /dev/sda1 --remove /dev/sda1</span><br></pre></td></tr></table></figure></li>
+</ul></li>
+<li><p><strong>配置文件</strong>：将 RAID 配置信息写入配置文件（如
+<code>/etc/mdadm.conf</code>），以便系统启动时自动组装 RAID 设备：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm --detail --scan &gt;&gt; /etc/mdadm.conf</span><br></pre></td></tr></table></figure></li>
 </ul>
-</li>
-<li>
-<p><strong>配置文件</strong>：将 RAID 配置信息写入配置文件（如 <code>/etc/mdadm.conf</code>），以便系统启动时自动组装 RAID 设备：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mdadm --detail --scan &gt;&gt; /etc/mdadm.conf</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h2 id="3-存储的数据扩容"><a class="header-anchor" href="#3-存储的数据扩容">¶</a>3. 存储的数据扩容</h2>
+<h2 id="存储的数据扩容">3. 存储的数据扩容</h2>
 <p>磁盘的数据满了怎么办，需要涉及存储的设备扩容</p>
-<ol>
+<ol type="1">
 <li>保证数据库数据完整的情况下，将用户数据迁移到另一个硬盘中</li>
-<li>考虑到用户数据会不断增长，新磁盘采用 <code>lvm</code> 逻辑卷管理，方便日后动态扩容</li>
+<li>考虑到用户数据会不断增长，新磁盘采用 <code>lvm</code>
+逻辑卷管理，方便日后动态扩容</li>
 </ol>
-<h3 id="扩容业务整体流程"><a class="header-anchor" href="#扩容业务整体流程">¶</a>扩容业务整体流程</h3>
-<ol>
+<h3 id="扩容业务整体流程">扩容业务整体流程</h3>
+<ol type="1">
 <li>需要一块新硬盘（虚拟机可添加）</li>
 <li>新硬盘需要做 <code>lvm</code> 管理</li>
 <li>数据库迁移（夜间停机维护，凌晨 2 点）
@@ -385,20 +410,24 @@
 <li>停止后端（可选）</li>
 <li>停止 MySQL 数据库（防止数据还在写入，或者锁表）</li>
 <li>备份数据库（全备）</li>
-<li>迁移数据到新硬盘（使用 <code>rsync</code>【比 <code>cp</code> 命令更强大】），新硬盘已经做好了 <code>lvm</code>，且挂载好了</li>
+<li>迁移数据到新硬盘（使用 <code>rsync</code>【比 <code>cp</code>
+命令更强大】），新硬盘已经做好了 <code>lvm</code>，且挂载好了</li>
 <li>启动数据库</li>
 <li>启动前端入口</li>
 <li>测试数据读写</li>
 <li>博客功能重新恢复上线</li>
 <li>开启数据库监控</li>
-</ul>
-</li>
+</ul></li>
 </ol>
-<h3 id="lvm-技术"><a class="header-anchor" href="#lvm-技术">¶</a><code>lvm</code> 技术</h3>
-<p>LVM（逻辑卷管理器，Logical Volume Manager）是一种将物理存储设备抽象为逻辑存储单元的技术，允许系统管理员更加灵活地管理存储设备。与传统的分区方式（如直接将磁盘划分为固定大小的分区）不同，LVM 提供了更高的灵活性，能够在系统运行时动态地调整存储空间。</p>
+<h3 id="lvm-技术"><code>lvm</code> 技术</h3>
+<p>LVM（逻辑卷管理器，Logical Volume
+Manager）是一种将物理存储设备抽象为逻辑存储单元的技术，允许系统管理员更加灵活地管理存储设备。与传统的分区方式（如直接将磁盘划分为固定大小的分区）不同，LVM
+提供了更高的灵活性，能够在系统运行时动态地调整存储空间。</p>
 <p>LVM 技术包括以下几个核心概念：</p>
 <p><strong>物理卷（Physical Volume, PV）</strong></p>
-<p>物理卷是 LVM 中的最底层存储单元，通常是磁盘或者磁盘分区。LVM 会将一个或多个物理卷组织在一起，形成一个“卷组”（Volume Group，VG）。物理卷不一定是整个磁盘，可以是磁盘的一个分区，也可以是整个磁盘。</p>
+<p>物理卷是 LVM 中的最底层存储单元，通常是磁盘或者磁盘分区。LVM
+会将一个或多个物理卷组织在一起，形成一个“卷组”（Volume
+Group，VG）。物理卷不一定是整个磁盘，可以是磁盘的一个分区，也可以是整个磁盘。</p>
 <p>创建物理卷：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pvcreate /dev/sdb1  <span class="comment"># 创建一个物理卷</span></span><br></pre></td></tr></table></figure>
 <p><strong>卷组（Volume Group, VG）</strong></p>
@@ -406,17 +435,20 @@
 <p>创建卷组：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgcreate my_volume_group /dev/sdb1 /dev/sdc1  <span class="comment"># 创建一个卷组，包含 /dev/sdb1 和 /dev/sdc1</span></span><br></pre></td></tr></table></figure>
 <p><strong>逻辑卷（Logical Volume, LV）</strong></p>
-<p>逻辑卷是实际存储数据的地方，它类似于传统分区。逻辑卷是从卷组中分配的存储空间，可以根据需要进行扩展或缩减。LVM 提供了动态创建、删除和调整逻辑卷大小的能力。</p>
+<p>逻辑卷是实际存储数据的地方，它类似于传统分区。逻辑卷是从卷组中分配的存储空间，可以根据需要进行扩展或缩减。LVM
+提供了动态创建、删除和调整逻辑卷大小的能力。</p>
 <p>创建逻辑卷：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lvcreate -L 10G -n my_logical_volume my_volume_group  <span class="comment"># 创建一个大小为10GB的逻辑卷</span></span><br></pre></td></tr></table></figure>
 <p><strong>逻辑卷的扩展与收缩</strong></p>
-<p>LVM 允许在逻辑卷中增加或减少存储空间。对于增加存储空间，可以将新的物理卷加入到卷组中，并扩展逻辑卷的大小；对于减少存储空间，需要先对文件系统进行缩减，确保数据的安全。</p>
+<p>LVM
+允许在逻辑卷中增加或减少存储空间。对于增加存储空间，可以将新的物理卷加入到卷组中，并扩展逻辑卷的大小；对于减少存储空间，需要先对文件系统进行缩减，确保数据的安全。</p>
 <p>扩展逻辑卷：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lvextend -L +5G /dev/my_volume_group/my_logical_volume  <span class="comment"># 将逻辑卷扩展5GB</span></span><br><span class="line">resize2fs /dev/my_volume_group/my_logical_volume  <span class="comment"># 调整文件系统的大小</span></span><br></pre></td></tr></table></figure>
 <p>缩小逻辑卷：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">e2fsck -f /dev/my_volume_group/my_logical_volume  <span class="comment"># 检查文件系统</span></span><br><span class="line">resize2fs /dev/my_volume_group/my_logical_volume 5G  <span class="comment"># 调整文件系统大小到5GB</span></span><br><span class="line">lvreduce -L 5G /dev/my_volume_group/my_logical_volume  <span class="comment"># 缩小逻辑卷</span></span><br></pre></td></tr></table></figure>
 <p><strong>快照（Snapshot）</strong></p>
-<p>LVM 还支持创建快照。快照是某个逻辑卷的时间点副本，可以用于数据备份或在对逻辑卷进行修改之前进行保护。快照是增量的，仅记录自创建快照以来的变化。</p>
+<p>LVM
+还支持创建快照。快照是某个逻辑卷的时间点副本，可以用于数据备份或在对逻辑卷进行修改之前进行保护。快照是增量的，仅记录自创建快照以来的变化。</p>
 <p>创建和删除快照：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lvcreate -L 1G -s -n my_snapshot /dev/my_volume_group/my_logical_volume  <span class="comment"># 创建快照</span></span><br><span class="line">lvremove /dev/my_volume_group/my_snapshot  <span class="comment"># 删除快照</span></span><br></pre></td></tr></table></figure>
 <p><strong>LVM 的优点</strong></p>
@@ -424,7 +456,8 @@
 <li><strong>灵活性</strong>：可以动态增加、缩小卷的大小，无需重新分区和格式化磁盘。</li>
 <li><strong>卷扩展性</strong>：可以将多个物理卷合并为一个卷组，增加存储池的空间。</li>
 <li><strong>数据保护</strong>：通过快照功能，可以在修改数据之前创建数据副本，保护数据不被误删。</li>
-<li><strong>性能优化</strong>：LVM 支持多种策略，如镜像（Mirroring）、条带化（Striping）等，来提高性能或容错性。</li>
+<li><strong>性能优化</strong>：LVM
+支持多种策略，如镜像（Mirroring）、条带化（Striping）等，来提高性能或容错性。</li>
 </ul>
 <p><strong>LVM 的常用命令</strong></p>
 <p>查看物理卷、卷组、逻辑卷的状态：</p>
@@ -436,27 +469,42 @@
 <p>移除物理卷：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgreduce my_volume_group /dev/sdb1  <span class="comment"># 从卷组中移除物理卷</span></span><br></pre></td></tr></table></figure>
 <hr>
-<p>举个例子，在 Mac 系统上，<strong>硬盘空间的增加</strong>会被自动识别为新的分区或逻辑卷（LVM），而不需要手动进行分区。</p>
+<p>举个例子，在 Mac
+系统上，<strong>硬盘空间的增加</strong>会被自动识别为新的分区或逻辑卷（LVM），而不需要手动进行分区。</p>
 <p>我们可以首先进行硬盘空间分配来验证之（注意这里的硬盘空间分配了之后，主机的硬盘空间不会立刻少这么多，而是慢慢减少直到用满了这新增的空间）。</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250214204528744.png" alt="image-20250214204528744"></p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250214204528744.png" alt="image-20250214204528744">
+<figcaption aria-hidden="true">image-20250214204528744</figcaption>
+</figure>
 <p>然后我们查看 <code>lablk</code>：</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250218010311167.png" alt="image-20250218010311167"></p>
-<p><strong>nvme0n1 硬盘</strong>是我的物理硬盘，大小为 50GB。这个硬盘上有三个分区：</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250218010311167.png" alt="image-20250218010311167">
+<figcaption aria-hidden="true">image-20250218010311167</figcaption>
+</figure>
+<p><strong>nvme0n1 硬盘</strong>是我的物理硬盘，大小为
+50GB。这个硬盘上有三个分区：</p>
 <ul>
 <li>/dev/nvme0n1p1：EFI 系统分区，大小 953MB。</li>
 <li>/dev/nvme0n1p2：启动分区，大小 1.8GB。</li>
 <li>/dev/nvme0n1p3：剩余的分区，大小 45.3GB。
 <ul>
-<li>在 /dev/nvme0n1p3 上，系统使用了 LVM，具体来说是 <strong>ubuntu–vg-ubuntu–lv</strong> 这个逻辑卷，大小为 45.3GB，挂载在 /（根目录）下。</li>
-<li>当我们增加硬盘空间时，<strong>LVM</strong>（逻辑卷管理）在已经有的物理分区（如 /dev/nvme0n1p3）上自动扩展了空间。因此我们无需手动分区，LVM 可以动态调整卷的大小以适应新加入的空间。</li>
-<li><strong>LVM</strong> 使得我们可以动态管理存储，不需要像传统的分区方式那样手动分区。</li>
+<li>在 /dev/nvme0n1p3 上，系统使用了 LVM，具体来说是
+<strong>ubuntu--vg-ubuntu--lv</strong> 这个逻辑卷，大小为 45.3GB，挂载在
+/（根目录）下。</li>
+<li>当我们增加硬盘空间时，<strong>LVM</strong>（逻辑卷管理）在已经有的物理分区（如
+/dev/nvme0n1p3）上自动扩展了空间。因此我们无需手动分区，LVM
+可以动态调整卷的大小以适应新加入的空间。</li>
+<li><strong>LVM</strong>
+使得我们可以动态管理存储，不需要像传统的分区方式那样手动分区。</li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<p>进一步地，我们可以通过 lvdisplay 命令查看逻辑卷的详细信息，确认新的硬盘空间是否已正确分配给逻辑卷：</p>
+<p>进一步地，我们可以通过 lvdisplay
+命令查看逻辑卷的详细信息，确认新的硬盘空间是否已正确分配给逻辑卷：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># lvdisplay</span></span><br><span class="line">  --- Logical volume ---</span><br><span class="line">  LV Path                /dev/ubuntu-vg/ubuntu-lv</span><br><span class="line">  LV Name                ubuntu-lv</span><br><span class="line">  VG Name                ubuntu-vg</span><br><span class="line">  LV UUID                ZtYUOm-9g6w-j6i3-fnJu-Bqly-BtYQ-s3dRWH</span><br><span class="line">  LV Write Access        <span class="built_in">read</span>/write</span><br><span class="line">  LV Creation host, time ubuntu-server, 2025-01-12 03:55:17 +0800</span><br><span class="line">  LV Status              available</span><br><span class="line">  <span class="comment"># open                 1</span></span><br><span class="line">  LV Size                &lt;45.32 GiB</span><br><span class="line">  Current LE             11601</span><br><span class="line">  Segments               1</span><br><span class="line">  Allocation             inherit</span><br><span class="line">  Read ahead sectors     auto</span><br><span class="line">  - currently <span class="built_in">set</span> to     256</span><br><span class="line">  Block device           252:0</span><br></pre></td></tr></table></figure>
-<h1>二、磁盘管理业务背景与流程</h1>
-<p>磁盘管理确保硬件存储的健康和可靠性。磁盘的使用涉及到磁盘健康监控、备份、恢复等多个方面。我们可以与 Windows 的磁盘管理做一个对比，在 Windows 系统中，磁盘的管理包括分区、格式化、磁盘检查等。</p>
+<h1 id="二磁盘管理业务背景与流程">二、磁盘管理业务背景与流程</h1>
+<p>磁盘管理确保硬件存储的健康和可靠性。磁盘的使用涉及到磁盘健康监控、备份、恢复等多个方面。我们可以与
+Windows 的磁盘管理做一个对比，在 Windows
+系统中，磁盘的管理包括分区、格式化、磁盘检查等。</p>
 <ul>
 <li><strong>磁盘分区</strong>：可以通过“磁盘管理”工具创建、删除、格式化磁盘分区。</li>
 <li><strong>磁盘碎片整理</strong>：Windows 提供磁盘碎片整理工具。</li>
@@ -464,33 +512,45 @@
 </ul>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">diskpart  <span class="comment"># 启动磁盘管理工具</span></span><br><span class="line">list disk  <span class="comment"># 列出所有磁盘</span></span><br></pre></td></tr></table></figure>
 <p>在 Linux 下，具体的内容为：</p>
-<ol>
-<li>
-<p><strong>硬盘健康检查</strong>：定期运行 <code>smartctl</code> 检查硬盘状态，提前发现潜在问题，如坏道、读写错误等。</p>
+<ol type="1">
+<li><p><strong>硬盘健康检查</strong>：定期运行 <code>smartctl</code>
+检查硬盘状态，提前发现潜在问题，如坏道、读写错误等。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">smartctl -a /dev/sda  <span class="comment"># 查看硬盘健康状态</span></span><br><span class="line">   <span class="built_in">df</span> -h  <span class="comment"># 显示磁盘空间使用情况</span></span><br></pre></td></tr></table></figure>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250213152728125.png" alt="image-20250213152728125"></p>
-</li>
-<li>
-<p><strong>磁盘碎片整理</strong>：对于机械硬盘（HDD），我们可以使用工具如 <code>bleachbit</code> 或 <code>ncdu</code> 进行磁盘清理，释放磁盘空间。并使用 <code>e4defrag</code> 碎片整理工具进行整理：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">e4defrag /dev/sda  <span class="comment"># 对 /dev/sda 分区进行碎片整理</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p><strong>数据备份与恢复</strong>：使用工具如 <code>rsync</code> 或 <code>tar</code> 进行定期备份。</p>
-</li>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250213152728125.png" alt="image-20250213152728125">
+<figcaption aria-hidden="true">image-20250213152728125</figcaption>
+</figure></li>
+<li><p><strong>磁盘碎片整理</strong>：对于机械硬盘（HDD），我们可以使用工具如
+<code>bleachbit</code> 或 <code>ncdu</code>
+进行磁盘清理，释放磁盘空间。并使用 <code>e4defrag</code>
+碎片整理工具进行整理：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">e4defrag /dev/sda  <span class="comment"># 对 /dev/sda 分区进行碎片整理</span></span><br></pre></td></tr></table></figure></li>
+<li><p><strong>数据备份与恢复</strong>：使用工具如 <code>rsync</code> 或
+<code>tar</code> 进行定期备份。</p></li>
 </ol>
-<h1>三、磁盘使用流程</h1>
-<p>磁盘在计算机中是用来存储数据的设备，磁盘的使用包括挂载、分区以及对文件系统的访问。Linux 系统中的磁盘挂载是磁盘和文件系统连接的过程，Linux 系统通过挂载将磁盘分区与文件系统连接，使得用户可以通过路径访问磁盘上的文件。</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/3baffb6c16dc43cc92b87baad5700594.png" alt="关于Linux中卷/分区等知识的一些总结-云社区-华为云"></p>
+<h1 id="三磁盘使用流程">三、磁盘使用流程</h1>
+<p>磁盘在计算机中是用来存储数据的设备，磁盘的使用包括挂载、分区以及对文件系统的访问。Linux
+系统中的磁盘挂载是磁盘和文件系统连接的过程，Linux
+系统通过挂载将磁盘分区与文件系统连接，使得用户可以通过路径访问磁盘上的文件。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/3baffb6c16dc43cc92b87baad5700594.png" alt="关于Linux中卷/分区等知识的一些总结-云社区-华为云">
+<figcaption aria-hidden="true">关于Linux中卷/分区等知识的一些总结-云社区-华为云</figcaption>
+</figure>
 <p>我们可以将磁盘从被识别到可以使用的过程与实际生活中房子类比：</p>
-<ol>
+<ol type="1">
 <li><strong>磁盘准备存储数据</strong>：类比为人盖房子。磁盘需要在计算机系统中准备好，才能进行数据存储。</li>
 <li><strong>磁盘分区</strong>：类比为房子改好后需要隔断。磁盘需要分区，才能将磁盘空间划分为不同的区域（例如：卧室、厨房、卫生间等），不同区域用于存储不同类型的数据。</li>
 <li><strong>磁盘格式化与创建文件系统</strong>：类比为房子装修。分区后，磁盘还需要格式化并创建文件系统，不同的文件系统有不同的功能和用途，就像房子的装修风格（欧式、中式等）决定了居住体验。</li>
 <li><strong>磁盘挂载到文件夹</strong>：类比为安装门窗，确保进出。格式化并创建文件系统后，磁盘需要挂载到系统的文件夹中，才能通过操作系统进行数据存储和读取，就像房子需要安装门窗才能与外界沟通。</li>
 </ol>
-<h2 id="1-磁盘分区"><a class="header-anchor" href="#1-磁盘分区">¶</a>1. 磁盘分区</h2>
+<h2 id="磁盘分区">1. 磁盘分区</h2>
 <p>分区方案指的是磁盘布局的特定基础结构、分区的实际排列方式、功能以及限制。</p>
 <table>
+<colgroup>
+<col style="width: 15%">
+<col style="width: 42%">
+<col style="width: 41%">
+</colgroup>
 <thead>
 <tr>
 <th>特性</th>
@@ -541,56 +601,110 @@
 </tr>
 </tbody>
 </table>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/Difference-between-MBR-and-GPT.png" alt="Difference between MBR and GPTMustBeGeek"></p>
-<h3 id="MBR"><a class="header-anchor" href="#MBR">¶</a>MBR</h3>
-<p>MBR （master boot record - 主引导记录）支持最多 4 个主分区（3 个主分区+1 个扩展分区），最大支持 2 TB 的磁盘。</p>
-<p><img src="https://i-blog.csdnimg.cn/blog_migrate/d17d97002fe76459d24b269d44c4c9e8.png" alt="MBR、主引导扇区，主分区、扩展分区、逻辑分区，活动分区、引导分区、系统分区、启动分区_活动分区和引导分区-CSDN博客"></p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/Difference-between-MBR-and-GPT.png" alt="Difference between MBR and GPTMustBeGeek">
+<figcaption aria-hidden="true">Difference between MBR and
+GPTMustBeGeek</figcaption>
+</figure>
+<h3 id="mbr">MBR</h3>
+<p>MBR （master boot record - 主引导记录）支持最多 4 个主分区（3
+个主分区+1 个扩展分区），最大支持 2 TB 的磁盘。</p>
+<figure>
+<img src="https://i-blog.csdnimg.cn/blog_migrate/d17d97002fe76459d24b269d44c4c9e8.png" alt="MBR、主引导扇区，主分区、扩展分区、逻辑分区，活动分区、引导分区、系统分区、启动分区_活动分区和引导分区-CSDN博客">
+<figcaption aria-hidden="true">MBR、主引导扇区，主分区、扩展分区、逻辑分区，活动分区、引导分区、系统分区、启动分区_活动分区和引导分区-CSDN博客</figcaption>
+</figure>
 <ul>
-<li>简单来说，MBR 是磁盘里的第一个扇区，作用是告诉操作系统怎么加载磁盘顺序，如何开机</li>
-<li>优点是兼容性好，缺点是不支持管理大硬盘结构。对于大于 2TB 的硬盘，MBR 会无法识别，导致硬盘空间浪费。这是因为 MBR 使用 32 位寻址方式，限制了可寻址的空间。</li>
-<li>主引导扇区位于整个磁盘的 0 磁头 0 柱头 1 扇面，包括硬盘主引导记录 MBR 和分区表 DPT（Disk Partition Table）。主引导记录用于检查分区表是否正确以及哪个分区为引导分区，也就是操作系统引导扇区调入内存加以执行。</li>
+<li>简单来说，MBR
+是磁盘里的第一个扇区，作用是告诉操作系统怎么加载磁盘顺序，如何开机</li>
+<li>优点是兼容性好，缺点是不支持管理大硬盘结构。对于大于 2TB 的硬盘，MBR
+会无法识别，导致硬盘空间浪费。这是因为 MBR 使用 32
+位寻址方式，限制了可寻址的空间。</li>
+<li>主引导扇区位于整个磁盘的 0 磁头 0 柱头 1 扇面，包括硬盘主引导记录
+MBR 和分区表 DPT（Disk Partition
+Table）。主引导记录用于检查分区表是否正确以及哪个分区为引导分区，也就是操作系统引导扇区调入内存加以执行。</li>
 </ul>
 <p>从原理上说：</p>
-<ol>
-<li>MBR分区方案使用硬盘的第一个物理扇区中的 64 个字节作为分区表的空间保存硬盘分区信息，每个分区的信息要占 16 个字节。所以，MBR分区表最多只能保存4个分区的分区信息。</li>
-<li>MBR分区方案中，有三种类型的分区，主分区、扩展分区和逻辑分区。扩展分区与逻辑分区是为了突破分区表中只能保存 4 个分区的限制而出现的</li>
-<li>MBR分区表中保存的分区信息都是主分区与扩展分区的分区信息，扩展分区不能直接使用，需要在扩展分区内划分一个或多个逻辑分区后才能使用，逻辑分区的分区信息保存在扩展分区内，而不是保存在 MBR 分区表内，这样就可以突破 MBR 分区表只能保存 4 个分区的限制。</li>
-<li>16 个字节的分区信息保存有分区活动状态标志、文件系统标识、起止柱面号、磁头号、扇区号、起始扇区位置（4 个字节）、分区总扇区数目（4 个字节）等内容。这里最重要的是：分区的起始扇区位置与分区的总扇区数，都是用 4 个字节表示的。一般每个廓区的容量是 512 字节，4 个字节的扇区能表示的最大容量是 2 TB，由此可知，在 MBR 分区表中，分区的起始位置不能大于 2 TB，分区的最大容量，也不能大于 2 TB，所以，对 2 TB 以上容量的物理硬盘，不适合使用MBR分区方案。</li>
+<ol type="1">
+<li>MBR分区方案使用硬盘的第一个物理扇区中的 64
+个字节作为分区表的空间保存硬盘分区信息，每个分区的信息要占 16
+个字节。所以，MBR分区表最多只能保存4个分区的分区信息。</li>
+<li>MBR分区方案中，有三种类型的分区，主分区、扩展分区和逻辑分区。扩展分区与逻辑分区是为了突破分区表中只能保存
+4 个分区的限制而出现的</li>
+<li>MBR分区表中保存的分区信息都是主分区与扩展分区的分区信息，扩展分区不能直接使用，需要在扩展分区内划分一个或多个逻辑分区后才能使用，逻辑分区的分区信息保存在扩展分区内，而不是保存在
+MBR 分区表内，这样就可以突破 MBR 分区表只能保存 4 个分区的限制。</li>
+<li>16
+个字节的分区信息保存有分区活动状态标志、文件系统标识、起止柱面号、磁头号、扇区号、起始扇区位置（4
+个字节）、分区总扇区数目（4
+个字节）等内容。这里最重要的是：分区的起始扇区位置与分区的总扇区数，都是用
+4 个字节表示的。一般每个廓区的容量是 512 字节，4
+个字节的扇区能表示的最大容量是 2 TB，由此可知，在 MBR
+分区表中，分区的起始位置不能大于 2 TB，分区的最大容量，也不能大于 2
+TB，所以，对 2 TB 以上容量的物理硬盘，不适合使用MBR分区方案。</li>
 </ol>
-<h3 id="GPT"><a class="header-anchor" href="#GPT">¶</a>GPT</h3>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/gpt-partition.png" alt="2.6. GUID 分区表| Red Hat Product Documentation"></p>
-<p>GPT（GUID 分区表）可以给超过 2 TB 的硬盘使用，支持更多分区（最多 128 个），且没有大小限制。GPT 使用 64 位寻址方式，支持最大 9.4ZB（zettabytes）的硬盘空间，远超当前硬盘技术的需求。</p>
+<h3 id="gpt">GPT</h3>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/gpt-partition.png" alt="2.6. GUID 分区表| Red Hat Product Documentation">
+<figcaption aria-hidden="true">2.6. GUID 分区表| Red Hat Product
+Documentation</figcaption>
+</figure>
+<p>GPT（GUID 分区表）可以给超过 2 TB 的硬盘使用，支持更多分区（最多 128
+个），且没有大小限制。GPT 使用 64 位寻址方式，支持最大
+9.4ZB（zettabytes）的硬盘空间，远超当前硬盘技术的需求。</p>
 <p><strong>新购电脑的主板类型</strong>：</p>
 <ul>
-<li>如果电脑使用传统的 <strong>BIOS</strong> 主板，建议使用 <strong>MBR</strong> 格式。</li>
-<li>如果电脑使用现代的 <strong>UEFI</strong> 主板，建议使用 <strong>GPT</strong> 格式。UEFI 模式可以更好地支持 GPT，提供更快速、更安全的启动过程。</li>
+<li>如果电脑使用传统的 <strong>BIOS</strong> 主板，建议使用
+<strong>MBR</strong> 格式。</li>
+<li>如果电脑使用现代的 <strong>UEFI</strong> 主板，建议使用
+<strong>GPT</strong> 格式。UEFI 模式可以更好地支持
+GPT，提供更快速、更安全的启动过程。</li>
 </ul>
 <p><strong>重装操作系统时的兼容性</strong>：</p>
 <ul>
-<li>在重装操作系统前，了解所安装的操作系统版本是否支持 MBR 或者 UEFI 模式（即 GPT 格式）。大多数操作系统，特别是 Windows 7 及以后的版本，都支持 GPT 格式，但老旧版本的 Windows（如 XP）可能不支持 GPT。</li>
-<li><strong>注意</strong>：虽然 MBR 格式支持大部分操作系统版本，但并非所有 Windows 版本都兼容 GPT 格式。例如，Windows XP 不支持 GPT，而 Windows 10 和 Windows 11 则完全支持 GPT 格式，尤其是在 UEFI 启动模式下。</li>
+<li>在重装操作系统前，了解所安装的操作系统版本是否支持 MBR 或者 UEFI
+模式（即 GPT 格式）。大多数操作系统，特别是 Windows 7
+及以后的版本，都支持 GPT 格式，但老旧版本的 Windows（如 XP）可能不支持
+GPT。</li>
+<li><strong>注意</strong>：虽然 MBR
+格式支持大部分操作系统版本，但并非所有 Windows 版本都兼容 GPT
+格式。例如，Windows XP 不支持 GPT，而 Windows 10 和 Windows 11
+则完全支持 GPT 格式，尤其是在 UEFI 启动模式下。</li>
 </ul>
 <p><strong>磁盘类型选择</strong>：</p>
 <ul>
-<li>对于传统硬盘（HDD）和容量较小（2TB 以下）的硬盘，使用 MBR 可以满足基本需求。</li>
-<li>对于大容量硬盘（大于 2TB），SSD，以及希望获得更高可靠性和灵活性的用户，使用 GPT 是更优的选择。</li>
+<li>对于传统硬盘（HDD）和容量较小（2TB 以下）的硬盘，使用 MBR
+可以满足基本需求。</li>
+<li>对于大容量硬盘（大于
+2TB），SSD，以及希望获得更高可靠性和灵活性的用户，使用 GPT
+是更优的选择。</li>
 </ul>
 <p><strong>系统安装和维护</strong>：</p>
 <ul>
-<li>如果计划使用 RAID、加密、或者多重操作系统的安装，GPT 格式会提供更多的优势，尤其是在支持 UEFI 的系统上。</li>
-<li>由于 GPT 格式支持更多的分区，它适合多重操作系统的安装或大型磁盘的管理。</li>
+<li>如果计划使用 RAID、加密、或者多重操作系统的安装，GPT
+格式会提供更多的优势，尤其是在支持 UEFI 的系统上。</li>
+<li>由于 GPT
+格式支持更多的分区，它适合多重操作系统的安装或大型磁盘的管理。</li>
 </ul>
-<h3 id="fdisk-和-gdisk"><a class="header-anchor" href="#fdisk-和-gdisk">¶</a><code>fdisk</code> 和 <code>gdisk</code></h3>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221115341740.png" alt="image-20250221115341740"></p>
-<p><code>fdisk</code> 是管理 MBR 分区表的命令行工具，常用来创建、删除和修改分区。常见操作是：</p>
+<h3 id="fdisk-和-gdisk"><code>fdisk</code> 和 <code>gdisk</code></h3>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221115341740.png" alt="image-20250221115341740">
+<figcaption aria-hidden="true">image-20250221115341740</figcaption>
+</figure>
+<p><code>fdisk</code> 是管理 MBR
+分区表的命令行工具，常用来创建、删除和修改分区。常见操作是：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建新分区</span></span><br><span class="line">fdisk /dev/sda  <span class="comment"># 对 /dev/sda 硬盘进行操作</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前分区</span></span><br><span class="line">fdisk -l  <span class="comment"># 列出所有磁盘和分区</span></span><br></pre></td></tr></table></figure>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250218233923991.png" alt="image-20250218233923991"></p>
-<p>我的系统显示是 <code>GPT</code> 类型，因此不支持 <code>fdisk</code> 分区，需要用到 <code>gdisk</code>。<code>gdisk</code> 是一个用于 GPT 分区表的工具，适用于支持 UEFI 启动的系统。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250218233923991.png" alt="image-20250218233923991">
+<figcaption aria-hidden="true">image-20250218233923991</figcaption>
+</figure>
+<p>我的系统显示是 <code>GPT</code> 类型，因此不支持 <code>fdisk</code>
+分区，需要用到 <code>gdisk</code>。<code>gdisk</code> 是一个用于 GPT
+分区表的工具，适用于支持 UEFI 启动的系统。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建新分区</span></span><br><span class="line">gdisk /dev/sda  <span class="comment"># 对 /dev/sda 硬盘进行 GPT 分区操作</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前分区</span></span><br><span class="line">gdisk -l /dev/sda  <span class="comment"># 列出 GPT 分区表</span></span><br></pre></td></tr></table></figure>
 <p>要将分区类型做修改，可以参考如下操作：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># mbr ----&gt; gpt</span></span><br><span class="line">parted /dev/sdc1</span><br><span class="line">mktable gpt</span><br><span class="line"></span><br><span class="line"><span class="comment"># gpt -----&gt; mbr</span></span><br><span class="line">parted /dev/sdc1</span><br><span class="line">mktable msdos</span><br></pre></td></tr></table></figure>
-<h3 id="硬盘接口与命名规则"><a class="header-anchor" href="#硬盘接口与命名规则">¶</a>硬盘接口与命名规则</h3>
-<p>在 Linux 系统中，磁盘设备的命名规则通常采用 <code>/dev/sdX</code> 或 <code>/dev/nvmeX</code> 的格式。</p>
+<h3 id="硬盘接口与命名规则">硬盘接口与命名规则</h3>
+<p>在 Linux 系统中，磁盘设备的命名规则通常采用 <code>/dev/sdX</code> 或
+<code>/dev/nvmeX</code> 的格式。</p>
 <p><strong>常见命名规则：</strong></p>
 <ul>
 <li><strong>/dev/sda</strong>：第一个 SATA 硬盘</li>
@@ -601,14 +715,25 @@
 <p>硬盘接口主要分为以下几种：</p>
 <ul>
 <li><strong>SATA</strong>：常见的消费级接口，速度适中，广泛使用。</li>
-<li><strong>SAS</strong>：企业级接口，速度较快且稳定性好，常用于服务器。SAS 比 SATA 多了一个金手指。</li>
+<li><strong>SAS</strong>：企业级接口，速度较快且稳定性好，常用于服务器。SAS
+比 SATA 多了一个金手指。</li>
 <li><strong>NVMe</strong>：最现代的存储接口，专为固态硬盘设计，提供超高速数据传输。</li>
 <li><strong>PCIe</strong>：不仅适用于硬盘，还用于显卡等高性能设备，是一个高速的通用接口。</li>
 <li><strong>IDE</strong>：老旧的接口，现已几乎完全被 SATA 替代。</li>
-<li><strong>U.2 和 M.2</strong>：适用于现代高性能固态硬盘，M.2 更适合笔记本，U.2 多用于企业级 SSD。</li>
+<li><strong>U.2 和 M.2</strong>：适用于现代高性能固态硬盘，M.2
+更适合笔记本，U.2 多用于企业级 SSD。</li>
 </ul>
-<p><img src="https://picx.zhimg.com/80/v2-0b265dff6192f6bbeef41084d8e55da3.png" alt="固态硬盘接口有哪几种如何选择合适的SSD接口-墨铺"></p>
+<figure>
+<img src="https://picx.zhimg.com/80/v2-0b265dff6192f6bbeef41084d8e55da3.png" alt="固态硬盘接口有哪几种如何选择合适的SSD接口-墨铺">
+<figcaption aria-hidden="true">固态硬盘接口有哪几种如何选择合适的SSD接口-墨铺</figcaption>
+</figure>
 <table>
+<colgroup>
+<col style="width: 27%">
+<col style="width: 22%">
+<col style="width: 31%">
+<col style="width: 18%">
+</colgroup>
 <thead>
 <tr>
 <th>接口类型</th>
@@ -621,13 +746,15 @@
 <tr>
 <td><strong>SATA (Serial ATA)</strong></td>
 <td>最高 6Gb/s</td>
-<td>- 最常见的硬盘接口，适用于台式机和笔记本<br>- 适合机械硬盘和一些固态硬盘</td>
+<td>- 最常见的硬盘接口，适用于台式机和笔记本<br>-
+适合机械硬盘和一些固态硬盘</td>
 <td>适用于大多数消费级硬盘，兼容性好</td>
 </tr>
 <tr>
 <td><strong>SAS (Serial Attached SCSI)</strong></td>
 <td>最高 12Gb/s</td>
-<td>- 专为企业级存储设计，支持多设备连接<br>- 提供更高的稳定性和可靠性</td>
+<td>- 专为企业级存储设计，支持多设备连接<br>-
+提供更高的稳定性和可靠性</td>
 <td>企业级存储，服务器，数据中心</td>
 </tr>
 <tr>
@@ -637,9 +764,11 @@
 <td>高性能计算、大型数据应用、游戏</td>
 </tr>
 <tr>
-<td><strong>PCIe (Peripheral Component Interconnect Express)</strong></td>
+<td><strong>PCIe (Peripheral Component Interconnect
+Express)</strong></td>
 <td>取决于版本，最大可达 64Gb/s（PCIe 4.0 x16）</td>
-<td>- 高速数据传输接口，用于显卡、存储设备等<br>- 非常适合高性能存储设备</td>
+<td>- 高速数据传输接口，用于显卡、存储设备等<br>-
+非常适合高性能存储设备</td>
 <td>高端工作站、服务器、快速 SSD 存储</td>
 </tr>
 <tr>
@@ -651,7 +780,8 @@
 <tr>
 <td><strong>U.2 (previously SFF-8639)</strong></td>
 <td>最高 32Gb/s</td>
-<td>- 连接方式类似于 SATA，但基于 PCIe 协议<br>- 用于高性能企业级固态硬盘</td>
+<td>- 连接方式类似于 SATA，但基于 PCIe 协议<br>-
+用于高性能企业级固态硬盘</td>
 <td>企业级 SSD，数据中心、高端服务器</td>
 </tr>
 <tr>
@@ -664,6 +794,11 @@
 </table>
 <p>硬盘在不同操作系统和不同接口类型中有不同的命名规则，主要依赖于硬盘的接口类型、顺序以及分区情况。以下是一些常见的命名规则和详细说明。</p>
 <table>
+<colgroup>
+<col style="width: 11%">
+<col style="width: 44%">
+<col style="width: 44%">
+</colgroup>
 <thead>
 <tr>
 <th>操作系统</th>
@@ -675,7 +810,8 @@
 <tr>
 <td><strong>Linux (RHEL)</strong></td>
 <td><code>/dev/hda</code>, <code>/dev/sda</code></td>
-<td>- <strong>/dev/hda</strong>：IDE 接口硬盘（早期版本）<br>- <strong>/dev/sda</strong>：SATA 或 SCSI 接口硬盘</td>
+<td>- <strong>/dev/hda</strong>：IDE 接口硬盘（早期版本）<br>-
+<strong>/dev/sda</strong>：SATA 或 SCSI 接口硬盘</td>
 </tr>
 <tr>
 <td><strong>IDE 接口</strong></td>
@@ -685,7 +821,8 @@
 <tr>
 <td><strong>SATA 接口</strong></td>
 <td><code>/dev/sda</code>, <code>/dev/sdb</code></td>
-<td>SATA 接口硬盘命名规则，<code>a</code> 为第一块硬盘，<code>b</code> 为第二块硬盘</td>
+<td>SATA 接口硬盘命名规则，<code>a</code> 为第一块硬盘，<code>b</code>
+为第二块硬盘</td>
 </tr>
 <tr>
 <td><strong>SCSI 接口</strong></td>
@@ -695,7 +832,10 @@
 <tr>
 <td><strong>多块硬盘</strong></td>
 <td><code>/dev/sda1</code>, <code>/dev/sdb1</code></td>
-<td>多块硬盘时，根据硬盘顺序命名，如第一块硬盘为 <code>/dev/sda</code>，第二块为 <code>/dev/sdb</code>，每个硬盘的分区由数字表示，<code>/dev/sda1</code> 表示第一块硬盘的第一个分区</td>
+<td>多块硬盘时，根据硬盘顺序命名，如第一块硬盘为
+<code>/dev/sda</code>，第二块为
+<code>/dev/sdb</code>，每个硬盘的分区由数字表示，<code>/dev/sda1</code>
+表示第一块硬盘的第一个分区</td>
 </tr>
 <tr>
 <td>惠普服务器硬盘</td>
@@ -709,31 +849,37 @@
 </tr>
 </tbody>
 </table>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250214114911032.png" alt="image-20250214114911032"></p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250214114911032.png" alt="image-20250214114911032">
+<figcaption aria-hidden="true">image-20250214114911032</figcaption>
+</figure>
 <p>总结来说：</p>
 <ul>
-<li>
-<p><strong>硬盘命名</strong>：硬盘的名字通常由接口类型（如 SATA、SCSI）、硬盘的顺序（<code>a</code>, <code>b</code>, <code>c</code> 等）以及分区编号组成。</p>
+<li><strong>硬盘命名</strong>：硬盘的名字通常由接口类型（如
+SATA、SCSI）、硬盘的顺序（<code>a</code>, <code>b</code>, <code>c</code>
+等）以及分区编号组成。
 <ul>
 <li><code>/dev/sda</code>：第一块硬盘。</li>
 <li><code>/dev/sdb</code>：第二块硬盘。</li>
 <li><code>/dev/sdc</code>：第三块硬盘。</li>
 <li>以此类推，字母递增。</li>
-</ul>
-</li>
-<li>
-<p><strong>分区命名</strong>：每个硬盘上的分区通过数字表示：</p>
+</ul></li>
+<li><strong>分区命名</strong>：每个硬盘上的分区通过数字表示：
 <ul>
 <li><code>/dev/sda1</code>：第一块硬盘的第一个分区。</li>
 <li><code>/dev/sda2</code>：第一块硬盘的第二个分区。</li>
 <li><code>/dev/sda3</code>：第一块硬盘的第三个分区。</li>
 <li><code>/dev/sda4</code>：第一块硬盘的第四个分区。</li>
-</ul>
-</li>
+</ul></li>
 </ul>
 <blockquote>
 <p>虚拟硬盘格式：</p>
 <table>
+<colgroup>
+<col style="width: 10%">
+<col style="width: 66%">
+<col style="width: 23%">
+</colgroup>
 <thead>
 <tr>
 <th>格式</th>
@@ -744,7 +890,8 @@
 <tbody>
 <tr>
 <td><strong>VMDK</strong></td>
-<td>VMware 使用的虚拟硬盘格式。它能够模拟物理硬盘的特性，用于 VMware 虚拟机中。</td>
+<td>VMware 使用的虚拟硬盘格式。它能够模拟物理硬盘的特性，用于 VMware
+虚拟机中。</td>
 <td>VMware 虚拟化平台</td>
 </tr>
 <tr>
@@ -759,7 +906,8 @@
 </tr>
 <tr>
 <td><strong>QCOW2</strong></td>
-<td>QEMU 的虚拟硬盘格式，支持快照和压缩，适用于 KVM 和 QEMU 虚拟机。</td>
+<td>QEMU 的虚拟硬盘格式，支持快照和压缩，适用于 KVM 和 QEMU
+虚拟机。</td>
 <td>QEMU/KVM 虚拟化平台</td>
 </tr>
 <tr>
@@ -770,23 +918,32 @@
 </tbody>
 </table>
 </blockquote>
-<p>在 Windows 中，硬盘分区命名类似：</p>
+<p>在 Windows 中，硬盘分区命名类似： - <strong>C:</strong>
+代表硬盘的第一个分区（通常是操作系统分区）。 - <strong>D:</strong>
+代表第二个分区。 - <strong>E:</strong> 代表第三个分区。 -
+<strong>F:</strong> 代表第四个分区。</p>
+<p>这和 Linux 中的硬盘命名规则 <code>/dev/sda1</code>,
+<code>/dev/sda2</code> 等相对应。</p>
+<h2 id="格式化文件系统">2. 格式化文件系统</h2>
+<p>常见的文件系统有 EXT4、XFS 和 NTFS
+等，可以对分区在格式化的时候进行选择：</p>
 <ul>
-<li><strong>C:</strong> 代表硬盘的第一个分区（通常是操作系统分区）。</li>
-<li><strong>D:</strong> 代表第二个分区。</li>
-<li><strong>E:</strong> 代表第三个分区。</li>
-<li><strong>F:</strong> 代表第四个分区。</li>
-</ul>
-<p>这和 Linux 中的硬盘命名规则 <code>/dev/sda1</code>, <code>/dev/sda2</code> 等相对应。</p>
-<h2 id="2-格式化文件系统"><a class="header-anchor" href="#2-格式化文件系统">¶</a>2. 格式化文件系统</h2>
-<p>常见的文件系统有 EXT4、XFS 和 NTFS 等，可以对分区在格式化的时候进行选择：</p>
-<ul>
-<li><strong>EXT4</strong>：Linux 常用的文件系统，支持大文件和较高的性能。</li>
+<li><strong>EXT4</strong>：Linux
+常用的文件系统，支持大文件和较高的性能。</li>
 <li><strong>XFS</strong>：高性能文件系统，常用于大型数据库和大规模存储。</li>
-<li><strong>NTFS</strong>：Windows 操作系统的标准文件系统，支持文件压缩、加密等功能。</li>
-<li><strong>ExFAT</strong>：MacOS下的文件系统，在 MacOS和Windows之间都可以读写</li>
+<li><strong>NTFS</strong>：Windows
+操作系统的标准文件系统，支持文件压缩、加密等功能。</li>
+<li><strong>ExFAT</strong>：MacOS下的文件系统，在
+MacOS和Windows之间都可以读写</li>
 </ul>
 <table>
+<colgroup>
+<col style="width: 5%">
+<col style="width: 21%">
+<col style="width: 7%">
+<col style="width: 26%">
+<col style="width: 39%">
+</colgroup>
 <thead>
 <tr>
 <th>文件系统</th>
@@ -862,268 +1019,256 @@
 </tr>
 </tbody>
 </table>
-<p>CentOS 4/5/6 都采用 Ext 2/3/4 文件系统，到了 CentOS 7 采用了 XFS 系统，因为 CentOS 7 是容器的时代，docker 不支持原来的文件系统。但都支持日志系统，日志系统指的是不会因为突然断电造成磁盘数据损坏，能够通过日志恢复磁盘文件。</p>
-<p>Windows 10 使用 NTFS，支持加密、压缩、权限控制等等，且还支持日志保持数据一致性，主流硬盘都是 NTFS，专门给闪存使用的 ExFAT 属于是 FAT32 和 NTFS 的折中，同时支持 Windows 和 Mac。</p>
+<p>CentOS 4/5/6 都采用 Ext 2/3/4 文件系统，到了 CentOS 7 采用了 XFS
+系统，因为 CentOS 7 是容器的时代，docker
+不支持原来的文件系统。但都支持日志系统，日志系统指的是不会因为突然断电造成磁盘数据损坏，能够通过日志恢复磁盘文件。</p>
+<p>Windows 10 使用
+NTFS，支持加密、压缩、权限控制等等，且还支持日志保持数据一致性，主流硬盘都是
+NTFS，专门给闪存使用的 ExFAT 属于是 FAT32 和 NTFS 的折中，同时支持
+Windows 和 Mac。</p>
 <p>不同的文件系统区别在于</p>
 <ul>
-<li>兼容性：不同系统平台不一定识别，可能无法进行读写操作。例如 Windows 上可能无法读取 XFS 文件系统的 U 盘；</li>
-<li>容量大小：不同的文件系统对分区容量的支持以及文件数量及单个文件的容量支持有区别。例如以前的 Windows 机械硬盘使用 FAT32 文件系统，该文件系统不支持单个文件超过 4G。</li>
+<li>兼容性：不同系统平台不一定识别，可能无法进行读写操作。例如 Windows
+上可能无法读取 XFS 文件系统的 U 盘；</li>
+<li>容量大小：不同的文件系统对分区容量的支持以及文件数量及单个文件的容量支持有区别。例如以前的
+Windows 机械硬盘使用 FAT32 文件系统，该文件系统不支持单个文件超过
+4G。</li>
 </ul>
-<p>可以通过 <code>mkfs</code> 然后 TAB 查看当前支持什么操作系统（实际上这个是进行分区文件系统格式化的命令）：</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221234934355.png" alt="image-20250221234934355"></p>
+<p>可以通过 <code>mkfs</code> 然后 TAB
+查看当前支持什么操作系统（实际上这个是进行分区文件系统格式化的命令）：</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221234934355.png" alt="image-20250221234934355">
+<figcaption aria-hidden="true">image-20250221234934355</figcaption>
+</figure>
 <p>以 <code>mkfs.xfs</code> 为例：</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221235819691.png" alt="image-20250221235819691"></p>
-<h2 id="3-挂载目录到分区"><a class="header-anchor" href="#3-挂载目录到分区">¶</a>3. 挂载目录到分区</h2>
-<h4 id="什么是挂载（Mount）？"><a class="header-anchor" href="#什么是挂载（Mount）？">¶</a>什么是挂载（Mount）？</h4>
-<p>想象你的电脑是一个大房子，房子里有很多房间（文件夹），比如 <code>/home</code>（你的卧室）、<code>/etc</code>（工具箱）等。但房子里原本没有连接外部设备（比如U盘、硬盘、光盘）。<strong>挂载</strong>就像是在墙上开一扇门，把外部设备（比如U盘）连接到房子的某个房间（比如 <code>/mnt/usb</code>），这样你就能通过这个房间访问外部设备的内容。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221235819691.png" alt="image-20250221235819691">
+<figcaption aria-hidden="true">image-20250221235819691</figcaption>
+</figure>
+<h2 id="挂载目录到分区">3. 挂载目录到分区</h2>
+<h4 id="什么是挂载mount">什么是挂载（Mount）？</h4>
+<p>想象你的电脑是一个大房子，房子里有很多房间（文件夹），比如
+<code>/home</code>（你的卧室）、<code>/etc</code>（工具箱）等。但房子里原本没有连接外部设备（比如U盘、硬盘、光盘）。<strong>挂载</strong>就像是在墙上开一扇门，把外部设备（比如U盘）连接到房子的某个房间（比如
+<code>/mnt/usb</code>），这样你就能通过这个房间访问外部设备的内容。</p>
 <ul>
 <li><strong>设备</strong>：U盘、硬盘、光盘等（物理存储介质）。</li>
-<li><strong>挂载点</strong>：房子里的一扇门（比如 <code>/mnt/usb</code> 这个空文件夹）。</li>
+<li><strong>挂载点</strong>：房子里的一扇门（比如 <code>/mnt/usb</code>
+这个空文件夹）。</li>
 <li><strong>挂载操作</strong>：把设备通过这扇门连接到房子。</li>
 </ul>
-<h4 id="挂载的基本操作"><a class="header-anchor" href="#挂载的基本操作">¶</a><strong>挂载的基本操作</strong></h4>
-<p>假设你插入一个U盘，系统识别它为 <code>/dev/sdb1</code>（设备名可能不同）。你要把它挂载到 <code>/mnt/usb</code> 这个空文件夹：</p>
+<h4 id="挂载的基本操作"><strong>挂载的基本操作</strong></h4>
+<p>假设你插入一个U盘，系统识别它为
+<code>/dev/sdb1</code>（设备名可能不同）。你要把它挂载到
+<code>/mnt/usb</code> 这个空文件夹：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mount /dev/sdb1 /mnt/usb</span><br></pre></td></tr></table></figure>
-<p>其结果就是我们进入 <code>/mnt/usb</code> 就能看到U盘里的文件。但要注意，当我们挂载后，<code>/mnt/usb</code> 不再是普通文件夹，而是U盘的“入口”。</p>
+<p>其结果就是我们进入 <code>/mnt/usb</code>
+就能看到U盘里的文件。但要注意，当我们挂载后，<code>/mnt/usb</code>
+不再是普通文件夹，而是U盘的“入口”。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo umount /mnt/usb</span><br></pre></td></tr></table></figure>
-<p>卸载后，<code>/mnt/usb</code> 恢复成普通空文件夹，U盘可以安全拔出。</p>
-<h4 id="挂载后新建的文件在哪？"><a class="header-anchor" href="#挂载后新建的文件在哪？">¶</a><strong>挂载后新建的文件在哪？</strong></h4>
+<p>卸载后，<code>/mnt/usb</code>
+恢复成普通空文件夹，U盘可以安全拔出。</p>
+<h4 id="挂载后新建的文件在哪"><strong>挂载后新建的文件在哪？</strong></h4>
 <p><strong>场景1：挂载后创建文件</strong></p>
-<ol>
+<ol type="1">
 <li>挂载U盘到 <code>/mnt/usb</code>。</li>
 <li>在 <code>/mnt/usb</code> 新建文件 <code>test.txt</code>。</li>
 <li>卸载U盘。</li>
 </ol>
-<p><strong>问题</strong>：<code>test.txt</code> 存在哪里？<br>
+<p><strong>问题</strong>：<code>test.txt</code> 存在哪里？
 <strong>答案</strong>：文件实际保存在U盘中！卸载后，文件依然在U盘里，下次挂载还能看到。</p>
 <p><strong>场景2：换一个挂载点</strong></p>
-<ol>
-<li>将U盘挂载到 <code>/mnt/usb</code>，创建文件 <code>test.txt</code>。</li>
+<ol type="1">
+<li>将U盘挂载到 <code>/mnt/usb</code>，创建文件
+<code>test.txt</code>。</li>
 <li>卸载后，重新挂载到 <code>/media/myusb</code>。</li>
-<li>进入 <code>/media/myusb</code>，依然能看到 <code>test.txt</code>。</li>
+<li>进入 <code>/media/myusb</code>，依然能看到
+<code>test.txt</code>。</li>
 </ol>
 <p><strong>结论</strong>：文件存储在设备（U盘）中，和挂载点无关。换挂载点只是换了一个“入口”。</p>
-<h4 id="挂载点原有内容会怎样？"><a class="header-anchor" href="#挂载点原有内容会怎样？">¶</a><strong>挂载点原有内容会怎样？</strong></h4>
+<h4 id="挂载点原有内容会怎样"><strong>挂载点原有内容会怎样？</strong></h4>
 <p><strong>场景：挂载到非空文件夹</strong></p>
 <p>假设 <code>/mnt/usb</code> 原本有一个文件 <code>old.txt</code>：</p>
-<ol>
+<ol type="1">
 <li>挂载U盘到 <code>/mnt/usb</code>。</li>
-<li>此时访问 <code>/mnt/usb</code>，只能看到U盘的内容，<code>old.txt</code> 被“隐藏”。</li>
+<li>此时访问
+<code>/mnt/usb</code>，只能看到U盘的内容，<code>old.txt</code>
+被“隐藏”。</li>
 <li>卸载后，<code>old.txt</code> 重新出现。</li>
 </ol>
 <p><strong>结论</strong>：挂载到非空文件夹时，原内容会被临时隐藏（但不会被删除！）。</p>
-<h4 id="常见挂载类型"><a class="header-anchor" href="#常见挂载类型">¶</a><strong>常见挂载类型</strong></h4>
+<h4 id="常见挂载类型"><strong>常见挂载类型</strong></h4>
 <p><strong>挂载光盘</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mount /dev/cdrom /mnt/cd</span><br></pre></td></tr></table></figure>
 <p>光盘内容会出现在 <code>/mnt/cd</code>。</p>
 <p><strong>挂载硬盘分区</strong></p>
-<p>假设硬盘分区是 <code>/dev/sda2</code>，挂载到 <code>/data</code>：</p>
+<p>假设硬盘分区是 <code>/dev/sda2</code>，挂载到
+<code>/data</code>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mount /dev/sda2 /data</span><br></pre></td></tr></table></figure>
 <p>所有存到 <code>/data</code> 的文件实际保存在硬盘分区中。</p>
 <p><strong>挂载网络存储</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mount -t nfs 192.168.1.100:/shared /mnt/nfs</span><br></pre></td></tr></table></figure>
 <p>通过网络访问远程文件夹。</p>
-<h4 id="自动挂载（开机自动挂载）"><a class="header-anchor" href="#自动挂载（开机自动挂载）">¶</a><strong>自动挂载（开机自动挂载）</strong></h4>
+<h4 id="自动挂载开机自动挂载"><strong>自动挂载（开机自动挂载）</strong></h4>
 <p>编辑 <code>/etc/fstab</code> 文件，添加一行配置：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/dev/sdb1  /mnt/usb  ext4  defaults  0  0</span><br></pre></td></tr></table></figure>
-<p>系统启动时会自动挂载设备到指定位置。另外还有一种方法，通过 <code>blkid</code> 获取要挂载设备的 <code>UUID</code>，然后使用 <code>UUID</code> 挂载。</p>
-<h2 id="4-取消挂载"><a class="header-anchor" href="#4-取消挂载">¶</a>4. 取消挂载</h2>
-<p>取消挂载使用 <code>umount</code> 命令，需要注意的是，要取消挂载需要退出挂载点所在的目录，我们结合报错例子来学习，例如在执行下面的取消挂载命令时：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">umount /data</span><br></pre></td></tr></table></figure>
+<p>系统启动时会自动挂载设备到指定位置。另外还有一种方法，通过
+<code>blkid</code> 获取要挂载设备的 <code>UUID</code>，然后使用
+<code>UUID</code> 挂载。</p>
+<h2 id="取消挂载">4. 取消挂载</h2>
+<p>取消挂载使用 <code>umount</code>
+命令，需要注意的是，要取消挂载需要退出挂载点所在的目录，我们结合报错例子来学习，例如在执行下面的取消挂载命令时：
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">umount /data</span><br></pre></td></tr></table></figure></p>
 <p>可能会出现下面的报错：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">umount: target is busy</span><br><span class="line">(In some cases useful info about processes that use</span><br><span class="line">the device is found by lsof(8) or fuser(1))</span><br></pre></td></tr></table></figure>
-<h3 id="原因解析"><a class="header-anchor" href="#原因解析">¶</a>原因解析</h3>
-<ol>
+<h3 id="原因解析">原因解析</h3>
+<ol type="1">
 <li><strong>文件系统被占用</strong>
 <ul>
-<li><strong>打开文件</strong>：有进程正在 <code>/data</code> 目录下打开文件（例如日志文件、数据文件等），导致文件系统处于“忙”状态。</li>
-<li><strong>当前工作目录</strong>：某个用户或服务的当前工作目录设置在 <code>/data</code> 下。如果用户的 shell 或程序正处于该目录，也会阻止卸载。</li>
-</ul>
-</li>
+<li><strong>打开文件</strong>：有进程正在 <code>/data</code>
+目录下打开文件（例如日志文件、数据文件等），导致文件系统处于“忙”状态。</li>
+<li><strong>当前工作目录</strong>：某个用户或服务的当前工作目录设置在
+<code>/data</code> 下。如果用户的 shell
+或程序正处于该目录，也会阻止卸载。</li>
+</ul></li>
 <li><strong>多用户环境的影响</strong>
 <ul>
-<li><strong>多用户使用</strong>：在多用户系统中，不同用户可能同时在 <code>/data</code> 挂载点下运行应用程序或脚本。即使你自己不在使用，其他用户的进程也可能占用该目录。</li>
-<li><strong>服务使用</strong>：某些服务（如数据库、Web服务器或其他网络服务）可能将 <code>/data</code> 用作数据存储目录，并且这些服务可能由不同用户启动。</li>
-</ul>
-</li>
+<li><strong>多用户使用</strong>：在多用户系统中，不同用户可能同时在
+<code>/data</code>
+挂载点下运行应用程序或脚本。即使你自己不在使用，其他用户的进程也可能占用该目录。</li>
+<li><strong>服务使用</strong>：某些服务（如数据库、Web服务器或其他网络服务）可能将
+<code>/data</code>
+用作数据存储目录，并且这些服务可能由不同用户启动。</li>
+</ul></li>
 <li><strong>后台进程和网络端口</strong>
 <ul>
-<li>某些后台进程或守护进程可能绑定了特定端口，并且其配置文件或数据存放在 <code>/data</code> 下。使用 <code>ps -ef | grep &lt;端口号&gt;</code> 可帮助定位这些进程。</li>
-</ul>
-</li>
+<li>某些后台进程或守护进程可能绑定了特定端口，并且其配置文件或数据存放在
+<code>/data</code> 下。使用 <code>ps -ef | grep &lt;端口号&gt;</code>
+可帮助定位这些进程。</li>
+</ul></li>
 </ol>
-<h3 id="解决方法"><a class="header-anchor" href="#解决方法">¶</a>解决方法</h3>
-<ol>
-<li>
-<p><strong>使用 lsof 命令查看占用情况</strong></p>
+<h3 id="解决方法">解决方法</h3>
+<ol type="1">
+<li><p><strong>使用 lsof 命令查看占用情况</strong></p>
 <ul>
-<li>
-<p>运行以下命令，查看哪些进程正在访问  <code>/data</code></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsof /data</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>此命令会列出所有打开 <code>/data</code> 下文件的进程及其详细信息。</p>
-</li>
-</ul>
-</li>
-<li>
-<p><strong>使用 fuser 命令确认进程</strong></p>
+<li><p>运行以下命令，查看哪些进程正在访问 <code>/data</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsof /data</span><br></pre></td></tr></table></figure></li>
+<li><p>此命令会列出所有打开 <code>/data</code>
+下文件的进程及其详细信息。</p></li>
+</ul></li>
+<li><p><strong>使用 fuser 命令确认进程</strong></p>
 <ul>
-<li>
-<p>通过 fuser 命令可以直接看到占用挂载点的进程ID：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fuser -m /data</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-<li>
-<p><strong>使用 ps 命令查找特定端口进程（如有需要）</strong></p>
+<li><p>通过 fuser 命令可以直接看到占用挂载点的进程ID：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fuser -m /data</span><br></pre></td></tr></table></figure></li>
+</ul></li>
+<li><p><strong>使用 ps 命令查找特定端口进程（如有需要）</strong></p>
 <ul>
-<li>
-<p>如果怀疑某个服务在使用特定端口（例如数据库或 Web 服务），可以使用：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep &lt;端口号&gt;</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>这样可以帮助你定位使用该端口的进程，从而确认它们是否涉及到 <code>/data</code> 目录的使用。</p>
-</li>
-</ul>
-</li>
-<li>
-<p><strong>停止或终止相关进程</strong></p>
+<li><p>如果怀疑某个服务在使用特定端口（例如数据库或 Web
+服务），可以使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep &lt;端口号&gt;</span><br></pre></td></tr></table></figure></li>
+<li><p>这样可以帮助你定位使用该端口的进程，从而确认它们是否涉及到
+<code>/data</code> 目录的使用。</p></li>
+</ul></li>
+<li><p><strong>停止或终止相关进程</strong></p>
 <ul>
-<li>
-<p>根据上面的命令输出，确认占用 <code>/data</code></p>
+<li><p>根据上面的命令输出，确认占用 <code>/data</code></p>
 <p>的进程后，可以采取以下措施：</p>
 <ul>
-<li>
-<p><strong>通知用户</strong>：在多用户环境中，先通知使用者退出或切换工作目录，确保不再访问 <code>/data</code>。</p>
-</li>
-<li>
-<p><strong>终止进程</strong>：如果确认进程可以安全终止，使用以下命令（注意要谨慎操作）：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">kill</span> -9 &lt;PID&gt;</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<p><strong>使用延迟卸载（Lazy Unmount）</strong></p>
+<li><p><strong>通知用户</strong>：在多用户环境中，先通知使用者退出或切换工作目录，确保不再访问
+<code>/data</code>。</p></li>
+<li><p><strong>终止进程</strong>：如果确认进程可以安全终止，使用以下命令（注意要谨慎操作）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">kill</span> -9 &lt;PID&gt;</span><br></pre></td></tr></table></figure></li>
+</ul></li>
+</ul></li>
+<li><p><strong>使用延迟卸载（Lazy Unmount）</strong></p>
 <ul>
-<li>
-<p>如果确定暂时无法中止所有进程，也可以采用延迟卸载的方法：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">umount -l /data</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>此方法会立即断开挂载点，但会在进程不再使用时真正卸载。但需注意，这种方式可能会导致数据同步问题。</p>
-</li>
-</ul>
-</li>
+<li><p>如果确定暂时无法中止所有进程，也可以采用延迟卸载的方法：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">umount -l /data</span><br></pre></td></tr></table></figure></li>
+<li><p>此方法会立即断开挂载点，但会在进程不再使用时真正卸载。但需注意，这种方式可能会导致数据同步问题。</p></li>
+</ul></li>
 </ol>
-<h1>四、特殊设备文件</h1>
-<h2 id="1-dev-null-——-空设备（黑洞）"><a class="header-anchor" href="#1-dev-null-——-空设备（黑洞）">¶</a>1. <code>/dev/null</code> —— 空设备（黑洞）</h2>
+<h1 id="四特殊设备文件">四、特殊设备文件</h1>
+<h2 id="devnull-空设备黑洞">1. <code>/dev/null</code> ——
+空设备（黑洞）</h2>
 <ul>
-<li>
-<p><strong>特点</strong></p>
+<li><p><strong>特点</strong></p>
 <ul>
 <li>读取时总是返回 EOF（End of File）。</li>
 <li>写入的数据会被直接丢弃，不占用存储空间。</li>
-</ul>
-</li>
-<li>
-<p><strong>应用</strong></p>
+</ul></li>
+<li><p><strong>应用</strong></p>
 <ul>
-<li>
-<p>丢弃输出：常用于忽略命令的标准输出（<code>stdout</code>）或错误输出（<code>stderr</code>）。</p>
-</li>
-<li>
-<p>例如：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> &gt; /dev/null   <span class="comment"># 丢弃 ls 命令的标准输出</span></span><br><span class="line"><span class="built_in">ls</span> 2&gt; /dev/null  <span class="comment"># 丢弃 ls 命令的错误输出</span></span><br><span class="line"><span class="built_in">ls</span> &gt; /dev/null 2&gt;&amp;1  <span class="comment"># 同时丢弃标准输出和错误输出</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>作为空文件输入：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /dev/null &gt; file.txt  <span class="comment"># 清空 file.txt</span></span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-</li>
+<li><p>丢弃输出：常用于忽略命令的标准输出（<code>stdout</code>）或错误输出（<code>stderr</code>）。</p></li>
+<li><p>例如：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> &gt; /dev/null   <span class="comment"># 丢弃 ls 命令的标准输出</span></span><br><span class="line"><span class="built_in">ls</span> 2&gt; /dev/null  <span class="comment"># 丢弃 ls 命令的错误输出</span></span><br><span class="line"><span class="built_in">ls</span> &gt; /dev/null 2&gt;&amp;1  <span class="comment"># 同时丢弃标准输出和错误输出</span></span><br></pre></td></tr></table></figure></li>
+<li><p>作为空文件输入：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /dev/null &gt; file.txt  <span class="comment"># 清空 file.txt</span></span><br></pre></td></tr></table></figure></li>
+</ul></li>
 </ul>
 <hr>
-<h2 id="2-dev-zero-——-无限输出零字节"><a class="header-anchor" href="#2-dev-zero-——-无限输出零字节">¶</a>2. <code>/dev/zero</code> —— 无限输出零字节</h2>
+<h2 id="devzero-无限输出零字节">2. <code>/dev/zero</code> ——
+无限输出零字节</h2>
 <ul>
-<li>
-<p><strong>特点</strong></p>
+<li><p><strong>特点</strong></p>
 <ul>
 <li>读取时会不断返回 <code>0x00</code>（空字节）。</li>
 <li>适用于生成填充数据（例如创建大文件）。</li>
-</ul>
-</li>
-<li>
-<p><strong>应用</strong></p>
+</ul></li>
+<li><p><strong>应用</strong></p>
 <ul>
-<li>
-<p>创建特定大小的文件：</p>
+<li><p>创建特定大小的文件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">dd</span> <span class="keyword">if</span>=/dev/zero of=file.bin bs=1M count=100</span><br></pre></td></tr></table></figure>
 <p>该命令创建一个 100MB 的全零文件</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file.bin</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>初始化文件系统：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkfs.ext4 /dev/zero  <span class="comment"># 格式化磁盘时用于填充数据</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>用于共享内存（如 <code>mmap</code>）或虚拟内存文件系统（如 <code>tmpfs</code>）。</p>
-</li>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file.bin</span><br></pre></td></tr></table></figure></li>
+<li><p>初始化文件系统：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkfs.ext4 /dev/zero  <span class="comment"># 格式化磁盘时用于填充数据</span></span><br></pre></td></tr></table></figure></li>
+<li><p>用于共享内存（如 <code>mmap</code>）或虚拟内存文件系统（如
+<code>tmpfs</code>）。</p></li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<h2 id="3-dev-random-——-高质量随机数生成器"><a class="header-anchor" href="#3-dev-random-——-高质量随机数生成器">¶</a>3. <code>/dev/random</code> —— 高质量随机数生成器</h2>
+<h2 id="devrandom-高质量随机数生成器">3. <code>/dev/random</code> ——
+高质量随机数生成器</h2>
 <ul>
-<li>
-<p><strong>特点</strong></p>
+<li><p><strong>特点</strong></p>
 <ul>
 <li>读取时返回加密安全的随机数据（由环境噪声等熵源提供）。</li>
-<li>如果熵池（entropy pool）不足，读取可能会阻塞（等待更多随机熵）。</li>
+<li>如果熵池（entropy
+pool）不足，读取可能会阻塞（等待更多随机熵）。</li>
 <li>适用于生成高质量的加密密钥。</li>
-</ul>
-</li>
-<li>
-<p><strong>应用</strong></p>
+</ul></li>
+<li><p><strong>应用</strong></p>
 <ul>
-<li>
-<p>生成安全随机数：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">head</span> -c 16 /dev/random | <span class="built_in">base64</span>  <span class="comment"># 生成 16 字节的随机数据并编码</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>生成随机密码：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /dev/random | <span class="built_in">tr</span> -dc <span class="string">&#x27;A-Za-z0-9&#x27;</span> | <span class="built_in">head</span> -c 12</span><br></pre></td></tr></table></figure>
-</li>
+<li><p>生成安全随机数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">head</span> -c 16 /dev/random | <span class="built_in">base64</span>  <span class="comment"># 生成 16 字节的随机数据并编码</span></span><br></pre></td></tr></table></figure></li>
+<li><p>生成随机密码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /dev/random | <span class="built_in">tr</span> -dc <span class="string">&#x27;A-Za-z0-9&#x27;</span> | <span class="built_in">head</span> -c 12</span><br></pre></td></tr></table></figure></li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<h2 id="4-dev-urandom-——-非阻塞随机数生成器"><a class="header-anchor" href="#4-dev-urandom-——-非阻塞随机数生成器">¶</a>4. <code>/dev/urandom</code> —— 非阻塞随机数生成器</h2>
+<h2 id="devurandom-非阻塞随机数生成器">4. <code>/dev/urandom</code> ——
+非阻塞随机数生成器</h2>
 <ul>
-<li>
-<p><strong>特点</strong></p>
+<li><p><strong>特点</strong></p>
 <ul>
-<li>读取时返回伪随机数，熵不足时不会阻塞（不同于 <code>/dev/random</code>）。</li>
+<li>读取时返回伪随机数，熵不足时不会阻塞（不同于
+<code>/dev/random</code>）。</li>
 <li>适用于大多数非极端安全需求的随机数生成场景。</li>
-</ul>
-</li>
-<li>
-<p><strong>应用</strong></p>
+</ul></li>
+<li><p><strong>应用</strong></p>
 <ul>
-<li>
-<p>生成随机文件：</p>
+<li><p>生成随机文件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">dd</span> <span class="keyword">if</span>=/dev/urandom of=random.bin bs=1M count=10</span><br></pre></td></tr></table></figure>
-<p>生成一个 10MB 的随机文件。</p>
-</li>
-<li>
-<p>生成随机密码：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">head</span> -c 16 /dev/urandom | <span class="built_in">base64</span></span><br></pre></td></tr></table></figure>
-</li>
+<p>生成一个 10MB 的随机文件。</p></li>
+<li><p>生成随机密码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">head</span> -c 16 /dev/urandom | <span class="built_in">base64</span></span><br></pre></td></tr></table></figure></li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<p><strong><code>/dev/random</code> vs <code>/dev/urandom</code></strong></p>
+<p><strong><code>/dev/random</code> vs
+<code>/dev/urandom</code></strong></p>
 <table>
+<colgroup>
+<col style="width: 10%">
+<col style="width: 38%">
+<col style="width: 50%">
+</colgroup>
 <thead>
 <tr>
 <th>特性</th>
@@ -1151,104 +1296,130 @@
 </table>
 <p><strong>结论：</strong></p>
 <ul>
-<li><code>/dev/random</code> 适用于生成高安全性密钥（如 GPG/SSH 密钥）。</li>
-<li><code>/dev/urandom</code> 适用于一般随机数需求（如 session ID）。</li>
+<li><code>/dev/random</code> 适用于生成高安全性密钥（如 GPG/SSH
+密钥）。</li>
+<li><code>/dev/urandom</code> 适用于一般随机数需求（如 session
+ID）。</li>
 </ul>
-<h1>五、文件系统、链接与 RAID 技术详解</h1>
-<p>下面将详细介绍 inode、块（block）、硬链接、文件删除原理、软链接、硬链接。</p>
-<h2 id="1-inode-与文件系统"><a class="header-anchor" href="#1-inode-与文件系统">¶</a>1. inode 与文件系统</h2>
-<p><strong>inode（Index Node）</strong>：是 Unix/Linux 文件系统中用于存储文件元数据（metadata）的数据结构。它记录了文件的所有属性信息（如所有者、权限、时间戳、文件大小、数据块指针等），但不包含文件名。换句话说，Linux 的文件内容其实是包含了文件名和元数据两个部分的，元数据可以通过 <code>stat</code> 命令查看得到。一个新的磁盘在格式化文件系统后存在两个存储空间，一个叫做 <code>inode</code> 存储空间（存储元数据），一个叫做 <code>block</code> 存储空间（存储文件数据），创建文件系统之后 <code>inode</code> 和 <code>block</code> 的数量就会固定下来。Linux 读取文件内容是通过 <code>文件名 &gt; inode 编号 &gt; block 的顺序</code> 来读取的。</p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311223710806.png" alt="image-20250311223710806"></p>
-<h3 id="文件与-inode-的关系"><a class="header-anchor" href="#文件与-inode-的关系">¶</a>文件与 inode 的关系</h3>
+<h1 id="五文件系统链接与-raid-技术详解">五、文件系统、链接与 RAID
+技术详解</h1>
+<p>下面将详细介绍
+inode、块（block）、硬链接、文件删除原理、软链接、硬链接。</p>
+<h2 id="inode-与文件系统">1. inode 与文件系统</h2>
+<p><strong>inode（Index Node）</strong>：是 Unix/Linux
+文件系统中用于存储文件元数据（metadata）的数据结构。它记录了文件的所有属性信息（如所有者、权限、时间戳、文件大小、数据块指针等），但不包含文件名。换句话说，Linux
+的文件内容其实是包含了文件名和元数据两个部分的，元数据可以通过
+<code>stat</code>
+命令查看得到。一个新的磁盘在格式化文件系统后存在两个存储空间，一个叫做
+<code>inode</code> 存储空间（存储元数据），一个叫做 <code>block</code>
+存储空间（存储文件数据），创建文件系统之后 <code>inode</code> 和
+<code>block</code> 的数量就会固定下来。Linux 读取文件内容是通过
+<code>文件名 &gt; inode 编号 &gt; block 的顺序</code> 来读取的。</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311223710806.png" alt="image-20250311223710806">
+<figcaption aria-hidden="true">image-20250311223710806</figcaption>
+</figure>
+<h3 id="文件与-inode-的关系">文件与 inode 的关系</h3>
 <ul>
 <li><strong>文件数据与 inode</strong>：
 <ul>
 <li>每个文件在创建时都会分配一个 inode，inode 存储文件的元数据。</li>
-<li>文件的数据实际存放在数据块中，而 inode 中包含指向这些数据块的指针。</li>
-</ul>
-</li>
+<li>文件的数据实际存放在数据块中，而 inode
+中包含指向这些数据块的指针。</li>
+</ul></li>
 <li><strong>目录与 inode</strong>：
 <ul>
-<li>目录本身也是一个特殊类型的文件，其内容是文件名和对应 inode 编号的映射表。</li>
-<li>当你通过文件名访问文件时，系统实际上先通过目录查找对应的 inode 编号，再根据 inode 获取文件的相关信息和数据。</li>
+<li>目录本身也是一个特殊类型的文件，其内容是文件名和对应 inode
+编号的映射表。</li>
+<li>当你通过文件名访问文件时，系统实际上先通过目录查找对应的 inode
+编号，再根据 inode 获取文件的相关信息和数据。</li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<h3 id="块（block）"><a class="header-anchor" href="#块（block）">¶</a>块（block）</h3>
+<h3 id="块block">块（block）</h3>
 <ul>
 <li><strong>块的概念</strong>：
 <ul>
-<li>硬盘上的数据以块为单位存储。块是文件系统读写的基本单位，其大小通常在 512 字节到 4KB 之间，具体取决于文件系统的设置。</li>
+<li>硬盘上的数据以块为单位存储。块是文件系统读写的基本单位，其大小通常在
+512 字节到 4KB 之间，具体取决于文件系统的设置。</li>
 <li>inode 中的指针正是指向这些块的位置。</li>
-</ul>
-</li>
+</ul></li>
 <li><strong>块在性能上的影响</strong>：
 <ul>
 <li>块的大小会影响文件存储的效率与性能。过小可能导致大量索引；过大则可能浪费存储空间（内部碎片）。</li>
+</ul></li>
 </ul>
-</li>
-</ul>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311235850437.png" alt="image-20250311235850437"></p>
-<h2 id="2-链接（Link）：硬链接与软链接"><a class="header-anchor" href="#2-链接（Link）：硬链接与软链接">¶</a>2. 链接（Link）：硬链接与软链接</h2>
-<h3 id="硬链接（Hard-Link）"><a class="header-anchor" href="#硬链接（Hard-Link）">¶</a>硬链接（Hard Link）</h3>
-<p>硬链接是多个目录项（文件名）指向同一个 inode。也就是说，同一个文件的多个名字都指向同一组数据和属性，其特点是：</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311235850437.png" alt="image-20250311235850437">
+<figcaption aria-hidden="true">image-20250311235850437</figcaption>
+</figure>
+<h2 id="链接link硬链接与软链接">2. 链接（Link）：硬链接与软链接</h2>
+<h3 id="硬链接hard-link">硬链接（Hard Link）</h3>
+<p>硬链接是多个目录项（文件名）指向同一个
+inode。也就是说，同一个文件的多个名字都指向同一组数据和属性，其特点是：</p>
 <ul>
-<li>共享 inode：硬链接和原始文件共享同一个 inode，所以它们是完全等价的。</li>
+<li>共享 inode：硬链接和原始文件共享同一个
+inode，所以它们是完全等价的。</li>
 <li>不能跨文件系统：硬链接只能在同一个文件系统内建立。</li>
 <li>不能对目录建立硬链接（防止循环引用）。</li>
-<li>当删除一个硬链接时，只是删除了目录中的一个引用。如果该 inode 的链接计数不为 0，则文件数据仍然保留。</li>
-<li>只有当所有指向该 inode 的硬链接都被删除后，系统才真正回收 inode 和数据块。</li>
+<li>当删除一个硬链接时，只是删除了目录中的一个引用。如果该 inode
+的链接计数不为 0，则文件数据仍然保留。</li>
+<li>只有当所有指向该 inode 的硬链接都被删除后，系统才真正回收 inode
+和数据块。</li>
 </ul>
-<h3 id="软链接（符号链接，Symbolic-Link）"><a class="header-anchor" href="#软链接（符号链接，Symbolic-Link）">¶</a>软链接（符号链接，Symbolic Link）</h3>
+<h3 id="软链接符号链接symbolic-link">软链接（符号链接，Symbolic
+Link）</h3>
 <p>软链接是一个特殊类型的文件，其中存储了另一个文件或目录的路径，其特点是：</p>
 <ul>
 <li>不共享 inode：软链接有自己的 inode，其内容指向目标文件的路径。</li>
 <li>可以跨文件系统：软链接可以引用其他文件系统上的文件或目录。</li>
-<li>如果目标文件被删除，软链接就会变成“悬挂链接”（dangling link），即指向不存在的目标。</li>
+<li>如果目标文件被删除，软链接就会变成“悬挂链接”（dangling
+link），即指向不存在的目标。</li>
 </ul>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311234336552.png" alt="image-20250311234336552"></p>
-<h2 id="3-目录的链接数"><a class="header-anchor" href="#3-目录的链接数">¶</a><strong>3. 目录的链接数</strong></h2>
-<p>在 Linux 中，<strong>目录的链接数</strong>（link count）表示有多少个硬链接指向该目录。可以通过 <code>ls -ld</code> 来查看：</p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311234336552.png" alt="image-20250311234336552">
+<figcaption aria-hidden="true">image-20250311234336552</figcaption>
+</figure>
+<h2 id="目录的链接数"><strong>3. 目录的链接数</strong></h2>
+<p>在 Linux 中，<strong>目录的链接数</strong>（link
+count）表示有多少个硬链接指向该目录。可以通过 <code>ls -ld</code>
+来查看：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -ld 目录名</span><br></pre></td></tr></table></figure>
-<h3 id="目录的硬链接数"><a class="header-anchor" href="#目录的硬链接数">¶</a>目录的硬链接数</h3>
+<h3 id="目录的硬链接数">目录的硬链接数</h3>
 <ul>
-<li>
-<p>普通目录</p>
+<li><p>普通目录</p>
 <p>（非空目录）：硬链接数 = 2 + 该目录下的子目录个数</p>
 <ul>
 <li><code>.</code> 指向自身（1 个链接）</li>
 <li><code>..</code> 存在于每个子目录（父目录的链接数 +1）</li>
-<li>目录下的每个子目录都会在父目录中创建一个 <code>..</code>，增加父目录的链接数。</li>
-</ul>
-</li>
-<li>
-<p><strong>根目录 <code>/</code></strong>：其硬链接数等于 2 + <code>/</code> 下的一级子目录数量。</p>
-</li>
+<li>目录下的每个子目录都会在父目录中创建一个
+<code>..</code>，增加父目录的链接数。</li>
+</ul></li>
+<li><p><strong>根目录 <code>/</code></strong>：其硬链接数等于 2 +
+<code>/</code> 下的一级子目录数量。</p></li>
 </ul>
 <p>示例：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> test_dir</span><br><span class="line"><span class="built_in">ls</span> -ld test_dir</span><br><span class="line"><span class="comment"># 输出类似：</span></span><br><span class="line"><span class="comment"># drwxr-xr-x 2 user user 4096 Sep 26 12:00 test_dir</span></span><br><span class="line"><span class="comment"># 其中 `2` 表示当前目录有 2 个硬链接（自身 `.` 和父目录 `..`）</span></span><br></pre></td></tr></table></figure>
-<h3 id="子目录的影响"><a class="header-anchor" href="#子目录的影响">¶</a>子目录的影响</h3>
+<h3 id="子目录的影响">子目录的影响</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> test_dir/sub_dir</span><br><span class="line"><span class="built_in">ls</span> -ld test_dir</span><br><span class="line"><span class="comment"># 硬链接数增加到 3，因为 `sub_dir` 内部有 `..` 指向 `test_dir`</span></span><br></pre></td></tr></table></figure>
 <p><strong>总结：</strong></p>
 <ul>
-<li><strong>空目录的硬链接数是 2</strong>（自身 <code>.</code> + 父目录的 <code>..</code>）。</li>
+<li><strong>空目录的硬链接数是 2</strong>（自身 <code>.</code> +
+父目录的 <code>..</code>）。</li>
 <li><strong>每增加一个子目录，父目录的硬链接数增加 1</strong>。</li>
 </ul>
-<h2 id="4-文件删除原理"><a class="header-anchor" href="#4-文件删除原理">¶</a>4. 文件删除原理</h2>
+<h2 id="文件删除原理">4. 文件删除原理</h2>
 <ul>
-<li>
-<p><strong>目录项删除</strong>：当删除文件时，实际上是从目录中移除了对该文件 inode 的引用（即减少了 inode 的链接计数）。</p>
-</li>
-<li>
-<p><strong>数据实际删除</strong>：只有当 inode 的链接计数归零时，操作系统才会将该 inode 和对应的数据块标记为可回收，从而真正释放磁盘空间。</p>
-</li>
-<li>
-<p><strong>缓存与文件句柄</strong>：如果某个进程已打开文件，即使目录项被删除，该文件仍可被进程读取或写入，直到文件描述符关闭后，数据才会最终释放。</p>
-</li>
-<li>
-<p><strong>移动和删除文件对软硬链接的影响：</strong></p>
-<p><img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311235231646.png" alt="image-20250311235231646"></p>
-</li>
+<li><p><strong>目录项删除</strong>：当删除文件时，实际上是从目录中移除了对该文件
+inode 的引用（即减少了 inode 的链接计数）。</p></li>
+<li><p><strong>数据实际删除</strong>：只有当 inode
+的链接计数归零时，操作系统才会将该 inode
+和对应的数据块标记为可回收，从而真正释放磁盘空间。</p></li>
+<li><p><strong>缓存与文件句柄</strong>：如果某个进程已打开文件，即使目录项被删除，该文件仍可被进程读取或写入，直到文件描述符关闭后，数据才会最终释放。</p></li>
+<li><p><strong>移动和删除文件对软硬链接的影响：</strong></p>
+<figure>
+<img src="/Linux-%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311235231646.png" alt="image-20250311235231646">
+<figcaption aria-hidden="true">image-20250311235231646</figcaption>
+</figure></li>
 </ul>
 
         </div>
@@ -1276,11 +1447,11 @@
             <ul class="post-tags-box">
                 
                     <li class="tag-item">
-                        <a href="/tags/Linux/">#Linux</a>&nbsp;
+                        <a href="/en/tags/Linux/">#Linux</a>&nbsp;
                     </li>
                 
                     <li class="tag-item">
-                        <a href="/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">#云计算</a>&nbsp;
+                        <a href="/en/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">#云计算</a>&nbsp;
                     </li>
                 
             </ul>
@@ -1292,7 +1463,7 @@
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/"
+                           href="/en/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
@@ -1308,7 +1479,7 @@
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/"
+                           href="/en/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/"
                         >
                             <span class="title flex-center">
                                 <span class="post-nav-title-item">Linux 磁盘管理</span>
@@ -1524,7 +1695,14 @@
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">一、网站存储</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%AD%98%E5%82%A8%E5%B1%82%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.1.</span> <span class="nav-text">1. 存储层的设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%AD%98%E5%82%A8%E7%9A%84%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD%EF%BC%88RAID%E7%A3%81%E7%9B%98%E9%98%B5%E5%88%97%E6%8A%80%E6%9C%AF%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">2. 存储的数据备份（RAID磁盘阵列技术）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RAID-%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-number">1.2.1.</span> <span class="nav-text">RAID 的基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6-RAID%EF%BC%88%E8%BD%AF-RAID%EF%BC%89"><span class="nav-number">1.2.2.</span> <span class="nav-text">软件 RAID（软 RAID）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6-RAID-%E5%91%BD%E4%BB%A4%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.2.3.</span> <span class="nav-text">软件 RAID 命令实践</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%AD%98%E5%82%A8%E7%9A%84%E6%95%B0%E6%8D%AE%E6%89%A9%E5%AE%B9"><span class="nav-number">1.3.</span> <span class="nav-text">3. 存储的数据扩容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A9%E5%AE%B9%E4%B8%9A%E5%8A%A1%E6%95%B4%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="nav-number">1.3.1.</span> <span class="nav-text">扩容业务整体流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lvm-%E6%8A%80%E6%9C%AF"><span class="nav-number">1.3.2.</span> <span class="nav-text">lvm 技术</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">二、磁盘管理业务背景与流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">三、磁盘使用流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%A3%81%E7%9B%98%E5%88%86%E5%8C%BA"><span class="nav-number">3.1.</span> <span class="nav-text">1. 磁盘分区</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MBR"><span class="nav-number">3.1.1.</span> <span class="nav-text">MBR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GPT"><span class="nav-number">3.1.2.</span> <span class="nav-text">GPT</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fdisk-%E5%92%8C-gdisk"><span class="nav-number">3.1.3.</span> <span class="nav-text">fdisk 和 gdisk</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A1%AC%E7%9B%98%E6%8E%A5%E5%8F%A3%E4%B8%8E%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99"><span class="nav-number">3.1.4.</span> <span class="nav-text">硬盘接口与命名规则</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">3.2.</span> <span class="nav-text">2. 格式化文件系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%8C%82%E8%BD%BD%E7%9B%AE%E5%BD%95%E5%88%B0%E5%88%86%E5%8C%BA"><span class="nav-number">3.3.</span> <span class="nav-text">3. 挂载目录到分区</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E6%8C%82%E8%BD%BD%EF%BC%88Mount%EF%BC%89%EF%BC%9F"><span class="nav-number">3.3.0.1.</span> <span class="nav-text">什么是挂载（Mount）？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C"><span class="nav-number">3.3.0.2.</span> <span class="nav-text">挂载的基本操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E5%90%8E%E6%96%B0%E5%BB%BA%E7%9A%84%E6%96%87%E4%BB%B6%E5%9C%A8%E5%93%AA%EF%BC%9F"><span class="nav-number">3.3.0.3.</span> <span class="nav-text">挂载后新建的文件在哪？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E7%82%B9%E5%8E%9F%E6%9C%89%E5%86%85%E5%AE%B9%E4%BC%9A%E6%80%8E%E6%A0%B7%EF%BC%9F"><span class="nav-number">3.3.0.4.</span> <span class="nav-text">挂载点原有内容会怎样？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E6%8C%82%E8%BD%BD%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.3.0.5.</span> <span class="nav-text">常见挂载类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E6%8C%82%E8%BD%BD%EF%BC%88%E5%BC%80%E6%9C%BA%E8%87%AA%E5%8A%A8%E6%8C%82%E8%BD%BD%EF%BC%89"><span class="nav-number">3.3.0.6.</span> <span class="nav-text">自动挂载（开机自动挂载）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E5%8F%96%E6%B6%88%E6%8C%82%E8%BD%BD"><span class="nav-number">3.4.</span> <span class="nav-text">4. 取消挂载</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E5%9B%A0%E8%A7%A3%E6%9E%90"><span class="nav-number">3.4.1.</span> <span class="nav-text">原因解析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95"><span class="nav-number">3.4.2.</span> <span class="nav-text">解决方法</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">四、特殊设备文件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-dev-null-%E2%80%94%E2%80%94-%E7%A9%BA%E8%AE%BE%E5%A4%87%EF%BC%88%E9%BB%91%E6%B4%9E%EF%BC%89"><span class="nav-number">4.1.</span> <span class="nav-text">1. &#x2F;dev&#x2F;null —— 空设备（黑洞）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-dev-zero-%E2%80%94%E2%80%94-%E6%97%A0%E9%99%90%E8%BE%93%E5%87%BA%E9%9B%B6%E5%AD%97%E8%8A%82"><span class="nav-number">4.2.</span> <span class="nav-text">2. &#x2F;dev&#x2F;zero —— 无限输出零字节</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-dev-random-%E2%80%94%E2%80%94-%E9%AB%98%E8%B4%A8%E9%87%8F%E9%9A%8F%E6%9C%BA%E6%95%B0%E7%94%9F%E6%88%90%E5%99%A8"><span class="nav-number">4.3.</span> <span class="nav-text">3. &#x2F;dev&#x2F;random —— 高质量随机数生成器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-dev-urandom-%E2%80%94%E2%80%94-%E9%9D%9E%E9%98%BB%E5%A1%9E%E9%9A%8F%E6%9C%BA%E6%95%B0%E7%94%9F%E6%88%90%E5%99%A8"><span class="nav-number">4.4.</span> <span class="nav-text">4. &#x2F;dev&#x2F;urandom —— 非阻塞随机数生成器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">五、文件系统、链接与 RAID 技术详解</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-inode-%E4%B8%8E%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">5.1.</span> <span class="nav-text">1. inode 与文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8E-inode-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">5.1.1.</span> <span class="nav-text">文件与 inode 的关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%97%EF%BC%88block%EF%BC%89"><span class="nav-number">5.1.2.</span> <span class="nav-text">块（block）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%93%BE%E6%8E%A5%EF%BC%88Link%EF%BC%89%EF%BC%9A%E7%A1%AC%E9%93%BE%E6%8E%A5%E4%B8%8E%E8%BD%AF%E9%93%BE%E6%8E%A5"><span class="nav-number">5.2.</span> <span class="nav-text">2. 链接（Link）：硬链接与软链接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A1%AC%E9%93%BE%E6%8E%A5%EF%BC%88Hard-Link%EF%BC%89"><span class="nav-number">5.2.1.</span> <span class="nav-text">硬链接（Hard Link）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E9%93%BE%E6%8E%A5%EF%BC%88%E7%AC%A6%E5%8F%B7%E9%93%BE%E6%8E%A5%EF%BC%8CSymbolic-Link%EF%BC%89"><span class="nav-number">5.2.2.</span> <span class="nav-text">软链接（符号链接，Symbolic Link）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9B%AE%E5%BD%95%E7%9A%84%E9%93%BE%E6%8E%A5%E6%95%B0"><span class="nav-number">5.3.</span> <span class="nav-text">3. 目录的链接数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95%E7%9A%84%E7%A1%AC%E9%93%BE%E6%8E%A5%E6%95%B0"><span class="nav-number">5.3.1.</span> <span class="nav-text">目录的硬链接数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%90%E7%9B%AE%E5%BD%95%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="nav-number">5.3.2.</span> <span class="nav-text">子目录的影响</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E6%96%87%E4%BB%B6%E5%88%A0%E9%99%A4%E5%8E%9F%E7%90%86"><span class="nav-number">5.4.</span> <span class="nav-text">4. 文件删除原理</span></a></li></ol></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E7%BD%91%E7%AB%99%E5%AD%98%E5%82%A8"><span class="nav-number">1.</span> <span class="nav-text">一、网站存储</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E5%B1%82%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.1.</span> <span class="nav-text">1. 存储层的设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E7%9A%84%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BDraid%E7%A3%81%E7%9B%98%E9%98%B5%E5%88%97%E6%8A%80%E6%9C%AF"><span class="nav-number">1.2.</span> <span class="nav-text">2.
+存储的数据备份（RAID磁盘阵列技术）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#raid-%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-number">1.2.1.</span> <span class="nav-text">RAID 的基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6-raid%E8%BD%AF-raid"><span class="nav-number">1.2.2.</span> <span class="nav-text">软件 RAID（软 RAID）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6-raid-%E5%91%BD%E4%BB%A4%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.2.3.</span> <span class="nav-text">软件 RAID 命令实践</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E7%9A%84%E6%95%B0%E6%8D%AE%E6%89%A9%E5%AE%B9"><span class="nav-number">1.3.</span> <span class="nav-text">3. 存储的数据扩容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A9%E5%AE%B9%E4%B8%9A%E5%8A%A1%E6%95%B4%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="nav-number">1.3.1.</span> <span class="nav-text">扩容业务整体流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lvm-%E6%8A%80%E6%9C%AF"><span class="nav-number">1.3.2.</span> <span class="nav-text">lvm 技术</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86%E4%B8%9A%E5%8A%A1%E8%83%8C%E6%99%AF%E4%B8%8E%E6%B5%81%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">二、磁盘管理业务背景与流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E7%A3%81%E7%9B%98%E4%BD%BF%E7%94%A8%E6%B5%81%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">三、磁盘使用流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A3%81%E7%9B%98%E5%88%86%E5%8C%BA"><span class="nav-number">3.1.</span> <span class="nav-text">1. 磁盘分区</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#mbr"><span class="nav-number">3.1.1.</span> <span class="nav-text">MBR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gpt"><span class="nav-number">3.1.2.</span> <span class="nav-text">GPT</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fdisk-%E5%92%8C-gdisk"><span class="nav-number">3.1.3.</span> <span class="nav-text">fdisk 和 gdisk</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A1%AC%E7%9B%98%E6%8E%A5%E5%8F%A3%E4%B8%8E%E5%91%BD%E5%90%8D%E8%A7%84%E5%88%99"><span class="nav-number">3.1.4.</span> <span class="nav-text">硬盘接口与命名规则</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">3.2.</span> <span class="nav-text">2. 格式化文件系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E7%9B%AE%E5%BD%95%E5%88%B0%E5%88%86%E5%8C%BA"><span class="nav-number">3.3.</span> <span class="nav-text">3. 挂载目录到分区</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E6%8C%82%E8%BD%BDmount"><span class="nav-number">3.3.0.1.</span> <span class="nav-text">什么是挂载（Mount）？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C"><span class="nav-number">3.3.0.2.</span> <span class="nav-text">挂载的基本操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E5%90%8E%E6%96%B0%E5%BB%BA%E7%9A%84%E6%96%87%E4%BB%B6%E5%9C%A8%E5%93%AA"><span class="nav-number">3.3.0.3.</span> <span class="nav-text">挂载后新建的文件在哪？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8C%82%E8%BD%BD%E7%82%B9%E5%8E%9F%E6%9C%89%E5%86%85%E5%AE%B9%E4%BC%9A%E6%80%8E%E6%A0%B7"><span class="nav-number">3.3.0.4.</span> <span class="nav-text">挂载点原有内容会怎样？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E6%8C%82%E8%BD%BD%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.3.0.5.</span> <span class="nav-text">常见挂载类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E6%8C%82%E8%BD%BD%E5%BC%80%E6%9C%BA%E8%87%AA%E5%8A%A8%E6%8C%82%E8%BD%BD"><span class="nav-number">3.3.0.6.</span> <span class="nav-text">自动挂载（开机自动挂载）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%96%E6%B6%88%E6%8C%82%E8%BD%BD"><span class="nav-number">3.4.</span> <span class="nav-text">4. 取消挂载</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E5%9B%A0%E8%A7%A3%E6%9E%90"><span class="nav-number">3.4.1.</span> <span class="nav-text">原因解析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95"><span class="nav-number">3.4.2.</span> <span class="nav-text">解决方法</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E7%89%B9%E6%AE%8A%E8%AE%BE%E5%A4%87%E6%96%87%E4%BB%B6"><span class="nav-number">4.</span> <span class="nav-text">四、特殊设备文件</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#devnull-%E7%A9%BA%E8%AE%BE%E5%A4%87%E9%BB%91%E6%B4%9E"><span class="nav-number">4.1.</span> <span class="nav-text">1. &#x2F;dev&#x2F;null ——
+空设备（黑洞）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#devzero-%E6%97%A0%E9%99%90%E8%BE%93%E5%87%BA%E9%9B%B6%E5%AD%97%E8%8A%82"><span class="nav-number">4.2.</span> <span class="nav-text">2. &#x2F;dev&#x2F;zero ——
+无限输出零字节</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#devrandom-%E9%AB%98%E8%B4%A8%E9%87%8F%E9%9A%8F%E6%9C%BA%E6%95%B0%E7%94%9F%E6%88%90%E5%99%A8"><span class="nav-number">4.3.</span> <span class="nav-text">3. &#x2F;dev&#x2F;random ——
+高质量随机数生成器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#devurandom-%E9%9D%9E%E9%98%BB%E5%A1%9E%E9%9A%8F%E6%9C%BA%E6%95%B0%E7%94%9F%E6%88%90%E5%99%A8"><span class="nav-number">4.4.</span> <span class="nav-text">4. &#x2F;dev&#x2F;urandom ——
+非阻塞随机数生成器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E9%93%BE%E6%8E%A5%E4%B8%8E-raid-%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3"><span class="nav-number">5.</span> <span class="nav-text">五、文件系统、链接与 RAID
+技术详解</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#inode-%E4%B8%8E%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">5.1.</span> <span class="nav-text">1. inode 与文件系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%B8%8E-inode-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">5.1.1.</span> <span class="nav-text">文件与 inode 的关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%97block"><span class="nav-number">5.1.2.</span> <span class="nav-text">块（block）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%93%BE%E6%8E%A5link%E7%A1%AC%E9%93%BE%E6%8E%A5%E4%B8%8E%E8%BD%AF%E9%93%BE%E6%8E%A5"><span class="nav-number">5.2.</span> <span class="nav-text">2. 链接（Link）：硬链接与软链接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A1%AC%E9%93%BE%E6%8E%A5hard-link"><span class="nav-number">5.2.1.</span> <span class="nav-text">硬链接（Hard Link）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AF%E9%93%BE%E6%8E%A5%E7%AC%A6%E5%8F%B7%E9%93%BE%E6%8E%A5symbolic-link"><span class="nav-number">5.2.2.</span> <span class="nav-text">软链接（符号链接，Symbolic
+Link）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95%E7%9A%84%E9%93%BE%E6%8E%A5%E6%95%B0"><span class="nav-number">5.3.</span> <span class="nav-text">3. 目录的链接数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95%E7%9A%84%E7%A1%AC%E9%93%BE%E6%8E%A5%E6%95%B0"><span class="nav-number">5.3.1.</span> <span class="nav-text">目录的硬链接数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%90%E7%9B%AE%E5%BD%95%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="nav-number">5.3.2.</span> <span class="nav-text">子目录的影响</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%88%A0%E9%99%A4%E5%8E%9F%E7%90%86"><span class="nav-number">5.4.</span> <span class="nav-text">4. 文件删除原理</span></a></li></ol></li></ol>
     </div>
 </div>
         </aside>
