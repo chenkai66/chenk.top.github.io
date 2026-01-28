@@ -239,12 +239,12 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>10.3k 字</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>10.5k 字</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>45 分钟</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>46 分钟</span>
         </span>
     
     
@@ -260,91 +260,146 @@
         
 
         <div class="article-content markdown-body">
-            <p>把一台刚买的阿里云 ECS 从“能 SSH 登录”变成“公网可访问、可稳定跑站点”的服务器，中间最容易卡在三件事：网络放行（安全组/防火墙）、服务联动（Apache–PHP–MySQL 的请求链路）以及权限与版本（目录权限、PHP 版本与扩展）。这篇文章先用架构图把 LAMP 的工作流讲清楚，然后按可复现的顺序完成：安全组与端口配置、基础环境安装与验证、Apache/MySQL/PHP 的安装与关键配置，最后给出 Discuz 部署与源码编译安装的整套流程（含清理旧环境、依赖准备、服务自启与常见排错点），让你从 0 到 1 把一套传统 Web 栈在云上真正跑起来。</p>
+            <p>把一台刚买的阿里云 ECS 从“能 SSH
+登录”变成“公网可访问、可稳定跑站点”的服务器，中间最容易卡在三件事：网络放行（安全组/防火墙）、服务联动（Apache–PHP–MySQL
+的请求链路）以及权限与版本（目录权限、PHP
+版本与扩展）。这篇文章先用架构图把 LAMP
+的工作流讲清楚，然后按可复现的顺序完成：安全组与端口配置、基础环境安装与验证、Apache/MySQL/PHP
+的安装与关键配置，最后给出 Discuz
+部署与源码编译安装的整套流程（含清理旧环境、依赖准备、服务自启与常见排错点），让你从
+0 到 1 把一套传统 Web 栈在云上真正跑起来。</p>
 <span id="more"></span>
-<p>LAMP 是 Linux 服务器上的一套经典 Web 服务器架构，由 <strong>Linux</strong>（操作系统）、<strong>Apache</strong>（Web 服务器）、<strong>MySQL</strong>（数据库）和 <strong>PHP/Python/Perl</strong>（动态脚本语言）组成。阿里云服务器提供了强大的计算资源，使得用户可以在云环境中搭建 LAMP 服务器来部署 Web 应用。</p>
+<p>LAMP 是 Linux 服务器上的一套经典 Web 服务器架构，由
+<strong>Linux</strong>（操作系统）、<strong>Apache</strong>（Web
+服务器）、<strong>MySQL</strong>（数据库）和
+<strong>PHP/Python/Perl</strong>（动态脚本语言）组成。阿里云服务器提供了强大的计算资源，使得用户可以在云环境中搭建
+LAMP 服务器来部署 Web 应用。</p>
 <hr>
-<h1>一、LAMP 架构概述</h1>
-<p>LAMP 是构建动态网站和 Web 应用的主流架构。它的每个组件在架构中发挥特定作用：</p>
+<h1 id="一lamp-架构概述">一、LAMP 架构概述</h1>
+<p>LAMP 是构建动态网站和 Web
+应用的主流架构。它的每个组件在架构中发挥特定作用：</p>
 <ul>
 <li><strong>Linux</strong>：作为服务器操作系统，提供稳定的运行环境。</li>
-<li><strong>Apache</strong>：作为 Web 服务器，处理 HTTP 请求并将网页内容返回给客户端。</li>
+<li><strong>Apache</strong>：作为 Web 服务器，处理 HTTP
+请求并将网页内容返回给客户端。</li>
 <li><strong>MySQL</strong>：提供数据库服务，用于存储网站数据。</li>
-<li><strong>PHP、Python、Perl</strong>：用于动态生成网页，与 MySQL 交互，处理用户请求。</li>
+<li><strong>PHP、Python、Perl</strong>：用于动态生成网页，与 MySQL
+交互，处理用户请求。</li>
 </ul>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/420px-LAMP_software_bundle.svg.png" alt="img"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/420px-LAMP_software_bundle.svg.png" alt="img">
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
 <p>下图展示了 LAMP 架构的工作流程：</p>
-<ol>
+<ol type="1">
 <li>用户访问网站，浏览器向 Apache 服务器发送 HTTP 请求。</li>
 <li>Apache 解析请求并调用 PHP 处理逻辑。</li>
 <li>PHP 脚本查询 MySQL 数据库获取数据。</li>
 <li>数据返回给 PHP 处理，并最终由 Apache 服务器返回给用户。</li>
 </ol>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/ee8c173e981c46068d93961c484c43e2.png" alt="LAMP架构_lamp具体结构包括-CSDN博客"></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/992547-20170619140819648-1336856462.png" alt="LAMP架构的详细内容以及通信过程- Nice_keep-going - 博客园"></p>
-<h1>二、阿里云服务器概述与网络配置</h1>
-<p>阿里云服务器（ECS）为用户提供弹性计算资源，并支持多种操作系统（如 Ubuntu）。在阿里云环境中，关键的网络配置包括公网 IP 与防火墙安全组设置。下面是云服务器控制台的监控界面：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211211700378.png" alt="image-20250211211700378"></p>
-<h2 id="1-阿里云服务器基础"><a class="header-anchor" href="#1-阿里云服务器基础">¶</a>1. 阿里云服务器基础</h2>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/ee8c173e981c46068d93961c484c43e2.png" alt="LAMP架构_lamp具体结构包括-CSDN博客">
+<figcaption aria-hidden="true">LAMP架构_lamp具体结构包括-CSDN博客</figcaption>
+</figure>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/992547-20170619140819648-1336856462.png" alt="LAMP架构的详细内容以及通信过程- Nice_keep-going - 博客园">
+<figcaption aria-hidden="true">LAMP架构的详细内容以及通信过程-
+Nice_keep-going - 博客园</figcaption>
+</figure>
+<h1 id="二阿里云服务器概述与网络配置">二、阿里云服务器概述与网络配置</h1>
+<p>阿里云服务器（ECS）为用户提供弹性计算资源，并支持多种操作系统（如
+Ubuntu）。在阿里云环境中，关键的网络配置包括公网 IP
+与防火墙安全组设置。下面是云服务器控制台的监控界面：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211211700378.png" alt="image-20250211211700378">
+<figcaption aria-hidden="true">image-20250211211700378</figcaption>
+</figure>
+<h2 id="阿里云服务器基础">1. 阿里云服务器基础</h2>
 <ul>
-<li>
-<p><strong>弹性扩展</strong>：根据实际需求调整 CPU、内存、带宽等资源。</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211211940966.png" alt="image-20250211211940966"></p>
-</li>
-<li>
-<p><strong>公网 IP</strong>：使服务器可以被外部访问。你可以在阿里云控制台为 ECS 实例分配公网 IP。</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211212019600.png" alt="image-20250211212019600"></p>
-</li>
-<li>
-<p><strong>安全组（防火墙）</strong>：阿里云提供安全组管理工具，用于配置允许哪些端口和 IP 能访问你的服务器。</p>
-</li>
+<li><p><strong>弹性扩展</strong>：根据实际需求调整
+CPU、内存、带宽等资源。</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211211940966.png" alt="image-20250211211940966">
+<figcaption aria-hidden="true">image-20250211211940966</figcaption>
+</figure></li>
+<li><p><strong>公网
+IP</strong>：使服务器可以被外部访问。你可以在阿里云控制台为 ECS
+实例分配公网 IP。</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211212019600.png" alt="image-20250211212019600">
+<figcaption aria-hidden="true">image-20250211212019600</figcaption>
+</figure></li>
+<li><p><strong>安全组（防火墙）</strong>：阿里云提供安全组管理工具，用于配置允许哪些端口和
+IP 能访问你的服务器。</p></li>
 </ul>
-<h2 id="2-防火墙与公网-IP-配置"><a class="header-anchor" href="#2-防火墙与公网-IP-配置">¶</a>2. 防火墙与公网 IP 配置</h2>
-<h3 id="公网-IP-配置"><a class="header-anchor" href="#公网-IP-配置">¶</a>公网 IP 配置</h3>
-<p>在阿里云 ECS 控制台：</p>
-<ul>
-<li>为实例分配或绑定公网 IP。</li>
-<li>在实例信息中查看公网 IP，并通过浏览器访问测试。</li>
-</ul>
-<h3 id="安全组规则设置"><a class="header-anchor" href="#安全组规则设置">¶</a>安全组规则设置</h3>
-<p>在 ECS 控制台的安全组配置中，添加以下入站规则：</p>
-<ul>
-<li><strong>SSH</strong>：端口 22（允许远程登录）。</li>
-<li><strong>HTTP</strong>：端口 80（用于网站访问）。</li>
-<li><strong>HTTPS</strong>：端口 443（用于安全网站访问）。</li>
-<li>可根据需要开放 MySQL（3306）、FTP 等端口。</li>
-</ul>
+<h2 id="防火墙与公网-ip-配置">2. 防火墙与公网 IP 配置</h2>
+<h3 id="公网-ip-配置">公网 IP 配置</h3>
+<p>在阿里云 ECS 控制台： - 为实例分配或绑定公网 IP。 -
+在实例信息中查看公网 IP，并通过浏览器访问测试。</p>
+<h3 id="安全组规则设置">安全组规则设置</h3>
+<p>在 ECS 控制台的安全组配置中，添加以下入站规则： -
+<strong>SSH</strong>：端口 22（允许远程登录）。 -
+<strong>HTTP</strong>：端口 80（用于网站访问）。 -
+<strong>HTTPS</strong>：端口 443（用于安全网站访问）。 - 可根据需要开放
+MySQL（3306）、FTP 等端口。</p>
 <p>默认安全组配置如下：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211154055070.png" alt="image-20250211154055070"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211154055070.png" alt="image-20250211154055070">
+<figcaption aria-hidden="true">image-20250211154055070</figcaption>
+</figure>
 <p>配置方式如下：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221452657.png" alt="image-20250211221452657"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221452657.png" alt="image-20250211221452657">
+<figcaption aria-hidden="true">image-20250211221452657</figcaption>
+</figure>
 <p>配置结果如下：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221531005.png" alt="image-20250211221531005"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221531005.png" alt="image-20250211221531005">
+<figcaption aria-hidden="true">image-20250211221531005</figcaption>
+</figure>
 <p><strong>或在服务器上使用 iptables 命令手动配置：</strong></p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 允许 HTTP 访问</span><br><span class="line">sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT</span><br><span class="line"># 允许 HTTPS 访问</span><br><span class="line">sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"># 允许 SSH 访问</span><br><span class="line">sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT</span><br><span class="line"># 保存规则（Ubuntu 下使用 iptables-persistent）</span><br><span class="line">sudo netfilter-persistent save</span><br></pre></td></tr></table></figure>
-<h1>三、LAMP 环境搭建（Ubuntu 实例）</h1>
-<p>在阿里云的 Ubuntu 服务器上，搭建 LAMP 环境主要包括安装 Apache、MySQL 和 PHP，并进行简单配置与验证。</p>
-<h2 id="0-准备工作"><a class="header-anchor" href="#0-准备工作">¶</a>0. 准备工作</h2>
-<p>在开始之前，我们一般要关闭所有防火墙（内置防火墙和 Linux 的软件防火墙）。</p>
-<p>第一步就是关闭 <code>selinux</code>，这是美国航空安全局开发的内置防火墙。我们首先可以通过 <code>getenforce</code> 查询 <code>selinux</code> 状态，但基本只有CentOS 8 会有比较多的 <code>seinux</code> 的策略，CentOS7 不用。我们可以修改其默认配置，永久禁止其开机自启：</p>
-<p>第二步是关闭内置的 <code>firewalld</code> 以及清空 <code>iptables</code> 规则：</p>
+<h1 id="三lamp-环境搭建ubuntu-实例">三、LAMP 环境搭建（Ubuntu
+实例）</h1>
+<p>在阿里云的 Ubuntu 服务器上，搭建 LAMP 环境主要包括安装 Apache、MySQL
+和 PHP，并进行简单配置与验证。</p>
+<h2 id="准备工作">0. 准备工作</h2>
+<p>在开始之前，我们一般要关闭所有防火墙（内置防火墙和 Linux
+的软件防火墙）。</p>
+<p>第一步就是关闭
+<code>selinux</code>，这是美国航空安全局开发的内置防火墙。我们首先可以通过
+<code>getenforce</code> 查询 <code>selinux</code> 状态，但基本只有CentOS
+8 会有比较多的 <code>seinux</code> 的策略，CentOS7
+不用。我们可以修改其默认配置，永久禁止其开机自启：</p>
+<p>第二步是关闭内置的 <code>firewalld</code> 以及清空
+<code>iptables</code> 规则：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">iptables -F</span><br><span class="line">systemctl stop firewalld</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld</span><br></pre></td></tr></table></figure>
-<h2 id="1-安装-Apache-Web-服务器"><a class="header-anchor" href="#1-安装-Apache-Web-服务器">¶</a>1. 安装 Apache Web 服务器</h2>
+<h2 id="安装-apache-web-服务器">1. 安装 Apache Web 服务器</h2>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update</span><br><span class="line">sudo apt install apache2 -y</span><br><span class="line"></span><br><span class="line"># 或者在CentOS里</span><br><span class="line">yum install httpd -y</span><br></pre></td></tr></table></figure>
 <p>启动并设置 Apache 开机自启：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl start apache2</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> apache2</span><br></pre></td></tr></table></figure>
-<p>验证：在浏览器访问 <code>http://&lt;公网_IP&gt;/</code> 应显示 Apache 默认欢迎页面。</p>
+<p>验证：在浏览器访问 <code>http://&lt;公网_IP&gt;/</code> 应显示 Apache
+默认欢迎页面。</p>
 <p>⚠️注意，如果之前没有配置安全组通过 80 端口，会显示：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221630066.png" alt="image-20250211221630066"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221630066.png" alt="image-20250211221630066">
+<figcaption aria-hidden="true">image-20250211221630066</figcaption>
+</figure>
 <p>按前面说的配置一下安全组就行，最终会显示如下页面：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221716957.png" alt="image-20250211221716957"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211221716957.png" alt="image-20250211221716957">
+<figcaption aria-hidden="true">image-20250211221716957</figcaption>
+</figure>
 <p>下面为 CentOS 下的 Apache 服务器启动以及测试方式：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211220450481.png" alt="image-20250211220450481"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211220450481.png" alt="image-20250211220450481">
+<figcaption aria-hidden="true">image-20250211220450481</figcaption>
+</figure>
 <blockquote>
 <p><code>curl ifconfig.me</code> 可以拿到自己的 ip 地址</p>
 </blockquote>
-<h2 id="2-MySQL-数据库"><a class="header-anchor" href="#2-MySQL-数据库">¶</a>2. MySQL 数据库</h2>
-<h3 id="安装"><a class="header-anchor" href="#安装">¶</a>安装</h3>
+<h2 id="mysql-数据库">2. MySQL 数据库</h2>
+<h3 id="安装">安装</h3>
 <p>命令如下：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install mysql-server -y</span><br></pre></td></tr></table></figure>
 <p>运行安全安装向导：</p>
@@ -352,44 +407,60 @@
 <p>按照提示设置 MySQL root 密码，移除匿名用户，禁止远程 root 登录。</p>
 <p>验证：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl status mysql</span><br></pre></td></tr></table></figure>
-<p>在阿里云服务器安装时，默认的阿里云源是没有 <code>mysql</code> 的，只有 <code>mariadb</code>：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211222133896.png" alt="image-20250211222133896"></p>
+<p>在阿里云服务器安装时，默认的阿里云源是没有 <code>mysql</code>
+的，只有 <code>mariadb</code>：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211222133896.png" alt="image-20250211222133896">
+<figcaption aria-hidden="true">image-20250211222133896</figcaption>
+</figure>
 <p>我们可以给服务器换源：</p>
 <p>首先进入到 <code>/etc/yum.repos.d</code>，进行如下操作：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211225358267.png" alt="image-20250211225358267"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211225358267.png" alt="image-20250211225358267">
+<figcaption aria-hidden="true">image-20250211225358267</figcaption>
+</figure>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget http://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm</span><br><span class="line">rpm -ivh mysql-community-release-el7-5.noarch.rpm </span><br></pre></td></tr></table></figure>
 <p>查看 <code>mysql-community.repo</code> 文件：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211225836835.png" alt="image-20250211225836835"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211225836835.png" alt="image-20250211225836835">
+<figcaption aria-hidden="true">image-20250211225836835</figcaption>
+</figure>
 <p>随后运行以下命令安装即可：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install mysql-community-server</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211232057979.png" alt="image-20250211232057979"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211232057979.png" alt="image-20250211232057979">
+<figcaption aria-hidden="true">image-20250211232057979</figcaption>
+</figure>
 <p>可以输入 <code>mysql_secure_installation</code> 来进行密码设置：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211232544886.png" alt="image-20250211232544886"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211232544886.png" alt="image-20250211232544886">
+<figcaption aria-hidden="true">image-20250211232544886</figcaption>
+</figure>
 <p>登录后可以查看一些基本信息如下：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211232802711.png" alt="image-20250211232802711"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211232802711.png" alt="image-20250211232802711">
+<figcaption aria-hidden="true">image-20250211232802711</figcaption>
+</figure>
 <blockquote>
-<p>当使用源码编译的方式安装 mysql 时如果系统中没有安装 openssl 或其开发头文件和库，就会遇到报错<strong>缺少 openssl</strong>，这时我们需要做两步：</p>
-<ol>
-<li>
-<p><strong>删除编译的目录</strong>：编译失败后，通常会有一个部分完成的目录（即使没有完全成功安装），此时需要删除该目录。</p>
+<p>当使用源码编译的方式安装 mysql 时如果系统中没有安装 openssl
+或其开发头文件和库，就会遇到报错<strong>缺少
+openssl</strong>，这时我们需要做两步：</p>
+<ol type="1">
+<li><p><strong>删除编译的目录</strong>：编译失败后，通常会有一个部分完成的目录（即使没有完全成功安装），此时需要删除该目录。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rm</span> -rf /path/to/mysql/source/directory</span><br></pre></td></tr></table></figure>
-<p>删除这个目录，确保不会使用到损坏的或不完整的文件。</p>
-</li>
-<li>
-<p><strong>安装 openssl</strong>：确保系统中安装了 openssl 和相关的开发工具。如果缺少开发头文件，还需要安装 openssl-devel 包。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install openssl openssl-devel</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p><strong>重新编译 MySQL</strong>：在安装了 openssl 之后，重新进入 MySQL 源代码目录，开始新的编译安装。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /path/to/mysql/source</span><br><span class="line">./configure  <span class="comment"># 配置 MySQL 编译选项</span></span><br><span class="line">make         <span class="comment"># 编译 MySQL</span></span><br><span class="line">make install <span class="comment"># 安装 MySQL</span></span><br></pre></td></tr></table></figure>
-</li>
+<p>删除这个目录，确保不会使用到损坏的或不完整的文件。</p></li>
+<li><p><strong>安装 openssl</strong>：确保系统中安装了 openssl
+和相关的开发工具。如果缺少开发头文件，还需要安装 openssl-devel 包。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install openssl openssl-devel</span><br></pre></td></tr></table></figure></li>
+<li><p><strong>重新编译 MySQL</strong>：在安装了 openssl 之后，重新进入
+MySQL 源代码目录，开始新的编译安装。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /path/to/mysql/source</span><br><span class="line">./configure  <span class="comment"># 配置 MySQL 编译选项</span></span><br><span class="line">make         <span class="comment"># 编译 MySQL</span></span><br><span class="line">make install <span class="comment"># 安装 MySQL</span></span><br></pre></td></tr></table></figure></li>
 </ol>
 </blockquote>
-<h3 id="配置与远程访问"><a class="header-anchor" href="#配置与远程访问">¶</a>配置与远程访问</h3>
+<h3 id="配置与远程访问">配置与远程访问</h3>
 <p>现在我们可以对 MySQL 数据库进行配置与远程访问</p>
 <p><strong>1. 修改 MySQL 绑定地址</strong></p>
-<p>编辑 MySQL 配置文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf</span><br></pre></td></tr></table></figure>
+<p>编辑 MySQL 配置文件： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf</span><br></pre></td></tr></table></figure></p>
 <p>找到 bind-address 字段，将其改为：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bind-address = 0.0.0.0</span><br></pre></td></tr></table></figure>
 <p>保存后退出编辑器，然后重启 MySQL 服务：</p>
@@ -401,61 +472,99 @@
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CREATE USER <span class="string">&#x27;admin&#x27;</span>@<span class="string">&#x27;%&#x27;</span> IDENTIFIED BY <span class="string">&#x27;yourpassword&#x27;</span>;</span><br><span class="line">GRANT ALL PRIVILEGES ON *.* TO <span class="string">&#x27;admin&#x27;</span>@<span class="string">&#x27;%&#x27;</span>;</span><br><span class="line">FLUSH PRIVILEGES;</span><br></pre></td></tr></table></figure>
 <p>退出 MySQL。</p>
 <p><strong>3. 安全注意</strong></p>
-<p>确保安全组允许 MySQL 端口（3306）的访问，或通过 SSH 隧道访问 MySQL 服务。</p>
-<h2 id="3-PHP-及相关模块"><a class="header-anchor" href="#3-PHP-及相关模块">¶</a>3. PHP 及相关模块</h2>
-<h3 id="安装-v2"><a class="header-anchor" href="#安装-v2">¶</a>安装</h3>
+<p>确保安全组允许 MySQL 端口（3306）的访问，或通过 SSH 隧道访问 MySQL
+服务。</p>
+<h2 id="php-及相关模块">3. PHP 及相关模块</h2>
+<h3 id="安装-1">安装</h3>
 <p>命令如下：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install php libapache2-mod-php php-mysql -y</span><br><span class="line"><span class="comment"># CentOS下</span></span><br><span class="line">yum install php -y</span><br></pre></td></tr></table></figure>
 <p>验证 PHP 安装：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">php -v</span><br><span class="line"></span><br><span class="line"><span class="comment"># PHP 5.4.16 (cli) (built: Apr  1 2020 04:07:17) </span></span><br><span class="line"><span class="comment"># Copyright (c) 1997-2013 The PHP Group</span></span><br><span class="line"><span class="comment"># Zend Engine v2.4.0, Copyright (c) 1998-2013 Zend Technologies</span></span><br></pre></td></tr></table></figure>
-<h3 id="创建页面"><a class="header-anchor" href="#创建页面">¶</a>创建页面</h3>
-<p>为了确认 PHP 环境安装成功，我们可以创建一个简单的 <code>phpinfo()</code> 页面。</p>
+<h3 id="创建页面">创建页面</h3>
+<p>为了确认 PHP 环境安装成功，我们可以创建一个简单的
+<code>phpinfo()</code> 页面。</p>
 <p><strong>1. 创建 <code>phpinfo.php</code> 测试页面</strong></p>
-<p>将以下内容写入 <code>/var/www/html/phpinfo.php</code>：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;&lt;?php phpinfo(); ?&gt;&quot; | sudo tee /var/www/html/phpinfo.php</span><br></pre></td></tr></table></figure>
+<p>将以下内容写入 <code>/var/www/html/phpinfo.php</code>：
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;&lt;?php phpinfo(); ?&gt;&quot; | sudo tee /var/www/html/phpinfo.php</span><br></pre></td></tr></table></figure></p>
 <p><strong>2. 访问测试页面</strong></p>
 <p>在浏览器中访问：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://&lt;公网_IP&gt;/phpinfo.php</span><br></pre></td></tr></table></figure>
-<p>如果页面显示 PHP 的详细配置信息，说明 PHP 安装正确并且与 Apache 正常集成。（访问不成功可以尝试 <code>systemctl restart httpd</code>）</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212000319587.png" alt="image-20250212000319587"></p>
-<p>或者可以尝试些别的，我们可以使用 PHP 的数组、随机函数以及内置的日期函数生成动态内容</p>
+<p>如果页面显示 PHP 的详细配置信息，说明 PHP 安装正确并且与 Apache
+正常集成。（访问不成功可以尝试
+<code>systemctl restart httpd</code>）</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212000319587.png" alt="image-20250212000319587">
+<figcaption aria-hidden="true">image-20250212000319587</figcaption>
+</figure>
+<p>或者可以尝试些别的，我们可以使用 PHP
+的数组、随机函数以及内置的日期函数生成动态内容</p>
 <ul>
 <li>利用 <code>array_rand()</code> 随机选择名言</li>
 <li>使用 <code>date()</code> 函数显示当前时间</li>
 <li>输出简单的 HTML 页面</li>
 </ul>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212000842498.png" alt="image-20250212000842498"></p>
-<h1>四、Discuz! 论坛部署</h1>
-<p>Discuz! 是一个基于 PHP 和 MySQL 的开源论坛程序，常用于搭建社区网站。下面介绍如何在 LAMP 环境中部署 Discuz!。</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212003942527.png" alt="image-20250212003942527"></p>
-<h2 id="1-下载并解压-Discuz-安装包"><a class="header-anchor" href="#1-下载并解压-Discuz-安装包">¶</a>1. 下载并解压 Discuz! 安装包</h2>
-<p>我们要进入 Apache 的默认目录，可以通过 <code>rpm -ql</code> 来查找：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211235946415.png" alt="image-20250211235946415"></p>
-<p>上面那些 <code>share</code> 的都可以不用管，只有最后一行数据是有用的，也就是我们要找的 Apache 的默认目录，进入 Apache 默认目录并下载：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212000842498.png" alt="image-20250212000842498">
+<figcaption aria-hidden="true">image-20250212000842498</figcaption>
+</figure>
+<h1 id="四discuz-论坛部署">四、Discuz! 论坛部署</h1>
+<p>Discuz! 是一个基于 PHP 和 MySQL
+的开源论坛程序，常用于搭建社区网站。下面介绍如何在 LAMP 环境中部署
+Discuz!。</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212003942527.png" alt="image-20250212003942527">
+<figcaption aria-hidden="true">image-20250212003942527</figcaption>
+</figure>
+<h2 id="下载并解压-discuz-安装包">1. 下载并解压 Discuz! 安装包</h2>
+<p>我们要进入 Apache 的默认目录，可以通过 <code>rpm -ql</code>
+来查找：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250211235946415.png" alt="image-20250211235946415">
+<figcaption aria-hidden="true">image-20250211235946415</figcaption>
+</figure>
+<p>上面那些 <code>share</code>
+的都可以不用管，只有最后一行数据是有用的，也就是我们要找的 Apache
+的默认目录，进入 Apache 默认目录并下载：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /var/www/html</span><br><span class="line">wget https://download.comsenz.com/DiscuzX/3.4/Discuz_X3.4_SC_UTF8.zip</span><br></pre></td></tr></table></figure>
 <p>解压安装包：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unzip Discuz_X3.4_SC_UTF8.zip</span><br></pre></td></tr></table></figure>
 <p>将解压后的内容移动到网站根目录：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mv</span> upload/* /var/www/html/</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212005140326.png" alt="image-20250212005140326"></p>
-<h2 id="2-安装-Discuz"><a class="header-anchor" href="#2-安装-Discuz">¶</a>2. 安装 Discuz!</h2>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212005140326.png" alt="image-20250212005140326">
+<figcaption aria-hidden="true">image-20250212005140326</figcaption>
+</figure>
+<h2 id="安装-discuz">2. 安装 Discuz!</h2>
 <p>在浏览器中访问：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://&lt;公网_IP&gt;/install/</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212005209279.png" alt="image-20250212005209279"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212005209279.png" alt="image-20250212005209279">
+<figcaption aria-hidden="true">image-20250212005209279</figcaption>
+</figure>
 <p>发现报错：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212005412101.png" alt="image-20250212005412101"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212005412101.png" alt="image-20250212005412101">
+<figcaption aria-hidden="true">image-20250212005412101</figcaption>
+</figure>
 <p>下面开始升级 PHP 版本。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 更新系统并安装必要的软件包</span></span><br><span class="line">sudo yum update -y  <span class="comment"># 更新系统</span></span><br><span class="line">sudo yum install -y epel-release yum-utils  <span class="comment"># 安装 EPEL 仓库和 yum-utils 工具</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 安装 Remi 仓库（CentOS 7 专用）</span></span><br><span class="line">sudo yum install -y https://rpms.remirepo.net/enterprise/remi-release-7.rpm  <span class="comment"># 添加 Remi 仓库</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 启用所需的 PHP 版本</span></span><br><span class="line">sudo yum-config-manager --<span class="built_in">enable</span> remi-php81  <span class="comment"># 这里以 PHP 8.1 为例，其他版本请修改对应的数字</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 升级或安装 PHP 及其常见扩展</span></span><br><span class="line">sudo yum install -y php php-cli php-common php-mbstring php-xml php-mysqlnd php-fpm php-opcache php-curl php-gd php-zip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 验证 PHP 版本是否正确安装</span></span><br><span class="line">php -v  <span class="comment"># 查看 PHP 版本，确认升级是否成功</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 6. 选择正确的 PHP 版本（如果 `php -v` 仍然是旧版本）</span></span><br><span class="line">sudo alternatives --config php  <span class="comment"># 可能需要手动选择 PHP 版本</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 7. 重启 Web 服务器以应用新 PHP 版本</span></span><br><span class="line">sudo systemctl restart httpd  <span class="comment"># 如果使用的是 Apache</span></span><br><span class="line">sudo systemctl restart php-fpm  <span class="comment"># 如果使用的是 Nginx+PHP-FPM</span></span><br><span class="line">sudo systemctl restart nginx  <span class="comment"># 如果 Nginx 也需要重启</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 8. 确保 PHP-FPM 正常运行</span></span><br><span class="line">sudo systemctl <span class="built_in">enable</span> php-fpm  <span class="comment"># 开机自启 PHP-FPM</span></span><br><span class="line">sudo systemctl status php-fpm  <span class="comment"># 检查 PHP-FPM 运行状态</span></span><br></pre></td></tr></table></figure>
 <p>经过一系列猛如虎的操作，PHP升级成功了，环境检查也不再报错了：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212010201948.png" alt="image-20250212010201948"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212010201948.png" alt="image-20250212010201948">
+<figcaption aria-hidden="true">image-20250212010201948</figcaption>
+</figure>
 <p>但下面又报错了，问题出在了目录权限，下面我们就把目录权限做修改。</p>
-<h2 id="3-配置-Apache-目录权限"><a class="header-anchor" href="#3-配置-Apache-目录权限">¶</a>3. 配置 Apache 目录权限</h2>
+<h2 id="配置-apache-目录权限">3. 配置 Apache 目录权限</h2>
 <p>设置文件所有者为 www-data，并赋予适当权限：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> -R 777 ./*</span><br></pre></td></tr></table></figure>
-<h2 id="image-20250212010501483"><a class="header-anchor" href="#image-20250212010501483">¶</a><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212010501483.png" alt="image-20250212010501483"></h2>
+<h2 id="image-20250212010501483"><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212010501483.png" alt="image-20250212010501483"></h2>
 <p>现在终于大功告成：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212010528759.png" alt="image-20250212010528759"></p>
-<p>如果提示少了驱动，我们可以通过 <code>yum install php-mysqli -y</code> 安装</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212010528759.png" alt="image-20250212010528759">
+<figcaption aria-hidden="true">image-20250212010528759</figcaption>
+</figure>
+<p>如果提示少了驱动，我们可以通过 <code>yum install php-mysqli -y</code>
+安装</p>
 <p>按照安装向导输入数据库信息：</p>
 <ul>
 <li><strong>数据库地址</strong>：localhost</li>
@@ -463,50 +572,80 @@
 <li><strong>数据库用户</strong>：admin</li>
 <li><strong>数据库密码</strong>：yourpassword</li>
 </ul>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212011051827.png" alt="image-20250212011051827"></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212011102231.png" alt="image-20250212011102231"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212011051827.png" alt="image-20250212011051827">
+<figcaption aria-hidden="true">image-20250212011051827</figcaption>
+</figure>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212011102231.png" alt="image-20250212011102231">
+<figcaption aria-hidden="true">image-20250212011102231</figcaption>
+</figure>
 <p>完成安装后，即可进入 Discuz! 后台管理，进一步配置论坛设置。</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212013221831.png" alt="image-20250212013221831"></p>
-<h1>五、源码编译安装</h1>
-<p>我们现在要搞事情，我们现在准备清空整个 LAMP（Linux + Apache + MySQL + PHP）环境并从头开始重新用源码编译，以下是详细的步骤指南。</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212013221831.png" alt="image-20250212013221831">
+<figcaption aria-hidden="true">image-20250212013221831</figcaption>
+</figure>
+<h1 id="五源码编译安装">五、源码编译安装</h1>
+<p>我们现在要搞事情，我们现在准备清空整个 LAMP（Linux + Apache + MySQL +
+PHP）环境并从头开始重新用源码编译，以下是详细的步骤指南。</p>
 <p>MySQL 5.6.31 + PHP 7.2.17</p>
-<h2 id="1-清空原有环境"><a class="header-anchor" href="#1-清空原有环境">¶</a>1. 清空原有环境</h2>
+<h2 id="清空原有环境">1. 清空原有环境</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 停止 Apache 和 MySQL 服务</span></span><br><span class="line">sudo systemctl stop httpd</span><br><span class="line">sudo systemctl stop mysqld</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 卸载 Apache、MySQL 和 PHP</span></span><br><span class="line">sudo yum remove httpd mysql mysql-server php php-cli php-fpm php-mysqlnd</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 删除 Apache、MySQL 和 PHP 配置文件和数据文件</span></span><br><span class="line">sudo <span class="built_in">rm</span> -rf /etc/httpd</span><br><span class="line">sudo <span class="built_in">rm</span> -rf /var/www</span><br><span class="line">sudo <span class="built_in">rm</span> -rf /var/lib/mysql</span><br><span class="line">sudo <span class="built_in">rm</span> -rf /etc/my.cnf</span><br><span class="line">sudo <span class="built_in">rm</span> -rf /etc/php</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 删除 MySQL 和 Apache 用户和组，组可能不存在，会报错，但不用管</span></span><br><span class="line">sudo userdel mysql</span><br><span class="line">sudo groupdel mysql</span><br><span class="line">sudo userdel apache</span><br><span class="line">sudo groupdel apache</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 删除残留的依赖和配置文件</span></span><br><span class="line">sudo yum autoremove</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212115847770.png" alt="image-20250212115847770"></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212115742880.png" alt="image-20250212115742880"></p>
-<h2 id="2-基础软件运行环境准备"><a class="header-anchor" href="#2-基础软件运行环境准备">¶</a>2. 基础软件运行环境准备</h2>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212115847770.png" alt="image-20250212115847770">
+<figcaption aria-hidden="true">image-20250212115847770</figcaption>
+</figure>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212115742880.png" alt="image-20250212115742880">
+<figcaption aria-hidden="true">image-20250212115742880</figcaption>
+</figure>
+<h2 id="基础软件运行环境准备">2. 基础软件运行环境准备</h2>
 <p>在重新安装之前，确保系统安装了编译所需的工具：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo yum groupinstall <span class="string">&quot;Development Tools&quot;</span></span><br><span class="line">sudo yum install -y gcc-c++ make cmake bison libaio-devel ncurses-devel zlib-devel openssl-devel</span><br></pre></td></tr></table></figure>
 <p>还可以选择安装一些其他的开发包以避免可能存在的错误：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install gcc patch libffi-devel python-devel bzip2-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel net-tools vim -y</span><br></pre></td></tr></table></figure>
-<p>注意：在开始后续操作之前一定要关闭防火墙（<code>selinux</code> 和 <code>firewalld</code>）</p>
+<p>注意：在开始后续操作之前一定要关闭防火墙（<code>selinux</code> 和
+<code>firewalld</code>）</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z yum.repos.d]<span class="comment"># systemctl status firewalld</span></span><br><span class="line">● firewalld.service - firewalld - dynamic firewall daemon</span><br><span class="line">   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)</span><br><span class="line">   Active: inactive (dead)</span><br><span class="line">     Docs: man:firewalld(1)	</span><br></pre></td></tr></table></figure>
 <blockquote>
 <p>下载太慢可以更换yum源或dns源或换网络环境</p>
 </blockquote>
-<h2 id="3-编译安装-MySQL"><a class="header-anchor" href="#3-编译安装-MySQL">¶</a>3. 编译安装 MySQL</h2>
+<h2 id="编译安装-mysql">3. 编译安装 MySQL</h2>
 <blockquote>
 <p>编译安装顺序：</p>
-<ol>
+<ol type="1">
 <li>Apache 一定要先于 PHP</li>
 <li>Apache 和 MySQL没有明显的依赖关系，先后无所谓</li>
-<li>在 PHP 3.5 之前，MySQL必须先于 PHP 编译，因为 PHP 需要实现连接数据库的功能，它通过 MySQL接口才能实现这一功能；在 3.5 之后 PHP 已经集成了一套连接 MySQL 数据库的代码，编译顺序无所谓了</li>
+<li>在 PHP 3.5 之前，MySQL必须先于 PHP 编译，因为 PHP
+需要实现连接数据库的功能，它通过 MySQL接口才能实现这一功能；在 3.5 之后
+PHP 已经集成了一套连接 MySQL 数据库的代码，编译顺序无所谓了</li>
 </ol>
 </blockquote>
-<h3 id="创建-MySQL-用户"><a class="header-anchor" href="#创建-MySQL-用户">¶</a>创建 MySQL 用户</h3>
+<h3 id="创建-mysql-用户">创建 MySQL 用户</h3>
 <p>用于给 MySQL 的数据、进程设置相关的 user 属主：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">useradd -r -s /sbin/nologin mysql</span><br></pre></td></tr></table></figure>
-<h3 id="下载-MySQL"><a class="header-anchor" href="#下载-MySQL">¶</a>下载 MySQL</h3>
+<h3 id="下载-mysql">下载 MySQL</h3>
 <p>首先我们要创建一个源码目录用于下载对应软件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /usr/local</span><br><span class="line"><span class="built_in">mkdir</span> software-mysql</span><br><span class="line"><span class="built_in">cd</span> software-mysql</span><br></pre></td></tr></table></figure>
-<p>我们可以在<a class="link" target="_blank" rel="noopener" href="https://repo.huaweicloud.com:8443/artifactory/mysql-local/Downloads/">华为提供的库内<i class="fas fa-external-link-alt"></i></a>下载需要的 MySQL 版本：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212171131843.png" alt="image-20250212171131843"></p>
+<p>我们可以在<a class="link" target="_blank" rel="noopener" href="https://repo.huaweicloud.com:8443/artifactory/mysql-local/Downloads/">华为提供的库内<i class="fas fa-external-link-alt"></i></a>下载需要的
+MySQL 版本：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212171131843.png" alt="image-20250212171131843">
+<figcaption aria-hidden="true">image-20250212171131843</figcaption>
+</figure>
 <p>选择一个合适的版本：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214202606094.png" alt="image-20250214202606094"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214202606094.png" alt="image-20250214202606094">
+<figcaption aria-hidden="true">image-20250214202606094</figcaption>
+</figure>
 <p>下载源码并解压缩：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://repo.huaweicloud.com:8443/artifactory/mysql-local/Downloads/MySQL-5.6/mysql-5.6.49.tar.gz</span><br><span class="line">tar -xzvf mysql-5.6.49.tar.gz</span><br></pre></td></tr></table></figure>
-<h3 id="编译安装"><a class="header-anchor" href="#编译安装">¶</a>编译安装</h3>
-<p>进入解压缩后的目录可以发现，这里没有我们之前看到的 <code>configure</code>，只有 <code>cmake</code>，我们需要安装 <code>cmake</code> 命令。然后我们需要在 MySQL 的源码目录下，执行 cmake 命令以配置并生成 Makefile，然后编译源代码。可以将以下命令保存为 <code>cmake.sh</code>：</p>
+<h3 id="编译安装">编译安装</h3>
+<p>进入解压缩后的目录可以发现，这里没有我们之前看到的
+<code>configure</code>，只有 <code>cmake</code>，我们需要安装
+<code>cmake</code> 命令。然后我们需要在 MySQL 的源码目录下，执行 cmake
+命令以配置并生成 Makefile，然后编译源代码。可以将以下命令保存为
+<code>cmake.sh</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">cmake . \</span><br><span class="line">-DCMAKE_INSTALL_PREFIX=/usr/local/mysql \</span><br><span class="line">-DMYSQL_DATADIR=/usr/local/mysql/data \</span><br><span class="line">-DENABLE_LOCAL_INFILE=1 \</span><br><span class="line">-DWITH_INNOBASE_STORAGE_ENGINE=1 \</span><br><span class="line">-DMYSQL_TCP_PORT=3306 \</span><br><span class="line">-DDEFAULT_CHARSET=utf8mb4 \</span><br><span class="line">-DDEFAULT_COLLATION=utf8mb4_general_ci \</span><br><span class="line">-DWITH_EXTRA_CHARSETS=all \</span><br><span class="line">-DMYSQL_USER=mysql</span><br></pre></td></tr></table></figure>
 <p>下面是对这些参数的解释：</p>
 <ul>
@@ -516,175 +655,350 @@
 <li>-DWITH_INNOBASE_STORAGE_ENGINE=1：启用 InnoDB 存储引擎</li>
 <li>-DMYSQL_TCP_PORT=3306：指定 MySQL 使用的 TCP 端口</li>
 <li>-DDEFAULT_CHARSET=utf8mb4：指定默认字符集为 utf8mb4</li>
-<li>-DDEFAULT_COLLATION=utf8mb4_general_ci：指定默认排序规则为 utf8mb4_general_ci</li>
+<li>-DDEFAULT_COLLATION=utf8mb4_general_ci：指定默认排序规则为
+utf8mb4_general_ci</li>
 <li>-DWITH_EXTRA_CHARSETS=all：启用所有额外字符集</li>
 <li>-DMYSQL_USER=mysql：指定 MySQL 的默认用户</li>
 </ul>
-<p>然后对文件需要修改权限，加入可执行权限，首先运行 <code>cmake.sh</code></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214202711590.png" alt="image-20250214202711590"></p>
-<p>运行成功如上图后，执行 <code>make</code>，因为时间不是太久就直接选择前台执行了：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214202440317.png" alt="image-20250214202440317"></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214205348391.png" alt="image-20250214205348391"></p>
-<p>运行成功后如上图所示，再执行 <code>make install</code>，就会发现 <code>/usr/local/</code> 路径下多了 <code>mysql</code> 这个文件夹，随后将文件夹里的 <code>bin</code> 目录添加到 <code>~/.bashrc</code> 即可：</p>
+<p>然后对文件需要修改权限，加入可执行权限，首先运行
+<code>cmake.sh</code></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214202711590.png" alt="image-20250214202711590">
+<figcaption aria-hidden="true">image-20250214202711590</figcaption>
+</figure>
+<p>运行成功如上图后，执行
+<code>make</code>，因为时间不是太久就直接选择前台执行了：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214202440317.png" alt="image-20250214202440317">
+<figcaption aria-hidden="true">image-20250214202440317</figcaption>
+</figure>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214205348391.png" alt="image-20250214205348391">
+<figcaption aria-hidden="true">image-20250214205348391</figcaption>
+</figure>
+<p>运行成功后如上图所示，再执行 <code>make install</code>，就会发现
+<code>/usr/local/</code> 路径下多了 <code>mysql</code>
+这个文件夹，随后将文件夹里的 <code>bin</code> 目录添加到
+<code>~/.bashrc</code> 即可：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:/usr/local/mysql/bin</span><br></pre></td></tr></table></figure>
 <p>保存并激活即可。</p>
-<h3 id="删除旧文件残留"><a class="header-anchor" href="#删除旧文件残留">¶</a>删除旧文件残留</h3>
-<p>我们接下来要检查是否有旧的 <code>mysql</code> 数据文件残留，发现存在我们将其进行移动备份：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214122846366.png" alt="image-20250214122846366"></p>
-<h3 id="修改文件属主属组"><a class="header-anchor" href="#修改文件属主属组">¶</a>修改文件属主属组</h3>
-<p>可以看到现在文件的属主和属组都还是 <code>root</code>，我们需要将其修改为 <code>mysql</code>：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214213331153.png" alt="image-20250214213331153"></p>
-<h3 id="初始化-mysql"><a class="header-anchor" href="#初始化-mysql">¶</a>初始化 <code>mysql</code></h3>
-<p>现在我们开始尝试连接 <code>mysql</code> 客户端，但会报错，说无法连接到本地的 <code>mysql</code> 服务端：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214210714681.png" alt="image-20250214210714681"></p>
+<h3 id="删除旧文件残留">删除旧文件残留</h3>
+<p>我们接下来要检查是否有旧的 <code>mysql</code>
+数据文件残留，发现存在我们将其进行移动备份：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214122846366.png" alt="image-20250214122846366">
+<figcaption aria-hidden="true">image-20250214122846366</figcaption>
+</figure>
+<h3 id="修改文件属主属组">修改文件属主属组</h3>
+<p>可以看到现在文件的属主和属组都还是
+<code>root</code>，我们需要将其修改为 <code>mysql</code>：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214213331153.png" alt="image-20250214213331153">
+<figcaption aria-hidden="true">image-20250214213331153</figcaption>
+</figure>
+<h3 id="初始化-mysql">初始化 <code>mysql</code></h3>
+<p>现在我们开始尝试连接 <code>mysql</code>
+客户端，但会报错，说无法连接到本地的 <code>mysql</code> 服务端：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214210714681.png" alt="image-20250214210714681">
+<figcaption aria-hidden="true">image-20250214210714681</figcaption>
+</figure>
 <p>Linux 的软件启动后会有两种形式提供给客户端去访问：</p>
-<ol>
-<li><code>ip:port</code> 形式，如 <code>0.0.0.0:3306</code>，网络连接方式</li>
-<li><code>socket</code> 本地套接字文件形式，本地进程套接字文件，启动 <code>mysql</code>，提供它的本地连接进程文件 <code>tmp/mysql.sock</code>，只要这个文件存在，<code>mysql</code> 就是启动的</li>
+<ol type="1">
+<li><code>ip:port</code> 形式，如
+<code>0.0.0.0:3306</code>，网络连接方式</li>
+<li><code>socket</code> 本地套接字文件形式，本地进程套接字文件，启动
+<code>mysql</code>，提供它的本地连接进程文件
+<code>tmp/mysql.sock</code>，只要这个文件存在，<code>mysql</code>
+就是启动的</li>
 </ol>
-<p>总之就是 <code>mysql</code> 还没启动，因此此时首先要对 <code>mysql</code> 数据库初始化，生成一些必备的数据文件，因为 <code>mysql</code> 要设置账号密码总得有一个库和表可以存储。具体操作如下：</p>
+<p>总之就是 <code>mysql</code> 还没启动，因此此时首先要对
+<code>mysql</code> 数据库初始化，生成一些必备的数据文件，因为
+<code>mysql</code>
+要设置账号密码总得有一个库和表可以存储。具体操作如下：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-5.6.49]<span class="comment"># cd /usr/local/mysql</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql]<span class="comment"># ls ./scripts/</span></span><br><span class="line">mysql_install_db</span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql]<span class="comment"># ./scripts/mysql_install_db --user=mysql</span></span><br><span class="line">Installing MySQL system tables...2025-02-14 21:36:08 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation <span class="keyword">for</span> more details).</span><br><span class="line">2025-02-14 21:36:08 0 [Note] Ignoring --secure-file-priv value as server is running with --bootstrap.</span><br><span class="line">2025-02-14 21:36:08 0 [Note] ./bin/mysqld (mysqld 5.6.49) starting as process 1270 ...</span><br><span class="line">2025-02-14 21:36:08 1270 [Note] InnoDB: Using atomics to ref count buffer pool pages</span><br><span class="line">2025-02-14 21:36:08 1270 [Note] InnoDB: The InnoDB memory heap is disabled</span><br></pre></td></tr></table></figure>
 <p>运行一长串之后我们会看到两个 OK，这说明初始化成功：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214213731409.png" alt="image-20250214213731409"></p>
-<h3 id="创建启动脚本"><a class="header-anchor" href="#创建启动脚本">¶</a>创建启动脚本</h3>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214213731409.png" alt="image-20250214213731409">
+<figcaption aria-hidden="true">image-20250214213731409</figcaption>
+</figure>
+<h3 id="创建启动脚本">创建启动脚本</h3>
 <p>因为我们是手动编译安装，还需要自己创建启动脚本：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql</span><br></pre></td></tr></table></figure>
 <p>我们可以查看这个文件：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214214619451.png" alt="image-20250214214619451"></p>
-<p>此时使用 <code>service</code> 命令，会去读取 <code>/etc/init.d</code> 下的脚本文件，启动 <code>mysql</code>：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214214835608.png" alt="image-20250214214835608"></p>
-<h3 id="设置密码与登录"><a class="header-anchor" href="#设置密码与登录">¶</a>设置密码与登录</h3>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214215614743.png" alt="image-20250214215614743"></p>
-<h2 id="4-编译安装-Apache"><a class="header-anchor" href="#4-编译安装-Apache">¶</a>4. 编译安装 Apache</h2>
-<h3 id="安装依赖包-apr"><a class="header-anchor" href="#安装依赖包-apr">¶</a>安装依赖包 <code>apr</code></h3>
-<p><code>apr</code>（Apache portable run-time Libraries，Apache 可移植运行库），主要是为上层的应用程序提供一个可以跨越多操作系统平台的底层支持接口库。下载地址为：<a class="link" target="_blank" rel="noopener" href="https://archive.apache.org/dist/apr/%EF%BC%8C%E8%BF%9B%E5%85%A5%E8%AF%A5%E5%9C%B0%E5%9D%80%E4%BC%9A%E6%9C%89%E5%A6%82%E4%B8%8B%E5%86%85%E5%AE%B9%EF%BC%9A">https://archive.apache.org/dist/apr/，进入该地址会有如下内容：<i class="fas fa-external-link-alt"></i></a></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214220544809.png" alt="image-20250214220544809"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214214619451.png" alt="image-20250214214619451">
+<figcaption aria-hidden="true">image-20250214214619451</figcaption>
+</figure>
+<p>此时使用 <code>service</code> 命令，会去读取 <code>/etc/init.d</code>
+下的脚本文件，启动 <code>mysql</code>：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214214835608.png" alt="image-20250214214835608">
+<figcaption aria-hidden="true">image-20250214214835608</figcaption>
+</figure>
+<h3 id="设置密码与登录">设置密码与登录</h3>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214215614743.png" alt="image-20250214215614743">
+<figcaption aria-hidden="true">image-20250214215614743</figcaption>
+</figure>
+<h2 id="编译安装-apache">4. 编译安装 Apache</h2>
+<h3 id="安装依赖包-apr">安装依赖包 <code>apr</code></h3>
+<p><code>apr</code>（Apache portable run-time Libraries，Apache
+可移植运行库），主要是为上层的应用程序提供一个可以跨越多操作系统平台的底层支持接口库。下载地址为：https://archive.apache.org/dist/apr/，进入该地址会有如下内容：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214220544809.png" alt="image-20250214220544809">
+<figcaption aria-hidden="true">image-20250214220544809</figcaption>
+</figure>
 <p>一直往下拉会有一些可以下载的安装包，具体的地址可以用下面的：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://archive.apache.org/dist/apr/apr-1.5.2.tar.bz2</span><br><span class="line">tar -xf apr-1.5.2.tar.bz2; <span class="built_in">cd</span> apr-1.5.2</span><br></pre></td></tr></table></figure>
 <p>可能由于这个版本的一个 bug，这里我们需要修改一个配置：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vim configure</span><br><span class="line"><span class="comment"># 修改 29605 行    ‘RM’ = &#x27;RM -f&#x27;   添加一个 -f 参数</span></span><br></pre></td></tr></table></figure>
-<p>如果不指定配置参数，就会安装到默认路径 <code>/usr/local</code>，一般推荐这些小的依赖库不要修改路径，我们直接 <code>./configure</code>：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214221932200.png" alt="image-20250214221932200"></p>
+<p>如果不指定配置参数，就会安装到默认路径
+<code>/usr/local</code>，一般推荐这些小的依赖库不要修改路径，我们直接
+<code>./configure</code>：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214221932200.png" alt="image-20250214221932200">
+<figcaption aria-hidden="true">image-20250214221932200</figcaption>
+</figure>
 <p>然后执行编译三部曲的后两步即可：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214222220789.png" alt="image-20250214222220789"></p>
-<h3 id="安装基础库-apr-util"><a class="header-anchor" href="#安装基础库-apr-util">¶</a>安装基础库 <code>apr-util</code></h3>
-<p>完整的 APR（Apache 可移植运行库）实际上包含了三个开发包：<code>apr</code>，<code>apr-util</code> 和 <code>apr-iconv</code>，每一个包分别独立开发，并拥有自己的版本。<code>apr-util</code>这个库中也是包含了一些常用的开发组件，这些组件与 <code>apr</code> 目录下的相比，它们与 Apache 的关系更加密切一些，比如存储段和存储段组、加密等。这个包还是在刚刚的 <a class="link" target="_blank" rel="noopener" href="https://archive.apache.org/dist/apr/">https://archive.apache.org/dist/apr/<i class="fas fa-external-link-alt"></i></a> 下可以找到</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214222220789.png" alt="image-20250214222220789">
+<figcaption aria-hidden="true">image-20250214222220789</figcaption>
+</figure>
+<h3 id="安装基础库-apr-util">安装基础库 <code>apr-util</code></h3>
+<p>完整的 APR（Apache
+可移植运行库）实际上包含了三个开发包：<code>apr</code>，<code>apr-util</code>
+和
+<code>apr-iconv</code>，每一个包分别独立开发，并拥有自己的版本。<code>apr-util</code>这个库中也是包含了一些常用的开发组件，这些组件与
+<code>apr</code> 目录下的相比，它们与 Apache
+的关系更加密切一些，比如存储段和存储段组、加密等。这个包还是在刚刚的
+https://archive.apache.org/dist/apr/ 下可以找到</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://archive.apache.org/dist/apr/apr-util-1.5.4.tar.bz2</span><br><span class="line">tar -xf apr-util-1.5.4.tar.bz2; <span class="built_in">cd</span> apr-util-1.5.4</span><br></pre></td></tr></table></figure>
 <p>然后还是三部曲，这里的 configure 要加个参数：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./configure --with-apr=/usr/local/apr/bin/apr-1-config</span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214224641704.png" alt="image-20250214224641704"></p>
-<p>此时 <code>apr</code> 和 <code>apr-util</code> 库就生成了一些基础的 Linux 文件（动态链接库，和 C 语言相关），我们需要告诉 Linux 系统多了一些这些工具，Linux 才能读取到这些信息，才能给 Apache 调用。</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214224641704.png" alt="image-20250214224641704">
+<figcaption aria-hidden="true">image-20250214224641704</figcaption>
+</figure>
+<p>此时 <code>apr</code> 和 <code>apr-util</code> 库就生成了一些基础的
+Linux 文件（动态链接库，和 C 语言相关），我们需要告诉 Linux
+系统多了一些这些工具，Linux 才能读取到这些信息，才能给 Apache 调用。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ls /usr/local/apr/lib/</span></span><br><span class="line">apr.exp     aprutil.exp  libapr-1.la  libapr-1.so.0      libaprutil-1.a   libaprutil-1.so    libaprutil-1.so.0.5.4</span><br><span class="line">apr-util-1  libapr-1.a   libapr-1.so  libapr-1.so.0.5.2  libaprutil-1.la  libaprutil-1.so.0  pkgconfig</span><br></pre></td></tr></table></figure>
 <blockquote>
-<p>通常，库文件会被安装到标准的系统目录，如 <code>/lib</code>, <code>/lib64</code>, <code>/usr/lib/</code>, <code>/usr/lib64</code> 等地方，这些路径是默认的库文件搜索路径，因此系统和应用程序能够找到它们。</p>
-<p>但是，如果某个软件 <strong>A</strong> 将库文件安装到一个非标准目录，例如 <code>/usr/local/A/lib</code>，那么你需要将该路径添加到系统的动态链接库搜索路径中。否则，系统和其他程序将无法找到这个库文件。</p>
-<p><code>ldconfig</code> 是一个用于动态链接库管理的命令，它的主要作用是搜索系统中的共享动态链接库，并将它们添加到缓存中，以供程序使用。<code>ldconfig</code> 会在以下路径中查找共享库：</p>
+<p>通常，库文件会被安装到标准的系统目录，如 <code>/lib</code>,
+<code>/lib64</code>, <code>/usr/lib/</code>, <code>/usr/lib64</code>
+等地方，这些路径是默认的库文件搜索路径，因此系统和应用程序能够找到它们。</p>
+<p>但是，如果某个软件 <strong>A</strong>
+将库文件安装到一个非标准目录，例如
+<code>/usr/local/A/lib</code>，那么你需要将该路径添加到系统的动态链接库搜索路径中。否则，系统和其他程序将无法找到这个库文件。</p>
+<p><code>ldconfig</code>
+是一个用于动态链接库管理的命令，它的主要作用是搜索系统中的共享动态链接库，并将它们添加到缓存中，以供程序使用。<code>ldconfig</code>
+会在以下路径中查找共享库：</p>
 <ul>
-<li>默认搜索路径：<code>/lib</code>, <code>/lib64</code>, <code>/usr/lib/</code>, <code>/usr/lib64</code></li>
+<li>默认搜索路径：<code>/lib</code>, <code>/lib64</code>,
+<code>/usr/lib/</code>, <code>/usr/lib64</code></li>
 <li>动态库配置文件：<code>/etc/ld.so.conf</code> 中列出的路径</li>
 </ul>
-<p>如果你将新的库文件安装到非标准路径（如 <code>/usr/local/A/lib</code>），你需要通过以下方式更新搜索路径：</p>
-<ol>
-<li>编辑 <code>/etc/ld.so.conf</code> 或添加一个新的 <code>.conf</code> 文件到 <code>/etc/ld.so.conf.d/</code> 目录。</li>
-<li>运行 <code>ldconfig</code> 命令，让系统知道这个新的路径，从而能够找到并使用该路径下的动态库。</li>
+<p>如果你将新的库文件安装到非标准路径（如
+<code>/usr/local/A/lib</code>），你需要通过以下方式更新搜索路径：</p>
+<ol type="1">
+<li>编辑 <code>/etc/ld.so.conf</code> 或添加一个新的 <code>.conf</code>
+文件到 <code>/etc/ld.so.conf.d/</code> 目录。</li>
+<li>运行 <code>ldconfig</code>
+命令，让系统知道这个新的路径，从而能够找到并使用该路径下的动态库。</li>
 </ol>
 </blockquote>
 <p>具体命令如下：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;/usr/local/apr/lib&quot;</span> &gt;&gt; /etc/ld.so.conf</span><br><span class="line"><span class="built_in">cat</span> /etc/ld.so.conf</span><br><span class="line"><span class="comment"># include ld.so.conf.d/*.conf</span></span><br><span class="line"><span class="comment"># /usr/local/apr/lib</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 或者新建一个 .conf 文件</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;/usr/local/apr/lib&quot;</span> &gt; /etc/ld.so.conf.d/lamp.conf</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">ldconfig</span><br></pre></td></tr></table></figure>
-<h3 id="编译-Apache步骤"><a class="header-anchor" href="#编译-Apache步骤">¶</a>编译 Apache步骤</h3>
-<p>回到刚刚的下载安装包的目录，再上一級找到 <code>httpd</code> 获取链接进行 <code>wget</code>：</p>
+<h3 id="编译-apache步骤">编译 Apache步骤</h3>
+<p>回到刚刚的下载安装包的目录，再上一級找到 <code>httpd</code>
+获取链接进行 <code>wget</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://archive.apache.org/dist/httpd/httpd-2.4.37.tar.bz2</span><br><span class="line">tar -xf httpd-2.4.37.tar.bz2; <span class="built_in">cd</span> httpd-2.4.37</span><br></pre></td></tr></table></figure>
 <p>制作配置脚本：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">./configure \</span><br><span class="line">	--enable-modules=all \</span><br><span class="line">	--enable-mods-shared=all \</span><br><span class="line">	--enable-so \</span><br><span class="line">  --enable-rewrite \</span><br><span class="line">	--with-pcre \</span><br><span class="line">	--enable-ssl \</span><br><span class="line">	--with-mpm=prefork \</span><br><span class="line">	--with-apr=/usr/local/apr/bin/apr-1-config \</span><br><span class="line">	--with-apr-util=/usr/local/apr/bin/apu-1-config</span><br></pre></td></tr></table></figure>
 <p>添加执行权限并执行脚本：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x apache-configure.sh</span><br><span class="line">./apache-configure.sh</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214233341542.png" alt="image-20250214233341542"></p>
-<p>直接成功结果如上，最后 <code>make &amp; make install</code> 即可，最后安装到了 <code>/usr/local/apache2</code> 下。</p>
-<h3 id="修改配置文件"><a class="header-anchor" href="#修改配置文件">¶</a>修改配置文件</h3>
-<h4 id="语言支持"><a class="header-anchor" href="#语言支持">¶</a>语言支持</h4>
-<p>我们修改 <code>/usr/local/apache2/conf</code> 里的 <code>httpd.conf</code> 的参数以获得中文语言支持，我们删除第 159 行以及 481 行的注释即可：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215002204065.png" alt="image-20250215002204065"></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215002456908.png" alt="image-20250215002456908"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214233341542.png" alt="image-20250214233341542">
+<figcaption aria-hidden="true">image-20250214233341542</figcaption>
+</figure>
+<p>直接成功结果如上，最后 <code>make &amp; make install</code>
+即可，最后安装到了 <code>/usr/local/apache2</code> 下。</p>
+<h3 id="修改配置文件">修改配置文件</h3>
+<h4 id="语言支持">语言支持</h4>
+<p>我们修改 <code>/usr/local/apache2/conf</code> 里的
+<code>httpd.conf</code> 的参数以获得中文语言支持，我们删除第 159 行以及
+481 行的注释即可：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215002204065.png" alt="image-20250215002204065">
+<figcaption aria-hidden="true">image-20250215002204065</figcaption>
+</figure>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215002456908.png" alt="image-20250215002456908">
+<figcaption aria-hidden="true">image-20250215002456908</figcaption>
+</figure>
 <p>我们会发现如果想要使用一些功能，只需要在这里取消一些功能的对应注释即可～</p>
-<h4 id="PHP-支持"><a class="header-anchor" href="#PHP-支持">¶</a>PHP 支持</h4>
-<p>另外我们还需要开启 PHP 的插件，当有用户访问 PHP 程序时，Apache 自动转发给 PHP 去解析，168 和 169 行的意思是以 <code>.php</code> 结尾的文件都认为是 PHP 程序文件</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215004856276.png" alt="image-20250215004856276"></p>
-<p>并且要设置当访问这台机器的时候，当什么都不添加时会访问磁盘上的 <code>index.php</code> 文件：</p>
+<h4 id="php-支持">PHP 支持</h4>
+<p>另外我们还需要开启 PHP 的插件，当有用户访问 PHP 程序时，Apache
+自动转发给 PHP 去解析，168 和 169 行的意思是以 <code>.php</code>
+结尾的文件都认为是 PHP 程序文件</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215004856276.png" alt="image-20250215004856276">
+<figcaption aria-hidden="true">image-20250215004856276</figcaption>
+</figure>
+<p>并且要设置当访问这台机器的时候，当什么都不添加时会访问磁盘上的
+<code>index.php</code> 文件：</p>
 <p>原本是这样的：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215005511442.png" alt="image-20250215005511442"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215005511442.png" alt="image-20250215005511442">
+<figcaption aria-hidden="true">image-20250215005511442</figcaption>
+</figure>
 <p>要改成这样（谁在前面就先解析谁）：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215005537989.png" alt="image-20250215005537989"></p>
-<p>这行参数的作用就是会让原本只是访问 <code>8.134.207.88</code> 自动变成访问 <code>8.134.207.88/index.php</code>。</p>
-<h4 id="HTML-文件路径"><a class="header-anchor" href="#HTML-文件路径">¶</a>HTML 文件路径</h4>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215005537989.png" alt="image-20250215005537989">
+<figcaption aria-hidden="true">image-20250215005537989</figcaption>
+</figure>
+<p>这行参数的作用就是会让原本只是访问 <code>8.134.207.88</code>
+自动变成访问 <code>8.134.207.88/index.php</code>。</p>
+<h4 id="html-文件路径">HTML 文件路径</h4>
 <p>关于网站默认的首页 HTML 文件存放的目录路径由以下参数控制：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215010011089.png" alt="image-20250215010011089"></p>
-<h4 id="修改子配置文件"><a class="header-anchor" href="#修改子配置文件">¶</a>修改子配置文件</h4>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215010011089.png" alt="image-20250215010011089">
+<figcaption aria-hidden="true">image-20250215010011089</figcaption>
+</figure>
+<h4 id="修改子配置文件">修改子配置文件</h4>
 <p>要修改该配置文件使得优先支持中文：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /usr/local/apache2/conf/extra/httpd-languages.conf</span><br></pre></td></tr></table></figure>
-<p>取消第 19 行的注释，将原本的 <code>DefaultLanguage nl</code> 修改为 <code>DefaultLanguage zh-CN</code></p>
+<p>取消第 19 行的注释，将原本的 <code>DefaultLanguage nl</code> 修改为
+<code>DefaultLanguage zh-CN</code></p>
 <p>以及调整第 79 行的优先级，将中文的优先级放在第一个：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">LanguagePriority zh-CN en ca cs da de el eo es et fr he hr it ja ko ltz <span class="built_in">nl</span> nn no pl pt pt-BR ru sv <span class="built_in">tr</span> zh-TW</span><br></pre></td></tr></table></figure>
-<h4 id="域名设置"><a class="header-anchor" href="#域名设置">¶</a>域名设置</h4>
+<h4 id="域名设置">域名设置</h4>
 <p>可以在主配置文件的这里添加域名：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215010744599.png" alt="image-20250215010744599"></p>
-<h2 id="5-编译安装-PHP"><a class="header-anchor" href="#5-编译安装-PHP">¶</a>5. 编译安装 PHP</h2>
-<h3 id="编译与安装"><a class="header-anchor" href="#编译与安装">¶</a>编译与安装</h3>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215010744599.png" alt="image-20250215010744599">
+<figcaption aria-hidden="true">image-20250215010744599</figcaption>
+</figure>
+<h2 id="编译安装-php">5. 编译安装 PHP</h2>
+<h3 id="编译与安装">编译与安装</h3>
 <p>这里比较简单，我们直接快速操作了：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">wget https://museum.php.net/php7/php-7.2.17.tar.xz</span><br><span class="line">tar -xf php-7.2.17.tar.xz</span><br><span class="line"><span class="built_in">cd</span> php-7.2.17</span><br><span class="line">vim configure_php.sh</span><br></pre></td></tr></table></figure>
 <p>在文件中写入：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">./configure \</span><br><span class="line">  --with-apxs2=/usr/local/apache2/bin/apxs \</span><br><span class="line">  --with-mysqli \</span><br><span class="line">  --with-pdo-mysql \</span><br><span class="line">  --with-zlib \</span><br><span class="line">  --with-curl \</span><br><span class="line">  --enable-zip \</span><br><span class="line">  --with-gd \</span><br><span class="line">  --with-freetype-dir \</span><br><span class="line">  --with-jpeg-dir \</span><br><span class="line">  --with-png-dir \</span><br><span class="line">  --enable-sockets \</span><br><span class="line">  --with-xmlrpc \</span><br><span class="line">  --enable-soap \</span><br><span class="line">  --enable-opcache \</span><br><span class="line">  --enable-mbstring \</span><br><span class="line">  --enable-mbregex \</span><br><span class="line">  --enable-pcntl \</span><br><span class="line">  --enable-shmop \</span><br><span class="line">  --enable-sysvmsg \</span><br><span class="line">  --enable-sysvsem \</span><br><span class="line">  --enable-sysvshm \</span><br><span class="line">  --enable-calendar \</span><br><span class="line">  --enable-bcmath</span><br></pre></td></tr></table></figure>
-<p>然后依次执行<code>chmod +x configure_php.sh</code>、 <code>./configure_php.sh</code> 与 <code>make &amp;&amp; make install</code> 即可。</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215014045762.png" alt="image-20250215014045762"></p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215014117280.png" alt="image-20250215014117280"></p>
-<h3 id="检查-Apache是否支持PHP"><a class="header-anchor" href="#检查-Apache是否支持PHP">¶</a>检查 Apache是否支持PHP</h3>
-<p>进入 Apache 的网页根目录 <code>/usr/local/apache2/htdocs</code>，创建一个 PHP 文件，查看是否支持：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215011611322.png" alt="image-20250215011611322"></p>
+<p>然后依次执行<code>chmod +x configure_php.sh</code>、
+<code>./configure_php.sh</code> 与
+<code>make &amp;&amp; make install</code> 即可。</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215014045762.png" alt="image-20250215014045762">
+<figcaption aria-hidden="true">image-20250215014045762</figcaption>
+</figure>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215014117280.png" alt="image-20250215014117280">
+<figcaption aria-hidden="true">image-20250215014117280</figcaption>
+</figure>
+<h3 id="检查-apache是否支持php">检查 Apache是否支持PHP</h3>
+<p>进入 Apache 的网页根目录
+<code>/usr/local/apache2/htdocs</code>，创建一个 PHP
+文件，查看是否支持：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215011611322.png" alt="image-20250215011611322">
+<figcaption aria-hidden="true">image-20250215011611322</figcaption>
+</figure>
 <p>启动 Apache：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z php-7.2.17]<span class="comment"># service apache start</span></span><br><span class="line">AH00558: httpd: Could not reliably determine the server<span class="string">&#x27;s fully qualified domain name, using 172.20.53.217. Set the &#x27;</span>ServerName<span class="string">&#x27; directive globally to suppress this message</span></span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215015006688.png" alt="image-20250215015006688"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215015006688.png" alt="image-20250215015006688">
+<figcaption aria-hidden="true">image-20250215015006688</figcaption>
+</figure>
 <p>查看对应的 IP 地址，访问正常：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215015140320.png" alt="image-20250215015140320"></p>
-<p>由于默认端口和默认文件都已经配置好了，就不需要再写端口和 <code>index.php</code> 了</p>
-<h2 id="6-WordPress"><a class="header-anchor" href="#6-WordPress">¶</a>6. WordPress</h2>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215015140320.png" alt="image-20250215015140320">
+<figcaption aria-hidden="true">image-20250215015140320</figcaption>
+</figure>
+<p>由于默认端口和默认文件都已经配置好了，就不需要再写端口和
+<code>index.php</code> 了</p>
+<h2 id="wordpress">6. WordPress</h2>
 <p>下载源码：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z source-code]<span class="comment"># wget https://cn.wordpress.org/wordpress-4.7.3-zh_CN.tar.gz</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z source-code]<span class="comment"># mkdir wordpress</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z source-code]<span class="comment"># mv wordpress-4.7.3-zh_CN.tar.gz  wordpress</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z source-code]<span class="comment"># cd wordpress/</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># tar -zxf wordpress-4.7.3-zh_CN.tar.gz </span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># ls</span></span><br><span class="line">wordpress  wordpress-4.7.3-zh_CN.tar.gz</span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># cp -a wordpress/* ../www/test_wordpress_blog/</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># chown -R daemon.daemon ../www/test_wordpress_blog/</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># rm -rf /usr/local/apache2/htdocs/*</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># mv ../www/test_wordpress_blog/* /usr/local/apache2/htdocs/</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z wordpress]<span class="comment"># ls /usr/local/apache2/htdocs/</span></span><br><span class="line">index.php    wp-activate.php     wp-comments-post.php  wp-cron.php        wp-load.php   wp-settings.php   xmlrpc.php</span><br><span class="line">license.txt  wp-admin            wp-config-sample.php  wp-includes        wp-login.php  wp-signup.php</span><br><span class="line">readme.html  wp-blog-header.php  wp-content            wp-links-opml.php  wp-mail.php   wp-trackback.php</span><br></pre></td></tr></table></figure>
 <p>访问网站会有下面的内容：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020259972.png" alt="image-20250215020259972"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020259972.png" alt="image-20250215020259972">
+<figcaption aria-hidden="true">image-20250215020259972</figcaption>
+</figure>
 <p>填写基本信息后发现我们还没有创建这个数据库：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020513590.png" alt="image-20250215020513590"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020513590.png" alt="image-20250215020513590">
+<figcaption aria-hidden="true">image-20250215020513590</figcaption>
+</figure>
 <p>我们进入 MySQL 进行操作：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020803966.png" alt="image-20250215020803966"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020803966.png" alt="image-20250215020803966">
+<figcaption aria-hidden="true">image-20250215020803966</figcaption>
+</figure>
 <p>注意我们需要回到前面修改我们前面创建的数据库名，使得数据库名与我们创建的能对得上：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020903213.png" alt="image-20250215020903213"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020903213.png" alt="image-20250215020903213">
+<figcaption aria-hidden="true">image-20250215020903213</figcaption>
+</figure>
 <p>然后再执行一下傻瓜操作：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020921167.png" alt="image-20250215020921167"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215020921167.png" alt="image-20250215020921167">
+<figcaption aria-hidden="true">image-20250215020921167</figcaption>
+</figure>
 <p>然后执行完下面这一步就结束了：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215021153620.png" alt="image-20250215021153620"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215021153620.png" alt="image-20250215021153620">
+<figcaption aria-hidden="true">image-20250215021153620</figcaption>
+</figure>
 <p>一个漂亮的博客管理页面就做好啦：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215021254303.png" alt="image-20250215021254303"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250215021254303.png" alt="image-20250215021254303">
+<figcaption aria-hidden="true">image-20250215021254303</figcaption>
+</figure>
 <hr>
-<h1>六、<code>debug</code>日志</h1>
-<h2 id="1-新版本-MySQL-安装凉经"><a class="header-anchor" href="#1-新版本-MySQL-安装凉经">¶</a>1. 新版本 MySQL 安装凉经</h2>
+<h1 id="六debug日志">六、<code>debug</code>日志</h1>
+<h2 id="新版本-mysql-安装凉经">1. 新版本 MySQL 安装凉经</h2>
 <p>这里我们创建文件夹的方式都一样：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /usr/local</span><br><span class="line"><span class="built_in">mkdir</span> software-mysql</span><br><span class="line"><span class="built_in">cd</span> software-mysql</span><br></pre></td></tr></table></figure>
-<p>同样在<a class="link" target="_blank" rel="noopener" href="https://repo.huaweicloud.com:8443/artifactory/mysql-local/Downloads/">华为提供的库内<i class="fas fa-external-link-alt"></i></a>下载需要的 MySQL 版本，我们选择了较新版的 8.0.25：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212171518515.png" alt="image-20250212171518515"></p>
+<p>同样在<a class="link" target="_blank" rel="noopener" href="https://repo.huaweicloud.com:8443/artifactory/mysql-local/Downloads/">华为提供的库内<i class="fas fa-external-link-alt"></i></a>下载需要的
+MySQL 版本，我们选择了较新版的 8.0.25：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212171518515.png" alt="image-20250212171518515">
+<figcaption aria-hidden="true">image-20250212171518515</figcaption>
+</figure>
 <p>下载源码并解压缩：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://repo.huaweicloud.com:8443/artifactory/mysql-local/Downloads/MySQL-8.0/mysql-8.0.25.tar.gz</span><br><span class="line">tar -xzvf mysql-8.0.25.tar.gz</span><br><span class="line"><span class="built_in">du</span> -sh *</span><br></pre></td></tr></table></figure>
-<h3 id="🧰-关于-cmake-版本"><a class="header-anchor" href="#🧰-关于-cmake-版本">¶</a>🧰 关于 cmake 版本</h3>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212175149284.png" alt="image-20250212175149284"></p>
-<p>在安装 MySQL 的时候我们需要使用 <code>cmake</code> 进行编译，首先我遇到了 <code>cmake</code> 的版本问题，我们通过升级 <code>cmake</code> 版本修正这个问题：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212200732906.png" alt="image-20250212200732906"></p>
+<h3 id="关于-cmake-版本">🧰 关于 cmake 版本</h3>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212175149284.png" alt="image-20250212175149284">
+<figcaption aria-hidden="true">image-20250212175149284</figcaption>
+</figure>
+<p>在安装 MySQL 的时候我们需要使用 <code>cmake</code>
+进行编译，首先我遇到了 <code>cmake</code> 的版本问题，我们通过升级
+<code>cmake</code> 版本修正这个问题：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212200732906.png" alt="image-20250212200732906">
+<figcaption aria-hidden="true">image-20250212200732906</figcaption>
+</figure>
 <p>修改指令并尝试运行该文件</p>
-<h3 id="🧰-gcc-路径"><a class="header-anchor" href="#🧰-gcc-路径">¶</a>🧰 gcc 路径</h3>
+<h3 id="gcc-路径">🧰 gcc 路径</h3>
 <p>好的，不出意外地再次报错</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212200925468.png" alt="image-20250212200925468"></p>
-<p>我们通过 <code>cmak</code> <code>命令中的 </code>CMAKE_C_COMPILER<code>和</code>CMAKE_CXX_COMPILER` 变量来手动指定编译器路径。例如，假设 gcc 和 g++ 安装在默认路径下，尝试如下命令：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250212200925468.png" alt="image-20250212200925468">
+<figcaption aria-hidden="true">image-20250212200925468</figcaption>
+</figure>
+<p>我们通过 <code>cmak</code>
+<code>命令中的</code>CMAKE_C_COMPILER<code>和</code>CMAKE_CXX_COMPILER`
+变量来手动指定编译器路径。例如，假设 gcc 和 g++
+安装在默认路径下，尝试如下命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">cmake3 . \</span><br><span class="line">  -DCMAKE_C_COMPILER=/usr/bin/gcc \</span><br><span class="line">  -DCMAKE_CXX_COMPILER=/usr/bin/g++ \</span><br><span class="line">  -DCMAKE_INSTALL_PREFIX=/usr/local/mysql \</span><br><span class="line">  -DMYSQL_DATADIR=/usr/local/mysql/data \</span><br><span class="line">  -DENABLED_LOCAL_INFILE=1 \</span><br><span class="line">  -DWITH_INNOBASE_STORAGE_ENGINE=1 \</span><br><span class="line">  -DMYSQL_TCP_PORT=3306 \</span><br><span class="line">  -DDEFAULT_CHARSET=utf8mb4 \</span><br><span class="line">  -DDEFAULT_COLLATION=utf8mb4_general_ci \</span><br><span class="line">  -DWITH_EXTRA_CHARSETS=all \</span><br><span class="line">  -DMYSQL_USER=mysql</span><br></pre></td></tr></table></figure>
 <p>依然不是很成功：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-8.0.25]<span class="comment"># ./cmake.sh </span></span><br><span class="line">-- Running cmake version 3.17.5</span><br><span class="line">-- CMP0073 OLD</span><br><span class="line">-- CMAKE_MODULE_PATH is /usr/local/software-mysql/mysql-8.0.25/cmake</span><br><span class="line">-- MySQL 8.0.25</span><br><span class="line">-- The C compiler identification is GNU 4.8.5</span><br><span class="line">-- The CXX compiler identification is GNU 4.8.5</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/bin/gcc</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/bin/gcc - works</span><br><span class="line">-- Detecting C compiler ABI info</span><br><span class="line">-- Detecting C compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Detecting C compile features</span><br><span class="line">-- Detecting C compile features - <span class="keyword">done</span></span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/bin/g++</span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/bin/g++ - works</span><br><span class="line">-- Detecting CXX compiler ABI info</span><br><span class="line">-- Detecting CXX compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Detecting CXX compile features</span><br><span class="line">-- Detecting CXX compile features - <span class="keyword">done</span></span><br><span class="line">-- Source directory /usr/local/software-mysql/mysql-8.0.25</span><br><span class="line">-- Binary directory /usr/local/software-mysql/mysql-8.0.25</span><br><span class="line">CMake Error at CMakeLists.txt:382 (MESSAGE):</span><br><span class="line">  Please <span class="keyword">do</span> not build in-source.  Out-of <span class="built_in">source</span> builds are highly</span><br><span class="line">  recommended: you can have multiple builds <span class="keyword">for</span> the same <span class="built_in">source</span>, and there is</span><br><span class="line">  an easy way to <span class="keyword">do</span> cleanup, simply remove the build directory (note that</span><br><span class="line">  <span class="string">&#x27;make clean&#x27;</span> or <span class="string">&#x27;make distclean&#x27;</span> does *not* work)</span><br><span class="line"></span><br><span class="line">  You *can* force in-source build by invoking cmake with</span><br><span class="line">  -DFORCE_INSOURCE_BUILD=1</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">-- Configuring incomplete, errors occurred!</span><br></pre></td></tr></table></figure>
-<p>这条报错是在说 CMake 强烈建议不要在源代码目录内进行编译，因为这样会造成源代码目录的污染，无法轻松清理。理想的做法是 <strong>在源代码外的单独目录中进行构建</strong>。这个还比较好解决，如果我们非要<strong>在源代码目录中构建，可以通过使用 -DFORCE_INSOURCE_BUILD=1 强制进行构建，但这不是推荐的做法：</strong></p>
+<p>这条报错是在说 CMake
+强烈建议不要在源代码目录内进行编译，因为这样会造成源代码目录的污染，无法轻松清理。理想的做法是
+<strong>在源代码外的单独目录中进行构建</strong>。这个还比较好解决，如果我们非要<strong>在源代码目录中构建，可以通过使用
+-DFORCE_INSOURCE_BUILD=1 强制进行构建，但这不是推荐的做法：</strong></p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 强制在源代码目录内构建</span></span><br><span class="line">cmake3 . -DFORCE_INSOURCE_BUILD=1</span><br></pre></td></tr></table></figure>
 <p>推荐的做法是：</p>
 <p><strong>2. 在源代码目录之外创建一个新的目录进行构建</strong></p>
@@ -695,18 +1009,27 @@
 <p>然后我们修改 <code>cmake.sh</code> 命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">cmake3 /usr/local/software-mysql/mysql-8.0.25 \</span><br><span class="line">  -DCMAKE_C_COMPILER=/usr/bin/gcc \</span><br><span class="line">  -DCMAKE_CXX_COMPILER=/usr/bin/g++ \</span><br><span class="line">  -DCMAKE_INSTALL_PREFIX=/usr/local/mysql \</span><br><span class="line">  -DMYSQL_DATADIR=/usr/local/mysql/data \</span><br><span class="line">  -DENABLED_LOCAL_INFILE=1 \</span><br><span class="line">  -DWITH_INNOBASE_STORAGE_ENGINE=1 \</span><br><span class="line">  -DMYSQL_TCP_PORT=3306 \</span><br><span class="line">  -DDEFAULT_CHARSET=utf8mb4 \</span><br><span class="line">  -DDEFAULT_COLLATION=utf8mb4_general_ci \</span><br><span class="line">  -DWITH_EXTRA_CHARSETS=all \</span><br><span class="line">  -DMYSQL_USER=mysql</span><br></pre></td></tr></table></figure>
 <p>再运行它一次！我不信还会出错了！</p>
-<p>然而。。。果然又有新的问题了。。。这次是 GCC 版本过低，MySQL 8.0.25 需要 GCC 5.3 或更高版本来进行编译：</p>
+<p>然而。。。果然又有新的问题了。。。这次是 GCC 版本过低，MySQL 8.0.25
+需要 GCC 5.3 或更高版本来进行编译：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-build]<span class="comment"># ./cmake.sh </span></span><br><span class="line">-- Running cmake version 3.17.5</span><br><span class="line">-- Found Git: /usr/bin/git (found version <span class="string">&quot;1.8.3.1&quot;</span>) </span><br><span class="line">-- CMP0073 OLD</span><br><span class="line">-- CMAKE_MODULE_PATH is /usr/local/software-mysql/mysql-8.0.25/cmake</span><br><span class="line">-- MySQL 8.0.25</span><br><span class="line">-- The C compiler identification is GNU 4.8.5</span><br><span class="line">-- The CXX compiler identification is GNU 4.8.5</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/bin/gcc</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/bin/gcc - works</span><br><span class="line">-- Detecting C compiler ABI info</span><br><span class="line">-- Detecting C compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Detecting C compile features</span><br><span class="line">-- Detecting C compile features - <span class="keyword">done</span></span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/bin/g++</span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/bin/g++ - works</span><br><span class="line">-- Detecting CXX compiler ABI info</span><br><span class="line">-- Detecting CXX compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Detecting CXX compile features</span><br><span class="line">-- Detecting CXX compile features - <span class="keyword">done</span></span><br><span class="line">-- Source directory /usr/local/software-mysql/mysql-8.0.25</span><br><span class="line">-- Binary directory /usr/local/software-mysql/mysql-build</span><br><span class="line">-- CMAKE_GENERATOR: Unix Makefiles</span><br><span class="line">CMake Error at cmake/os/Linux.cmake:80 (MESSAGE):</span><br><span class="line">  GCC 5.3 or newer is required (-dumpversion says 4.8.5)</span><br><span class="line">Call Stack (most recent call first):</span><br><span class="line">  CMakeLists.txt:491 (INCLUDE)</span><br></pre></td></tr></table></figure>
-<h3 id="🧰-关于-centos-release-scl-的一个小插曲（待解决）"><a class="header-anchor" href="#🧰-关于-centos-release-scl-的一个小插曲（待解决）">¶</a>🧰 关于 <code>centos-release-scl</code> 的一个小插曲（待解决）</h3>
-<p>我试图安装 <code>centos-release-scl</code> 进而安装新版本的 <code>gcc</code>，这个软件包提供了 <strong>Software Collections (SCL)</strong> 的支持。SCL 是一种在不影响系统默认软件版本的情况下，让用户安装和使用不同版本的软件包的机制。简单来说，它允许用户安装、使用与系统默认版本不同的软件版本，例如最新版本的 Python、GCC、Ruby、PHP 等，而不需要更改系统的默认版本。SCL 提供了以下优势：</p>
-<ol>
-<li>你可以同时使用多个版本的相同软件，比如使用系统自带的老版本 Python，同时安装并使用新版本的 Python。</li>
+<h3 id="关于-centos-release-scl-的一个小插曲待解决">🧰 关于
+<code>centos-release-scl</code> 的一个小插曲（待解决）</h3>
+<p>我试图安装 <code>centos-release-scl</code> 进而安装新版本的
+<code>gcc</code>，这个软件包提供了 <strong>Software Collections
+(SCL)</strong> 的支持。SCL
+是一种在不影响系统默认软件版本的情况下，让用户安装和使用不同版本的软件包的机制。简单来说，它允许用户安装、使用与系统默认版本不同的软件版本，例如最新版本的
+Python、GCC、Ruby、PHP 等，而不需要更改系统的默认版本。SCL
+提供了以下优势：</p>
+<ol type="1">
+<li>你可以同时使用多个版本的相同软件，比如使用系统自带的老版本
+Python，同时安装并使用新版本的 Python。</li>
 <li>在不同的环境中切换版本变得更加灵活。</li>
 <li>不会影响到系统自带的包，减少了与其他系统包的冲突风险。</li>
 </ol>
 <p>安装命令很简单：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install centos-release-scl -y</span><br></pre></td></tr></table></figure>
-<p>但安装完之后其他包的安装存在了问题，例如我原本准备执行这个命令安装 <code>gcc</code>：</p>
+<p>但安装完之后其他包的安装存在了问题，例如我原本准备执行这个命令安装
+<code>gcc</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install devtoolset-8-gcc* -y</span><br></pre></td></tr></table></figure>
 <p>然而报了如下的错：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-build]<span class="comment"># sudo yum install devtoolset-8-gcc* -y</span></span><br><span class="line">Loaded plugins: fastestmirror</span><br><span class="line">Loading mirror speeds from cached hostfile</span><br><span class="line">Could not retrieve mirrorlist http://mirrorlist.centos.org?<span class="built_in">arch</span>=x86_64&amp;release=7&amp;repo=sclo-rh error was</span><br><span class="line">14: curl<span class="comment">#6 - &quot;Could not resolve host: mirrorlist.centos.org; Unknown error&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"> One of the configured repositories failed (Unknown),</span><br><span class="line"> and yum doesn<span class="string">&#x27;t have enough cached data to continue. At this point the only</span></span><br><span class="line"><span class="string"> safe thing yum can do is fail. There are a few ways to work &quot;fix&quot; this:</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">     1. Contact the upstream for the repository and get them to fix the problem.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">     2. Reconfigure the baseurl/etc. for the repository, to point to a working</span></span><br><span class="line"><span class="string">        upstream. This is most often useful if you are using a newer</span></span><br><span class="line"><span class="string">        distribution release than is supported by the repository (and the</span></span><br><span class="line"><span class="string">        packages for the previous distribution release still work).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">     3. Run the command with the repository temporarily disabled</span></span><br><span class="line"><span class="string">            yum --disablerepo=&lt;repoid&gt; ...</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">     4. Disable the repository permanently, so yum won&#x27;</span>t use it by default. Yum</span><br><span class="line">        will <span class="keyword">then</span> just ignore the repository until you permanently <span class="built_in">enable</span> it</span><br><span class="line">        again or use --enablerepo <span class="keyword">for</span> temporary usage:</span><br><span class="line"></span><br><span class="line">            yum-config-manager --<span class="built_in">disable</span> &lt;repoid&gt;</span><br><span class="line">        or</span><br><span class="line">            subscription-manager repos --<span class="built_in">disable</span>=&lt;repoid&gt;</span><br><span class="line"></span><br><span class="line">     5. Configure the failing repository to be skipped, <span class="keyword">if</span> it is unavailable.</span><br><span class="line">        Note that yum will try to contact the repo. when it runs most commands,</span><br><span class="line">        so will have to try and fail each time (and thus. yum will be be much</span><br><span class="line">        slower). If it is a very temporary problem though, this is often a <span class="built_in">nice</span></span><br><span class="line">        compromise:</span><br><span class="line"></span><br><span class="line">            yum-config-manager --save --<span class="built_in">setopt</span>=&lt;repoid&gt;.skip_if_unavailable=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line">Cannot find a valid baseurl <span class="keyword">for</span> repo: centos-sclo-rh/x86_64</span><br></pre></td></tr></table></figure>
@@ -717,141 +1040,162 @@
 <p>我们只能先禁用他们：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 禁用 centos-sclo-sclo 仓库</span></span><br><span class="line">sudo yum-config-manager --<span class="built_in">disable</span> centos-sclo-sclo</span><br><span class="line">sudo yum-config-manager --<span class="built_in">disable</span> centos-sclo-rh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 清除缓存</span></span><br><span class="line">sudo yum clean all</span><br><span class="line">sudo yum makecache</span><br></pre></td></tr></table></figure>
 <p>这个限于目前的技术水平，暂时不知道是什么原因，我估计是梯子的问题，留待之后排查</p>
-<h3 id="🧰-继续解决前面的-gcc-版本问题"><a class="header-anchor" href="#🧰-继续解决前面的-gcc-版本问题">¶</a>🧰 继续解决前面的 <code>gcc</code> 版本问题</h3>
+<h3 id="继续解决前面的-gcc-版本问题">🧰 继续解决前面的 <code>gcc</code>
+版本问题</h3>
 <p>我们可以尝试直接源码编译</p>
-<p>访问 GCC 的官方网站下载最新版本的源代码，并执行 configure 脚本以及编译步骤：</p>
+<p>访问 GCC 的官方网站下载最新版本的源代码，并执行 configure
+脚本以及编译步骤：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">wget http://ftp.gnu.org/gnu/gcc/gcc-8.5.0/gcc-8.5.0.tar.gz</span><br><span class="line">tar -xvzf gcc-8.5.0.tar.gz</span><br><span class="line"><span class="built_in">cd</span> gcc-8.5.0</span><br><span class="line"><span class="comment"># 安装依赖</span></span><br><span class="line">sudo yum install -y gmp-devel mpfr-devel libmpc-devel</span><br><span class="line"><span class="comment"># 运行 configure 脚本</span></span><br><span class="line">./configure --disable-multilib --enable-languages=c,c++</span><br><span class="line"></span><br><span class="line">make -j$(<span class="built_in">nproc</span>)  <span class="comment"># 使用所有 CPU 核心加速编译</span></span><br><span class="line"><span class="comment"># 通过 make -j 来增加并行任务数，make -j2 表示使用两个并行任务</span></span><br><span class="line">sudo make install</span><br></pre></td></tr></table></figure>
-<p>这个编译过程特别耗时，对于 GCC 8.5.0 这种大型项目，单核 CPU 编译可能需要 <strong>6-12 小时</strong>，两核 CPU 的情况下，可能需要 <strong>3-6 小时</strong> 或更长时间。</p>
-<p>编译完之后，我们还需要把这个<code> gcc</code> 的路径加入到环境变量中，特别是 <code>PATH</code> 和 <code>LD_LIBRARY_PATH</code>，首先我们查找路径：</p>
-<ol>
-<li>
-<p>找到新 GCC 的安装路径。通常，<code>make install</code> 会将 GCC 安装到 <code>/usr/local/bin</code> 中。</p>
-</li>
-<li>
-<p>通过以下命令检查新 GCC 是否安装在 <code>/usr/local/bin</code>：</p>
+<p>这个编译过程特别耗时，对于 GCC 8.5.0 这种大型项目，单核 CPU
+编译可能需要 <strong>6-12 小时</strong>，两核 CPU 的情况下，可能需要
+<strong>3-6 小时</strong> 或更长时间。</p>
+<p>编译完之后，我们还需要把这个<code>gcc</code>
+的路径加入到环境变量中，特别是 <code>PATH</code> 和
+<code>LD_LIBRARY_PATH</code>，首先我们查找路径：</p>
+<ol type="1">
+<li><p>找到新 GCC 的安装路径。通常，<code>make install</code> 会将 GCC
+安装到 <code>/usr/local/bin</code> 中。</p></li>
+<li><p>通过以下命令检查新 GCC 是否安装在
+<code>/usr/local/bin</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /usr/local/bin/gcc</span><br></pre></td></tr></table></figure>
-<p>如果文件存在，表示新的 GCC 已安装在该目录。</p>
-</li>
+<p>如果文件存在，表示新的 GCC 已安装在该目录。</p></li>
 </ol>
 <p>接下来在 <code>~/.bashrc</code> 文件中添加新 GCC 的路径：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> PATH=/usr/local/bin:<span class="variable">$PATH</span></span><br><span class="line"><span class="built_in">export</span> LD_LIBRARY_PATH=/usr/local/lib64:<span class="variable">$LD_LIBRARY_PATH</span></span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213181357527.png" alt="image-20250213181357527"></p>
-<p>然后退出并 <code>source ~/.bashrc</code> 即可，我们再次打印 <code>gcc --version</code> 会发现版本已经更新了：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213181357527.png" alt="image-20250213181357527">
+<figcaption aria-hidden="true">image-20250213181357527</figcaption>
+</figure>
+<p>然后退出并 <code>source ~/.bashrc</code> 即可，我们再次打印
+<code>gcc --version</code> 会发现版本已经更新了：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z gcc-8.5.0]<span class="comment"># vim ~/.bashrc</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z gcc-8.5.0]<span class="comment"># source ~/.bashrc</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z gcc-8.5.0]<span class="comment"># gcc --version</span></span><br><span class="line">gcc (GCC) 8.5.0</span><br><span class="line">Copyright (C) 2018 Free Software Foundation, Inc.</span><br><span class="line">This is free software; see the <span class="built_in">source</span> <span class="keyword">for</span> copying conditions.  There is NO</span><br><span class="line">warranty; not even <span class="keyword">for</span> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</span><br></pre></td></tr></table></figure>
-<h3 id="🧰-Boost-依赖项"><a class="header-anchor" href="#🧰-Boost-依赖项">¶</a>🧰 <code>Boost</code> 依赖项</h3>
-<p>我们需要修改 <code>cmake.sh</code> 文件里的 <code>gcc</code> 的路径为最新安装的</p>
+<h3 id="boost-依赖项">🧰 <code>Boost</code> 依赖项</h3>
+<p>我们需要修改 <code>cmake.sh</code> 文件里的 <code>gcc</code>
+的路径为最新安装的</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">cmake3 /usr/local/software-mysql/mysql-8.0.25  \</span><br><span class="line">  -DCMAKE_C_COMPILER=/usr/local/bin/gcc \</span><br><span class="line">  -DCMAKE_CXX_COMPILER=/usr/local/bin/g++ \</span><br><span class="line">  -DCMAKE_INSTALL_PREFIX=/usr/local/mysql \</span><br><span class="line">  -DMYSQL_DATADIR=/usr/local/mysql/data \</span><br><span class="line">  -DENABLED_LOCAL_INFILE=1 \</span><br><span class="line">  -DWITH_INNOBASE_STORAGE_ENGINE=1 \</span><br><span class="line">  -DMYSQL_TCP_PORT=3306 \</span><br><span class="line">  -DDEFAULT_CHARSET=utf8mb4 \</span><br><span class="line">  -DDEFAULT_COLLATION=utf8mb4_general_ci \</span><br><span class="line">  -DWITH_EXTRA_CHARSETS=all \</span><br><span class="line">  -DMYSQL_USER=mysql</span><br></pre></td></tr></table></figure>
 <p>然后清除目录下的 CMakeFiles 和 CMakeCache.txt：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-build]<span class="comment"># rm -rf CMakeFiles</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-build]<span class="comment"># rm -rf CMakeCache.txt</span></span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-build]<span class="comment"># ./cmake.sh</span></span><br></pre></td></tr></table></figure>
 <p>现在出现了新的报错：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z mysql-build]<span class="comment"># ./cmake.sh </span></span><br><span class="line">-- Running cmake version 3.17.5</span><br><span class="line">-- Found Git: /usr/bin/git (found version <span class="string">&quot;1.8.3.1&quot;</span>) </span><br><span class="line">-- CMP0073 OLD</span><br><span class="line">-- CMAKE_MODULE_PATH is /usr/local/software-mysql/mysql-8.0.25/cmake</span><br><span class="line">-- MySQL 8.0.25</span><br><span class="line">-- The C compiler identification is GNU 8.5.0</span><br><span class="line">-- The CXX compiler identification is GNU 8.5.0</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/local/bin/gcc</span><br><span class="line">-- Check <span class="keyword">for</span> working C compiler: /usr/local/bin/gcc - works</span><br><span class="line">-- Detecting C compiler ABI info</span><br><span class="line">-- Detecting C compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Detecting C compile features</span><br><span class="line">-- Detecting C compile features - <span class="keyword">done</span></span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/local/bin/g++</span><br><span class="line">-- Check <span class="keyword">for</span> working CXX compiler: /usr/local/bin/g++ - works</span><br><span class="line">-- Detecting CXX compiler ABI info</span><br><span class="line">-- Detecting CXX compiler ABI info - <span class="keyword">done</span></span><br><span class="line">-- Detecting CXX compile features</span><br><span class="line">-- Detecting CXX compile features - <span class="keyword">done</span></span><br><span class="line">-- Source directory /usr/local/software-mysql/mysql-8.0.25</span><br><span class="line">-- Binary directory /usr/local/software-mysql/mysql-build</span><br><span class="line">-- CMAKE_GENERATOR: Unix Makefiles</span><br><span class="line">-- Looking <span class="keyword">for</span> SHM_HUGETLB</span><br><span class="line">-- Looking <span class="keyword">for</span> SHM_HUGETLB - found</span><br><span class="line">-- Looking <span class="keyword">for</span> sys/types.h</span><br><span class="line">-- Looking <span class="keyword">for</span> sys/types.h - found</span><br><span class="line">-- Looking <span class="keyword">for</span> stdint.h</span><br><span class="line">-- Looking <span class="keyword">for</span> stdint.h - found</span><br><span class="line">-- Looking <span class="keyword">for</span> stddef.h</span><br><span class="line">-- Looking <span class="keyword">for</span> stddef.h - found</span><br><span class="line">-- Check size of void *</span><br><span class="line">-- Check size of void * - <span class="keyword">done</span></span><br><span class="line">-- SIZEOF_VOIDP 8</span><br><span class="line">-- Performing Test HAVE_C_FLOATING_POINT_FUSED_MADD</span><br><span class="line">-- Performing Test HAVE_C_FLOATING_POINT_FUSED_MADD - Failed</span><br><span class="line">-- Performing Test HAVE_CXX_FLOATING_POINT_FUSED_MADD</span><br><span class="line">-- Performing Test HAVE_CXX_FLOATING_POINT_FUSED_MADD - Failed</span><br><span class="line">-- Packaging as: mysql-8.0.25-Linux-x86_64</span><br><span class="line">-- Performing Test C_LD_LLD_RESULT</span><br><span class="line">-- Performing Test C_LD_LLD_RESULT - Failed</span><br><span class="line">-- Performing Test CXX_LD_LLD_RESULT</span><br><span class="line">-- Performing Test CXX_LD_LLD_RESULT - Failed</span><br><span class="line">-- Performing Test C_LD_GOLD_RESULT</span><br><span class="line">-- Performing Test C_LD_GOLD_RESULT - Success</span><br><span class="line">-- Performing Test CXX_LD_GOLD_RESULT</span><br><span class="line">-- Performing Test CXX_LD_GOLD_RESULT - Success</span><br><span class="line">-- Looked <span class="keyword">for</span> boost/version.hpp <span class="keyword">in</span>  and </span><br><span class="line">-- BOOST_INCLUDE_DIR BOOST_INCLUDE_DIR-NOTFOUND</span><br><span class="line">-- LOCAL_BOOST_DIR </span><br><span class="line">-- LOCAL_BOOST_ZIP </span><br><span class="line">-- Could not find (the correct version of) boost.</span><br><span class="line">-- MySQL currently requires boost_1_73_0</span><br><span class="line"></span><br><span class="line">CMake Error at cmake/boost.cmake:107 (MESSAGE):</span><br><span class="line">  You can download it with -DDOWNLOAD_BOOST=1 -DWITH_BOOST=&lt;directory&gt;</span><br><span class="line"></span><br><span class="line">  This CMake script will look <span class="keyword">for</span> boost <span class="keyword">in</span> &lt;directory&gt;.  If it is not there,</span><br><span class="line">  it will download and unpack it (<span class="keyword">in</span> that directory) <span class="keyword">for</span> you.</span><br><span class="line"></span><br><span class="line">  You can also download boost manually, from</span><br><span class="line">  https://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.gz</span><br><span class="line"></span><br><span class="line">  If you are inside a firewall, you may need to use an https proxy:</span><br><span class="line"></span><br><span class="line">  <span class="built_in">export</span> https_proxy=http://example.com:80</span><br><span class="line"></span><br><span class="line">Call Stack (most recent call first):</span><br><span class="line">  cmake/boost.cmake:276 (COULD_NOT_FIND_BOOST)</span><br><span class="line">  CMakeLists.txt:1147 (INCLUDE)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">-- Configuring incomplete, errors occurred!</span><br><span class="line">See also <span class="string">&quot;/usr/local/software-mysql/mysql-build/CMakeFiles/CMakeOutput.log&quot;</span>.</span><br><span class="line">See also <span class="string">&quot;/usr/local/software-mysql/mysql-build/CMakeFiles/CMakeError.log&quot;</span>.</span><br></pre></td></tr></table></figure>
-<p>当前问题是 <strong>找不到 Boost 1.73.0</strong> 版本，这是 MySQL 8.0.25 的一个依赖项。</p>
-<ol>
-<li>
-<p><strong>下载并安装 Boost 1.73.0</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /usr/local/software-mysql/mysql-build</span><br><span class="line">wget https://archives.boost.io/release/1.73.0/source/boost_1_73_0.tar.gz</span><br><span class="line">tar -xvzf boost_1_73_0.tar.gz</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>在 <code>cmake.sh</code> 文件最后添加一行：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-DWITH_BOOST=/usr/local/software-mysql/mysql-build/boost_1_73_0</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>然后执行 <code>cmake.sh</code> 文件即可：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213191157461.png" alt="image-20250213191157461"></p>
-</li>
+<p>当前问题是 <strong>找不到 Boost 1.73.0</strong> 版本，这是 MySQL
+8.0.25 的一个依赖项。</p>
+<ol type="1">
+<li><p><strong>下载并安装 Boost 1.73.0</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /usr/local/software-mysql/mysql-build</span><br><span class="line">wget https://archives.boost.io/release/1.73.0/source/boost_1_73_0.tar.gz</span><br><span class="line">tar -xvzf boost_1_73_0.tar.gz</span><br></pre></td></tr></table></figure></li>
+<li><p>在 <code>cmake.sh</code> 文件最后添加一行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-DWITH_BOOST=/usr/local/software-mysql/mysql-build/boost_1_73_0</span><br></pre></td></tr></table></figure></li>
+<li><p>然后执行 <code>cmake.sh</code> 文件即可：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213191157461.png" alt="image-20250213191157461">
+<figcaption aria-hidden="true">image-20250213191157461</figcaption>
+</figure></li>
 </ol>
 <p>成功～</p>
-<p>我们将所有 CPU 一起启动在后台安装，并将日志输出到 <code>mysql_make_output.log</code>：</p>
+<p>我们将所有 CPU 一起启动在后台安装，并将日志输出到
+<code>mysql_make_output.log</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nohup</span> make -j$(<span class="built_in">nproc</span>) &gt; mysql_make_output.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213191603813.png" alt="image-20250213191603813"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213191603813.png" alt="image-20250213191603813">
+<figcaption aria-hidden="true">image-20250213191603813</figcaption>
+</figure>
 <p>胜利的曙光就在眼前～让我们拭目以待！！！</p>
-<h3 id="🧰-程序被系统终止（重新-make）"><a class="header-anchor" href="#🧰-程序被系统终止（重新-make）">¶</a>🧰 程序被系统终止（重新 <code>make</code>）</h3>
+<h3 id="程序被系统终止重新-make">🧰 程序被系统终止（重新
+<code>make</code>）</h3>
 <p>不出意外的是，又出问题了 👿</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213204627873.png" alt="image-20250213204627873"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250213204627873.png" alt="image-20250213204627873">
+<figcaption aria-hidden="true">image-20250213204627873</figcaption>
+</figure>
 <blockquote>
 <p>可能的原因如下：</p>
 <p><strong>1. 内存不足</strong></p>
-<p>编译 MySQL 这样的复杂程序时，特别是在使用 <code>make -j$(nproc)</code> 进行并行编译时，系统可能会耗尽内存。<code>cc1plus</code> 是 <code>g++</code> 编译器的一个关键部分，当系统的内存不足时，操作系统可能会终止该进程。</p>
+<p>编译 MySQL 这样的复杂程序时，特别是在使用
+<code>make -j$(nproc)</code>
+进行并行编译时，系统可能会耗尽内存。<code>cc1plus</code> 是
+<code>g++</code>
+编译器的一个关键部分，当系统的内存不足时，操作系统可能会终止该进程。</p>
 <p><strong>解决方案</strong>：</p>
 <ul>
 <li>增加系统的物理内存。</li>
 <li>如果是虚拟机，考虑增加虚拟内存或增加物理内存。</li>
-<li>如果不能增加内存，可以尝试减少并行任务数，使用 <code>make -j2</code> 或者 <code>make -j1</code> 让编译过程使用较少的内存。</li>
+<li>如果不能增加内存，可以尝试减少并行任务数，使用 <code>make -j2</code>
+或者 <code>make -j1</code> 让编译过程使用较少的内存。</li>
 </ul>
 <p><strong>2. SWAP空间不足</strong></p>
-<p>当内存不足时，系统会使用交换空间（SWAP）。如果 SWAP 空间不足，也会导致编译失败。</p>
+<p>当内存不足时，系统会使用交换空间（SWAP）。如果 SWAP
+空间不足，也会导致编译失败。</p>
 <p><strong>解决方案</strong>：</p>
 <ul>
-<li>
-<p>检查当前的 SWAP 空间：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swapon -s</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>如果 SWAP 空间不足，可以通过以下命令增加 SWAP：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">dd</span> <span class="keyword">if</span>=/dev/zero of=/swapfile bs=1M count=4096  <span class="comment"># 创建一个 4GB 的交换文件</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 600 /swapfile  <span class="comment"># 设置权限</span></span><br><span class="line">sudo mkswap /swapfile  <span class="comment"># 设置交换文件</span></span><br><span class="line">sudo swapon /swapfile  <span class="comment"># 启用交换文件</span></span><br></pre></td></tr></table></figure>
-</li>
+<li><p>检查当前的 SWAP 空间：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swapon -s</span><br></pre></td></tr></table></figure></li>
+<li><p>如果 SWAP 空间不足，可以通过以下命令增加 SWAP：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">dd</span> <span class="keyword">if</span>=/dev/zero of=/swapfile bs=1M count=4096  <span class="comment"># 创建一个 4GB 的交换文件</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 600 /swapfile  <span class="comment"># 设置权限</span></span><br><span class="line">sudo mkswap /swapfile  <span class="comment"># 设置交换文件</span></span><br><span class="line">sudo swapon /swapfile  <span class="comment"># 启用交换文件</span></span><br></pre></td></tr></table></figure></li>
 </ul>
 <p><strong>3. CPU 或系统资源被占满</strong></p>
-<p>由于并行编译使用了大量的 CPU 核心，系统可能因资源消耗过高导致进程被杀死。</p>
+<p>由于并行编译使用了大量的 CPU
+核心，系统可能因资源消耗过高导致进程被杀死。</p>
 <p><strong>解决方案</strong>：</p>
 <ul>
-<li>降低 make 命令的并行度，减少 CPU 核心数的使用，尝试 make -j2 或 make -j1。</li>
+<li>降低 make 命令的并行度，减少 CPU 核心数的使用，尝试 make -j2 或 make
+-j1。</li>
 </ul>
 <p><strong>4. 硬盘空间不足</strong></p>
 <p>如果磁盘空间不足，编译过程中的临时文件和输出文件可能无法正确写入磁盘，导致编译中断。</p>
 <p><strong>解决方案</strong>：</p>
 <ul>
-<li>
-<p>检查磁盘空间：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">df</span> -h</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>如果磁盘空间不足，删除一些不必要的文件或扩展磁盘空间。</p>
-</li>
+<li><p>检查磁盘空间：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">df</span> -h</span><br></pre></td></tr></table></figure></li>
+<li><p>如果磁盘空间不足，删除一些不必要的文件或扩展磁盘空间。</p></li>
 </ul>
 <p><strong>5. 系统限制</strong></p>
-<p>Linux 系统有时会根据进程的资源使用情况（如内存、CPU 时间等）进行限制，可能会在某些情况下杀死进程。</p>
+<p>Linux 系统有时会根据进程的资源使用情况（如内存、CPU
+时间等）进行限制，可能会在某些情况下杀死进程。</p>
 <p><strong>解决方案</strong>：</p>
 <ul>
-<li>
-<p>检查 ulimit 设置，增加进程允许使用的内存或文件描述符数：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -a  <span class="comment"># 查看所有限制</span></span><br><span class="line"><span class="built_in">ulimit</span> -n  <span class="comment"># 查看文件描述符限制</span></span><br><span class="line"><span class="built_in">ulimit</span> -u  <span class="comment"># 查看最大进程数限制</span></span><br></pre></td></tr></table></figure>
-</li>
+<li><p>检查 ulimit 设置，增加进程允许使用的内存或文件描述符数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -a  <span class="comment"># 查看所有限制</span></span><br><span class="line"><span class="built_in">ulimit</span> -n  <span class="comment"># 查看文件描述符限制</span></span><br><span class="line"><span class="built_in">ulimit</span> -u  <span class="comment"># 查看最大进程数限制</span></span><br></pre></td></tr></table></figure></li>
 </ul>
 </blockquote>
-<p>经过检查猜测大概率是内存不足的问题，现在我们需要使用 <code>make clean</code> 命令清理之前的编译结果，这会删除 <code>make</code> 过程中生成的所有中间文件和目标文件。</p>
+<p>经过检查猜测大概率是内存不足的问题，现在我们需要使用
+<code>make clean</code> 命令清理之前的编译结果，这会删除
+<code>make</code> 过程中生成的所有中间文件和目标文件。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">make clean</span><br><span class="line"><span class="built_in">rm</span> -rf CMakeCache.txt CMakeFiles</span><br><span class="line">./cmake.sh</span><br></pre></td></tr></table></figure>
 <p>我们对交换空间、虚拟内存与 CPU 核数均做了优化：</p>
-<ol>
-<li>
-<p>按前面所说流程增加交换空间大小</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">dd</span> <span class="keyword">if</span>=/dev/zero of=/swapfile bs=1M count=4096  <span class="comment"># 创建一个 4GB 的交换文件</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 600 /swapfile  <span class="comment"># 设置权限</span></span><br><span class="line">sudo mkswap /swapfile  <span class="comment"># 设置交换文件</span></span><br><span class="line">sudo swapon /swapfile  <span class="comment"># 启用交换文件</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>为了让交换空间在系统重启后自动生效，编辑 /etc/fstab 文件并添加以下内容：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/swapfile none swap sw 0 0</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>然后增加操作系统的虚拟内存限制，来避免进程因内存溢出而被杀死：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -v unlimited</span><br></pre></td></tr></table></figure>
-</li>
-<li>
-<p>最后再尝试使用单核 CPU 进行编译：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">./cmake.sh</span><br><span class="line"><span class="built_in">nohup</span> make -j1 &gt; mysql_make_output.log 2&gt;&amp;1 &amp;</span><br><span class="line"><span class="comment"># 使用下面命令查看日志</span></span><br><span class="line"><span class="built_in">tail</span> -f /usr/local/software-mysql/mysql-build/mysql_make_output.log</span><br></pre></td></tr></table></figure>
-</li>
+<ol type="1">
+<li><p>按前面所说流程增加交换空间大小</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">dd</span> <span class="keyword">if</span>=/dev/zero of=/swapfile bs=1M count=4096  <span class="comment"># 创建一个 4GB 的交换文件</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 600 /swapfile  <span class="comment"># 设置权限</span></span><br><span class="line">sudo mkswap /swapfile  <span class="comment"># 设置交换文件</span></span><br><span class="line">sudo swapon /swapfile  <span class="comment"># 启用交换文件</span></span><br></pre></td></tr></table></figure></li>
+<li><p>为了让交换空间在系统重启后自动生效，编辑 /etc/fstab
+文件并添加以下内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/swapfile none swap sw 0 0</span><br></pre></td></tr></table></figure></li>
+<li><p>然后增加操作系统的虚拟内存限制，来避免进程因内存溢出而被杀死：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -v unlimited</span><br></pre></td></tr></table></figure></li>
+<li><p>最后再尝试使用单核 CPU 进行编译：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">./cmake.sh</span><br><span class="line"><span class="built_in">nohup</span> make -j1 &gt; mysql_make_output.log 2&gt;&amp;1 &amp;</span><br><span class="line"><span class="comment"># 使用下面命令查看日志</span></span><br><span class="line"><span class="built_in">tail</span> -f /usr/local/software-mysql/mysql-build/mysql_make_output.log</span><br></pre></td></tr></table></figure></li>
 </ol>
 <p>下面还是老样子，再次祈祷！</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214105213109.png" alt="image-20250214105213109"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214105213109.png" alt="image-20250214105213109">
+<figcaption aria-hidden="true">image-20250214105213109</figcaption>
+</figure>
 <p>经过了漫长的等待，终于迎来了胜利！</p>
-<p>再把这个 <code>bin</code> 的路径保存到 <code>~/.bashrc</code> 并激活即可：</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214121526166.png" alt="image-20250214121526166"></p>
-<h3 id="🧰-gcc-版本还是太低"><a class="header-anchor" href="#🧰-gcc-版本还是太低">¶</a>🧰 gcc 版本还是太低</h3>
+<p>再把这个 <code>bin</code> 的路径保存到 <code>~/.bashrc</code>
+并激活即可：</p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214121526166.png" alt="image-20250214121526166">
+<figcaption aria-hidden="true">image-20250214121526166</figcaption>
+</figure>
+<h3 id="gcc-版本还是太低">🧰 gcc 版本还是太低</h3>
 <p>看起来一切都很顺利，但在最后的初始化这一步还是凉了～</p>
-<p><img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214132359514.png" alt="image-20250214132359514"></p>
+<figure>
+<img src="/LAMP-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/image-20250214132359514.png" alt="image-20250214132359514">
+<figcaption aria-hidden="true">image-20250214132359514</figcaption>
+</figure>
 <p>运行以下命令来列出 libstdc++ 的版本：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z ~]<span class="comment"># strings /usr/lib64/libstdc++.so.6 | grep GLIBCXX</span></span><br><span class="line">GLIBCXX_3.4</span><br><span class="line">GLIBCXX_3.4.1</span><br><span class="line">GLIBCXX_3.4.2</span><br><span class="line">GLIBCXX_3.4.3</span><br><span class="line">GLIBCXX_3.4.4</span><br><span class="line">GLIBCXX_3.4.5</span><br><span class="line">GLIBCXX_3.4.6</span><br><span class="line">GLIBCXX_3.4.7</span><br><span class="line">GLIBCXX_3.4.8</span><br><span class="line">GLIBCXX_3.4.9</span><br><span class="line">GLIBCXX_3.4.10</span><br><span class="line">GLIBCXX_3.4.11</span><br><span class="line">GLIBCXX_3.4.12</span><br><span class="line">GLIBCXX_3.4.13</span><br><span class="line">GLIBCXX_3.4.14</span><br><span class="line">GLIBCXX_3.4.15</span><br><span class="line">GLIBCXX_3.4.16</span><br><span class="line">GLIBCXX_3.4.17</span><br><span class="line">GLIBCXX_3.4.18</span><br><span class="line">GLIBCXX_3.4.19</span><br><span class="line">GLIBCXX_DEBUG_MESSAGE_LENGTH</span><br><span class="line">[root@iZ7xv858yt7ltpn85a6qv8Z ~]<span class="comment"># strings /usr/lib64/libstdc++.so.6 | grep CXXABI</span></span><br><span class="line">CXXABI_1.3</span><br><span class="line">CXXABI_1.3.1</span><br><span class="line">CXXABI_1.3.2</span><br><span class="line">CXXABI_1.3.3</span><br><span class="line">CXXABI_1.3.4</span><br><span class="line">CXXABI_1.3.5</span><br><span class="line">CXXABI_1.3.6</span><br><span class="line">CXXABI_1.3.7</span><br><span class="line">CXXABI_TM_1</span><br></pre></td></tr></table></figure>
-<p>还得重新安装 GCC 9 才能行得通，886了！下次安装前一定要提前看好适配的包是什么，要去官网先看一遍安装教程，不然又会凉 🥹 血的教训！一定要人家写了什么版本就安装什么版本！！</p>
-<h2 id="2-PHP-编译"><a class="header-anchor" href="#2-PHP-编译">¶</a>2. PHP 编译</h2>
+<p>还得重新安装 GCC 9
+才能行得通，886了！下次安装前一定要提前看好适配的包是什么，要去官网先看一遍安装教程，不然又会凉
+🥹 血的教训！一定要人家写了什么版本就安装什么版本！！</p>
+<h2 id="php-编译">2. PHP 编译</h2>
 <p>如果 <code>configure</code> 的时候遇到报错：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">configure: error: libxml2 not found. Please check your libxml2 installation.</span><br></pre></td></tr></table></figure>
 <p>可以执行以下命令补充安装再次 <code>configure</code>：</p>
@@ -862,7 +1206,8 @@
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install curl curl-devel -y</span><br></pre></td></tr></table></figure>
 <p>遇到报错：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">checking whether to <span class="built_in">enable</span> JIS-mapped Japanese font support <span class="keyword">in</span> GD... no</span><br><span class="line">If configure fails try --with-webp-dir=&lt;DIR&gt;</span><br><span class="line">configure: error: jpeglib.h not found.</span><br></pre></td></tr></table></figure>
-<p>说明在配置 PHP 时，找不到 jpeglib.h 头文件，这是 JPEG 图像库的一部分，PHP 在编译时需要它来支持处理 JPEG 图像：</p>
+<p>说明在配置 PHP 时，找不到 jpeglib.h 头文件，这是 JPEG
+图像库的一部分，PHP 在编译时需要它来支持处理 JPEG 图像：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install libjpeg-devel -y</span><br></pre></td></tr></table></figure>
 
         </div>
@@ -906,13 +1251,13 @@
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/"
+                           href="/en/linux-disk-management/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux 磁盘管理</span>
+                                <span class="post-nav-title-item">Linux Disk Management (Partitions, Filesystems, RAID, LVM)</span>
                                 <span class="post-nav-item">上一篇</span>
                             </span>
                         </a>
@@ -922,10 +1267,10 @@
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/LAMP%20%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/"
+                           href="/en/lamp-on-ecs/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">LAMP 与阿里云服务器详解</span>
+                                <span class="post-nav-title-item">LAMP on Alibaba Cloud ECS: From Zero to a Running Site</span>
                                 <span class="post-nav-item">下一篇</span>
                             </span>
                             <span class="right arrow-icon flex-center">
@@ -1138,7 +1483,11 @@
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">一、LAMP 架构概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">二、阿里云服务器概述与网络配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%9F%BA%E7%A1%80"><span class="nav-number">2.1.</span> <span class="nav-text">1. 阿里云服务器基础</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%98%B2%E7%81%AB%E5%A2%99%E4%B8%8E%E5%85%AC%E7%BD%91-IP-%E9%85%8D%E7%BD%AE"><span class="nav-number">2.2.</span> <span class="nav-text">2. 防火墙与公网 IP 配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E7%BD%91-IP-%E9%85%8D%E7%BD%AE"><span class="nav-number">2.2.1.</span> <span class="nav-text">公网 IP 配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E7%BB%84%E8%A7%84%E5%88%99%E8%AE%BE%E7%BD%AE"><span class="nav-number">2.2.2.</span> <span class="nav-text">安全组规则设置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">三、LAMP 环境搭建（Ubuntu 实例）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">3.1.</span> <span class="nav-text">0. 准备工作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%AE%89%E8%A3%85-Apache-Web-%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">3.2.</span> <span class="nav-text">1. 安装 Apache Web 服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-MySQL-%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="nav-number">3.3.</span> <span class="nav-text">2. MySQL 数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">3.3.1.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%8E%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE"><span class="nav-number">3.3.2.</span> <span class="nav-text">配置与远程访问</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-PHP-%E5%8F%8A%E7%9B%B8%E5%85%B3%E6%A8%A1%E5%9D%97"><span class="nav-number">3.4.</span> <span class="nav-text">3. PHP 及相关模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-v2"><span class="nav-number">3.4.1.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E9%A1%B5%E9%9D%A2"><span class="nav-number">3.4.2.</span> <span class="nav-text">创建页面</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">四、Discuz! 论坛部署</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%8B%E8%BD%BD%E5%B9%B6%E8%A7%A3%E5%8E%8B-Discuz-%E5%AE%89%E8%A3%85%E5%8C%85"><span class="nav-number">4.1.</span> <span class="nav-text">1. 下载并解压 Discuz! 安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%AE%89%E8%A3%85-Discuz"><span class="nav-number">4.2.</span> <span class="nav-text">2. 安装 Discuz!</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%85%8D%E7%BD%AE-Apache-%E7%9B%AE%E5%BD%95%E6%9D%83%E9%99%90"><span class="nav-number">4.3.</span> <span class="nav-text">3. 配置 Apache 目录权限</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#image-20250212010501483"><span class="nav-number">4.4.</span> <span class="nav-text">¶</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">五、源码编译安装</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%B8%85%E7%A9%BA%E5%8E%9F%E6%9C%89%E7%8E%AF%E5%A2%83"><span class="nav-number">5.1.</span> <span class="nav-text">1. 清空原有环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%9F%BA%E7%A1%80%E8%BD%AF%E4%BB%B6%E8%BF%90%E8%A1%8C%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">5.2.</span> <span class="nav-text">2. 基础软件运行环境准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-MySQL"><span class="nav-number">5.3.</span> <span class="nav-text">3. 编译安装 MySQL</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-MySQL-%E7%94%A8%E6%88%B7"><span class="nav-number">5.3.1.</span> <span class="nav-text">创建 MySQL 用户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD-MySQL"><span class="nav-number">5.3.2.</span> <span class="nav-text">下载 MySQL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85"><span class="nav-number">5.3.3.</span> <span class="nav-text">编译安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%97%A7%E6%96%87%E4%BB%B6%E6%AE%8B%E7%95%99"><span class="nav-number">5.3.4.</span> <span class="nav-text">删除旧文件残留</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E6%96%87%E4%BB%B6%E5%B1%9E%E4%B8%BB%E5%B1%9E%E7%BB%84"><span class="nav-number">5.3.5.</span> <span class="nav-text">修改文件属主属组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96-mysql"><span class="nav-number">5.3.6.</span> <span class="nav-text">初始化 mysql</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC"><span class="nav-number">5.3.7.</span> <span class="nav-text">创建启动脚本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E5%AF%86%E7%A0%81%E4%B8%8E%E7%99%BB%E5%BD%95"><span class="nav-number">5.3.8.</span> <span class="nav-text">设置密码与登录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-Apache"><span class="nav-number">5.4.</span> <span class="nav-text">4. 编译安装 Apache</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E4%BE%9D%E8%B5%96%E5%8C%85-apr"><span class="nav-number">5.4.1.</span> <span class="nav-text">安装依赖包 apr</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E5%9F%BA%E7%A1%80%E5%BA%93-apr-util"><span class="nav-number">5.4.2.</span> <span class="nav-text">安装基础库 apr-util</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91-Apache%E6%AD%A5%E9%AA%A4"><span class="nav-number">5.4.3.</span> <span class="nav-text">编译 Apache步骤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">5.4.4.</span> <span class="nav-text">修改配置文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%AD%E8%A8%80%E6%94%AF%E6%8C%81"><span class="nav-number">5.4.4.1.</span> <span class="nav-text">语言支持</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#PHP-%E6%94%AF%E6%8C%81"><span class="nav-number">5.4.4.2.</span> <span class="nav-text">PHP 支持</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#HTML-%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84"><span class="nav-number">5.4.4.3.</span> <span class="nav-text">HTML 文件路径</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E5%AD%90%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">5.4.4.4.</span> <span class="nav-text">修改子配置文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%9F%E5%90%8D%E8%AE%BE%E7%BD%AE"><span class="nav-number">5.4.4.5.</span> <span class="nav-text">域名设置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-PHP"><span class="nav-number">5.5.</span> <span class="nav-text">5. 编译安装 PHP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E4%B8%8E%E5%AE%89%E8%A3%85"><span class="nav-number">5.5.1.</span> <span class="nav-text">编译与安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5-Apache%E6%98%AF%E5%90%A6%E6%94%AF%E6%8C%81PHP"><span class="nav-number">5.5.2.</span> <span class="nav-text">检查 Apache是否支持PHP</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-WordPress"><span class="nav-number">5.6.</span> <span class="nav-text">6. WordPress</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">六、debug日志</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%96%B0%E7%89%88%E6%9C%AC-MySQL-%E5%AE%89%E8%A3%85%E5%87%89%E7%BB%8F"><span class="nav-number">6.1.</span> <span class="nav-text">1. 新版本 MySQL 安装凉经</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-%E5%85%B3%E4%BA%8E-cmake-%E7%89%88%E6%9C%AC"><span class="nav-number">6.1.1.</span> <span class="nav-text">🧰 关于 cmake 版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-gcc-%E8%B7%AF%E5%BE%84"><span class="nav-number">6.1.2.</span> <span class="nav-text">🧰 gcc 路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-%E5%85%B3%E4%BA%8E-centos-release-scl-%E7%9A%84%E4%B8%80%E4%B8%AA%E5%B0%8F%E6%8F%92%E6%9B%B2%EF%BC%88%E5%BE%85%E8%A7%A3%E5%86%B3%EF%BC%89"><span class="nav-number">6.1.3.</span> <span class="nav-text">🧰 关于 centos-release-scl 的一个小插曲（待解决）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-%E7%BB%A7%E7%BB%AD%E8%A7%A3%E5%86%B3%E5%89%8D%E9%9D%A2%E7%9A%84-gcc-%E7%89%88%E6%9C%AC%E9%97%AE%E9%A2%98"><span class="nav-number">6.1.4.</span> <span class="nav-text">🧰 继续解决前面的 gcc 版本问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-Boost-%E4%BE%9D%E8%B5%96%E9%A1%B9"><span class="nav-number">6.1.5.</span> <span class="nav-text">🧰 Boost 依赖项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-%E7%A8%8B%E5%BA%8F%E8%A2%AB%E7%B3%BB%E7%BB%9F%E7%BB%88%E6%AD%A2%EF%BC%88%E9%87%8D%E6%96%B0-make%EF%BC%89"><span class="nav-number">6.1.6.</span> <span class="nav-text">🧰 程序被系统终止（重新 make）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%A7%B0-gcc-%E7%89%88%E6%9C%AC%E8%BF%98%E6%98%AF%E5%A4%AA%E4%BD%8E"><span class="nav-number">6.1.7.</span> <span class="nav-text">🧰 gcc 版本还是太低</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-PHP-%E7%BC%96%E8%AF%91"><span class="nav-number">6.2.</span> <span class="nav-text">2. PHP 编译</span></a></li></ol></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80lamp-%E6%9E%B6%E6%9E%84%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">一、LAMP 架构概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%A6%82%E8%BF%B0%E4%B8%8E%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE"><span class="nav-number">2.</span> <span class="nav-text">二、阿里云服务器概述与网络配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%9F%BA%E7%A1%80"><span class="nav-number">2.1.</span> <span class="nav-text">1. 阿里云服务器基础</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%98%B2%E7%81%AB%E5%A2%99%E4%B8%8E%E5%85%AC%E7%BD%91-ip-%E9%85%8D%E7%BD%AE"><span class="nav-number">2.2.</span> <span class="nav-text">2. 防火墙与公网 IP 配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E7%BD%91-ip-%E9%85%8D%E7%BD%AE"><span class="nav-number">2.2.1.</span> <span class="nav-text">公网 IP 配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E7%BB%84%E8%A7%84%E5%88%99%E8%AE%BE%E7%BD%AE"><span class="nav-number">2.2.2.</span> <span class="nav-text">安全组规则设置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89lamp-%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BAubuntu-%E5%AE%9E%E4%BE%8B"><span class="nav-number">3.</span> <span class="nav-text">三、LAMP 环境搭建（Ubuntu
+实例）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">3.1.</span> <span class="nav-text">0. 准备工作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-apache-web-%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">3.2.</span> <span class="nav-text">1. 安装 Apache Web 服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#mysql-%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="nav-number">3.3.</span> <span class="nav-text">2. MySQL 数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">3.3.1.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%8E%E8%BF%9C%E7%A8%8B%E8%AE%BF%E9%97%AE"><span class="nav-number">3.3.2.</span> <span class="nav-text">配置与远程访问</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#php-%E5%8F%8A%E7%9B%B8%E5%85%B3%E6%A8%A1%E5%9D%97"><span class="nav-number">3.4.</span> <span class="nav-text">3. PHP 及相关模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-1"><span class="nav-number">3.4.1.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E9%A1%B5%E9%9D%A2"><span class="nav-number">3.4.2.</span> <span class="nav-text">创建页面</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9Bdiscuz-%E8%AE%BA%E5%9D%9B%E9%83%A8%E7%BD%B2"><span class="nav-number">4.</span> <span class="nav-text">四、Discuz! 论坛部署</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD%E5%B9%B6%E8%A7%A3%E5%8E%8B-discuz-%E5%AE%89%E8%A3%85%E5%8C%85"><span class="nav-number">4.1.</span> <span class="nav-text">1. 下载并解压 Discuz! 安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-discuz"><span class="nav-number">4.2.</span> <span class="nav-text">2. 安装 Discuz!</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE-apache-%E7%9B%AE%E5%BD%95%E6%9D%83%E9%99%90"><span class="nav-number">4.3.</span> <span class="nav-text">3. 配置 Apache 目录权限</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#image-20250212010501483"><span class="nav-number">4.4.</span> <span class="nav-text"></span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85"><span class="nav-number">5.</span> <span class="nav-text">五、源码编译安装</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B8%85%E7%A9%BA%E5%8E%9F%E6%9C%89%E7%8E%AF%E5%A2%83"><span class="nav-number">5.1.</span> <span class="nav-text">1. 清空原有环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E8%BD%AF%E4%BB%B6%E8%BF%90%E8%A1%8C%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="nav-number">5.2.</span> <span class="nav-text">2. 基础软件运行环境准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-mysql"><span class="nav-number">5.3.</span> <span class="nav-text">3. 编译安装 MySQL</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-mysql-%E7%94%A8%E6%88%B7"><span class="nav-number">5.3.1.</span> <span class="nav-text">创建 MySQL 用户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD-mysql"><span class="nav-number">5.3.2.</span> <span class="nav-text">下载 MySQL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85"><span class="nav-number">5.3.3.</span> <span class="nav-text">编译安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E6%97%A7%E6%96%87%E4%BB%B6%E6%AE%8B%E7%95%99"><span class="nav-number">5.3.4.</span> <span class="nav-text">删除旧文件残留</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E6%96%87%E4%BB%B6%E5%B1%9E%E4%B8%BB%E5%B1%9E%E7%BB%84"><span class="nav-number">5.3.5.</span> <span class="nav-text">修改文件属主属组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96-mysql"><span class="nav-number">5.3.6.</span> <span class="nav-text">初始化 mysql</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC"><span class="nav-number">5.3.7.</span> <span class="nav-text">创建启动脚本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E5%AF%86%E7%A0%81%E4%B8%8E%E7%99%BB%E5%BD%95"><span class="nav-number">5.3.8.</span> <span class="nav-text">设置密码与登录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-apache"><span class="nav-number">5.4.</span> <span class="nav-text">4. 编译安装 Apache</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E4%BE%9D%E8%B5%96%E5%8C%85-apr"><span class="nav-number">5.4.1.</span> <span class="nav-text">安装依赖包 apr</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E5%9F%BA%E7%A1%80%E5%BA%93-apr-util"><span class="nav-number">5.4.2.</span> <span class="nav-text">安装基础库 apr-util</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91-apache%E6%AD%A5%E9%AA%A4"><span class="nav-number">5.4.3.</span> <span class="nav-text">编译 Apache步骤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">5.4.4.</span> <span class="nav-text">修改配置文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%AD%E8%A8%80%E6%94%AF%E6%8C%81"><span class="nav-number">5.4.4.1.</span> <span class="nav-text">语言支持</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#php-%E6%94%AF%E6%8C%81"><span class="nav-number">5.4.4.2.</span> <span class="nav-text">PHP 支持</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#html-%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84"><span class="nav-number">5.4.4.3.</span> <span class="nav-text">HTML 文件路径</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E5%AD%90%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">5.4.4.4.</span> <span class="nav-text">修改子配置文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%9F%E5%90%8D%E8%AE%BE%E7%BD%AE"><span class="nav-number">5.4.4.5.</span> <span class="nav-text">域名设置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-php"><span class="nav-number">5.5.</span> <span class="nav-text">5. 编译安装 PHP</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E4%B8%8E%E5%AE%89%E8%A3%85"><span class="nav-number">5.5.1.</span> <span class="nav-text">编译与安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5-apache%E6%98%AF%E5%90%A6%E6%94%AF%E6%8C%81php"><span class="nav-number">5.5.2.</span> <span class="nav-text">检查 Apache是否支持PHP</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#wordpress"><span class="nav-number">5.6.</span> <span class="nav-text">6. WordPress</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%ADdebug%E6%97%A5%E5%BF%97"><span class="nav-number">6.</span> <span class="nav-text">六、debug日志</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%B0%E7%89%88%E6%9C%AC-mysql-%E5%AE%89%E8%A3%85%E5%87%89%E7%BB%8F"><span class="nav-number">6.1.</span> <span class="nav-text">1. 新版本 MySQL 安装凉经</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E-cmake-%E7%89%88%E6%9C%AC"><span class="nav-number">6.1.1.</span> <span class="nav-text">🧰 关于 cmake 版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gcc-%E8%B7%AF%E5%BE%84"><span class="nav-number">6.1.2.</span> <span class="nav-text">🧰 gcc 路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E-centos-release-scl-%E7%9A%84%E4%B8%80%E4%B8%AA%E5%B0%8F%E6%8F%92%E6%9B%B2%E5%BE%85%E8%A7%A3%E5%86%B3"><span class="nav-number">6.1.3.</span> <span class="nav-text">🧰 关于
+centos-release-scl 的一个小插曲（待解决）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%A7%E7%BB%AD%E8%A7%A3%E5%86%B3%E5%89%8D%E9%9D%A2%E7%9A%84-gcc-%E7%89%88%E6%9C%AC%E9%97%AE%E9%A2%98"><span class="nav-number">6.1.4.</span> <span class="nav-text">🧰 继续解决前面的 gcc
+版本问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#boost-%E4%BE%9D%E8%B5%96%E9%A1%B9"><span class="nav-number">6.1.5.</span> <span class="nav-text">🧰 Boost 依赖项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E8%A2%AB%E7%B3%BB%E7%BB%9F%E7%BB%88%E6%AD%A2%E9%87%8D%E6%96%B0-make"><span class="nav-number">6.1.6.</span> <span class="nav-text">🧰 程序被系统终止（重新
+make）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gcc-%E7%89%88%E6%9C%AC%E8%BF%98%E6%98%AF%E5%A4%AA%E4%BD%8E"><span class="nav-number">6.1.7.</span> <span class="nav-text">🧰 gcc 版本还是太低</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#php-%E7%BC%96%E8%AF%91"><span class="nav-number">6.2.</span> <span class="nav-text">2. PHP 编译</span></a></li></ol></li></ol>
     </div>
 </div>
         </aside>
