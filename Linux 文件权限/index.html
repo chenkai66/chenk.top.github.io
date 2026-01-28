@@ -230,7 +230,7 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>2.4k 字</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>2.5k 字</span>
         </span>
     
     
@@ -251,7 +251,7 @@
         
 
         <div class="article-content markdown-body">
-            <p>Linux 文件权限系统围绕属主、属组、其他人三大角色进行控制。本篇从概念出发，带你理解如何通过 chmod、chown 等操作，配置文件安全与访问策略。</p>
+            <p>文件权限是 Linux 运维里最“基础但最容易踩坑”的部分：一边是权限不足导致服务起不来、脚本跑不动；另一边是权限给大了带来安全风险。要把它用对，你需要的不只是记住 <code>chmod 755</code>，而是理解<strong>权限位在文件与目录上的差异</strong>、属主/属组/其他人的边界、以及 <code>umask</code>、SUID/SGID、Sticky Bit 这些机制为什么会存在。本篇会从最小概念集出发，系统讲清 <code>rwx</code>、数字/符号写法、<code>chmod/chown</code> 的典型用法与排错思路，并用常见场景（共享目录、可执行脚本、临时目录、安全加固）解释“该怎么给、给到什么程度”，让你能把权限问题一次性定位并修正确。</p>
 <span id="more"></span>
 <h1>一、Linux 文件权限概述</h1>
 <h2 id="文件属主与属组"><a class="header-anchor" href="#文件属主与属组">¶</a>文件属主与属组</h2>
@@ -301,7 +301,7 @@
 <p>三种权限相加构成属主、属组、其他三组数，如 <code>754</code> 表示 <code>rwx</code> / <code>r-x</code> / <code>r--</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 754 file.sh</span><br></pre></td></tr></table></figure>
 <p>代表让文件对于属主可读写执行，对于属组和其他仅读和执行。</p>
-<p>![Demystifying SUID and SGID bits](./Linux 文件权限/image-37.png)</p>
+<p><img src="/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-37.png" alt="Demystifying SUID and SGID bits"></p>
 <h3 id="符号表示"><a class="header-anchor" href="#符号表示">¶</a>符号表示</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+w file.txt</span><br><span class="line"><span class="built_in">chmod</span> g-x somefile</span><br><span class="line"><span class="built_in">chmod</span> a+r notes.md</span><br></pre></td></tr></table></figure>
 <ul>
@@ -323,7 +323,7 @@
 </ul>
 <h2 id="4-umask"><a class="header-anchor" href="#4-umask">¶</a>4. <code>umask</code></h2>
 <p><code>umask</code> 是 Linux 和 Unix 系统中的一个命令，用于设置文件或目录的默认权限屏蔽值（<strong>User File Creation Mask</strong>）。它决定了新创建的文件或目录的默认权限。</p>
-<p>![Umask](./Linux 文件权限/Users_Groups-Umask_Example.png)</p>
+<p><img src="/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/Users_Groups-Umask_Example.png" alt="Umask"></p>
 <p><strong>如何计算权限</strong>？</p>
 <ol>
 <li>
@@ -452,14 +452,14 @@
 </tbody>
 </table>
 <p><code>lsattr</code> 输出中，每个文件或目录的属性由 10 个字符表示，常见的格式如下：</p>
-<p>![image-20250127005208300](./Linux 文件权限/image-20250127005208300.png)</p>
+<p><img src="/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250127005208300.png" alt="image-20250127005208300"></p>
 <h1>三、进阶：特殊权限（SUID / SGID / Sticky 位）</h1>
 <p>特殊权限可赋予可执行文件或目录，使它们具有超出常规 rwx 的特殊行为。本节重点分析 <strong>SUID、SGID、Sticky</strong> 三种。</p>
-<p>![Linux File Permissions are not only about R+W+X, it’s  also about SUID, SGID, and sticky bit](./Linux 文件权限/FcTez6NWQAYxkr7.jpeg)</p>
+<p><img src="/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/FcTez6NWQAYxkr7.jpeg" alt="Linux File Permissions are not only about R+W+X, it's  also about SUID, SGID, and sticky bit"></p>
 <h2 id="1-SUID（Set-User-ID）"><a class="header-anchor" href="#1-SUID（Set-User-ID）">¶</a>1.SUID（Set User ID）</h2>
 <h3 id="1-1-原理"><a class="header-anchor" href="#1-1-原理">¶</a>1.1 原理</h3>
 <p>当一个可执行文件被赋予 SUID 权限后，普通用户执行该文件时，会以<strong>该文件的属主身份</strong>运行程序，而不仅仅是调用者自身的身份。常见示例是 <code>/usr/bin/passwd</code>，它的属主为 <code>root</code>，且 SUID 生效，让任何用户都能安全地更改自己密码（进而写入 <code>/etc/shadow</code>）。</p>
-<p>![image-20250126231517290](./Linux 文件权限/image-20250126231517290.png)</p>
+<p><img src="/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250126231517290.png" alt="image-20250126231517290"></p>
 <p><strong>Why</strong>：SUID 让特定程序能突破调用者权限执行关键操作，但仅限程序内部实现，非给用户全局 root 权限。</p>
 <h3 id="1-2-查看与设置"><a class="header-anchor" href="#1-2-查看与设置">¶</a>1.2 查看与设置</h3>
 <p><code>ls -l</code> 中，如果可执行文件设置了 SUID，则属主的执行权限位会显示 <code>s</code> 而非 <code>x</code>。例如：<code>-rwsr-xr-x</code>。</p>
@@ -496,7 +496,7 @@
 </li>
 </ol>
 <p>打印出 <code>Real UID</code> 为当前普通用户，但 <code>Effective UID</code> 显示 <code>0</code>（root），从而以 root 权限执行 <code>system(&quot;id&quot;)</code>。</p>
-<p>![image-20250126231949945](./Linux 文件权限/image-20250126231949945.png)</p>
+<p><img src="/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250126231949945.png" alt="image-20250126231949945"></p>
 <h3 id="1-4-安全注意事项"><a class="header-anchor" href="#1-4-安全注意事项">¶</a>1.4 安全注意事项</h3>
 <ul>
 <li>SUID 程序一旦出现漏洞，可能被恶意利用获取更高权限。</li>

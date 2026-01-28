@@ -235,7 +235,7 @@
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>41 分钟</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>40 分钟</span>
         </span>
     
     
@@ -251,9 +251,11 @@
         
 
         <div class="article-content markdown-body">
-            <h1>一、网站存储</h1>
+            <p>磁盘相关的问题，很多时候不是“记几个命令”就能解决：分区表怎么选、文件系统怎么挂、扩容怎么尽量少停机、删文件为什么空间不立刻回来，背后都有明确的机制约束。本文从热/冷存储与磁盘结构切入，串起 RAID 与 LVM 的落地用法、MBR/GPT 分区与 <code>fdisk</code>/<code>gdisk</code> 的实际操作、格式化与挂载的完整流程，并补上 <code>/dev</code> 特殊设备、inode 与硬/软链接、文件删除原理这些最容易踩坑但又最“救命”的细节。读完你应该能按步骤把一块新盘从“识别—分区—格式化—挂载—扩容—排障”走通。</p>
+<span id="more"></span>
+<h1>一、网站存储</h1>
 <p>数据存储是网站架构的一大重点，关于存储方案我们通常需要考虑硬件角度和软件角度，本文我们只关注硬件角度。</p>
-<p>![img](Linux 磁盘管理/20210701123415976-1024x556.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/20210701123415976-1024x556.png" alt="img"></p>
 <h2 id="1-存储层的设计"><a class="header-anchor" href="#1-存储层的设计">¶</a>1. 存储层的设计</h2>
 <p><strong>热存储（Hot Storage）</strong>：存储需要频繁访问的数据。通常使用 SSD（固态硬盘），例如数据库存储。</p>
 <ul>
@@ -263,14 +265,14 @@
 <li>固态硬盘写入数据前要对齐，所以有独特的 <code>trim</code> 指令。文件删除以后，操作系统会挑选空余时间自动执行 <code>trim</code>，而不是下次使用的时候再对齐，机械硬盘不需要对齐，直接覆盖就行了。所以机械硬盘的数据在没有覆盖之前都是可以恢复了，固态硬盘一般在回收站里面删除以后很快就执行了 <code>trim</code> 命令，几乎不能再恢复数据了。</li>
 </ul>
 <p><strong><a class="link" target="_blank" rel="noopener" href="https://www.cnblogs.com/cxygg/p/16389505.html">冷存储<i class="fas fa-external-link-alt"></i></a>（Cold Storage）</strong>：用于长期存储访问频率低的数据。可以使用 HDD（机械硬盘）或分布式存储系统。</p>
-<p>![机械硬盘结构](Linux 磁盘管理/4f588e4702ddcda3b22aa8b231cbbc47.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/4f588e4702ddcda3b22aa8b231cbbc47.png" alt="机械硬盘结构"></p>
 <ul>
 <li>
 <p>HDD 通过磁性盘片和磁头来读取和写入数据，硬盘存储设备和电磁有关因此也被称为磁盘：磁头在盘片上移动，通过磁性变化来写入和读取数据。机械硬盘里有很多张磁盘。</p>
 </li>
 <li>
 <p>数据存储分为多个<strong>扇区</strong>和<strong>轨道</strong>。</p>
-<p>![img](./Linux 磁盘管理/1435314-20220619000212007-1461023647.webp)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/1435314-20220619000212007-1461023647.webp" alt="img"></p>
 <ul>
 <li>
 <p>一个磁盘里面有一到多个盘片，盘片可以可以单面或者双面的。单面盘片只有一个面有磁头，双面盘片两个面都有磁头。多盘片，双盘面的磁盘，是协同工作的，这时候他们机械臂的位置相同，盘面相对位置恒定，理论上多盘片之间可以相互配合共同读写，多盘片的硬盘，也并不会成倍的提升读写性能，大概只能归结于工艺原因，并不能做到多盘片协同工作。</p>
@@ -436,9 +438,9 @@
 <hr>
 <p>举个例子，在 Mac 系统上，<strong>硬盘空间的增加</strong>会被自动识别为新的分区或逻辑卷（LVM），而不需要手动进行分区。</p>
 <p>我们可以首先进行硬盘空间分配来验证之（注意这里的硬盘空间分配了之后，主机的硬盘空间不会立刻少这么多，而是慢慢减少直到用满了这新增的空间）。</p>
-<p>![image-20250214204528744](./Linux 磁盘管理/image-20250214204528744.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250214204528744.png" alt="image-20250214204528744"></p>
 <p>然后我们查看 <code>lablk</code>：</p>
-<p>![image-20250218010311167](./Linux 磁盘管理/image-20250218010311167.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250218010311167.png" alt="image-20250218010311167"></p>
 <p><strong>nvme0n1 硬盘</strong>是我的物理硬盘，大小为 50GB。这个硬盘上有三个分区：</p>
 <ul>
 <li>/dev/nvme0n1p1：EFI 系统分区，大小 953MB。</li>
@@ -466,7 +468,7 @@
 <li>
 <p><strong>硬盘健康检查</strong>：定期运行 <code>smartctl</code> 检查硬盘状态，提前发现潜在问题，如坏道、读写错误等。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">smartctl -a /dev/sda  <span class="comment"># 查看硬盘健康状态</span></span><br><span class="line">   <span class="built_in">df</span> -h  <span class="comment"># 显示磁盘空间使用情况</span></span><br></pre></td></tr></table></figure>
-<p>![image-20250213152728125](./Linux 磁盘管理/image-20250213152728125.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250213152728125.png" alt="image-20250213152728125"></p>
 </li>
 <li>
 <p><strong>磁盘碎片整理</strong>：对于机械硬盘（HDD），我们可以使用工具如 <code>bleachbit</code> 或 <code>ncdu</code> 进行磁盘清理，释放磁盘空间。并使用 <code>e4defrag</code> 碎片整理工具进行整理：</p>
@@ -478,7 +480,7 @@
 </ol>
 <h1>三、磁盘使用流程</h1>
 <p>磁盘在计算机中是用来存储数据的设备，磁盘的使用包括挂载、分区以及对文件系统的访问。Linux 系统中的磁盘挂载是磁盘和文件系统连接的过程，Linux 系统通过挂载将磁盘分区与文件系统连接，使得用户可以通过路径访问磁盘上的文件。</p>
-<p>![关于Linux中卷/分区等知识的一些总结-云社区-华为云](./Linux 磁盘管理/3baffb6c16dc43cc92b87baad5700594.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/3baffb6c16dc43cc92b87baad5700594.png" alt="关于Linux中卷/分区等知识的一些总结-云社区-华为云"></p>
 <p>我们可以将磁盘从被识别到可以使用的过程与实际生活中房子类比：</p>
 <ol>
 <li><strong>磁盘准备存储数据</strong>：类比为人盖房子。磁盘需要在计算机系统中准备好，才能进行数据存储。</li>
@@ -539,7 +541,7 @@
 </tr>
 </tbody>
 </table>
-<p>![Difference between MBR and GPTMustBeGeek](./Linux 磁盘管理/Difference-between-MBR-and-GPT.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/Difference-between-MBR-and-GPT.png" alt="Difference between MBR and GPTMustBeGeek"></p>
 <h3 id="MBR"><a class="header-anchor" href="#MBR">¶</a>MBR</h3>
 <p>MBR （master boot record - 主引导记录）支持最多 4 个主分区（3 个主分区+1 个扩展分区），最大支持 2 TB 的磁盘。</p>
 <p><img src="https://i-blog.csdnimg.cn/blog_migrate/d17d97002fe76459d24b269d44c4c9e8.png" alt="MBR、主引导扇区，主分区、扩展分区、逻辑分区，活动分区、引导分区、系统分区、启动分区_活动分区和引导分区-CSDN博客"></p>
@@ -556,7 +558,7 @@
 <li>16 个字节的分区信息保存有分区活动状态标志、文件系统标识、起止柱面号、磁头号、扇区号、起始扇区位置（4 个字节）、分区总扇区数目（4 个字节）等内容。这里最重要的是：分区的起始扇区位置与分区的总扇区数，都是用 4 个字节表示的。一般每个廓区的容量是 512 字节，4 个字节的扇区能表示的最大容量是 2 TB，由此可知，在 MBR 分区表中，分区的起始位置不能大于 2 TB，分区的最大容量，也不能大于 2 TB，所以，对 2 TB 以上容量的物理硬盘，不适合使用MBR分区方案。</li>
 </ol>
 <h3 id="GPT"><a class="header-anchor" href="#GPT">¶</a>GPT</h3>
-<p>![2.6. GUID 分区表| Red Hat Product Documentation](./Linux 磁盘管理/gpt-partition.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/gpt-partition.png" alt="2.6. GUID 分区表| Red Hat Product Documentation"></p>
 <p>GPT（GUID 分区表）可以给超过 2 TB 的硬盘使用，支持更多分区（最多 128 个），且没有大小限制。GPT 使用 64 位寻址方式，支持最大 9.4ZB（zettabytes）的硬盘空间，远超当前硬盘技术的需求。</p>
 <p><strong>新购电脑的主板类型</strong>：</p>
 <ul>
@@ -579,10 +581,10 @@
 <li>由于 GPT 格式支持更多的分区，它适合多重操作系统的安装或大型磁盘的管理。</li>
 </ul>
 <h3 id="fdisk-和-gdisk"><a class="header-anchor" href="#fdisk-和-gdisk">¶</a><code>fdisk</code> 和 <code>gdisk</code></h3>
-<p>![image-20250221115341740](./Linux 磁盘管理/image-20250221115341740.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221115341740.png" alt="image-20250221115341740"></p>
 <p><code>fdisk</code> 是管理 MBR 分区表的命令行工具，常用来创建、删除和修改分区。常见操作是：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建新分区</span></span><br><span class="line">fdisk /dev/sda  <span class="comment"># 对 /dev/sda 硬盘进行操作</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前分区</span></span><br><span class="line">fdisk -l  <span class="comment"># 列出所有磁盘和分区</span></span><br></pre></td></tr></table></figure>
-<p>![image-20250218233923991](./Linux 磁盘管理/image-20250218233923991.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250218233923991.png" alt="image-20250218233923991"></p>
 <p>我的系统显示是 <code>GPT</code> 类型，因此不支持 <code>fdisk</code> 分区，需要用到 <code>gdisk</code>。<code>gdisk</code> 是一个用于 GPT 分区表的工具，适用于支持 UEFI 启动的系统。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建新分区</span></span><br><span class="line">gdisk /dev/sda  <span class="comment"># 对 /dev/sda 硬盘进行 GPT 分区操作</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前分区</span></span><br><span class="line">gdisk -l /dev/sda  <span class="comment"># 列出 GPT 分区表</span></span><br></pre></td></tr></table></figure>
 <p>要将分区类型做修改，可以参考如下操作：</p>
@@ -707,7 +709,7 @@
 </tr>
 </tbody>
 </table>
-<p>![image-20250214114911032](./Linux 磁盘管理/image-20250214114911032.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250214114911032.png" alt="image-20250214114911032"></p>
 <p>总结来说：</p>
 <ul>
 <li>
@@ -868,9 +870,9 @@
 <li>容量大小：不同的文件系统对分区容量的支持以及文件数量及单个文件的容量支持有区别。例如以前的 Windows 机械硬盘使用 FAT32 文件系统，该文件系统不支持单个文件超过 4G。</li>
 </ul>
 <p>可以通过 <code>mkfs</code> 然后 TAB 查看当前支持什么操作系统（实际上这个是进行分区文件系统格式化的命令）：</p>
-<p>![image-20250221234934355](./Linux 磁盘管理/image-20250221234934355.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221234934355.png" alt="image-20250221234934355"></p>
 <p>以 <code>mkfs.xfs</code> 为例：</p>
-<p>![image-20250221235819691](./Linux 磁盘管理/image-20250221235819691.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250221235819691.png" alt="image-20250221235819691"></p>
 <h2 id="3-挂载目录到分区"><a class="header-anchor" href="#3-挂载目录到分区">¶</a>3. 挂载目录到分区</h2>
 <h4 id="什么是挂载（Mount）？"><a class="header-anchor" href="#什么是挂载（Mount）？">¶</a>什么是挂载（Mount）？</h4>
 <p>想象你的电脑是一个大房子，房子里有很多房间（文件夹），比如 <code>/home</code>（你的卧室）、<code>/etc</code>（工具箱）等。但房子里原本没有连接外部设备（比如U盘、硬盘、光盘）。<strong>挂载</strong>就像是在墙上开一扇门，把外部设备（比如U盘）连接到房子的某个房间（比如 <code>/mnt/usb</code>），这样你就能通过这个房间访问外部设备的内容。</p>
@@ -1156,7 +1158,7 @@
 <p>下面将详细介绍 inode、块（block）、硬链接、文件删除原理、软链接、硬链接。</p>
 <h2 id="1-inode-与文件系统"><a class="header-anchor" href="#1-inode-与文件系统">¶</a>1. inode 与文件系统</h2>
 <p><strong>inode（Index Node）</strong>：是 Unix/Linux 文件系统中用于存储文件元数据（metadata）的数据结构。它记录了文件的所有属性信息（如所有者、权限、时间戳、文件大小、数据块指针等），但不包含文件名。换句话说，Linux 的文件内容其实是包含了文件名和元数据两个部分的，元数据可以通过 <code>stat</code> 命令查看得到。一个新的磁盘在格式化文件系统后存在两个存储空间，一个叫做 <code>inode</code> 存储空间（存储元数据），一个叫做 <code>block</code> 存储空间（存储文件数据），创建文件系统之后 <code>inode</code> 和 <code>block</code> 的数量就会固定下来。Linux 读取文件内容是通过 <code>文件名 &gt; inode 编号 &gt; block 的顺序</code> 来读取的。</p>
-<p>![image-20250311223710806](./Linux 磁盘管理/image-20250311223710806.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311223710806.png" alt="image-20250311223710806"></p>
 <h3 id="文件与-inode-的关系"><a class="header-anchor" href="#文件与-inode-的关系">¶</a>文件与 inode 的关系</h3>
 <ul>
 <li><strong>文件数据与 inode</strong>：
@@ -1186,7 +1188,7 @@
 </ul>
 </li>
 </ul>
-<p>![image-20250311235850437](./Linux 磁盘管理/image-20250311235850437.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311235850437.png" alt="image-20250311235850437"></p>
 <h2 id="2-链接（Link）：硬链接与软链接"><a class="header-anchor" href="#2-链接（Link）：硬链接与软链接">¶</a>2. 链接（Link）：硬链接与软链接</h2>
 <h3 id="硬链接（Hard-Link）"><a class="header-anchor" href="#硬链接（Hard-Link）">¶</a>硬链接（Hard Link）</h3>
 <p>硬链接是多个目录项（文件名）指向同一个 inode。也就是说，同一个文件的多个名字都指向同一组数据和属性，其特点是：</p>
@@ -1204,7 +1206,7 @@
 <li>可以跨文件系统：软链接可以引用其他文件系统上的文件或目录。</li>
 <li>如果目标文件被删除，软链接就会变成“悬挂链接”（dangling link），即指向不存在的目标。</li>
 </ul>
-<p>![image-20250311234336552](./Linux 磁盘管理/image-20250311234336552.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311234336552.png" alt="image-20250311234336552"></p>
 <h2 id="3-目录的链接数"><a class="header-anchor" href="#3-目录的链接数">¶</a><strong>3. 目录的链接数</strong></h2>
 <p>在 Linux 中，<strong>目录的链接数</strong>（link count）表示有多少个硬链接指向该目录。可以通过 <code>ls -ld</code> 来查看：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -ld 目录名</span><br></pre></td></tr></table></figure>
@@ -1245,7 +1247,7 @@
 </li>
 <li>
 <p><strong>移动和删除文件对软硬链接的影响：</strong></p>
-<p>![image-20250311235231646](./Linux 磁盘管理/image-20250311235231646.png)</p>
+<p><img src="/Linux%20%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/image-20250311235231646.png" alt="image-20250311235231646"></p>
 </li>
 </ul>
 

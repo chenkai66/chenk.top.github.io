@@ -374,7 +374,7 @@ mjx-container[display="true"] + br {
         
 
         <div class="article-content markdown-body">
-            <p>伪逆（Pseudo-Inverse），也称为广义逆（Generalized Inverse），是线性代数中的一个重要工具，尤其是在处理不可逆或非方阵时。与标准的逆矩阵不同，伪逆可以扩展矩阵求逆的概念，适用于更广泛的矩阵类型。这在机器学习、优化以及控制理论等多个领域中都有广泛应用。本文将详细探讨伪逆的定义、推导过程及其应用，并提供数学证明。</p>
+            <p>在真实数据里，矩阵往往既不方、也不满秩：特征相关、样本不足、噪声导致的病态都会让“求逆”这件事变得不稳定甚至不存在。伪逆（Moore–Penrose inverse）可以把“逆”的直觉保留下来：它不追求完美解，而是把线性方程组的解定义成一个最合理的最小二乘解（并在多解时选最小范数那一个），因此在回归、控制、信号处理里非常常见。本文会从最小二乘视角给出伪逆的定义与四个 Penrose 条件，再用 SVD 把它的计算与低秩近似联系起来，解释为什么截断奇异值能让解更稳、什么时候需要正则化，以及这些结论在机器学习里怎么落地使用。</p>
 <span id="more"></span>
 <h1>什么是伪逆？</h1>
 <p>对于给定的矩阵 <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="1.697ex" height="1.62ex" role="img" focusable="false" viewbox="0 -716 750 716"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D434" d="M208 74Q208 50 254 46Q272 46 272 35Q272 34 270 22Q267 8 264 4T251 0Q249 0 239 0T205 1T141 2Q70 2 50 0H42Q35 7 35 11Q37 38 48 46H62Q132 49 164 96Q170 102 345 401T523 704Q530 716 547 716H555H572Q578 707 578 706L606 383Q634 60 636 57Q641 46 701 46Q726 46 726 36Q726 34 723 22Q720 7 718 4T704 0Q701 0 690 0T651 1T578 2Q484 2 455 0H443Q437 6 437 9T439 27Q443 40 445 43L449 46H469Q523 49 533 63L521 213H283L249 155Q208 86 208 74ZM516 260Q516 271 504 416T490 562L463 519Q447 492 400 412L310 260L413 259Q516 259 516 260Z"/></g></g></g></svg></mjx-container>，<strong>伪逆</strong>（记作 <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="3.129ex" height="1.754ex" role="img" focusable="false" viewbox="0 -775.2 1383.1 775.2"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msup"><g data-mml-node="mi"><path data-c="1D434" d="M208 74Q208 50 254 46Q272 46 272 35Q272 34 270 22Q267 8 264 4T251 0Q249 0 239 0T205 1T141 2Q70 2 50 0H42Q35 7 35 11Q37 38 48 46H62Q132 49 164 96Q170 102 345 401T523 704Q530 716 547 716H555H572Q578 707 578 706L606 383Q634 60 636 57Q641 46 701 46Q726 46 726 36Q726 34 723 22Q720 7 718 4T704 0Q701 0 690 0T651 1T578 2Q484 2 455 0H443Q437 6 437 9T439 27Q443 40 445 43L449 46H469Q523 49 533 63L521 213H283L249 155Q208 86 208 74ZM516 260Q516 271 504 416T490 562L463 519Q447 492 400 412L310 260L413 259Q516 259 516 260Z"/></g><g data-mml-node="mo" transform="translate(783,363) scale(0.707)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"/></g></g></g></g></svg></mjx-container>）提供了一种解决线性方程组的方式，即使这些方程组没有唯一解或精确解。特别地，当 <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="1.697ex" height="1.62ex" role="img" focusable="false" viewbox="0 -716 750 716"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D434" d="M208 74Q208 50 254 46Q272 46 272 35Q272 34 270 22Q267 8 264 4T251 0Q249 0 239 0T205 1T141 2Q70 2 50 0H42Q35 7 35 11Q37 38 48 46H62Q132 49 164 96Q170 102 345 401T523 704Q530 716 547 716H555H572Q578 707 578 706L606 383Q634 60 636 57Q641 46 701 46Q726 46 726 36Q726 34 723 22Q720 7 718 4T704 0Q701 0 690 0T651 1T578 2Q484 2 455 0H443Q437 6 437 9T439 27Q443 40 445 43L449 46H469Q523 49 533 63L521 213H283L249 155Q208 86 208 74ZM516 260Q516 271 504 416T490 562L463 519Q447 492 400 412L310 260L413 259Q516 259 516 260Z"/></g></g></g></svg></mjx-container> 不可逆或不是方阵时，我们可以通过定义 <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: 0;" xmlns="http://www.w3.org/2000/svg" width="3.129ex" height="1.754ex" role="img" focusable="false" viewbox="0 -775.2 1383.1 775.2"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msup"><g data-mml-node="mi"><path data-c="1D434" d="M208 74Q208 50 254 46Q272 46 272 35Q272 34 270 22Q267 8 264 4T251 0Q249 0 239 0T205 1T141 2Q70 2 50 0H42Q35 7 35 11Q37 38 48 46H62Q132 49 164 96Q170 102 345 401T523 704Q530 716 547 716H555H572Q578 707 578 706L606 383Q634 60 636 57Q641 46 701 46Q726 46 726 36Q726 34 723 22Q720 7 718 4T704 0Q701 0 690 0T651 1T578 2Q484 2 455 0H443Q437 6 437 9T439 27Q443 40 445 43L449 46H469Q523 49 533 63L521 213H283L249 155Q208 86 208 74ZM516 260Q516 271 504 416T490 562L463 519Q447 492 400 412L310 260L413 259Q516 259 516 260Z"/></g><g data-mml-node="mo" transform="translate(783,363) scale(0.707)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"/></g></g></g></g></svg></mjx-container> 来最小化误差的平方和。</p>
@@ -556,13 +556,13 @@ $$</p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/Solving%20Constrained%20Mean-Variance%20Portfolio%20Optimization%20Problems%20Using%20Spiral%20Optimization%20Algorithm/"
+                           href="/%E8%BF%91%E7%AB%AF%E7%AE%97%E5%AD%90/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Solving Constrained Mean-Variance Portfolio Optimization Problems Using Spiral Optimization Algorithm</span>
+                                <span class="post-nav-title-item">近端算子</span>
                                 <span class="post-nav-item">上一篇</span>
                             </span>
                         </a>
@@ -572,10 +572,10 @@ $$</p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/%E8%BF%91%E7%AB%AF%E7%AE%97%E5%AD%90/"
+                           href="/LeetCode%EF%BC%88%E4%B8%80%EF%BC%89%E2%80%94%E2%80%94%20%E5%93%88%E5%B8%8C%E8%A1%A8/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">近端算子</span>
+                                <span class="post-nav-title-item">LeetCode（一）—— 哈希表</span>
                                 <span class="post-nav-item">下一篇</span>
                             </span>
                             <span class="right arrow-icon flex-center">
