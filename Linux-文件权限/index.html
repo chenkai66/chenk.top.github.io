@@ -260,107 +260,94 @@
         
 
         <div class="article-content markdown-body">
-            <p>文件权限是 Linux
-运维里最“基础但最容易踩坑”的部分：一边是权限不足导致服务起不来、脚本跑不动；另一边是权限给大了带来安全风险。要把它用对，你需要的不只是记住
-<code>chmod 755</code>，而是理解<strong>权限位在文件与目录上的差异</strong>、属主/属组/其他人的边界、以及
-<code>umask</code>、SUID/SGID、Sticky Bit
-这些机制为什么会存在。本篇会从最小概念集出发，系统讲清
-<code>rwx</code>、数字/符号写法、<code>chmod/chown</code>
-的典型用法与排错思路，并用常见场景（共享目录、可执行脚本、临时目录、安全加固）解释“该怎么给、给到什么程度”，让你能把权限问题一次性定位并修正确。</p>
+            <p>文件权限是 Linux 运维里最“基础但最容易踩坑”的部分：一边是权限不足导致服务起不来、脚本跑不动；另一边是权限给大了带来安全风险。要把它用对，你需要的不只是记住 <code>chmod 755</code>，而是理解<strong>权限位在文件与目录上的差异</strong>、属主/属组/其他人的边界、以及 <code>umask</code>、SUID/SGID、Sticky Bit 这些机制为什么会存在。本篇会从最小概念集出发，系统讲清 <code>rwx</code>、数字/符号写法、<code>chmod/chown</code> 的典型用法与排错思路，并用常见场景（共享目录、可执行脚本、临时目录、安全加固）解释“该怎么给、给到什么程度”，让你能把权限问题一次性定位并修正确。</p>
 <span id="more"></span>
-<h1 id="一linux-文件权限概述">一、Linux 文件权限概述</h1>
-<h2 id="文件属主与属组">文件属主与属组</h2>
+<h1>一、Linux 文件权限概述</h1>
+<h2 id="文件属主与属组"><a class="header-anchor" href="#文件属主与属组">¶</a>文件属主与属组</h2>
 <ul>
-<li><strong>属主（Owner,
-u）</strong>：创建或被指定为文件/目录拥有者的用户。</li>
-<li><strong>属组（Group,
-g）</strong>：多个用户可以同属一个组，在组内具有共享/协同权限。</li>
-<li><strong>其他用户（Others,
-o）</strong>：不属于该文件属主或属组的所有人。</li>
+<li><strong>属主（Owner, u）</strong>：创建或被指定为文件/目录拥有者的用户。</li>
+<li><strong>属组（Group, g）</strong>：多个用户可以同属一个组，在组内具有共享/协同权限。</li>
+<li><strong>其他用户（Others, o）</strong>：不属于该文件属主或属组的所有人。</li>
 </ul>
-<h2 id="基础权限位">基础权限位</h2>
+<h2 id="基础权限位"><a class="header-anchor" href="#基础权限位">¶</a>基础权限位</h2>
 <ul>
 <li><code>r</code>（读）：对文件可读取内容；对目录可列出文件名。</li>
 <li><code>w</code>（写）：对文件可修改内容；对目录可创建、删除、重命名文件。</li>
-<li><code>x</code>（执行）：对文件可执行程序；对目录可 <code>cd</code>
-进入、访问子文件。</li>
+<li><code>x</code>（执行）：对文件可执行程序；对目录可 <code>cd</code> 进入、访问子文件。</li>
 </ul>
-<p>示例权限串：<code>rwxr-xr-x</code> 表示： - 属主拥有
-<code>rwx</code>（4+2+1=7）<br>
-- 属组拥有 <code>r-x</code>（4+0+1=5）<br>
-- 其他拥有 <code>r-x</code>（4+0+1=5）</p>
+<p>示例权限串：<code>rwxr-xr-x</code> 表示：</p>
+<ul>
+<li>属主拥有 <code>rwx</code>（4+2+1=7）</li>
+<li>属组拥有 <code>r-x</code>（4+0+1=5）</li>
+<li>其他拥有 <code>r-x</code>（4+0+1=5）</li>
+</ul>
 <hr>
-<h1 id="二常规权限命令">二、常规权限命令</h1>
-<h2 id="chmod-与数字符号表示法">1.<code>chmod</code>
-与数字/符号表示法</h2>
-<h3 id="数字表示">数字表示</h3>
+<h1>二、常规权限命令</h1>
+<h2 id="1-chmod-与数字-符号表示法"><a class="header-anchor" href="#1-chmod-与数字-符号表示法">¶</a>1.<code>chmod</code> 与数字/符号表示法</h2>
+<h3 id="数字表示"><a class="header-anchor" href="#数字表示">¶</a>数字表示</h3>
 <table>
 <thead>
 <tr>
-<th style="text-align: left;">权限位</th>
-<th style="text-align: center;">数字</th>
+<th style="text-align:left">权限位</th>
+<th style="text-align:center">数字</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: left;">r (读)</td>
-<td style="text-align: center;">4</td>
+<td style="text-align:left">r (读)</td>
+<td style="text-align:center">4</td>
 </tr>
 <tr>
-<td style="text-align: left;">w (写)</td>
-<td style="text-align: center;">2</td>
+<td style="text-align:left">w (写)</td>
+<td style="text-align:center">2</td>
 </tr>
 <tr>
-<td style="text-align: left;">x (执行)</td>
-<td style="text-align: center;">1</td>
+<td style="text-align:left">x (执行)</td>
+<td style="text-align:center">1</td>
 </tr>
 </tbody>
 </table>
-<p>三种权限相加构成属主、属组、其他三组数，如 <code>754</code> 表示
-<code>rwx</code> / <code>r-x</code> / <code>r--</code>：</p>
+<p>三种权限相加构成属主、属组、其他三组数，如 <code>754</code> 表示 <code>rwx</code> / <code>r-x</code> / <code>r--</code>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 754 file.sh</span><br></pre></td></tr></table></figure>
 <p>代表让文件对于属主可读写执行，对于属组和其他仅读和执行。</p>
-<figure>
-<img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-37.png" alt="Demystifying SUID and SGID bits">
-<figcaption aria-hidden="true">Demystifying SUID and SGID
-bits</figcaption>
-</figure>
-<h3 id="符号表示">符号表示</h3>
+<p><img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-37.png" alt="Demystifying SUID and SGID bits"></p>
+<h3 id="符号表示"><a class="header-anchor" href="#符号表示">¶</a>符号表示</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+w file.txt</span><br><span class="line"><span class="built_in">chmod</span> g-x somefile</span><br><span class="line"><span class="built_in">chmod</span> a+r notes.md</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>u/g/o/a</code>：针对属主/属组/其他/所有。</li>
 <li><code>+ - =</code>：添加、去除、直接赋值权限。</li>
 </ul>
-<h2 id="chown-与所有权变更">2.<code>chown</code> 与所有权变更</h2>
+<h2 id="2-chown-与所有权变更"><a class="header-anchor" href="#2-chown-与所有权变更">¶</a>2.<code>chown</code> 与所有权变更</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chown</span> newowner file</span><br><span class="line"><span class="built_in">chown</span> newowner.newgroup file</span><br><span class="line"><span class="built_in">chown</span> .newgroup file</span><br></pre></td></tr></table></figure>
 <ul>
 <li>只有 <code>root</code> 或具有特权的用户可执行。</li>
-<li><code>chown</code> 能一次改属主和属组（用 “.” 或 “:”
-分割），也可只改属组。</li>
+<li><code>chown</code> 能一次改属主和属组（用 “.” 或 “:” 分割），也可只改属组。</li>
 </ul>
-<h2 id="目录权限与区别">3.目录权限与区别</h2>
-<p>对<strong>目录</strong>而言： - <code>r</code>：可用 <code>ls</code>
-查看目录内容。 - <code>w</code>：可在目录内新增/删除/改名文件。 -
-<code>x</code>：可 <code>cd</code> 进去或访问该目录里的内容。</p>
-<h2 id="umask">4. <code>umask</code></h2>
-<p><code>umask</code> 是 Linux 和 Unix
-系统中的一个命令，用于设置文件或目录的默认权限屏蔽值（<strong>User File
-Creation Mask</strong>）。它决定了新创建的文件或目录的默认权限。</p>
-<figure>
-<img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/Users_Groups-Umask_Example.png" alt="Umask">
-<figcaption aria-hidden="true">Umask</figcaption>
-</figure>
+<h2 id="3-目录权限与区别"><a class="header-anchor" href="#3-目录权限与区别">¶</a>3.目录权限与区别</h2>
+<p>对<strong>目录</strong>而言：</p>
+<ul>
+<li><code>r</code>：可用 <code>ls</code> 查看目录内容。</li>
+<li><code>w</code>：可在目录内新增/删除/改名文件。</li>
+<li><code>x</code>：可 <code>cd</code> 进去或访问该目录里的内容。</li>
+</ul>
+<h2 id="4-umask"><a class="header-anchor" href="#4-umask">¶</a>4. <code>umask</code></h2>
+<p><code>umask</code> 是 Linux 和 Unix 系统中的一个命令，用于设置文件或目录的默认权限屏蔽值（<strong>User File Creation Mask</strong>）。它决定了新创建的文件或目录的默认权限。</p>
+<p><img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/Users_Groups-Umask_Example.png" alt="Umask"></p>
 <p><strong>如何计算权限</strong>？</p>
-<ol type="1">
-<li><strong>默认权限</strong>：
-<ol type="1">
+<ol>
+<li>
+<p><strong>默认权限</strong>：</p>
+<ol>
 <li>文件默认权限：666（rw-rw-rw-，不包括执行权限）</li>
 <li>目录默认权限：777（rwxrwxrwx，读、写、执行权限）</li>
-</ol></li>
-<li><strong>实际权限</strong>：
-<ol type="1">
+</ol>
+</li>
+<li>
+<p><strong>实际权限</strong>：</p>
+<ol>
 <li>实际权限 = 默认权限 - umask 值</li>
-</ol></li>
+</ol>
+</li>
 </ol>
 <p>例如：umask 为 022，文件默认权限为 666，实际权限为：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">666 - 022 = 644 （rw-r--r--）</span><br></pre></td></tr></table></figure>
@@ -370,29 +357,20 @@ Creation Mask</strong>）。它决定了新创建的文件或目录的默认权�
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span></span><br></pre></td></tr></table></figure>
 <p><strong>设置新的</strong> umask <strong>值</strong>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span> 027</span><br></pre></td></tr></table></figure>
-<p>这里设置屏蔽值为 027，新创建的文件将具有权限 640，目录权限为
-750。</p>
+<p>这里设置屏蔽值为 027，新创建的文件将具有权限 640，目录权限为 750。</p>
 <p><strong>永久设置</strong> umask</p>
 <p>编辑 Shell 配置文件（如 ~/.bashrc 或 ~/.zshrc），添加以下内容：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span> 027</span><br></pre></td></tr></table></figure>
 <p><strong>常见 umask 值</strong></p>
 <ul>
-<li>022：文件权限 644，目录权限
-755（常用，保护文件不被其他用户修改）。</li>
-<li>027：文件权限 640，目录权限
-750（更严格，仅允许同组用户访问，常用于<strong>生产环境</strong>）。</li>
-<li>002：文件权限 664，目录权限
-775（适合共享环境，允许同组用户修改，常用于<strong>开发环境</strong>）。</li>
+<li>022：文件权限 644，目录权限 755（常用，保护文件不被其他用户修改）。</li>
+<li>027：文件权限 640，目录权限 750（更严格，仅允许同组用户访问，常用于<strong>生产环境</strong>）。</li>
+<li>002：文件权限 664，目录权限 775（适合共享环境，允许同组用户修改，常用于<strong>开发环境</strong>）。</li>
 </ul>
-<h2 id="修改文件特殊属性-chattr">5. 修改文件特殊属性
-<code>chattr</code></h2>
-<p>chattr 是 Linux
-系统中的一个命令，用于更改文件或目录的属性（<strong>change
-attributes</strong>）。通过 chattr
-设置的属性可以控制文件的某些行为，比如防止文件被删除或修改。可以通过
-<code>lsattr</code> 查看到对应属性。</p>
+<h2 id="5-修改文件特殊属性-chattr"><a class="header-anchor" href="#5-修改文件特殊属性-chattr">¶</a>5. 修改文件特殊属性 <code>chattr</code></h2>
+<p>chattr 是 Linux 系统中的一个命令，用于更改文件或目录的属性（<strong>change attributes</strong>）。通过 chattr 设置的属性可以控制文件的某些行为，比如防止文件被删除或修改。可以通过 <code>lsattr</code> 查看到对应属性。</p>
 <p><strong>常见用途</strong></p>
-<ol type="1">
+<ol>
 <li><strong>保护文件不被修改或删除</strong>。</li>
 <li><strong>加速日志文件的追加写入</strong>。</li>
 <li><strong>防止文件被意外覆盖或重命名</strong>。</li>
@@ -403,218 +381,194 @@ attributes</strong>）。通过 chattr
 <table>
 <thead>
 <tr>
-<th style="text-align: left;"><strong>属性</strong>
-<strong>作用</strong></th>
+<th style="text-align:left"><strong>属性</strong>	<strong>作用</strong></th>
 <th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: left;">a 仅允许追加写入（append-only）。</td>
+<td style="text-align:left">a	仅允许追加写入（append-only）。</td>
 <td></td>
 </tr>
 <tr>
-<td style="text-align: left;">i 不允许修改或删除（immutable）。</td>
+<td style="text-align:left">i	不允许修改或删除（immutable）。</td>
 <td></td>
 </tr>
 <tr>
-<td style="text-align: left;">d 在使用 dump
-备份时，忽略该文件或目录。</td>
+<td style="text-align:left">d	在使用 dump 备份时，忽略该文件或目录。</td>
 <td></td>
 </tr>
 <tr>
-<td style="text-align: left;">e
-文件使用扩展格式存储（extents），默认值。</td>
+<td style="text-align:left">e	文件使用扩展格式存储（extents），默认值。</td>
 <td></td>
 </tr>
 <tr>
-<td style="text-align: left;">s 文件被删除时，用 0
-填充文件数据（安全删除）。</td>
+<td style="text-align:left">s	文件被删除时，用 0 填充文件数据（安全删除）。</td>
 <td></td>
 </tr>
 <tr>
-<td style="text-align: left;">u
-文件被删除时，内容会被保存，可以稍后恢复（undelete）。</td>
+<td style="text-align:left">u	文件被删除时，内容会被保存，可以稍后恢复（undelete）。</td>
 <td></td>
 </tr>
 </tbody>
 </table>
 <p><strong>示例</strong></p>
-<ol type="1">
-<li><p><strong>防止文件被删除或修改</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +i example.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 防止 /etc/fstab 或 /etc/passwd 等重要系统文件被误修改：</span></span><br><span class="line">sudo chattr +i /etc/fstab</span><br></pre></td></tr></table></figure></li>
-<li><p><strong>日志文件只允许追加写入</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +a logfile.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 防止日志文件被覆盖或意外清空：</span></span><br><span class="line">sudo chattr +a /var/log/syslog</span><br></pre></td></tr></table></figure></li>
-<li><p><strong>备份时忽略某个目录</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +d myfolder</span><br></pre></td></tr></table></figure></li>
+<ol>
+<li>
+<p><strong>防止文件被删除或修改</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +i example.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 防止 /etc/fstab 或 /etc/passwd 等重要系统文件被误修改：</span></span><br><span class="line">sudo chattr +i /etc/fstab</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>日志文件只允许追加写入</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +a logfile.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 防止日志文件被覆盖或意外清空：</span></span><br><span class="line">sudo chattr +a /var/log/syslog</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>备份时忽略某个目录</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +d myfolder</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
 <p><strong>注意事项</strong></p>
-<ol type="1">
+<ol>
 <li><strong>权限要求</strong>：需要超级用户权限（sudo）才能更改大多数文件的属性。</li>
-<li><strong>支持的文件系统</strong>：chattr 主要适用于 ext2/ext3/ext4
-文件系统，其他文件系统可能不支持某些属性。</li>
-<li><strong>谨慎使用</strong>：设置 +i
-属性后，无法删除或修改文件，只有超级用户能解除限制。</li>
+<li><strong>支持的文件系统</strong>：chattr 主要适用于 ext2/ext3/ext4 文件系统，其他文件系统可能不支持某些属性。</li>
+<li><strong>谨慎使用</strong>：设置 +i 属性后，无法删除或修改文件，只有超级用户能解除限制。</li>
 </ol>
-<h2 id="lsattr-查看特殊权限">6. <code>lsattr</code> 查看特殊权限</h2>
+<h2 id="6-lsattr-查看特殊权限"><a class="header-anchor" href="#6-lsattr-查看特殊权限">¶</a>6. <code>lsattr</code> 查看特殊权限</h2>
 <table>
 <thead>
 <tr>
-<th><strong>选项</strong> <strong>作用</strong></th>
+<th><strong>选项</strong>	<strong>作用</strong></th>
 <th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>-a 显示包括隐藏文件（以 . 开头的文件）的所有文件属性。</td>
+<td>-a	显示包括隐藏文件（以 . 开头的文件）的所有文件属性。</td>
 <td></td>
 </tr>
 <tr>
-<td>-d 显示目录本身的属性，而不是目录中的内容。</td>
+<td>-d	显示目录本身的属性，而不是目录中的内容。</td>
 <td></td>
 </tr>
 <tr>
-<td>-R 递归显示目录及其子目录中的文件属性。</td>
+<td>-R	递归显示目录及其子目录中的文件属性。</td>
 <td></td>
 </tr>
 <tr>
-<td>-v 显示文件的版本号（很少用）。</td>
+<td>-v	显示文件的版本号（很少用）。</td>
 <td></td>
 </tr>
 </tbody>
 </table>
-<p><code>lsattr</code> 输出中，每个文件或目录的属性由 10
-个字符表示，常见的格式如下：</p>
-<figure>
-<img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250127005208300.png" alt="image-20250127005208300">
-<figcaption aria-hidden="true">image-20250127005208300</figcaption>
-</figure>
-<h1 id="三进阶特殊权限suid-sgid-sticky-位">三、进阶：特殊权限（SUID /
-SGID / Sticky 位）</h1>
-<p>特殊权限可赋予可执行文件或目录，使它们具有超出常规 rwx
-的特殊行为。本节重点分析 <strong>SUID、SGID、Sticky</strong> 三种。</p>
-<figure>
-<img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/FcTez6NWQAYxkr7.jpeg" alt="Linux File Permissions are not only about R+W+X, it&#39;s also about SUID, SGID, and sticky bit">
-<figcaption aria-hidden="true">Linux File Permissions are not only about
-R+W+X, it's also about SUID, SGID, and sticky bit</figcaption>
-</figure>
-<h2 id="suidset-user-id">1.SUID（Set User ID）</h2>
-<h3 id="原理">1.1 原理</h3>
-<p>当一个可执行文件被赋予 SUID
-权限后，普通用户执行该文件时，会以<strong>该文件的属主身份</strong>运行程序，而不仅仅是调用者自身的身份。常见示例是
-<code>/usr/bin/passwd</code>，它的属主为 <code>root</code>，且 SUID
-生效，让任何用户都能安全地更改自己密码（进而写入
-<code>/etc/shadow</code>）。</p>
-<figure>
-<img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250126231517290.png" alt="image-20250126231517290">
-<figcaption aria-hidden="true">image-20250126231517290</figcaption>
-</figure>
-<p><strong>Why</strong>：SUID
-让特定程序能突破调用者权限执行关键操作，但仅限程序内部实现，非给用户全局
-root 权限。</p>
-<h3 id="查看与设置">1.2 查看与设置</h3>
-<p><code>ls -l</code> 中，如果可执行文件设置了
-SUID，则属主的执行权限位会显示 <code>s</code> 而非
-<code>x</code>。例如：<code>-rwsr-xr-x</code>。</p>
+<p><code>lsattr</code> 输出中，每个文件或目录的属性由 10 个字符表示，常见的格式如下：</p>
+<p><img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250127005208300.png" alt="image-20250127005208300"></p>
+<h1>三、进阶：特殊权限（SUID / SGID / Sticky 位）</h1>
+<p>特殊权限可赋予可执行文件或目录，使它们具有超出常规 rwx 的特殊行为。本节重点分析 <strong>SUID、SGID、Sticky</strong> 三种。</p>
+<p><img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/FcTez6NWQAYxkr7.jpeg" alt="Linux File Permissions are not only about R+W+X, it's  also about SUID, SGID, and sticky bit"></p>
+<h2 id="1-SUID（Set-User-ID）"><a class="header-anchor" href="#1-SUID（Set-User-ID）">¶</a>1.SUID（Set User ID）</h2>
+<h3 id="1-1-原理"><a class="header-anchor" href="#1-1-原理">¶</a>1.1 原理</h3>
+<p>当一个可执行文件被赋予 SUID 权限后，普通用户执行该文件时，会以<strong>该文件的属主身份</strong>运行程序，而不仅仅是调用者自身的身份。常见示例是 <code>/usr/bin/passwd</code>，它的属主为 <code>root</code>，且 SUID 生效，让任何用户都能安全地更改自己密码（进而写入 <code>/etc/shadow</code>）。</p>
+<p><img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250126231517290.png" alt="image-20250126231517290"></p>
+<p><strong>Why</strong>：SUID 让特定程序能突破调用者权限执行关键操作，但仅限程序内部实现，非给用户全局 root 权限。</p>
+<h3 id="1-2-查看与设置"><a class="header-anchor" href="#1-2-查看与设置">¶</a>1.2 查看与设置</h3>
+<p><code>ls -l</code> 中，如果可执行文件设置了 SUID，则属主的执行权限位会显示 <code>s</code> 而非 <code>x</code>。例如：<code>-rwsr-xr-x</code>。</p>
 <ul>
-<li><p><strong>设置 SUID</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+s myprog</span><br></pre></td></tr></table></figure></li>
-<li><p><strong>去除 SUID</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u-s myprog</span><br></pre></td></tr></table></figure></li>
-<li><p><strong>数字方式</strong>：在原有权限基础上加 <code>4</code>
-至属主位，比如 <code>chmod 4755 file</code> 表示
-<code>rwsr-xr-x</code>。</p></li>
+<li>
+<p><strong>设置 SUID</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+s myprog</span><br></pre></td></tr></table></figure>
+</li>
 </ul>
-<h3 id="测试示例">1.3 测试示例</h3>
+<ul>
+<li>
+<p><strong>去除 SUID</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u-s myprog</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>数字方式</strong>：在原有权限基础上加 <code>4</code> 至属主位，比如 <code>chmod 4755 file</code> 表示 <code>rwsr-xr-x</code>。</p>
+</li>
+</ul>
+<h3 id="1-3-测试示例"><a class="header-anchor" href="#1-3-测试示例">¶</a>1.3 测试示例</h3>
 <p>先编写一个简易 C 程序 <code>myprog.c</code></p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Real UID=%d, Effective UID=%d\n&quot;</span>, getuid(), geteuid());</span><br><span class="line">  system(<span class="string">&quot;id&quot;</span>);</span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<ol type="1">
-<li><p>编译生成 myprog：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -o myprog myprog.c</span><br></pre></td></tr></table></figure></li>
-<li><p>将属主设为 root 且加 SUID：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> root myprog</span><br><span class="line">sudo <span class="built_in">chmod</span> 4755 myprog</span><br></pre></td></tr></table></figure></li>
-<li><p>普通用户执行：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./myprog</span><br></pre></td></tr></table></figure></li>
+<ol>
+<li>
+<p>编译生成 myprog：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -o myprog myprog.c</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>将属主设为 root 且加 SUID：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> root myprog</span><br><span class="line">sudo <span class="built_in">chmod</span> 4755 myprog</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>普通用户执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./myprog</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
-<p>打印出 <code>Real UID</code> 为当前普通用户，但
-<code>Effective UID</code> 显示 <code>0</code>（root），从而以 root
-权限执行 <code>system("id")</code>。</p>
-<figure>
-<img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250126231949945.png" alt="image-20250126231949945">
-<figcaption aria-hidden="true">image-20250126231949945</figcaption>
-</figure>
-<h3 id="安全注意事项">1.4 安全注意事项</h3>
+<p>打印出 <code>Real UID</code> 为当前普通用户，但 <code>Effective UID</code> 显示 <code>0</code>（root），从而以 root 权限执行 <code>system(&quot;id&quot;)</code>。</p>
+<p><img src="/Linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/image-20250126231949945.png" alt="image-20250126231949945"></p>
+<h3 id="1-4-安全注意事项"><a class="header-anchor" href="#1-4-安全注意事项">¶</a>1.4 安全注意事项</h3>
 <ul>
 <li>SUID 程序一旦出现漏洞，可能被恶意利用获取更高权限。</li>
 <li>避免对不可信或不必要的程序设置 SUID。</li>
-<li>检查并最小化系统 SUID
-程序列表（<code>find / -perm -4000</code>）以降低安全风险。</li>
+<li>检查并最小化系统 SUID 程序列表（<code>find / -perm -4000</code>）以降低安全风险。</li>
 </ul>
-<h2 id="sgidset-group-id">2.SGID（Set Group ID）</h2>
-<h3 id="sgid-应用场景">2.1 SGID 应用场景</h3>
-<ol type="1">
-<li><strong>可执行文件</strong>：进程运行时，其有效组 ID
-替换为文件的属组。常见于一些特殊组可访问的工具。<br>
-</li>
-<li><strong>目录</strong>：更常用场景：当目录设置
-SGID，则在此目录中新建的文件或子目录会继承该目录的组，而非创建者的默认组，从而便于同一项目组成员共享文件，类似于共享文件夹的概念。下面创建的文件夹也会有对应的
-<code>s</code> 权限，实现了递归的效果。</li>
+<h2 id="2-SGID（Set-Group-ID）"><a class="header-anchor" href="#2-SGID（Set-Group-ID）">¶</a>2.SGID（Set Group ID）</h2>
+<h3 id="2-1-SGID-应用场景"><a class="header-anchor" href="#2-1-SGID-应用场景">¶</a>2.1 SGID 应用场景</h3>
+<ol>
+<li><strong>可执行文件</strong>：进程运行时，其有效组 ID 替换为文件的属组。常见于一些特殊组可访问的工具。</li>
+<li><strong>目录</strong>：更常用场景：当目录设置 SGID，则在此目录中新建的文件或子目录会继承该目录的组，而非创建者的默认组，从而便于同一项目组成员共享文件，类似于共享文件夹的概念。下面创建的文件夹也会有对应的 <code>s</code> 权限，实现了递归的效果。</li>
 </ol>
-<h3 id="设置-sgid">2.2 设置 SGID</h3>
+<h3 id="2-2-设置-SGID"><a class="header-anchor" href="#2-2-设置-SGID">¶</a>2.2 设置 SGID</h3>
 <ul>
-<li>查看：若 sgid 在文件/目录属组执行位，则显示 <code>s</code>，如
-<code>rwxr-sr-x</code>。</li>
-<li>设置： <code>chmod g+s shared_dir</code> 或数字方式加
-<code>2</code>，如 <code>chmod 2775 shared_dir</code>。</li>
+<li>查看：若 sgid 在文件/目录属组执行位，则显示 <code>s</code>，如 <code>rwxr-sr-x</code>。</li>
+<li>设置：  <code>chmod g+s shared_dir</code> 或数字方式加 <code>2</code>，如 <code>chmod 2775 shared_dir</code>。</li>
 </ul>
-<h3 id="案例共享项目组目录">2.3 案例：共享项目组目录</h3>
-<p>假如有 <code>/home/project/</code>
-目录，需要多个组员共同读写且希望新建文件继承组 <code>dev</code>：</p>
-<ol type="1">
-<li><p>建目录并属组设为 <code>dev</code>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> /home/project</span><br><span class="line"><span class="built_in">chown</span> :dev /home/project</span><br></pre></td></tr></table></figure></li>
-<li><p>设 SGID：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> g+s /home/project</span><br></pre></td></tr></table></figure></li>
+<h3 id="2-3-案例：共享项目组目录"><a class="header-anchor" href="#2-3-案例：共享项目组目录">¶</a>2.3 案例：共享项目组目录</h3>
+<p>假如有 <code>/home/project/</code> 目录，需要多个组员共同读写且希望新建文件继承组 <code>dev</code>：</p>
+<ol>
+<li>
+<p>建目录并属组设为 <code>dev</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> /home/project</span><br><span class="line"><span class="built_in">chown</span> :dev /home/project</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>设 SGID：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> g+s /home/project</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
-<p>令各用户都在 <code>dev</code> 组内，这样任何人创建的文件都默认属组为
-<code>dev</code>，便于组内共享。</p>
-<h2 id="sticky-位粘滞位">3.Sticky 位（粘滞位）</h2>
-<h3 id="作用与机理">3.1 作用与机理</h3>
-<p>Sticky 位最常见于多用户可写的公共目录，如
-<code>/tmp</code>。当目录设置 Sticky 位后，该目录中文件只能被其属主或
-root
-删除或改名，即使其他人对该目录也有写权限，因此作用简单来说就是避免恶意用户删除他人的文件。</p>
-<h3 id="设置方法">3.2 设置方法</h3>
+<p>令各用户都在 <code>dev</code> 组内，这样任何人创建的文件都默认属组为 <code>dev</code>，便于组内共享。</p>
+<h2 id="3-Sticky-位（粘滞位）"><a class="header-anchor" href="#3-Sticky-位（粘滞位）">¶</a>3.Sticky 位（粘滞位）</h2>
+<h3 id="3-1-作用与机理"><a class="header-anchor" href="#3-1-作用与机理">¶</a>3.1 作用与机理</h3>
+<p>Sticky 位最常见于多用户可写的公共目录，如 <code>/tmp</code>。当目录设置 Sticky 位后，该目录中文件只能被其属主或 root 删除或改名，即使其他人对该目录也有写权限，因此作用简单来说就是避免恶意用户删除他人的文件。</p>
+<h3 id="3-2-设置方法"><a class="header-anchor" href="#3-2-设置方法">¶</a>3.2 设置方法</h3>
 <ul>
 <li><code>chmod o+t dirname</code></li>
-<li>数字方式加 <code>1</code>：如 <code>chmod 1777 /tmp</code> 表示
-<code>rwxrwxrwt</code>。</li>
+<li>数字方式加 <code>1</code>：如 <code>chmod 1777 /tmp</code> 表示 <code>rwxrwxrwt</code>。</li>
 </ul>
-<h3 id="tmp-目录示例">3.3 <code>/tmp</code> 目录示例</h3>
-<p><code>ls -ld /tmp</code> 常见显示： <code>drwxrwxrwt</code><br>
-- 说明 <code>/tmp</code> 对所有用户开放读写，但最后一个 <code>t</code>
-使得只有文件属主能删除自己的文件。</p>
+<h3 id="3-3-tmp-目录示例"><a class="header-anchor" href="#3-3-tmp-目录示例">¶</a>3.3 <code>/tmp</code> 目录示例</h3>
+<p><code>ls -ld /tmp</code> 常见显示： <code>drwxrwxrwt</code></p>
+<ul>
+<li>说明 <code>/tmp</code> 对所有用户开放读写，但最后一个 <code>t</code> 使得只有文件属主能删除自己的文件。</li>
+</ul>
 <hr>
-<h1 id="四应用与案例整合">四、应用与案例整合</h1>
-<h2 id="合并特殊权限数字">1.合并特殊权限数字</h2>
-<p>若一个脚本需要 SUID + rwx (755) 则：<br>
-- SUID = 4<br>
-- rwx for owner, r-x for group/others = 755<br>
-- 合并 → 4755</p>
+<h1>四、应用与案例整合</h1>
+<h2 id="1-合并特殊权限数字"><a class="header-anchor" href="#1-合并特殊权限数字">¶</a>1.合并特殊权限数字</h2>
+<p>若一个脚本需要 SUID + rwx (755) 则：</p>
+<ul>
+<li>SUID = 4</li>
+<li>rwx for owner, r-x for group/others = 755</li>
+<li>合并 → 4755</li>
+</ul>
 <p>同理，如果某目录要 SGID + rwxrwsr-x = 2775:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 2775 some_dir</span><br></pre></td></tr></table></figure>
-<h2 id="检查系统中的-suid-程序">2.检查系统中的 SUID 程序</h2>
+<h2 id="2-检查系统中的-SUID-程序"><a class="header-anchor" href="#2-检查系统中的-SUID-程序">¶</a>2.检查系统中的 SUID 程序</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -4000 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
 <ul>
 <li>定期审计可避免被不必要的 SUID 程序带来安全隐患。</li>
 </ul>
-<h2 id="安全小结">3.安全小结</h2>
+<h2 id="3-安全小结"><a class="header-anchor" href="#3-安全小结">¶</a>3.安全小结</h2>
 <ul>
-<li>SUID：常见于 <code>passwd</code>, <code>sudo</code>,
-<code>mount</code>, <code>umount</code> 等关键程序，需谨慎管理。<br>
-</li>
-<li>SGID：适用于共享目录。<br>
-</li>
+<li>SUID：常见于 <code>passwd</code>, <code>sudo</code>, <code>mount</code>, <code>umount</code> 等关键程序，需谨慎管理。</li>
+<li>SGID：适用于共享目录。</li>
 <li>Sticky：防止公共写目录里文件被他人删除。</li>
 </ul>
 <hr>
@@ -660,7 +614,7 @@ root
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/:title/"
+                           href="/en/LAMP%20%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
@@ -676,7 +630,7 @@ root
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/:title/"
+                           href="/en/Linux%20%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90/"
                         >
                             <span class="title flex-center">
                                 <span class="post-nav-title-item">Linux File Permissions (chmod, chown, umask, SUID/SGID/Sticky)</span>
@@ -892,10 +846,7 @@ root
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80linux-%E6%96%87%E4%BB%B6%E6%9D%83%E9%99%90%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">一、Linux 文件权限概述</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%B1%9E%E4%B8%BB%E4%B8%8E%E5%B1%9E%E7%BB%84"><span class="nav-number">1.1.</span> <span class="nav-text">文件属主与属组</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E6%9D%83%E9%99%90%E4%BD%8D"><span class="nav-number">1.2.</span> <span class="nav-text">基础权限位</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E5%B8%B8%E8%A7%84%E6%9D%83%E9%99%90%E5%91%BD%E4%BB%A4"><span class="nav-number">2.</span> <span class="nav-text">二、常规权限命令</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#chmod-%E4%B8%8E%E6%95%B0%E5%AD%97%E7%AC%A6%E5%8F%B7%E8%A1%A8%E7%A4%BA%E6%B3%95"><span class="nav-number">2.1.</span> <span class="nav-text">1.chmod
-与数字&#x2F;符号表示法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E8%A1%A8%E7%A4%BA"><span class="nav-number">2.1.1.</span> <span class="nav-text">数字表示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%A6%E5%8F%B7%E8%A1%A8%E7%A4%BA"><span class="nav-number">2.1.2.</span> <span class="nav-text">符号表示</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#chown-%E4%B8%8E%E6%89%80%E6%9C%89%E6%9D%83%E5%8F%98%E6%9B%B4"><span class="nav-number">2.2.</span> <span class="nav-text">2.chown 与所有权变更</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95%E6%9D%83%E9%99%90%E4%B8%8E%E5%8C%BA%E5%88%AB"><span class="nav-number">2.3.</span> <span class="nav-text">3.目录权限与区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#umask"><span class="nav-number">2.4.</span> <span class="nav-text">4. umask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E6%96%87%E4%BB%B6%E7%89%B9%E6%AE%8A%E5%B1%9E%E6%80%A7-chattr"><span class="nav-number">2.5.</span> <span class="nav-text">5. 修改文件特殊属性
-chattr</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lsattr-%E6%9F%A5%E7%9C%8B%E7%89%B9%E6%AE%8A%E6%9D%83%E9%99%90"><span class="nav-number">2.6.</span> <span class="nav-text">6. lsattr 查看特殊权限</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E8%BF%9B%E9%98%B6%E7%89%B9%E6%AE%8A%E6%9D%83%E9%99%90suid-sgid-sticky-%E4%BD%8D"><span class="nav-number">3.</span> <span class="nav-text">三、进阶：特殊权限（SUID &#x2F;
-SGID &#x2F; Sticky 位）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#suidset-user-id"><span class="nav-number">3.1.</span> <span class="nav-text">1.SUID（Set User ID）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">3.1.1.</span> <span class="nav-text">1.1 原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E4%B8%8E%E8%AE%BE%E7%BD%AE"><span class="nav-number">3.1.2.</span> <span class="nav-text">1.2 查看与设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.1.3.</span> <span class="nav-text">1.3 测试示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">3.1.4.</span> <span class="nav-text">1.4 安全注意事项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sgidset-group-id"><span class="nav-number">3.2.</span> <span class="nav-text">2.SGID（Set Group ID）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#sgid-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">3.2.1.</span> <span class="nav-text">2.1 SGID 应用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE-sgid"><span class="nav-number">3.2.2.</span> <span class="nav-text">2.2 设置 SGID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B%E5%85%B1%E4%BA%AB%E9%A1%B9%E7%9B%AE%E7%BB%84%E7%9B%AE%E5%BD%95"><span class="nav-number">3.2.3.</span> <span class="nav-text">2.3 案例：共享项目组目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sticky-%E4%BD%8D%E7%B2%98%E6%BB%9E%E4%BD%8D"><span class="nav-number">3.3.</span> <span class="nav-text">3.Sticky 位（粘滞位）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%9C%E7%94%A8%E4%B8%8E%E6%9C%BA%E7%90%86"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.1 作用与机理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E6%96%B9%E6%B3%95"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.2 设置方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tmp-%E7%9B%AE%E5%BD%95%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.3.3.</span> <span class="nav-text">3.3 &#x2F;tmp 目录示例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E5%BA%94%E7%94%A8%E4%B8%8E%E6%A1%88%E4%BE%8B%E6%95%B4%E5%90%88"><span class="nav-number">4.</span> <span class="nav-text">四、应用与案例整合</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%88%E5%B9%B6%E7%89%B9%E6%AE%8A%E6%9D%83%E9%99%90%E6%95%B0%E5%AD%97"><span class="nav-number">4.1.</span> <span class="nav-text">1.合并特殊权限数字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84-suid-%E7%A8%8B%E5%BA%8F"><span class="nav-number">4.2.</span> <span class="nav-text">2.检查系统中的 SUID 程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E5%B0%8F%E7%BB%93"><span class="nav-number">4.3.</span> <span class="nav-text">3.安全小结</span></a></li></ol></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">一、Linux 文件权限概述</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%B1%9E%E4%B8%BB%E4%B8%8E%E5%B1%9E%E7%BB%84"><span class="nav-number">1.1.</span> <span class="nav-text">文件属主与属组</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E6%9D%83%E9%99%90%E4%BD%8D"><span class="nav-number">1.2.</span> <span class="nav-text">基础权限位</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">二、常规权限命令</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-chmod-%E4%B8%8E%E6%95%B0%E5%AD%97-%E7%AC%A6%E5%8F%B7%E8%A1%A8%E7%A4%BA%E6%B3%95"><span class="nav-number">2.1.</span> <span class="nav-text">1.chmod 与数字&#x2F;符号表示法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E8%A1%A8%E7%A4%BA"><span class="nav-number">2.1.1.</span> <span class="nav-text">数字表示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%A6%E5%8F%B7%E8%A1%A8%E7%A4%BA"><span class="nav-number">2.1.2.</span> <span class="nav-text">符号表示</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-chown-%E4%B8%8E%E6%89%80%E6%9C%89%E6%9D%83%E5%8F%98%E6%9B%B4"><span class="nav-number">2.2.</span> <span class="nav-text">2.chown 与所有权变更</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9B%AE%E5%BD%95%E6%9D%83%E9%99%90%E4%B8%8E%E5%8C%BA%E5%88%AB"><span class="nav-number">2.3.</span> <span class="nav-text">3.目录权限与区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-umask"><span class="nav-number">2.4.</span> <span class="nav-text">4. umask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%BF%AE%E6%94%B9%E6%96%87%E4%BB%B6%E7%89%B9%E6%AE%8A%E5%B1%9E%E6%80%A7-chattr"><span class="nav-number">2.5.</span> <span class="nav-text">5. 修改文件特殊属性 chattr</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-lsattr-%E6%9F%A5%E7%9C%8B%E7%89%B9%E6%AE%8A%E6%9D%83%E9%99%90"><span class="nav-number">2.6.</span> <span class="nav-text">6. lsattr 查看特殊权限</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">三、进阶：特殊权限（SUID &#x2F; SGID &#x2F; Sticky 位）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-SUID%EF%BC%88Set-User-ID%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">1.SUID（Set User ID）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%8E%9F%E7%90%86"><span class="nav-number">3.1.1.</span> <span class="nav-text">1.1 原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%9F%A5%E7%9C%8B%E4%B8%8E%E8%AE%BE%E7%BD%AE"><span class="nav-number">3.1.2.</span> <span class="nav-text">1.2 查看与设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%B5%8B%E8%AF%95%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.1.3.</span> <span class="nav-text">1.3 测试示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E5%AE%89%E5%85%A8%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">3.1.4.</span> <span class="nav-text">1.4 安全注意事项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-SGID%EF%BC%88Set-Group-ID%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">2.SGID（Set Group ID）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-SGID-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">3.2.1.</span> <span class="nav-text">2.1 SGID 应用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E8%AE%BE%E7%BD%AE-SGID"><span class="nav-number">3.2.2.</span> <span class="nav-text">2.2 设置 SGID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%A1%88%E4%BE%8B%EF%BC%9A%E5%85%B1%E4%BA%AB%E9%A1%B9%E7%9B%AE%E7%BB%84%E7%9B%AE%E5%BD%95"><span class="nav-number">3.2.3.</span> <span class="nav-text">2.3 案例：共享项目组目录</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Sticky-%E4%BD%8D%EF%BC%88%E7%B2%98%E6%BB%9E%E4%BD%8D%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">3.Sticky 位（粘滞位）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E4%BD%9C%E7%94%A8%E4%B8%8E%E6%9C%BA%E7%90%86"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.1 作用与机理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%AE%BE%E7%BD%AE%E6%96%B9%E6%B3%95"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.2 设置方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-tmp-%E7%9B%AE%E5%BD%95%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.3.3.</span> <span class="nav-text">3.3 &#x2F;tmp 目录示例</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">四、应用与案例整合</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%90%88%E5%B9%B6%E7%89%B9%E6%AE%8A%E6%9D%83%E9%99%90%E6%95%B0%E5%AD%97"><span class="nav-number">4.1.</span> <span class="nav-text">1.合并特殊权限数字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%A3%80%E6%9F%A5%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84-SUID-%E7%A8%8B%E5%BA%8F"><span class="nav-number">4.2.</span> <span class="nav-text">2.检查系统中的 SUID 程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%AE%89%E5%85%A8%E5%B0%8F%E7%BB%93"><span class="nav-number">4.3.</span> <span class="nav-text">3.安全小结</span></a></li></ol></li></ol>
     </div>
 </div>
         </aside>
