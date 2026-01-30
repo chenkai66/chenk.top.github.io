@@ -208,51 +208,65 @@
                         
                     </div>
                     <div class="meta-info">
-                        <div class="article-meta-info">
-    
-    
-    
-    
-    <span class="article-date article-meta-item">
-        <i class="fas fa-edit"></i>&nbsp;
-        <span class="pc">2025-02-18 00:00:00</span>
-        <span class="mobile">2025-02-18 00:00</span>
-    </span>
-    
-    
-        <span class="article-tags article-meta-item">
-            <i class="fas fa-tags"></i>&nbsp;
-            <ul>
-                
-                    <li>
-                        <a href="/en/tags/Linux/">Linux</a>&nbsp;
-                    </li>
-                
-                    <li>
-                        | <a href="/en/tags/Cloud/">Cloud</a>&nbsp;
-                    </li>
-                
-            </ul>
-        </span>
-    
+                        .article-meta-info {
+  font-size: 0.8rem;
+  color: var(--third-text-color);
 
-    
-    
-        <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>3.1k Words</span>
-        </span>
-    
-    
-        <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>19 Mins</span>
-        </span>
-    
-    
-        <span class="article-pv article-meta-item">
-            <i class="fas fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
-        </span>
-    
-</div>
+  .article-meta-item {
+    margin-right: 10px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+
+  .article-date {
+
+    .mobile {
+      display: none;
+    }
+
+    +keep-tablet() {
+      .pc {
+        display: none;
+      }
+
+      .mobile {
+        display: inline;
+      }
+    }
+
+  }
+
+
+  .article-tags, .article-categories {
+    display: inline;
+
+    ul, li {
+      display: inline;
+    }
+
+    a {
+      color: var(--third-text-color);
+
+      &:hover {
+        color: var(--primary-color);
+      }
+    }
+  }
+
+  .article-tags {
+    +keep-tablet() {
+      display: none;
+    }
+  }
+
+  .article-min2read, .article-wordcount {
+    +keep-mobile() {
+      display: none;
+    }
+  }
+}
 
                     </div>
                 </div>
@@ -260,65 +274,116 @@
         
 
         <div class="article-content markdown-body">
-            <p>Disk issues in production are rarely fixed by “one magic command”. You’re usually dealing with a whole stack: <strong>hardware behavior (HDD vs SSD)</strong>, <strong>block devices and partition tables</strong>, <strong>RAID/LVM layering</strong>, and finally <strong>filesystem semantics</strong> (inodes, links, deletion, and why space doesn’t come back). This post walks the end-to-end workflow—identify a new disk, partition it, format it, mount it, make it persistent, expand capacity with minimal downtime, and debug the common failure modes—while also explaining the underlying mechanisms so you can reason about what the system is doing.</p>
+            <p>Disk issues in production are rarely fixed by “one magic command”.
+You’re usually dealing with a whole stack: <strong>hardware behavior
+(HDD vs SSD)</strong>, <strong>block devices and partition
+tables</strong>, <strong>RAID/LVM layering</strong>, and finally
+<strong>filesystem semantics</strong> (inodes, links, deletion, and why
+space doesn’t come back). This post walks the end-to-end
+workflow—identify a new disk, partition it, format it, mount it, make it
+persistent, expand capacity with minimal downtime, and debug the common
+failure modes—while also explaining the underlying mechanisms so you can
+reason about what the system is doing.</p>
 <span id="more"></span>
-<h2 id="Storage-basics-what-you’re-really-buying-latency-vs-throughput-vs-safety"><a class="header-anchor" href="#Storage-basics-what-you’re-really-buying-latency-vs-throughput-vs-safety">¶</a>Storage basics: what you’re really buying (latency vs throughput vs safety)</h2>
-<p>Before you touch a single command, it helps to have the right mental model.</p>
-<h3 id="Hot-vs-cold-storage-SSD-vs-HDD-and-the-“random-I-O-tax”"><a class="header-anchor" href="#Hot-vs-cold-storage-SSD-vs-HDD-and-the-“random-I-O-tax”">¶</a>Hot vs cold storage (SSD vs HDD) and the “random I/O tax”</h3>
-<p><strong>SSD (hot storage)</strong> is great when you need low latency and fast random reads/writes (databases, caches, indexes). <strong>HDD (cold storage)</strong> is great when you need cheap capacity and large sequential throughput (archives, backups, large logs).</p>
+<h2 id="storage-basics-what-youre-really-buying-latency-vs-throughput-vs-safety">Storage
+basics: what you’re really buying (latency vs throughput vs safety)</h2>
+<p>Before you touch a single command, it helps to have the right mental
+model.</p>
+<h3 id="hot-vs-cold-storage-ssd-vs-hdd-and-the-random-io-tax">Hot vs
+cold storage (SSD vs HDD) and the “random I/O tax”</h3>
+<p><strong>SSD (hot storage)</strong> is great when you need low latency
+and fast random reads/writes (databases, caches, indexes). <strong>HDD
+(cold storage)</strong> is great when you need cheap capacity and large
+sequential throughput (archives, backups, large logs).</p>
 <p>Where the big difference comes from:</p>
 <ul>
-<li>HDD random I/O pays <strong>two mechanical waits</strong>: seek time (move head) + rotational latency (wait for the sector to rotate under the head).</li>
-<li>SSD is electronic; random I/O is much closer to sequential, but writes have their own complexity (erase blocks, garbage collection, write amplification).</li>
+<li>HDD random I/O pays <strong>two mechanical waits</strong>: seek time
+(move head) + rotational latency (wait for the sector to rotate under
+the head).</li>
+<li>SSD is electronic; random I/O is much closer to sequential, but
+writes have their own complexity (erase blocks, garbage collection,
+write amplification).</li>
 </ul>
 <p>Practical takeaway:</p>
 <ul>
-<li>If a workload becomes random-I/O heavy on HDD, performance can collapse even if “MB/s” looks fine for sequential tests.</li>
-<li>If you saturate SSD writes, you may see latency spikes due to internal garbage collection.</li>
+<li>If a workload becomes random-I/O heavy on HDD, performance can
+collapse even if “MB/s” looks fine for sequential tests.</li>
+<li>If you saturate SSD writes, you may see latency spikes due to
+internal garbage collection.</li>
 </ul>
-<p><img src="/en/linux-disk-management/20210701123415976-1024x556.png" alt="storage overview"></p>
-<h3 id="What-is-a-“sector”-what-is-a-filesystem-“block”-and-why-small-files-waste-space"><a class="header-anchor" href="#What-is-a-“sector”-what-is-a-filesystem-“block”-and-why-small-files-waste-space">¶</a>What is a “sector”, what is a filesystem “block”, and why small files waste space</h3>
-<p>Disks store data in <strong>sectors</strong> (historically 512B; many drives are 4K physical sectors). Filesystems allocate in <strong>blocks</strong> (allocation units). A file cannot occupy “half a block”, so a 1-byte file still consumes at least one block plus metadata.</p>
+<figure>
+<img src="/en/linux-disk-management/20210701123415976-1024x556.png" alt="storage overview">
+<figcaption aria-hidden="true">storage overview</figcaption>
+</figure>
+<h3 id="what-is-a-sector-what-is-a-filesystem-block-and-why-small-files-waste-space">What
+is a “sector”, what is a filesystem “block”, and why small files waste
+space</h3>
+<p>Disks store data in <strong>sectors</strong> (historically 512B; many
+drives are 4K physical sectors). Filesystems allocate in
+<strong>blocks</strong> (allocation units). A file cannot occupy “half a
+block”, so a 1-byte file still consumes at least one block plus
+metadata.</p>
 <p>This explains real-world surprises:</p>
 <ul>
 <li>“My directory of tiny files is huge on disk.”</li>
-<li>“<code>du</code> and <code>ls -l</code> report different sizes.”</li>
+<li>“<code>du</code> and <code>ls -l</code> report different
+sizes.”</li>
 </ul>
-<h3 id="TRIM-on-SSD-and-“can-deleted-data-be-recovered-”"><a class="header-anchor" href="#TRIM-on-SSD-and-“can-deleted-data-be-recovered-”">¶</a>TRIM on SSD and “can deleted data be recovered?”</h3>
-<p>On HDD, deletion typically only removes directory entries and metadata; the old data may remain until overwritten. On SSD, after deletion the OS may issue TRIM/discard, and the device may reclaim blocks quickly. That’s why recovery assumptions differ.</p>
-<h3 id="Object-storage-is-a-different-abstraction-S3-OSS"><a class="header-anchor" href="#Object-storage-is-a-different-abstraction-S3-OSS">¶</a>Object storage is a different abstraction (S3/OSS)</h3>
-<p>If your “disk problem” is really “I have too many blobs to manage on one VM”, you often want object storage instead of endlessly growing a filesystem.</p>
+<h3 id="trim-on-ssd-and-can-deleted-data-be-recovered">TRIM on SSD and
+“can deleted data be recovered?”</h3>
+<p>On HDD, deletion typically only removes directory entries and
+metadata; the old data may remain until overwritten. On SSD, after
+deletion the OS may issue TRIM/discard, and the device may reclaim
+blocks quickly. That’s why recovery assumptions differ.</p>
+<h3 id="object-storage-is-a-different-abstraction-s3oss">Object storage
+is a different abstraction (S3/OSS)</h3>
+<p>If your “disk problem” is really “I have too many blobs to manage on
+one VM”, you often want object storage instead of endlessly growing a
+filesystem.</p>
 <hr>
-<h2 id="Block-devices-in-Linux-how-disks-show-up-and-how-to-not-shoot-yourself"><a class="header-anchor" href="#Block-devices-in-Linux-how-disks-show-up-and-how-to-not-shoot-yourself">¶</a>Block devices in Linux: how disks show up (and how to not shoot yourself)</h2>
-<h3 id="The-core-commands-to-identify-hardware-and-mapping"><a class="header-anchor" href="#The-core-commands-to-identify-hardware-and-mapping">¶</a>The core commands to identify hardware and mapping</h3>
+<h2 id="block-devices-in-linux-how-disks-show-up-and-how-to-not-shoot-yourself">Block
+devices in Linux: how disks show up (and how to not shoot yourself)</h2>
+<h3 id="the-core-commands-to-identify-hardware-and-mapping">The core
+commands to identify hardware and mapping</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lsblk -f</span><br><span class="line">sudo fdisk -l</span><br><span class="line">sudo blkid</span><br></pre></td></tr></table></figure>
 <p>What you’re looking for:</p>
 <ul>
-<li>device name: <code>/dev/sda</code>, <code>/dev/nvme0n1</code>, etc.</li>
+<li>device name: <code>/dev/sda</code>, <code>/dev/nvme0n1</code>,
+etc.</li>
 <li>partitions: <code>/dev/sda1</code>, <code>/dev/nvme0n1p1</code></li>
 <li>filesystem type and UUID (for persistent mounts)</li>
 </ul>
-<h3 id="Naming-pitfalls-why-dev-sdb-can-“change”"><a class="header-anchor" href="#Naming-pitfalls-why-dev-sdb-can-“change”">¶</a>Naming pitfalls: why <code>/dev/sdb</code> can “change”</h3>
-<p>Device names can change across reboots (especially with multiple disks). For persistence:</p>
+<h3 id="naming-pitfalls-why-devsdb-can-change">Naming pitfalls: why
+<code>/dev/sdb</code> can “change”</h3>
+<p>Device names can change across reboots (especially with multiple
+disks). For persistence:</p>
 <ul>
 <li>mount by <strong>UUID</strong></li>
-<li>or use stable paths like <code>/dev/disk/by-uuid/</code> and <code>/dev/disk/by-id/</code></li>
+<li>or use stable paths like <code>/dev/disk/by-uuid/</code> and
+<code>/dev/disk/by-id/</code></li>
 </ul>
 <hr>
-<h2 id="Partition-tables-GPT-vs-MBR-and-what-tools-to-use"><a class="header-anchor" href="#Partition-tables-GPT-vs-MBR-and-what-tools-to-use">¶</a>Partition tables: GPT vs MBR (and what tools to use)</h2>
-<h3 id="MBR-vs-GPT-decision-guide"><a class="header-anchor" href="#MBR-vs-GPT-decision-guide">¶</a>MBR vs GPT (decision guide)</h3>
+<h2 id="partition-tables-gpt-vs-mbr-and-what-tools-to-use">Partition
+tables: GPT vs MBR (and what tools to use)</h2>
+<h3 id="mbr-vs-gpt-decision-guide">MBR vs GPT (decision guide)</h3>
 <ul>
-<li><strong>MBR</strong>: legacy, limited partitioning model, historically painful for large disks in old BIOS setups.</li>
-<li><strong>GPT</strong>: modern standard (UEFI-friendly), more partitions, better metadata and robustness.</li>
+<li><strong>MBR</strong>: legacy, limited partitioning model,
+historically painful for large disks in old BIOS setups.</li>
+<li><strong>GPT</strong>: modern standard (UEFI-friendly), more
+partitions, better metadata and robustness.</li>
 </ul>
-<p>In practice: use GPT unless you are constrained by old hardware/boot modes.</p>
-<h3 id="Tools-fdisk-vs-gdisk-vs-parted"><a class="header-anchor" href="#Tools-fdisk-vs-gdisk-vs-parted">¶</a>Tools: <code>fdisk</code> vs <code>gdisk</code> vs <code>parted</code></h3>
+<p>In practice: use GPT unless you are constrained by old hardware/boot
+modes.</p>
+<h3 id="tools-fdisk-vs-gdisk-vs-parted">Tools: <code>fdisk</code> vs
+<code>gdisk</code> vs <code>parted</code></h3>
 <ul>
-<li><code>fdisk</code>: common, works for MBR and (on modern distros) GPT too</li>
+<li><code>fdisk</code>: common, works for MBR and (on modern distros)
+GPT too</li>
 <li><code>gdisk</code>: GPT-focused</li>
 <li><code>parted</code>: convenient for some scripted workflows</li>
 </ul>
-<h3 id="Example-create-a-partition-high-level"><a class="header-anchor" href="#Example-create-a-partition-high-level">¶</a>Example: create a partition (high-level)</h3>
+<h3 id="example-create-a-partition-high-level">Example: create a
+partition (high-level)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo fdisk /dev/sdb</span><br></pre></td></tr></table></figure>
 <p>Typical flow inside <code>fdisk</code>:</p>
 <ul>
@@ -329,69 +394,91 @@
 <p>Afterwards verify:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsblk -f</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="Filesystems-format-mount-and-persist-with-fstab"><a class="header-anchor" href="#Filesystems-format-mount-and-persist-with-fstab">¶</a>Filesystems: format, mount, and persist with <code>fstab</code></h2>
-<h3 id="Choose-a-filesystem-ext4-vs-xfs"><a class="header-anchor" href="#Choose-a-filesystem-ext4-vs-xfs">¶</a>Choose a filesystem: ext4 vs xfs</h3>
+<h2 id="filesystems-format-mount-and-persist-with-fstab">Filesystems:
+format, mount, and persist with <code>fstab</code></h2>
+<h3 id="choose-a-filesystem-ext4-vs-xfs">Choose a filesystem: ext4 vs
+xfs</h3>
 <ul>
-<li><strong>ext4</strong>: common default, solid general-purpose filesystem</li>
-<li><strong>xfs</strong>: strong for large files and parallel I/O; excellent tooling; must be grown online and cannot be shrunk easily</li>
+<li><strong>ext4</strong>: common default, solid general-purpose
+filesystem</li>
+<li><strong>xfs</strong>: strong for large files and parallel I/O;
+excellent tooling; must be grown online and cannot be shrunk easily</li>
 </ul>
-<h3 id="Format"><a class="header-anchor" href="#Format">¶</a>Format</h3>
+<h3 id="format">Format</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo mkfs.ext4 /dev/sdb1</span><br><span class="line"><span class="comment"># or</span></span><br><span class="line">sudo mkfs.xfs /dev/sdb1</span><br></pre></td></tr></table></figure>
-<h3 id="Mount"><a class="header-anchor" href="#Mount">¶</a>Mount</h3>
+<h3 id="mount">Mount</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> -p /mnt/data</span><br><span class="line">sudo mount /dev/sdb1 /mnt/data</span><br><span class="line"><span class="built_in">df</span> -h</span><br></pre></td></tr></table></figure>
-<h3 id="Make-mount-persistent-etc-fstab"><a class="header-anchor" href="#Make-mount-persistent-etc-fstab">¶</a>Make mount persistent: <code>/etc/fstab</code></h3>
+<h3 id="make-mount-persistent-etcfstab">Make mount persistent:
+<code>/etc/fstab</code></h3>
 <p>Always prefer UUID:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo blkid /dev/sdb1</span><br></pre></td></tr></table></figure>
 <p>Example <code>fstab</code> entry:</p>
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UUID=&lt;uuid&gt;  /mnt/data  ext4  defaults  0  2</span><br></pre></td></tr></table></figure>
-<p>Safety tip: after editing <code>fstab</code>, test without reboot:</p>
+<p>Safety tip: after editing <code>fstab</code>, test without
+reboot:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mount -a</span><br></pre></td></tr></table></figure>
 <p>If this errors, fix it before rebooting.</p>
 <hr>
-<h2 id="RAID-redundancy-and-performance-with-real-trade-offs"><a class="header-anchor" href="#RAID-redundancy-and-performance-with-real-trade-offs">¶</a>RAID: redundancy and performance, with real trade-offs</h2>
+<h2 id="raid-redundancy-and-performance-with-real-trade-offs">RAID:
+redundancy and performance, with real trade-offs</h2>
 <p>RAID is about two knobs:</p>
 <ul>
 <li><strong>availability</strong> (tolerate disk failures)</li>
 <li><strong>performance</strong> (especially read throughput)</li>
 </ul>
-<h3 id="RAID-levels-what-people-actually-choose"><a class="header-anchor" href="#RAID-levels-what-people-actually-choose">¶</a>RAID levels (what people actually choose)</h3>
+<h3 id="raid-levels-what-people-actually-choose">RAID levels (what
+people actually choose)</h3>
 <ul>
-<li><strong>RAID 0</strong>: fastest, no redundancy (one disk fails → everything fails)</li>
-<li><strong>RAID 1</strong>: mirroring (capacity ~50%), simple redundancy</li>
-<li><strong>RAID 5</strong>: parity, tolerate 1 disk failure; write penalty; rebuild risk on large arrays</li>
-<li><strong>RAID 6</strong>: double parity, tolerate 2 disk failures; more write overhead</li>
-<li><strong>RAID 10</strong>: mirror + stripe; high performance + redundancy; higher cost</li>
+<li><strong>RAID 0</strong>: fastest, no redundancy (one disk fails →
+everything fails)</li>
+<li><strong>RAID 1</strong>: mirroring (capacity ~50%), simple
+redundancy</li>
+<li><strong>RAID 5</strong>: parity, tolerate 1 disk failure; write
+penalty; rebuild risk on large arrays</li>
+<li><strong>RAID 6</strong>: double parity, tolerate 2 disk failures;
+more write overhead</li>
+<li><strong>RAID 10</strong>: mirror + stripe; high performance +
+redundancy; higher cost</li>
 </ul>
 <p>When in doubt in production:</p>
 <ul>
 <li>prefer RAID 10 for latency-sensitive workloads</li>
 <li>prefer RAID 6 for large HDD arrays where rebuild risk matters</li>
 </ul>
-<h3 id="Software-RAID-on-Linux-mdadm"><a class="header-anchor" href="#Software-RAID-on-Linux-mdadm">¶</a>Software RAID on Linux (<code>mdadm</code>)</h3>
+<h3 id="software-raid-on-linux-mdadm">Software RAID on Linux
+(<code>mdadm</code>)</h3>
 <p>Create a RAID 1 array:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sda1 /dev/sdb1</span><br><span class="line"><span class="built_in">cat</span> /proc/mdstat</span><br><span class="line">sudo mdadm --detail /dev/md0</span><br></pre></td></tr></table></figure>
 <p>Persist array definition (file varies by distro):</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mdadm --detail --scan | sudo <span class="built_in">tee</span> -a /etc/mdadm.conf</span><br></pre></td></tr></table></figure>
 <p>Fail/remove a device (example):</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mdadm /dev/md0 --fail /dev/sda1 --remove /dev/sda1</span><br></pre></td></tr></table></figure>
-<p>Operational rule: always verify rebuild status in <code>/proc/mdstat</code> before assuming you’re safe again.</p>
+<p>Operational rule: always verify rebuild status in
+<code>/proc/mdstat</code> before assuming you’re safe again.</p>
 <hr>
-<h2 id="LVM-how-to-expand-disks-without-re-partitioning-pain"><a class="header-anchor" href="#LVM-how-to-expand-disks-without-re-partitioning-pain">¶</a>LVM: how to expand disks without re-partitioning pain</h2>
-<p>LVM is the layer that makes capacity changes manageable. The mental model:</p>
+<h2 id="lvm-how-to-expand-disks-without-re-partitioning-pain">LVM: how
+to expand disks without re-partitioning pain</h2>
+<p>LVM is the layer that makes capacity changes manageable. The mental
+model:</p>
 <ul>
 <li><strong>PV</strong>: a disk/partition enrolled into LVM</li>
-<li><strong>VG</strong>: a pool of capacity built from one or more PVs</li>
+<li><strong>VG</strong>: a pool of capacity built from one or more
+PVs</li>
 <li><strong>LV</strong>: virtual block devices carved from a VG</li>
 </ul>
-<h3 id="Typical-expansion-workflow-the-“minimal-downtime”-playbook"><a class="header-anchor" href="#Typical-expansion-workflow-the-“minimal-downtime”-playbook">¶</a>Typical expansion workflow (the “minimal downtime” playbook)</h3>
+<h3 id="typical-expansion-workflow-the-minimal-downtime-playbook">Typical
+expansion workflow (the “minimal downtime” playbook)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1) Prepare a new disk (or partition) as PV</span></span><br><span class="line">sudo pvcreate /dev/sdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) Add it into an existing VG</span></span><br><span class="line">sudo vgextend vg0 /dev/sdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3) Extend the LV (example: +100G)</span></span><br><span class="line">sudo lvextend -L +100G /dev/vg0/data</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4) Grow the filesystem</span></span><br><span class="line">sudo resize2fs /dev/vg0/data    <span class="comment"># ext4</span></span><br><span class="line">sudo xfs_growfs /mount/point    <span class="comment"># xfs (must be mounted)</span></span><br></pre></td></tr></table></figure>
 <p>Why this works operationally:</p>
 <ul>
 <li>you can add capacity without moving the old blocks first</li>
-<li>expansion is often online (service can stay up if filesystem supports it)</li>
+<li>expansion is often online (service can stay up if filesystem
+supports it)</li>
 </ul>
-<h3 id="A-safer-“data-migration”-variant-when-you-really-need-to-move"><a class="header-anchor" href="#A-safer-“data-migration”-variant-when-you-really-need-to-move">¶</a>A safer “data migration” variant (when you really need to move)</h3>
-<p>If you must migrate data to a new mount, do it in a controlled window:</p>
+<h3 id="a-safer-data-migration-variant-when-you-really-need-to-move">A
+safer “data migration” variant (when you really need to move)</h3>
+<p>If you must migrate data to a new mount, do it in a controlled
+window:</p>
 <ul>
 <li>stop writes (or stop the service)</li>
 <li>snapshot/backup</li>
@@ -401,19 +488,26 @@
 </ul>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rsync -aHAX --delete /old/ /new/</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="dev-special-devices-you’ll-see-in-disk-work"><a class="header-anchor" href="#dev-special-devices-you’ll-see-in-disk-work">¶</a><code>/dev</code> special devices you’ll see in disk work</h2>
+<h2 id="dev-special-devices-youll-see-in-disk-work"><code>/dev</code>
+special devices you’ll see in disk work</h2>
 <p>These are not “real disks”, but they matter for ops:</p>
 <ul>
 <li><code>/dev/null</code>: discard output</li>
-<li><code>/dev/zero</code>: infinite zeros (create files, test throughput)</li>
-<li><code>/dev/random</code> / <code>/dev/urandom</code>: randomness sources</li>
+<li><code>/dev/zero</code>: infinite zeros (create files, test
+throughput)</li>
+<li><code>/dev/random</code> / <code>/dev/urandom</code>: randomness
+sources</li>
 </ul>
 <p>Examples:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># create a 1GB file for testing (fast on many systems)</span></span><br><span class="line"><span class="built_in">dd</span> <span class="keyword">if</span>=/dev/zero of=test.bin bs=1M count=1024</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="Inodes-hard-links-symlinks-filesystem-semantics-that-explain-weird-incidents"><a class="header-anchor" href="#Inodes-hard-links-symlinks-filesystem-semantics-that-explain-weird-incidents">¶</a>Inodes, hard links, symlinks: filesystem semantics that explain weird incidents</h2>
-<h3 id="Inodes-why-“file-name”-is-not-“the-file”"><a class="header-anchor" href="#Inodes-why-“file-name”-is-not-“the-file”">¶</a>Inodes: why “file name” is not “the file”</h3>
-<p>A filename is a directory entry pointing to an inode. The inode points to data blocks.</p>
+<h2 id="inodes-hard-links-symlinks-filesystem-semantics-that-explain-weird-incidents">Inodes,
+hard links, symlinks: filesystem semantics that explain weird
+incidents</h2>
+<h3 id="inodes-why-file-name-is-not-the-file">Inodes: why “file name” is
+not “the file”</h3>
+<p>A filename is a directory entry pointing to an inode. The inode
+points to data blocks.</p>
 <p>This helps explain:</p>
 <ul>
 <li>why hard links work</li>
@@ -422,13 +516,18 @@
 </ul>
 <p>Check inode usage:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">df</span> -i</span><br></pre></td></tr></table></figure>
-<h3 id="Hard-link-vs-symlink-what’s-the-real-difference"><a class="header-anchor" href="#Hard-link-vs-symlink-what’s-the-real-difference">¶</a>Hard link vs symlink (what’s the real difference)</h3>
+<h3 id="hard-link-vs-symlink-whats-the-real-difference">Hard link vs
+symlink (what’s the real difference)</h3>
 <ul>
-<li><strong>Hard link</strong>: another directory entry pointing to the same inode (cannot cross filesystems; usually not for directories)</li>
-<li><strong>Symlink</strong>: its own inode containing a path (can cross filesystems; can become dangling)</li>
+<li><strong>Hard link</strong>: another directory entry pointing to the
+same inode (cannot cross filesystems; usually not for directories)</li>
+<li><strong>Symlink</strong>: its own inode containing a path (can cross
+filesystems; can become dangling)</li>
 </ul>
 <hr>
-<h2 id="“I-deleted-files-but-disk-space-didn’t-come-back”-the-real-cause-and-the-fix"><a class="header-anchor" href="#“I-deleted-files-but-disk-space-didn’t-come-back”-the-real-cause-and-the-fix">¶</a>“I deleted files but disk space didn’t come back”: the real cause and the fix</h2>
+<h2 id="i-deleted-files-but-disk-space-didnt-come-back-the-real-cause-and-the-fix">“I
+deleted files but disk space didn’t come back”: the real cause and the
+fix</h2>
 <p>The classic root cause is: a process still has the file open.</p>
 <p>Find deleted-but-open files:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo lsof | grep <span class="string">&#x27;(deleted)&#x27;</span></span><br></pre></td></tr></table></figure>
@@ -437,94 +536,129 @@
 <li>restart the holding process (common for log files)</li>
 <li>or rotate logs properly (avoid truncation pitfalls)</li>
 </ul>
-<p>This is one of those incidents where understanding filesystem semantics saves hours of guessing.</p>
+<p>This is one of those incidents where understanding filesystem
+semantics saves hours of guessing.</p>
 <hr>
-<h2 id="End-to-end-checklist-new-disk-→-usable-space-→-expandable-setup"><a class="header-anchor" href="#End-to-end-checklist-new-disk-→-usable-space-→-expandable-setup">¶</a>End-to-end checklist: new disk → usable space → expandable setup</h2>
+<h2 id="end-to-end-checklist-new-disk-usable-space-expandable-setup">End-to-end
+checklist: new disk → usable space → expandable setup</h2>
 <p>If you want a compact “do it right” path:</p>
-<ol>
+<ol type="1">
 <li>Identify disk: <code>lsblk -f</code></li>
-<li>Partition (GPT preferred): <code>fdisk</code>/<code>gdisk</code></li>
+<li>Partition (GPT preferred):
+<code>fdisk</code>/<code>gdisk</code></li>
 <li>Format: <code>mkfs.ext4</code> or <code>mkfs.xfs</code></li>
 <li>Mount and verify: <code>mount</code>, <code>df -h</code></li>
-<li>Persist mount by UUID: <code>/etc/fstab</code> + <code>mount -a</code></li>
-<li>If you expect growth: plan RAID/LVM from day 1 (don’t paint yourself into a corner)</li>
+<li>Persist mount by UUID: <code>/etc/fstab</code> +
+<code>mount -a</code></li>
+<li>If you expect growth: plan RAID/LVM from day 1 (don’t paint yourself
+into a corner)</li>
 </ol>
-<p>If you can run this checklist confidently, most disk incidents become systematic rather than stressful.</p>
+<p>If you can run this checklist confidently, most disk incidents become
+systematic rather than stressful.</p>
 <hr>
-<h2 id="A-deeper-performance-model-why-“MB-s-looks-fine”-but-the-service-is-slow"><a class="header-anchor" href="#A-deeper-performance-model-why-“MB-s-looks-fine”-but-the-service-is-slow">¶</a>A deeper performance model: why “MB/s looks fine” but the service is slow</h2>
+<h2 id="a-deeper-performance-model-why-mbs-looks-fine-but-the-service-is-slow">A
+deeper performance model: why “MB/s looks fine” but the service is
+slow</h2>
 <p>In production, disk complaints usually show up as one of these:</p>
 <ul>
 <li>requests timing out even though CPU is low</li>
 <li>high load average with low CPU utilization</li>
-<li>periodic latency spikes that correlate with log rotation or backups</li>
+<li>periodic latency spikes that correlate with log rotation or
+backups</li>
 </ul>
-<p>A useful lens is to separate <strong>throughput</strong> from <strong>latency</strong>:</p>
+<p>A useful lens is to separate <strong>throughput</strong> from
+<strong>latency</strong>:</p>
 <ul>
 <li>Throughput answers: “how many MB per second can I stream?”</li>
 <li>Latency answers: “how long does one small read/write take?”</li>
 </ul>
-<p>Databases and many web workloads care far more about latency than bulk throughput.</p>
-<h3 id="Random-I-O-and-IOPS"><a class="header-anchor" href="#Random-I-O-and-IOPS">¶</a>Random I/O and IOPS</h3>
-<p>IOPS (I/O operations per second) is a better metric than MB/s when operations are small (4K–16K). HDD can have decent MB/s sequentially but terrible random IOPS because each random access pays mechanical latency.</p>
-<h3 id="Page-cache-why-reads-can-be-fast-until-they-aren’t"><a class="header-anchor" href="#Page-cache-why-reads-can-be-fast-until-they-aren’t">¶</a>Page cache: why reads can be fast until they aren’t</h3>
-<p>Linux aggressively caches file data in memory. This is good. But it can mislead you if you benchmark without clearing cache or if your workload suddenly exceeds memory.</p>
+<p>Databases and many web workloads care far more about latency than
+bulk throughput.</p>
+<h3 id="random-io-and-iops">Random I/O and IOPS</h3>
+<p>IOPS (I/O operations per second) is a better metric than MB/s when
+operations are small (4K–16K). HDD can have decent MB/s sequentially but
+terrible random IOPS because each random access pays mechanical
+latency.</p>
+<h3 id="page-cache-why-reads-can-be-fast-until-they-arent">Page cache:
+why reads can be fast until they aren’t</h3>
+<p>Linux aggressively caches file data in memory. This is good. But it
+can mislead you if you benchmark without clearing cache or if your
+workload suddenly exceeds memory.</p>
 <p>Quick sanity checks:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">free -h</span><br><span class="line"><span class="built_in">cat</span> /proc/meminfo | <span class="built_in">head</span></span><br></pre></td></tr></table></figure>
-<p>If you see most “free” memory in <code>buff/cache</code>, that is normal and reclaimable.</p>
-<h3 id="I-O-wait-and-load-average"><a class="header-anchor" href="#I-O-wait-and-load-average">¶</a>I/O wait and load average</h3>
+<p>If you see most “free” memory in <code>buff/cache</code>, that is
+normal and reclaimable.</p>
+<h3 id="io-wait-and-load-average">I/O wait and load average</h3>
 <p>High load average with low CPU often points to I/O wait. Tools:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">top</span><br><span class="line">vmstat 1</span><br><span class="line">iostat -x 1</span><br></pre></td></tr></table></figure>
 <p>Look for:</p>
 <ul>
 <li>high <code>%wa</code> in <code>vmstat</code></li>
-<li>high <code>await</code> and low <code>svctm</code>/high utilization in <code>iostat -x</code></li>
+<li>high <code>await</code> and low <code>svctm</code>/high utilization
+in <code>iostat -x</code></li>
 </ul>
 <hr>
-<h2 id="Partition-alignment-and-4K-sectors-the-silent-performance-killer"><a class="header-anchor" href="#Partition-alignment-and-4K-sectors-the-silent-performance-killer">¶</a>Partition alignment and 4K sectors (the silent performance killer)</h2>
-<p>Modern disks often have 4K physical sectors even if they expose 512B logical sectors. If partitions are misaligned, a single filesystem write can turn into multiple physical reads/writes.</p>
+<h2 id="partition-alignment-and-4k-sectors-the-silent-performance-killer">Partition
+alignment and 4K sectors (the silent performance killer)</h2>
+<p>Modern disks often have 4K physical sectors even if they expose 512B
+logical sectors. If partitions are misaligned, a single filesystem write
+can turn into multiple physical reads/writes.</p>
 <p>Practical rule:</p>
 <ul>
-<li>align partitions to 1MiB boundaries (most modern tools do this by default)</li>
+<li>align partitions to 1MiB boundaries (most modern tools do this by
+default)</li>
 </ul>
 <p>Check alignment (roughly):</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo fdisk -l /dev/sdb</span><br></pre></td></tr></table></figure>
-<p>If you see partition starts at 2048 sectors on 512B logical sector disks, you’re typically aligned (2048 * 512B = 1MiB).</p>
+<p>If you see partition starts at 2048 sectors on 512B logical sector
+disks, you’re typically aligned (2048 * 512B = 1MiB).</p>
 <hr>
-<h2 id="Filesystem-selection-and-tuning-ext4-vs-xfs-vs-“what-knobs-matter”"><a class="header-anchor" href="#Filesystem-selection-and-tuning-ext4-vs-xfs-vs-“what-knobs-matter”">¶</a>Filesystem selection and tuning (ext4 vs xfs vs “what knobs matter”)</h2>
-<h3 id="ext4-safe-defaults-broad-compatibility"><a class="header-anchor" href="#ext4-safe-defaults-broad-compatibility">¶</a>ext4: safe defaults, broad compatibility</h3>
+<h2 id="filesystem-selection-and-tuning-ext4-vs-xfs-vs-what-knobs-matter">Filesystem
+selection and tuning (ext4 vs xfs vs “what knobs matter”)</h2>
+<h3 id="ext4-safe-defaults-broad-compatibility">ext4: safe defaults,
+broad compatibility</h3>
 <p>ext4 is often a good default because:</p>
 <ul>
 <li>tooling is mature (<code>fsck</code>, <code>tune2fs</code>)</li>
 <li>it behaves predictably across workloads</li>
 </ul>
-<h3 id="xfs-strong-for-large-volumes-and-parallel-I-O"><a class="header-anchor" href="#xfs-strong-for-large-volumes-and-parallel-I-O">¶</a>xfs: strong for large volumes and parallel I/O</h3>
+<h3 id="xfs-strong-for-large-volumes-and-parallel-io">xfs: strong for
+large volumes and parallel I/O</h3>
 <p>xfs shines with:</p>
 <ul>
 <li>large files</li>
 <li>parallel access patterns</li>
 <li>big filesystems</li>
 </ul>
-<p>Operational note: <strong>shrinking xfs is not supported</strong> in the usual way; plan capacity accordingly.</p>
-<h3 id="Mount-options-small-changes-big-behavior-differences"><a class="header-anchor" href="#Mount-options-small-changes-big-behavior-differences">¶</a>Mount options: small changes, big behavior differences</h3>
+<p>Operational note: <strong>shrinking xfs is not supported</strong> in
+the usual way; plan capacity accordingly.</p>
+<h3 id="mount-options-small-changes-big-behavior-differences">Mount
+options: small changes, big behavior differences</h3>
 <p>Some options you’ll actually care about:</p>
 <ul>
-<li><code>noatime</code>: reduce metadata writes from access-time updates (common for read-heavy workloads)</li>
-<li><code>discard</code>: continuous TRIM (can add overhead); many setups prefer periodic <code>fstrim</code> instead</li>
+<li><code>noatime</code>: reduce metadata writes from access-time
+updates (common for read-heavy workloads)</li>
+<li><code>discard</code>: continuous TRIM (can add overhead); many
+setups prefer periodic <code>fstrim</code> instead</li>
 </ul>
 <p>Example (conceptual):</p>
 <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UUID=&lt;uuid&gt; /mnt/data ext4 defaults,noatime 0 2</span><br></pre></td></tr></table></figure>
 <p>For SSD TRIM on a schedule:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo fstrim -av</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="RAID-in-production-rebuild-risk-write-penalties-and-what-people-forget"><a class="header-anchor" href="#RAID-in-production-rebuild-risk-write-penalties-and-what-people-forget">¶</a>RAID in production: rebuild risk, write penalties, and what people forget</h2>
-<h3 id="Rebuild-windows-are-dangerous"><a class="header-anchor" href="#Rebuild-windows-are-dangerous">¶</a>Rebuild windows are dangerous</h3>
+<h2 id="raid-in-production-rebuild-risk-write-penalties-and-what-people-forget">RAID
+in production: rebuild risk, write penalties, and what people
+forget</h2>
+<h3 id="rebuild-windows-are-dangerous">Rebuild windows are
+dangerous</h3>
 <p>During rebuild:</p>
 <ul>
 <li>performance often degrades</li>
-<li>the array is in a more fragile state (another disk failure can be catastrophic depending on RAID level)</li>
+<li>the array is in a more fragile state (another disk failure can be
+catastrophic depending on RAID level)</li>
 </ul>
 <p>This is why large HDD arrays often prefer RAID 6 over RAID 5.</p>
-<h3 id="RAID-is-not-a-backup"><a class="header-anchor" href="#RAID-is-not-a-backup">¶</a>RAID is not a backup</h3>
+<h3 id="raid-is-not-a-backup">RAID is not a backup</h3>
 <p>RAID protects against <em>disk failure</em>, not:</p>
 <ul>
 <li>accidental deletion</li>
@@ -532,7 +666,7 @@
 <li>application bugs that corrupt data</li>
 </ul>
 <p>You still need backups and restore drills.</p>
-<h3 id="Monitoring-RAID-health"><a class="header-anchor" href="#Monitoring-RAID-health">¶</a>Monitoring RAID health</h3>
+<h3 id="monitoring-raid-health">Monitoring RAID health</h3>
 <p>You should be able to answer at any moment:</p>
 <ul>
 <li>Is the array degraded?</li>
@@ -542,24 +676,33 @@
 <p>Commands:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/mdstat</span><br><span class="line">sudo mdadm --detail /dev/md0</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="LVM-in-production-snapshots-rescue-workflows-and-practical-patterns"><a class="header-anchor" href="#LVM-in-production-snapshots-rescue-workflows-and-practical-patterns">¶</a>LVM in production: snapshots, rescue workflows, and practical patterns</h2>
-<h3 id="Snapshots-conceptual"><a class="header-anchor" href="#Snapshots-conceptual">¶</a>Snapshots (conceptual)</h3>
+<h2 id="lvm-in-production-snapshots-rescue-workflows-and-practical-patterns">LVM
+in production: snapshots, rescue workflows, and practical patterns</h2>
+<h3 id="snapshots-conceptual">Snapshots (conceptual)</h3>
 <p>LVM snapshots can help with:</p>
 <ul>
 <li>short maintenance windows</li>
 <li>consistency points before risky operations</li>
 </ul>
-<p>But snapshots are not free; they consume space as changes accumulate. If the snapshot fills, it becomes invalid. The safe mindset is: snapshots help you <em>roll back quickly</em>, but they do not replace backups.</p>
-<h3 id="Growing-vs-shrinking"><a class="header-anchor" href="#Growing-vs-shrinking">¶</a>Growing vs shrinking</h3>
-<p>Growing is often safe if filesystem supports it; shrinking is harder:</p>
+<p>But snapshots are not free; they consume space as changes accumulate.
+If the snapshot fills, it becomes invalid. The safe mindset is:
+snapshots help you <em>roll back quickly</em>, but they do not replace
+backups.</p>
+<h3 id="growing-vs-shrinking">Growing vs shrinking</h3>
+<p>Growing is often safe if filesystem supports it; shrinking is
+harder:</p>
 <ul>
 <li>ext4 can be shrunk offline (carefully)</li>
-<li>xfs cannot be shrunk (typical approach is migrate data to a new LV)</li>
+<li>xfs cannot be shrunk (typical approach is migrate data to a new
+LV)</li>
 </ul>
-<p>This is one reason people prefer to “grow-only” and plan headroom.</p>
+<p>This is one reason people prefer to “grow-only” and plan
+headroom.</p>
 <hr>
-<h2 id="Filesystem-repair-and-“read-only-remount”-incidents"><a class="header-anchor" href="#Filesystem-repair-and-“read-only-remount”-incidents">¶</a>Filesystem repair and “read-only remount” incidents</h2>
-<p>Sometimes the kernel remounts a filesystem as read-only to prevent further corruption. Symptoms:</p>
+<h2 id="filesystem-repair-and-read-only-remount-incidents">Filesystem
+repair and “read-only remount” incidents</h2>
+<p>Sometimes the kernel remounts a filesystem as read-only to prevent
+further corruption. Symptoms:</p>
 <ul>
 <li>writes fail with “Read-only file system”</li>
 <li>services crash on writes</li>
@@ -568,13 +711,18 @@
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dmesg | <span class="built_in">tail</span> -n 200</span><br><span class="line">journalctl -k --since \&quot;1 hour ago\&quot;</span><br></pre></td></tr></table></figure>
 <p>Then consider a controlled repair:</p>
 <ul>
-<li>ext4: <code>fsck</code> (offline; requires unmounted filesystem)</li>
-<li>xfs: <code>xfs_repair</code> (offline; requires unmounted filesystem)</li>
+<li>ext4: <code>fsck</code> (offline; requires unmounted
+filesystem)</li>
+<li>xfs: <code>xfs_repair</code> (offline; requires unmounted
+filesystem)</li>
 </ul>
-<p>Be careful: repair tools can change data structures. If this is production data, take snapshots/backups first.</p>
+<p>Be careful: repair tools can change data structures. If this is
+production data, take snapshots/backups first.</p>
 <hr>
-<h2 id="Disk-health-SMART-bad-sectors-and-when-to-replace-hardware"><a class="header-anchor" href="#Disk-health-SMART-bad-sectors-and-when-to-replace-hardware">¶</a>Disk health: SMART, bad sectors, and when to replace hardware</h2>
-<p>If you see intermittent I/O errors, timeouts, or “hung task” warnings, don’t assume it’s software. Check disk health.</p>
+<h2 id="disk-health-smart-bad-sectors-and-when-to-replace-hardware">Disk
+health: SMART, bad sectors, and when to replace hardware</h2>
+<p>If you see intermittent I/O errors, timeouts, or “hung task”
+warnings, don’t assume it’s software. Check disk health.</p>
 <p>Install tools (varies by distro) and inspect SMART:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo smartctl -a /dev/sda</span><br></pre></td></tr></table></figure>
 <p>Things that matter:</p>
@@ -585,19 +733,23 @@
 </ul>
 <p>If the trend is worsening, replacement is often the correct fix.</p>
 <hr>
-<h2 id="Real-world-troubleshooting-playbook-what-to-do-when-something-breaks"><a class="header-anchor" href="#Real-world-troubleshooting-playbook-what-to-do-when-something-breaks">¶</a>Real-world troubleshooting playbook (what to do when something breaks)</h2>
-<h3 id="“Disk-full”-but-you-deleted-files"><a class="header-anchor" href="#“Disk-full”-but-you-deleted-files">¶</a>“Disk full” but you deleted files</h3>
+<h2 id="real-world-troubleshooting-playbook-what-to-do-when-something-breaks">Real-world
+troubleshooting playbook (what to do when something breaks)</h2>
+<h3 id="disk-full-but-you-deleted-files">“Disk full” but you deleted
+files</h3>
 <p>This is almost always:</p>
 <ul>
 <li>deleted file still open by a process</li>
 </ul>
 <p>Confirm:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo lsof | grep <span class="string">&#x27;(deleted)&#x27;</span></span><br></pre></td></tr></table></figure>
-<p>Fix: restart the process holding the file, or rotate logs correctly.</p>
-<h3 id="“Device-or-resource-busy”-on-unmount"><a class="header-anchor" href="#“Device-or-resource-busy”-on-unmount">¶</a>“Device or resource busy” on unmount</h3>
+<p>Fix: restart the process holding the file, or rotate logs
+correctly.</p>
+<h3 id="device-or-resource-busy-on-unmount">“Device or resource busy” on
+unmount</h3>
 <p>Find who is using the mount:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo lsof +D /mnt/data | <span class="built_in">head</span></span><br><span class="line">sudo fuser -vm /mnt/data</span><br></pre></td></tr></table></figure>
-<h3 id="“Mount-fails-after-reboot”"><a class="header-anchor" href="#“Mount-fails-after-reboot”">¶</a>“Mount fails after reboot”</h3>
+<h3 id="mount-fails-after-reboot">“Mount fails after reboot”</h3>
 <p>Common causes:</p>
 <ul>
 <li>wrong UUID in <code>/etc/fstab</code></li>
@@ -605,9 +757,10 @@
 <li>ordering: trying to mount before RAID/LVM is ready</li>
 </ul>
 <p>Use <code>mount -a</code> to test, and review boot logs.</p>
-<h3 id="“Performance-suddenly-got-worse”"><a class="header-anchor" href="#“Performance-suddenly-got-worse”">¶</a>“Performance suddenly got worse”</h3>
+<h3 id="performance-suddenly-got-worse">“Performance suddenly got
+worse”</h3>
 <p>Checklist:</p>
-<ol>
+<ol type="1">
 <li><code>iostat -x 1</code> (is the disk saturated?)</li>
 <li><code>vmstat 1</code> (is there I/O wait / swapping?)</li>
 <li><code>dmesg</code> (are there I/O errors?)</li>
@@ -615,7 +768,9 @@
 <li>Did a backup/log job start?</li>
 </ol>
 <hr>
-<h2 id="A-worked-example-minimal-downtime-capacity-expansion-for-a-growing-service"><a class="header-anchor" href="#A-worked-example-minimal-downtime-capacity-expansion-for-a-growing-service">¶</a>A worked example: minimal-downtime capacity expansion for a growing service</h2>
+<h2 id="a-worked-example-minimal-downtime-capacity-expansion-for-a-growing-service">A
+worked example: minimal-downtime capacity expansion for a growing
+service</h2>
 <p>Scenario:</p>
 <ul>
 <li>a service writes to <code>/data</code></li>
@@ -623,7 +778,7 @@
 <li>you want to expand with minimal downtime</li>
 </ul>
 <p>One practical pattern:</p>
-<ol>
+<ol type="1">
 <li>Attach a new disk.</li>
 <li>Enroll it into LVM as a PV.</li>
 <li>Extend the VG, then extend the LV backing <code>/data</code>.</li>
@@ -634,22 +789,34 @@
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo pvcreate /dev/sdb</span><br><span class="line">sudo vgextend vg0 /dev/sdb</span><br><span class="line">sudo lvextend -l +100%FREE /dev/vg0/data</span><br><span class="line">sudo resize2fs /dev/vg0/data</span><br><span class="line"><span class="built_in">df</span> -h /data</span><br></pre></td></tr></table></figure>
 <p>If you’re using xfs:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo xfs_growfs /data</span><br></pre></td></tr></table></figure>
-<p>The key operational idea is to remove “migration” from the critical path. With LVM, you can often expand in-place.</p>
+<p>The key operational idea is to remove “migration” from the critical
+path. With LVM, you can often expand in-place.</p>
 <hr>
-<h2 id="How-disk-space-is-reported-df-vs-du-and-why-the-numbers-disagree"><a class="header-anchor" href="#How-disk-space-is-reported-df-vs-du-and-why-the-numbers-disagree">¶</a>How disk space is reported (df vs du) and why the numbers disagree</h2>
-<p>This is a recurring ops confusion, and it matters when you are debugging “where did my space go?”</p>
-<h3 id="df-answers-how-full-is-the-filesystem"><a class="header-anchor" href="#df-answers-how-full-is-the-filesystem">¶</a><code>df</code> answers: how full is the filesystem?</h3>
-<p><code>df</code> reports filesystem-level allocation (blocks reserved, metadata, etc.):</p>
+<h2 id="how-disk-space-is-reported-df-vs-du-and-why-the-numbers-disagree">How
+disk space is reported (df vs du) and why the numbers disagree</h2>
+<p>This is a recurring ops confusion, and it matters when you are
+debugging “where did my space go?”</p>
+<h3 id="df-answers-how-full-is-the-filesystem"><code>df</code> answers:
+how full is the filesystem?</h3>
+<p><code>df</code> reports filesystem-level allocation (blocks reserved,
+metadata, etc.):</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">df</span> -h</span><br></pre></td></tr></table></figure>
-<h3 id="du-answers-how-much-space-do-these-paths-account-for"><a class="header-anchor" href="#du-answers-how-much-space-do-these-paths-account-for">¶</a><code>du</code> answers: how much space do these paths account for?</h3>
-<p><code>du</code> walks directories and sums file sizes (as seen by directory entries):</p>
+<h3 id="du-answers-how-much-space-do-these-paths-account-for"><code>du</code>
+answers: how much space do these paths account for?</h3>
+<p><code>du</code> walks directories and sums file sizes (as seen by
+directory entries):</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">du</span> -h -d 1 /var | <span class="built_in">sort</span> -h</span><br></pre></td></tr></table></figure>
-<h3 id="Why-df-says-“full”-but-du-can’t-find-the-culprit"><a class="header-anchor" href="#Why-df-says-“full”-but-du-can’t-find-the-culprit">¶</a>Why <code>df</code> says “full” but <code>du</code> can’t find the culprit</h3>
+<h3 id="why-df-says-full-but-du-cant-find-the-culprit">Why
+<code>df</code> says “full” but <code>du</code> can’t find the
+culprit</h3>
 <p>Common causes:</p>
-<ol>
-<li><strong>Deleted-but-open files</strong> (logs are the most common)</li>
-<li><strong>Mount confusion</strong> (you are looking at a directory that is no longer the mount point you think it is)</li>
-<li><strong>Reserved blocks</strong> (e.g., ext4 reserves a percentage for root to keep the system alive)</li>
+<ol type="1">
+<li><strong>Deleted-but-open files</strong> (logs are the most
+common)</li>
+<li><strong>Mount confusion</strong> (you are looking at a directory
+that is no longer the mount point you think it is)</li>
+<li><strong>Reserved blocks</strong> (e.g., ext4 reserves a percentage
+for root to keep the system alive)</li>
 </ol>
 <p>For deleted-but-open files:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo lsof | grep <span class="string">&#x27;(deleted)&#x27;</span></span><br></pre></td></tr></table></figure>
@@ -660,11 +827,15 @@
 <p>You can reduce reserved blocks on non-root volumes (carefully):</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo tune2fs -m 1 /dev/sdb1</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="Swap-and-“disk-pressure-masquerading-as-memory-pressure”"><a class="header-anchor" href="#Swap-and-“disk-pressure-masquerading-as-memory-pressure”">¶</a>Swap and “disk pressure masquerading as memory pressure”</h2>
-<p>Sometimes the user experience feels like “disk is slow”, but the root cause is memory pressure leading to swapping, which then produces heavy disk I/O.</p>
+<h2 id="swap-and-disk-pressure-masquerading-as-memory-pressure">Swap and
+“disk pressure masquerading as memory pressure”</h2>
+<p>Sometimes the user experience feels like “disk is slow”, but the root
+cause is memory pressure leading to swapping, which then produces heavy
+disk I/O.</p>
 <p>Check swap usage:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">free -h</span><br><span class="line">swapon --show</span><br></pre></td></tr></table></figure>
-<p>If swap is actively used and the system is thrashing, you will see high I/O wait and high latency. The correct fix is usually:</p>
+<p>If swap is actively used and the system is thrashing, you will see
+high I/O wait and high latency. The correct fix is usually:</p>
 <ul>
 <li>add memory</li>
 <li>reduce memory footprint</li>
@@ -672,11 +843,14 @@
 </ul>
 <p>Swap is a safety net, not a performance plan.</p>
 <hr>
-<h2 id="Common-mount-topologies-for-web-stacks-why-layouts-matter"><a class="header-anchor" href="#Common-mount-topologies-for-web-stacks-why-layouts-matter">¶</a>Common mount topologies for web stacks (why layouts matter)</h2>
-<p>For a typical web/app server, a reasonable layout often separates:</p>
+<h2 id="common-mount-topologies-for-web-stacks-why-layouts-matter">Common
+mount topologies for web stacks (why layouts matter)</h2>
+<p>For a typical web/app server, a reasonable layout often
+separates:</p>
 <ul>
 <li><code>/</code> (OS + core binaries)</li>
-<li><code>/var</code> (logs, package caches, some DBs depending on layout)</li>
+<li><code>/var</code> (logs, package caches, some DBs depending on
+layout)</li>
 <li><code>/data</code> or <code>/srv</code> (application data)</li>
 </ul>
 <p>Why this helps:</p>
@@ -685,42 +859,59 @@
 <li>you can snapshot or expand data volumes independently</li>
 <li>permissions and ownership can be scoped more cleanly</li>
 </ul>
-<p>In cloud environments, this often maps naturally to separate block volumes attached to the instance.</p>
+<p>In cloud environments, this often maps naturally to separate block
+volumes attached to the instance.</p>
 <hr>
-<h2 id="A-short-“decision-tree”-for-day-2-operations"><a class="header-anchor" href="#A-short-“decision-tree”-for-day-2-operations">¶</a>A short “decision tree” for day-2 operations</h2>
+<h2 id="a-short-decision-tree-for-day-2-operations">A short “decision
+tree” for day-2 operations</h2>
 <p>If you want a quick mental flow:</p>
-<ol>
-<li><strong>Need redundancy?</strong> → RAID 1/10 (latency) or RAID 6 (big HDD arrays)</li>
-<li><strong>Need flexible growth?</strong> → put data under LVM (VG/LV), plan for grow-only</li>
-<li><strong>Need predictable behavior?</strong> → ext4; need huge scale/parallel I/O → xfs</li>
-<li><strong>Debugging space issues?</strong> → <code>df</code> + <code>du</code> + <code>lsof (deleted)</code> + <code>findmnt</code></li>
+<ol type="1">
+<li><strong>Need redundancy?</strong> → RAID 1/10 (latency) or RAID 6
+(big HDD arrays)</li>
+<li><strong>Need flexible growth?</strong> → put data under LVM (VG/LV),
+plan for grow-only</li>
+<li><strong>Need predictable behavior?</strong> → ext4; need huge
+scale/parallel I/O → xfs</li>
+<li><strong>Debugging space issues?</strong> → <code>df</code> +
+<code>du</code> + <code>lsof (deleted)</code> +
+<code>findmnt</code></li>
 </ol>
-<p>The point isn’t to memorize more commands; it’s to know which layer you’re operating on (hardware → block → RAID/LVM → filesystem → application).</p>
+<p>The point isn’t to memorize more commands; it’s to know which layer
+you’re operating on (hardware → block → RAID/LVM → filesystem →
+application).</p>
 <hr>
-<h2 id="Practical-command-appendix-small-but-complete"><a class="header-anchor" href="#Practical-command-appendix-small-but-complete">¶</a>Practical command appendix (small but complete)</h2>
-<p>This section is deliberately “boring”: it’s a compact list you can copy when you’re on-call.</p>
-<h3 id="Discover-and-inspect"><a class="header-anchor" href="#Discover-and-inspect">¶</a>Discover and inspect</h3>
+<h2 id="practical-command-appendix-small-but-complete">Practical command
+appendix (small but complete)</h2>
+<p>This section is deliberately “boring”: it’s a compact list you can
+copy when you’re on-call.</p>
+<h3 id="discover-and-inspect">Discover and inspect</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">lsblk -f</span><br><span class="line">findmnt</span><br><span class="line">mount</span><br><span class="line"><span class="built_in">df</span> -h</span><br><span class="line"><span class="built_in">df</span> -i</span><br><span class="line">sudo blkid</span><br></pre></td></tr></table></figure>
-<h3 id="Partitioning"><a class="header-anchor" href="#Partitioning">¶</a>Partitioning</h3>
+<h3 id="partitioning">Partitioning</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo fdisk -l</span><br><span class="line">sudo fdisk /dev/sdb</span><br><span class="line">sudo gdisk /dev/sdb</span><br></pre></td></tr></table></figure>
-<h3 id="Filesystem-creation-and-checks"><a class="header-anchor" href="#Filesystem-creation-and-checks">¶</a>Filesystem creation and checks</h3>
+<h3 id="filesystem-creation-and-checks">Filesystem creation and
+checks</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo mkfs.ext4 /dev/sdb1</span><br><span class="line">sudo mkfs.xfs /dev/sdb1</span><br><span class="line"></span><br><span class="line"><span class="comment"># ext4 info</span></span><br><span class="line">sudo tune2fs -l /dev/sdb1 | <span class="built_in">head</span></span><br></pre></td></tr></table></figure>
-<h3 id="Mounting-and-persistence"><a class="header-anchor" href="#Mounting-and-persistence">¶</a>Mounting and persistence</h3>
+<h3 id="mounting-and-persistence">Mounting and persistence</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo mount /dev/sdb1 /mnt/data</span><br><span class="line">sudo umount /mnt/data</span><br><span class="line">sudo mount -a</span><br></pre></td></tr></table></figure>
-<h3 id="RAID-mdadm"><a class="header-anchor" href="#RAID-mdadm">¶</a>RAID (<code>mdadm</code>)</h3>
+<h3 id="raid-mdadm">RAID (<code>mdadm</code>)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/mdstat</span><br><span class="line">sudo mdadm --detail /dev/md0</span><br></pre></td></tr></table></figure>
-<h3 id="LVM"><a class="header-anchor" href="#LVM">¶</a>LVM</h3>
+<h3 id="lvm">LVM</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo pvs</span><br><span class="line">sudo vgs</span><br><span class="line">sudo lvs</span><br><span class="line"></span><br><span class="line">sudo pvcreate /dev/sdb</span><br><span class="line">sudo vgextend vg0 /dev/sdb</span><br><span class="line">sudo lvextend -L +100G /dev/vg0/data</span><br></pre></td></tr></table></figure>
-<h3 id="“Space-not-reclaimed”"><a class="header-anchor" href="#“Space-not-reclaimed”">¶</a>“Space not reclaimed”</h3>
+<h3 id="space-not-reclaimed">“Space not reclaimed”</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo lsof | grep <span class="string">&#x27;(deleted)&#x27;</span></span><br></pre></td></tr></table></figure>
-<h3 id="Kernel-messages-for-I-O-issues"><a class="header-anchor" href="#Kernel-messages-for-I-O-issues">¶</a>Kernel messages for I/O issues</h3>
+<h3 id="kernel-messages-for-io-issues">Kernel messages for I/O
+issues</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dmesg | <span class="built_in">tail</span> -n 200</span><br><span class="line">journalctl -k --since \&quot;1 hour ago\&quot; | <span class="built_in">tail</span> -n 200</span><br></pre></td></tr></table></figure>
-<h3 id="SMART-health-if-available"><a class="header-anchor" href="#SMART-health-if-available">¶</a>SMART health (if available)</h3>
+<h3 id="smart-health-if-available">SMART health (if available)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo smartctl -a /dev/sda | <span class="built_in">head</span> -n 60</span><br></pre></td></tr></table></figure>
-<h3 id="Two-“save-you-at-3am”-reminders"><a class="header-anchor" href="#Two-“save-you-at-3am”-reminders">¶</a>Two “save you at 3am” reminders</h3>
+<h3 id="two-save-you-at-3am-reminders">Two “save you at 3am”
+reminders</h3>
 <ul>
-<li>Always double-check the target device before destructive operations. If you are unsure, stop and re-run <code>lsblk -f</code>.</li>
-<li>After any change to partitioning/RAID/LVM, verify the layer you just changed is visible <em>before</em> moving to the next layer (block → md → lvm → filesystem → mount).</li>
+<li>Always double-check the target device before destructive operations.
+If you are unsure, stop and re-run <code>lsblk -f</code>.</li>
+<li>After any change to partitioning/RAID/LVM, verify the layer you just
+changed is visible <em>before</em> moving to the next layer (block → md
+→ lvm → filesystem → mount).</li>
 </ul>
 
         </div>
@@ -772,13 +963,13 @@
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/linux-file-permissions/"
+                           href="/en/leetcode-two-pointers/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux File Permissions: rwx, chmod/chown, umask, SUID/SGID/Sticky, and Troubleshooting</span>
+                                <span class="post-nav-title-item">LeetCode (2): Two Pointers - Collision, Fast-Slow &amp; Sliding Window Complete Guide</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -1004,7 +1195,68 @@
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Storage-basics-what-you%E2%80%99re-really-buying-latency-vs-throughput-vs-safety"><span class="nav-number">1.</span> <span class="nav-text">Storage basics: what you’re really buying (latency vs throughput vs safety)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Hot-vs-cold-storage-SSD-vs-HDD-and-the-%E2%80%9Crandom-I-O-tax%E2%80%9D"><span class="nav-number">1.1.</span> <span class="nav-text">Hot vs cold storage (SSD vs HDD) and the “random I&#x2F;O tax”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#What-is-a-%E2%80%9Csector%E2%80%9D-what-is-a-filesystem-%E2%80%9Cblock%E2%80%9D-and-why-small-files-waste-space"><span class="nav-number">1.2.</span> <span class="nav-text">What is a “sector”, what is a filesystem “block”, and why small files waste space</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TRIM-on-SSD-and-%E2%80%9Ccan-deleted-data-be-recovered-%E2%80%9D"><span class="nav-number">1.3.</span> <span class="nav-text">TRIM on SSD and “can deleted data be recovered?”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Object-storage-is-a-different-abstraction-S3-OSS"><span class="nav-number">1.4.</span> <span class="nav-text">Object storage is a different abstraction (S3&#x2F;OSS)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Block-devices-in-Linux-how-disks-show-up-and-how-to-not-shoot-yourself"><span class="nav-number">2.</span> <span class="nav-text">Block devices in Linux: how disks show up (and how to not shoot yourself)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#The-core-commands-to-identify-hardware-and-mapping"><span class="nav-number">2.1.</span> <span class="nav-text">The core commands to identify hardware and mapping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Naming-pitfalls-why-dev-sdb-can-%E2%80%9Cchange%E2%80%9D"><span class="nav-number">2.2.</span> <span class="nav-text">Naming pitfalls: why &#x2F;dev&#x2F;sdb can “change”</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Partition-tables-GPT-vs-MBR-and-what-tools-to-use"><span class="nav-number">3.</span> <span class="nav-text">Partition tables: GPT vs MBR (and what tools to use)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MBR-vs-GPT-decision-guide"><span class="nav-number">3.1.</span> <span class="nav-text">MBR vs GPT (decision guide)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Tools-fdisk-vs-gdisk-vs-parted"><span class="nav-number">3.2.</span> <span class="nav-text">Tools: fdisk vs gdisk vs parted</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Example-create-a-partition-high-level"><span class="nav-number">3.3.</span> <span class="nav-text">Example: create a partition (high-level)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Filesystems-format-mount-and-persist-with-fstab"><span class="nav-number">4.</span> <span class="nav-text">Filesystems: format, mount, and persist with fstab</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Choose-a-filesystem-ext4-vs-xfs"><span class="nav-number">4.1.</span> <span class="nav-text">Choose a filesystem: ext4 vs xfs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Format"><span class="nav-number">4.2.</span> <span class="nav-text">Format</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Mount"><span class="nav-number">4.3.</span> <span class="nav-text">Mount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Make-mount-persistent-etc-fstab"><span class="nav-number">4.4.</span> <span class="nav-text">Make mount persistent: &#x2F;etc&#x2F;fstab</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RAID-redundancy-and-performance-with-real-trade-offs"><span class="nav-number">5.</span> <span class="nav-text">RAID: redundancy and performance, with real trade-offs</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RAID-levels-what-people-actually-choose"><span class="nav-number">5.1.</span> <span class="nav-text">RAID levels (what people actually choose)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Software-RAID-on-Linux-mdadm"><span class="nav-number">5.2.</span> <span class="nav-text">Software RAID on Linux (mdadm)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LVM-how-to-expand-disks-without-re-partitioning-pain"><span class="nav-number">6.</span> <span class="nav-text">LVM: how to expand disks without re-partitioning pain</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Typical-expansion-workflow-the-%E2%80%9Cminimal-downtime%E2%80%9D-playbook"><span class="nav-number">6.1.</span> <span class="nav-text">Typical expansion workflow (the “minimal downtime” playbook)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A-safer-%E2%80%9Cdata-migration%E2%80%9D-variant-when-you-really-need-to-move"><span class="nav-number">6.2.</span> <span class="nav-text">A safer “data migration” variant (when you really need to move)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dev-special-devices-you%E2%80%99ll-see-in-disk-work"><span class="nav-number">7.</span> <span class="nav-text">&#x2F;dev special devices you’ll see in disk work</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Inodes-hard-links-symlinks-filesystem-semantics-that-explain-weird-incidents"><span class="nav-number">8.</span> <span class="nav-text">Inodes, hard links, symlinks: filesystem semantics that explain weird incidents</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Inodes-why-%E2%80%9Cfile-name%E2%80%9D-is-not-%E2%80%9Cthe-file%E2%80%9D"><span class="nav-number">8.1.</span> <span class="nav-text">Inodes: why “file name” is not “the file”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Hard-link-vs-symlink-what%E2%80%99s-the-real-difference"><span class="nav-number">8.2.</span> <span class="nav-text">Hard link vs symlink (what’s the real difference)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E2%80%9CI-deleted-files-but-disk-space-didn%E2%80%99t-come-back%E2%80%9D-the-real-cause-and-the-fix"><span class="nav-number">9.</span> <span class="nav-text">“I deleted files but disk space didn’t come back”: the real cause and the fix</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#End-to-end-checklist-new-disk-%E2%86%92-usable-space-%E2%86%92-expandable-setup"><span class="nav-number">10.</span> <span class="nav-text">End-to-end checklist: new disk → usable space → expandable setup</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#A-deeper-performance-model-why-%E2%80%9CMB-s-looks-fine%E2%80%9D-but-the-service-is-slow"><span class="nav-number">11.</span> <span class="nav-text">A deeper performance model: why “MB&#x2F;s looks fine” but the service is slow</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Random-I-O-and-IOPS"><span class="nav-number">11.1.</span> <span class="nav-text">Random I&#x2F;O and IOPS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Page-cache-why-reads-can-be-fast-until-they-aren%E2%80%99t"><span class="nav-number">11.2.</span> <span class="nav-text">Page cache: why reads can be fast until they aren’t</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#I-O-wait-and-load-average"><span class="nav-number">11.3.</span> <span class="nav-text">I&#x2F;O wait and load average</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Partition-alignment-and-4K-sectors-the-silent-performance-killer"><span class="nav-number">12.</span> <span class="nav-text">Partition alignment and 4K sectors (the silent performance killer)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Filesystem-selection-and-tuning-ext4-vs-xfs-vs-%E2%80%9Cwhat-knobs-matter%E2%80%9D"><span class="nav-number">13.</span> <span class="nav-text">Filesystem selection and tuning (ext4 vs xfs vs “what knobs matter”)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ext4-safe-defaults-broad-compatibility"><span class="nav-number">13.1.</span> <span class="nav-text">ext4: safe defaults, broad compatibility</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xfs-strong-for-large-volumes-and-parallel-I-O"><span class="nav-number">13.2.</span> <span class="nav-text">xfs: strong for large volumes and parallel I&#x2F;O</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Mount-options-small-changes-big-behavior-differences"><span class="nav-number">13.3.</span> <span class="nav-text">Mount options: small changes, big behavior differences</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RAID-in-production-rebuild-risk-write-penalties-and-what-people-forget"><span class="nav-number">14.</span> <span class="nav-text">RAID in production: rebuild risk, write penalties, and what people forget</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Rebuild-windows-are-dangerous"><span class="nav-number">14.1.</span> <span class="nav-text">Rebuild windows are dangerous</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RAID-is-not-a-backup"><span class="nav-number">14.2.</span> <span class="nav-text">RAID is not a backup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Monitoring-RAID-health"><span class="nav-number">14.3.</span> <span class="nav-text">Monitoring RAID health</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LVM-in-production-snapshots-rescue-workflows-and-practical-patterns"><span class="nav-number">15.</span> <span class="nav-text">LVM in production: snapshots, rescue workflows, and practical patterns</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Snapshots-conceptual"><span class="nav-number">15.1.</span> <span class="nav-text">Snapshots (conceptual)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Growing-vs-shrinking"><span class="nav-number">15.2.</span> <span class="nav-text">Growing vs shrinking</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Filesystem-repair-and-%E2%80%9Cread-only-remount%E2%80%9D-incidents"><span class="nav-number">16.</span> <span class="nav-text">Filesystem repair and “read-only remount” incidents</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Disk-health-SMART-bad-sectors-and-when-to-replace-hardware"><span class="nav-number">17.</span> <span class="nav-text">Disk health: SMART, bad sectors, and when to replace hardware</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Real-world-troubleshooting-playbook-what-to-do-when-something-breaks"><span class="nav-number">18.</span> <span class="nav-text">Real-world troubleshooting playbook (what to do when something breaks)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9CDisk-full%E2%80%9D-but-you-deleted-files"><span class="nav-number">18.1.</span> <span class="nav-text">“Disk full” but you deleted files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9CDevice-or-resource-busy%E2%80%9D-on-unmount"><span class="nav-number">18.2.</span> <span class="nav-text">“Device or resource busy” on unmount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9CMount-fails-after-reboot%E2%80%9D"><span class="nav-number">18.3.</span> <span class="nav-text">“Mount fails after reboot”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9CPerformance-suddenly-got-worse%E2%80%9D"><span class="nav-number">18.4.</span> <span class="nav-text">“Performance suddenly got worse”</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#A-worked-example-minimal-downtime-capacity-expansion-for-a-growing-service"><span class="nav-number">19.</span> <span class="nav-text">A worked example: minimal-downtime capacity expansion for a growing service</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#How-disk-space-is-reported-df-vs-du-and-why-the-numbers-disagree"><span class="nav-number">20.</span> <span class="nav-text">How disk space is reported (df vs du) and why the numbers disagree</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#df-answers-how-full-is-the-filesystem"><span class="nav-number">20.1.</span> <span class="nav-text">df answers: how full is the filesystem?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#du-answers-how-much-space-do-these-paths-account-for"><span class="nav-number">20.2.</span> <span class="nav-text">du answers: how much space do these paths account for?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Why-df-says-%E2%80%9Cfull%E2%80%9D-but-du-can%E2%80%99t-find-the-culprit"><span class="nav-number">20.3.</span> <span class="nav-text">Why df says “full” but du can’t find the culprit</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Swap-and-%E2%80%9Cdisk-pressure-masquerading-as-memory-pressure%E2%80%9D"><span class="nav-number">21.</span> <span class="nav-text">Swap and “disk pressure masquerading as memory pressure”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Common-mount-topologies-for-web-stacks-why-layouts-matter"><span class="nav-number">22.</span> <span class="nav-text">Common mount topologies for web stacks (why layouts matter)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#A-short-%E2%80%9Cdecision-tree%E2%80%9D-for-day-2-operations"><span class="nav-number">23.</span> <span class="nav-text">A short “decision tree” for day-2 operations</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Practical-command-appendix-small-but-complete"><span class="nav-number">24.</span> <span class="nav-text">Practical command appendix (small but complete)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Discover-and-inspect"><span class="nav-number">24.1.</span> <span class="nav-text">Discover and inspect</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Partitioning"><span class="nav-number">24.2.</span> <span class="nav-text">Partitioning</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Filesystem-creation-and-checks"><span class="nav-number">24.3.</span> <span class="nav-text">Filesystem creation and checks</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Mounting-and-persistence"><span class="nav-number">24.4.</span> <span class="nav-text">Mounting and persistence</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RAID-mdadm"><span class="nav-number">24.5.</span> <span class="nav-text">RAID (mdadm)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LVM"><span class="nav-number">24.6.</span> <span class="nav-text">LVM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%9CSpace-not-reclaimed%E2%80%9D"><span class="nav-number">24.7.</span> <span class="nav-text">“Space not reclaimed”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Kernel-messages-for-I-O-issues"><span class="nav-number">24.8.</span> <span class="nav-text">Kernel messages for I&#x2F;O issues</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SMART-health-if-available"><span class="nav-number">24.9.</span> <span class="nav-text">SMART health (if available)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Two-%E2%80%9Csave-you-at-3am%E2%80%9D-reminders"><span class="nav-number">24.10.</span> <span class="nav-text">Two “save you at 3am” reminders</span></a></li></ol></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#storage-basics-what-youre-really-buying-latency-vs-throughput-vs-safety"><span class="nav-number">1.</span> <span class="nav-text">Storage
+basics: what you’re really buying (latency vs throughput vs safety)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#hot-vs-cold-storage-ssd-vs-hdd-and-the-random-io-tax"><span class="nav-number">1.1.</span> <span class="nav-text">Hot vs
+cold storage (SSD vs HDD) and the “random I&#x2F;O tax”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#what-is-a-sector-what-is-a-filesystem-block-and-why-small-files-waste-space"><span class="nav-number">1.2.</span> <span class="nav-text">What
+is a “sector”, what is a filesystem “block”, and why small files waste
+space</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trim-on-ssd-and-can-deleted-data-be-recovered"><span class="nav-number">1.3.</span> <span class="nav-text">TRIM on SSD and
+“can deleted data be recovered?”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#object-storage-is-a-different-abstraction-s3oss"><span class="nav-number">1.4.</span> <span class="nav-text">Object storage
+is a different abstraction (S3&#x2F;OSS)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#block-devices-in-linux-how-disks-show-up-and-how-to-not-shoot-yourself"><span class="nav-number">2.</span> <span class="nav-text">Block
+devices in Linux: how disks show up (and how to not shoot yourself)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#the-core-commands-to-identify-hardware-and-mapping"><span class="nav-number">2.1.</span> <span class="nav-text">The core
+commands to identify hardware and mapping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#naming-pitfalls-why-devsdb-can-change"><span class="nav-number">2.2.</span> <span class="nav-text">Naming pitfalls: why
+&#x2F;dev&#x2F;sdb can “change”</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#partition-tables-gpt-vs-mbr-and-what-tools-to-use"><span class="nav-number">3.</span> <span class="nav-text">Partition
+tables: GPT vs MBR (and what tools to use)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#mbr-vs-gpt-decision-guide"><span class="nav-number">3.1.</span> <span class="nav-text">MBR vs GPT (decision guide)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tools-fdisk-vs-gdisk-vs-parted"><span class="nav-number">3.2.</span> <span class="nav-text">Tools: fdisk vs
+gdisk vs parted</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#example-create-a-partition-high-level"><span class="nav-number">3.3.</span> <span class="nav-text">Example: create a
+partition (high-level)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#filesystems-format-mount-and-persist-with-fstab"><span class="nav-number">4.</span> <span class="nav-text">Filesystems:
+format, mount, and persist with fstab</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#choose-a-filesystem-ext4-vs-xfs"><span class="nav-number">4.1.</span> <span class="nav-text">Choose a filesystem: ext4 vs
+xfs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#format"><span class="nav-number">4.2.</span> <span class="nav-text">Format</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mount"><span class="nav-number">4.3.</span> <span class="nav-text">Mount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#make-mount-persistent-etcfstab"><span class="nav-number">4.4.</span> <span class="nav-text">Make mount persistent:
+&#x2F;etc&#x2F;fstab</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#raid-redundancy-and-performance-with-real-trade-offs"><span class="nav-number">5.</span> <span class="nav-text">RAID:
+redundancy and performance, with real trade-offs</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#raid-levels-what-people-actually-choose"><span class="nav-number">5.1.</span> <span class="nav-text">RAID levels (what
+people actually choose)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#software-raid-on-linux-mdadm"><span class="nav-number">5.2.</span> <span class="nav-text">Software RAID on Linux
+(mdadm)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lvm-how-to-expand-disks-without-re-partitioning-pain"><span class="nav-number">6.</span> <span class="nav-text">LVM: how
+to expand disks without re-partitioning pain</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#typical-expansion-workflow-the-minimal-downtime-playbook"><span class="nav-number">6.1.</span> <span class="nav-text">Typical
+expansion workflow (the “minimal downtime” playbook)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#a-safer-data-migration-variant-when-you-really-need-to-move"><span class="nav-number">6.2.</span> <span class="nav-text">A
+safer “data migration” variant (when you really need to move)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dev-special-devices-youll-see-in-disk-work"><span class="nav-number">7.</span> <span class="nav-text">&#x2F;dev
+special devices you’ll see in disk work</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#inodes-hard-links-symlinks-filesystem-semantics-that-explain-weird-incidents"><span class="nav-number">8.</span> <span class="nav-text">Inodes,
+hard links, symlinks: filesystem semantics that explain weird
+incidents</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#inodes-why-file-name-is-not-the-file"><span class="nav-number">8.1.</span> <span class="nav-text">Inodes: why “file name” is
+not “the file”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hard-link-vs-symlink-whats-the-real-difference"><span class="nav-number">8.2.</span> <span class="nav-text">Hard link vs
+symlink (what’s the real difference)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#i-deleted-files-but-disk-space-didnt-come-back-the-real-cause-and-the-fix"><span class="nav-number">9.</span> <span class="nav-text">“I
+deleted files but disk space didn’t come back”: the real cause and the
+fix</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#end-to-end-checklist-new-disk-usable-space-expandable-setup"><span class="nav-number">10.</span> <span class="nav-text">End-to-end
+checklist: new disk → usable space → expandable setup</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#a-deeper-performance-model-why-mbs-looks-fine-but-the-service-is-slow"><span class="nav-number">11.</span> <span class="nav-text">A
+deeper performance model: why “MB&#x2F;s looks fine” but the service is
+slow</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#random-io-and-iops"><span class="nav-number">11.1.</span> <span class="nav-text">Random I&#x2F;O and IOPS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#page-cache-why-reads-can-be-fast-until-they-arent"><span class="nav-number">11.2.</span> <span class="nav-text">Page cache:
+why reads can be fast until they aren’t</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#io-wait-and-load-average"><span class="nav-number">11.3.</span> <span class="nav-text">I&#x2F;O wait and load average</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#partition-alignment-and-4k-sectors-the-silent-performance-killer"><span class="nav-number">12.</span> <span class="nav-text">Partition
+alignment and 4K sectors (the silent performance killer)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#filesystem-selection-and-tuning-ext4-vs-xfs-vs-what-knobs-matter"><span class="nav-number">13.</span> <span class="nav-text">Filesystem
+selection and tuning (ext4 vs xfs vs “what knobs matter”)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ext4-safe-defaults-broad-compatibility"><span class="nav-number">13.1.</span> <span class="nav-text">ext4: safe defaults,
+broad compatibility</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xfs-strong-for-large-volumes-and-parallel-io"><span class="nav-number">13.2.</span> <span class="nav-text">xfs: strong for
+large volumes and parallel I&#x2F;O</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mount-options-small-changes-big-behavior-differences"><span class="nav-number">13.3.</span> <span class="nav-text">Mount
+options: small changes, big behavior differences</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#raid-in-production-rebuild-risk-write-penalties-and-what-people-forget"><span class="nav-number">14.</span> <span class="nav-text">RAID
+in production: rebuild risk, write penalties, and what people
+forget</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#rebuild-windows-are-dangerous"><span class="nav-number">14.1.</span> <span class="nav-text">Rebuild windows are
+dangerous</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#raid-is-not-a-backup"><span class="nav-number">14.2.</span> <span class="nav-text">RAID is not a backup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#monitoring-raid-health"><span class="nav-number">14.3.</span> <span class="nav-text">Monitoring RAID health</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lvm-in-production-snapshots-rescue-workflows-and-practical-patterns"><span class="nav-number">15.</span> <span class="nav-text">LVM
+in production: snapshots, rescue workflows, and practical patterns</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#snapshots-conceptual"><span class="nav-number">15.1.</span> <span class="nav-text">Snapshots (conceptual)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#growing-vs-shrinking"><span class="nav-number">15.2.</span> <span class="nav-text">Growing vs shrinking</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#filesystem-repair-and-read-only-remount-incidents"><span class="nav-number">16.</span> <span class="nav-text">Filesystem
+repair and “read-only remount” incidents</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#disk-health-smart-bad-sectors-and-when-to-replace-hardware"><span class="nav-number">17.</span> <span class="nav-text">Disk
+health: SMART, bad sectors, and when to replace hardware</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#real-world-troubleshooting-playbook-what-to-do-when-something-breaks"><span class="nav-number">18.</span> <span class="nav-text">Real-world
+troubleshooting playbook (what to do when something breaks)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#disk-full-but-you-deleted-files"><span class="nav-number">18.1.</span> <span class="nav-text">“Disk full” but you deleted
+files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#device-or-resource-busy-on-unmount"><span class="nav-number">18.2.</span> <span class="nav-text">“Device or resource busy” on
+unmount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mount-fails-after-reboot"><span class="nav-number">18.3.</span> <span class="nav-text">“Mount fails after reboot”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#performance-suddenly-got-worse"><span class="nav-number">18.4.</span> <span class="nav-text">“Performance suddenly got
+worse”</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#a-worked-example-minimal-downtime-capacity-expansion-for-a-growing-service"><span class="nav-number">19.</span> <span class="nav-text">A
+worked example: minimal-downtime capacity expansion for a growing
+service</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#how-disk-space-is-reported-df-vs-du-and-why-the-numbers-disagree"><span class="nav-number">20.</span> <span class="nav-text">How
+disk space is reported (df vs du) and why the numbers disagree</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#df-answers-how-full-is-the-filesystem"><span class="nav-number">20.1.</span> <span class="nav-text">df answers:
+how full is the filesystem?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#du-answers-how-much-space-do-these-paths-account-for"><span class="nav-number">20.2.</span> <span class="nav-text">du
+answers: how much space do these paths account for?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#why-df-says-full-but-du-cant-find-the-culprit"><span class="nav-number">20.3.</span> <span class="nav-text">Why
+df says “full” but du can’t find the
+culprit</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#swap-and-disk-pressure-masquerading-as-memory-pressure"><span class="nav-number">21.</span> <span class="nav-text">Swap and
+“disk pressure masquerading as memory pressure”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#common-mount-topologies-for-web-stacks-why-layouts-matter"><span class="nav-number">22.</span> <span class="nav-text">Common
+mount topologies for web stacks (why layouts matter)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#a-short-decision-tree-for-day-2-operations"><span class="nav-number">23.</span> <span class="nav-text">A short “decision
+tree” for day-2 operations</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#practical-command-appendix-small-but-complete"><span class="nav-number">24.</span> <span class="nav-text">Practical command
+appendix (small but complete)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#discover-and-inspect"><span class="nav-number">24.1.</span> <span class="nav-text">Discover and inspect</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#partitioning"><span class="nav-number">24.2.</span> <span class="nav-text">Partitioning</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#filesystem-creation-and-checks"><span class="nav-number">24.3.</span> <span class="nav-text">Filesystem creation and
+checks</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mounting-and-persistence"><span class="nav-number">24.4.</span> <span class="nav-text">Mounting and persistence</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#raid-mdadm"><span class="nav-number">24.5.</span> <span class="nav-text">RAID (mdadm)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lvm"><span class="nav-number">24.6.</span> <span class="nav-text">LVM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#space-not-reclaimed"><span class="nav-number">24.7.</span> <span class="nav-text">“Space not reclaimed”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kernel-messages-for-io-issues"><span class="nav-number">24.8.</span> <span class="nav-text">Kernel messages for I&#x2F;O
+issues</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#smart-health-if-available"><span class="nav-number">24.9.</span> <span class="nav-text">SMART health (if available)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#two-save-you-at-3am-reminders"><span class="nav-number">24.10.</span> <span class="nav-text">Two “save you at 3am”
+reminders</span></a></li></ol></li></ol>
     </div>
 </div>
         </aside>
