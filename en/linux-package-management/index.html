@@ -260,97 +260,62 @@
         
 
         <div class="article-content markdown-body">
-            <p>Package management appears to be just "install / remove / update,"
-but what truly determines whether you avoid pitfalls comes down to two
-things: First, what exactly is in a package (executables, config,
-dependency libraries, service scripts) and where they land in the
-system; Second, how toolchain differences across distributions
-(Debian/Ubuntu's <code>dpkg/apt</code> vs RHEL/CentOS's
-<code>rpm/yum/dnf</code>) affect dependency resolution, version
-selection, and rollback strategies. This post first clarifies the basic
-concepts of packages and dependencies, then provides a reproducible list
-of common operations (including advanced usage: dependency conflict
-troubleshooting, version locking, downgrades, cleanup of unused
-packages), and adds the most common configurations for domestic
-environments (like switching to Aliyun mirrors, Tsinghua mirrors,
-verifying mirror effectiveness). Finally, it extends "installing
-packages" to two production-relevant paths: building from source (using
-Nginx as an example, explaining what configure/make/make install each
-do) and binary portable configuration (using Java as an example), giving
-you viable deployment options when facing version/dependency/network
-constraints.</p>
+            <p>Package management appears to be just “install / remove / update,” but what truly determines whether you avoid pitfalls comes down to two things: First, what exactly is in a package (executables, config, dependency libraries, service scripts) and where they land in the system; Second, how toolchain differences across distributions (Debian/Ubuntu’s <code>dpkg/apt</code> vs RHEL/CentOS’s <code>rpm/yum/dnf</code>) affect dependency resolution, version selection, and rollback strategies. This post first clarifies the basic concepts of packages and dependencies, then provides a reproducible list of common operations (including advanced usage: dependency conflict troubleshooting, version locking, downgrades, cleanup of unused packages), and adds the most common configurations for domestic environments (like switching to Aliyun mirrors, Tsinghua mirrors, verifying mirror effectiveness). Finally, it extends “installing packages” to two production-relevant paths: building from source (using Nginx as an example, explaining what configure/make/make install each do) and binary portable configuration (using Java as an example), giving you viable deployment options when facing version/dependency/network constraints.</p>
 <span id="more"></span>
-<h1 id="basic-package-concepts-whats-inside-why-we-need-package-managers">Basic
-Package Concepts: What's Inside, Why We Need Package Managers</h1>
-<h2 id="package-composition">Package Composition</h2>
-<p>A package bundles programs, library files, configuration files, and
-documentation into a single file, making installation, upgrade, and
-removal convenient. Packages automatically handle dependencies,
-simplifying software management. A standard package typically
-includes:</p>
-<h3 id="binary-executables">1. Binary Executables</h3>
-<p>Compiled program source code, generating executable binary files.
-Examples: - <code>/usr/bin/vim</code>: Text editor -
-<code>/usr/sbin/nginx</code>: Web server - <code>/usr/bin/gcc</code>:
-Compiler</p>
-<h3 id="configuration-files">2. Configuration Files</h3>
-<p>Store application default configurations, usually located in
-<code>/etc/</code> directory. Examples: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/etc/nginx/nginx.conf  <span class="comment"># Nginx config file</span></span><br><span class="line">/etc/mysql/my.cnf      <span class="comment"># MySQL config file</span></span><br><span class="line">/etc/ssh/sshd_config   <span class="comment"># SSH server config</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Important characteristic</strong>: Package managers typically
-<strong>preserve your modified configuration files</strong> during
-upgrades (won't overwrite), avoiding config loss.</p>
-<h3 id="shared-libraries">3. Shared Libraries</h3>
-<p>Shared libraries are dynamically linked libraries that executables
-depend on at runtime (like Windows <code>.dll</code>), usually stored in
-<code>/usr/lib/</code> or <code>/lib/</code> directories. Examples:
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/libssl.so             <span class="comment"># OpenSSL crypto library</span></span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6  <span class="comment"># GNU C standard library</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Why shared libraries?</strong> - Save disk space (multiple
-programs share the same library) - Save memory (same library loaded only
-once) - Easy upgrades (upgrading library benefits all programs that
-depend on it)</p>
-<h3 id="data-files">4. Data Files</h3>
-<p>Data required by applications, like database files, default
-resources, etc. Examples: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/mysql/   <span class="comment"># MySQL database storage directory</span></span><br><span class="line">/var/www/html/    <span class="comment"># Web server default site directory</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="documentation">5. Documentation</h3>
-<p>Software documentation, manual pages (man pages), copyright notices,
-etc., usually stored in <code>/usr/share/doc/</code> directory.
-Examples: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">/usr/share/man/man1/vim.1.gz  <span class="comment"># vim man page</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="service-unit-files-if-its-a-service">6. Service Unit Files (If
-It's a Service)</h3>
-<p>If it's a background service, it will also include systemd unit
-files: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/systemd/system/nginx.service</span><br><span class="line">/etc/systemd/system/mysql.service</span><br></pre></td></tr></table></figure></p>
-<h2 id="why-we-need-package-managers">Why We Need Package Managers</h2>
-<p>Without package managers, you'd need to: 1. <strong>Manually download
-software</strong> (find download links from official sites or
-third-party sites) 2. <strong>Manually resolve dependencies</strong> (A
-depends on B, B depends on C, you install one by one) 3.
-<strong>Manually place files</strong> (where to put executables, config,
-libraries) 4. <strong>Manually uninstall</strong> (remember to delete
-all files when uninstalling, including config and dependencies) 5.
-<strong>Manually update</strong> (check official sites for each software
-for new versions)</p>
-<p><strong>Core value of package managers</strong>: -
-<strong>Auto-resolve dependencies</strong>: A depends on B, installing A
-automatically installs B - <strong>Unified installation
-locations</strong>: All software placed according to standards, no mess
-- <strong>One-click uninstall</strong>: Automatically deletes all
-related files when uninstalling - <strong>One-click update</strong>:
-<code>apt upgrade</code> or <code>dnf upgrade</code> updates all
-software - <strong>Version management</strong>: Can view, lock,
-downgrade software versions - <strong>Security</strong>: Packages are
-all signature-verified, reducing malicious software risk</p>
+<h1>Basic Package Concepts: What’s Inside, Why We Need Package Managers</h1>
+<h2 id="Package-Composition"><a class="header-anchor" href="#Package-Composition">¶</a>Package Composition</h2>
+<p>A package bundles programs, library files, configuration files, and documentation into a single file, making installation, upgrade, and removal convenient. Packages automatically handle dependencies, simplifying software management. A standard package typically includes:</p>
+<h3 id="1-Binary-Executables"><a class="header-anchor" href="#1-Binary-Executables">¶</a>1. Binary Executables</h3>
+<p>Compiled program source code, generating executable binary files. Examples:</p>
+<ul>
+<li><code>/usr/bin/vim</code>: Text editor</li>
+<li><code>/usr/sbin/nginx</code>: Web server</li>
+<li><code>/usr/bin/gcc</code>: Compiler</li>
+</ul>
+<h3 id="2-Configuration-Files"><a class="header-anchor" href="#2-Configuration-Files">¶</a>2. Configuration Files</h3>
+<p>Store application default configurations, usually located in <code>/etc/</code> directory. Examples:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/etc/nginx/nginx.conf  <span class="comment"># Nginx config file</span></span><br><span class="line">/etc/mysql/my.cnf      <span class="comment"># MySQL config file</span></span><br><span class="line">/etc/ssh/sshd_config   <span class="comment"># SSH server config</span></span><br></pre></td></tr></table></figure>
+<p><strong>Important characteristic</strong>: Package managers typically <strong>preserve your modified configuration files</strong> during upgrades (won’t overwrite), avoiding config loss.</p>
+<h3 id="3-Shared-Libraries"><a class="header-anchor" href="#3-Shared-Libraries">¶</a>3. Shared Libraries</h3>
+<p>Shared libraries are dynamically linked libraries that executables depend on at runtime (like Windows <code>.dll</code>), usually stored in <code>/usr/lib/</code> or <code>/lib/</code> directories. Examples:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/libssl.so             <span class="comment"># OpenSSL crypto library</span></span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6  <span class="comment"># GNU C standard library</span></span><br></pre></td></tr></table></figure>
+<p><strong>Why shared libraries?</strong></p>
+<ul>
+<li>Save disk space (multiple programs share the same library)</li>
+<li>Save memory (same library loaded only once)</li>
+<li>Easy upgrades (upgrading library benefits all programs that depend on it)</li>
+</ul>
+<h3 id="4-Data-Files"><a class="header-anchor" href="#4-Data-Files">¶</a>4. Data Files</h3>
+<p>Data required by applications, like database files, default resources, etc. Examples:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/mysql/   <span class="comment"># MySQL database storage directory</span></span><br><span class="line">/var/www/html/    <span class="comment"># Web server default site directory</span></span><br></pre></td></tr></table></figure>
+<h3 id="5-Documentation"><a class="header-anchor" href="#5-Documentation">¶</a>5. Documentation</h3>
+<p>Software documentation, manual pages (man pages), copyright notices, etc., usually stored in <code>/usr/share/doc/</code> directory. Examples:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">/usr/share/man/man1/vim.1.gz  <span class="comment"># vim man page</span></span><br></pre></td></tr></table></figure>
+<h3 id="6-Service-Unit-Files-If-It’s-a-Service"><a class="header-anchor" href="#6-Service-Unit-Files-If-It’s-a-Service">¶</a>6. Service Unit Files (If It’s a Service)</h3>
+<p>If it’s a background service, it will also include systemd unit files:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/systemd/system/nginx.service</span><br><span class="line">/etc/systemd/system/mysql.service</span><br></pre></td></tr></table></figure>
+<h2 id="Why-We-Need-Package-Managers"><a class="header-anchor" href="#Why-We-Need-Package-Managers">¶</a>Why We Need Package Managers</h2>
+<p>Without package managers, you’d need to:</p>
+<ol>
+<li><strong>Manually download software</strong> (find download links from official sites or third-party sites)</li>
+<li><strong>Manually resolve dependencies</strong> (A depends on B, B depends on C, you install one by one)</li>
+<li><strong>Manually place files</strong> (where to put executables, config, libraries)</li>
+<li><strong>Manually uninstall</strong> (remember to delete all files when uninstalling, including config and dependencies)</li>
+<li><strong>Manually update</strong> (check official sites for each software for new versions)</li>
+</ol>
+<p><strong>Core value of package managers</strong>:</p>
+<ul>
+<li><strong>Auto-resolve dependencies</strong>: A depends on B, installing A automatically installs B</li>
+<li><strong>Unified installation locations</strong>: All software placed according to standards, no mess</li>
+<li><strong>One-click uninstall</strong>: Automatically deletes all related files when uninstalling</li>
+<li><strong>One-click update</strong>: <code>apt upgrade</code> or <code>dnf upgrade</code> updates all software</li>
+<li><strong>Version management</strong>: Can view, lock, downgrade software versions</li>
+<li><strong>Security</strong>: Packages are all signature-verified, reducing malicious software risk</li>
+</ul>
 <hr>
-<h1 id="mainstream-linux-package-managers-comparison">Mainstream Linux
-Package Managers Comparison</h1>
+<h1>Mainstream Linux Package Managers Comparison</h1>
 <p>Different Linux distributions use different package managers:</p>
 <table>
-<colgroup>
-<col style="width: 19%">
-<col style="width: 15%">
-<col style="width: 15%">
-<col style="width: 16%">
-<col style="width: 33%">
-</colgroup>
 <thead>
 <tr>
 <th><strong>Distribution</strong></th>
@@ -398,19 +363,11 @@ Package Managers Comparison</h1>
 </tr>
 </tbody>
 </table>
-<p><strong>This article mainly covers Debian/Ubuntu's apt/dpkg and
-RHEL/CentOS's yum/dnf/rpm, as they are the most commonly
-used.</strong></p>
+<p><strong>This article mainly covers Debian/Ubuntu’s apt/dpkg and RHEL/CentOS’s yum/dnf/rpm, as they are the most commonly used.</strong></p>
 <hr>
-<h1 id="debianubuntu-package-management-apt-dpkg">Debian/Ubuntu Package
-Management: apt + dpkg</h1>
-<h2 id="apt-vs-apt-get-vs-dpkg">apt vs apt-get vs dpkg</h2>
+<h1>Debian/Ubuntu Package Management: apt + dpkg</h1>
+<h2 id="apt-vs-apt-get-vs-dpkg-v2"><a class="header-anchor" href="#apt-vs-apt-get-vs-dpkg-v2">¶</a>apt vs apt-get vs dpkg</h2>
 <table>
-<colgroup>
-<col style="width: 10%">
-<col style="width: 81%">
-<col style="width: 7%">
-</colgroup>
 <thead>
 <tr>
 <th>Tool</th>
@@ -421,85 +378,72 @@ Management: apt + dpkg</h1>
 <tbody>
 <tr>
 <td><strong>apt</strong></td>
-<td>High-level tool, auto-handles dependencies, user-friendly (colors,
-progress bars), recommended for daily use</td>
+<td>High-level tool, auto-handles dependencies, user-friendly (colors, progress bars), recommended for daily use</td>
 <td>⭐⭐⭐⭐⭐</td>
 </tr>
 <tr>
 <td><strong>apt-get</strong></td>
-<td>Old high-level tool, same functionality as apt but plain interface,
-commonly used in scripts (stable output)</td>
+<td>Old high-level tool, same functionality as apt but plain interface, commonly used in scripts (stable output)</td>
 <td>⭐⭐⭐⭐</td>
 </tr>
 <tr>
 <td><strong>dpkg</strong></td>
-<td>Low-level tool, directly operates .deb packages, <strong>won't
-auto-handle dependencies</strong> (manual resolution needed)</td>
+<td>Low-level tool, directly operates .deb packages, <strong>won’t auto-handle dependencies</strong> (manual resolution needed)</td>
 <td>⭐⭐</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Recommendation</strong>: Use <code>apt</code> for daily
-operations, use <code>apt-get</code> in scripts (more stable output
-format).</p>
-<h2 id="common-operations">Common Operations</h2>
-<h3 id="update-package-source-information">Update Package Source
-Information</h3>
+<p><strong>Recommendation</strong>: Use <code>apt</code> for daily operations, use <code>apt-get</code> in scripts (more stable output format).</p>
+<h2 id="Common-Operations"><a class="header-anchor" href="#Common-Operations">¶</a>Common Operations</h2>
+<h3 id="Update-Package-Source-Information"><a class="header-anchor" href="#Update-Package-Source-Information">¶</a>Update Package Source Information</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update  <span class="comment"># Download latest package list from sources</span></span><br></pre></td></tr></table></figure>
-<p>This command only updates local package list cache, doesn't upgrade
-any software.</p>
-<h3 id="search-for-packages">Search for Packages</h3>
+<p>This command only updates local package list cache, doesn’t upgrade any software.</p>
+<h3 id="Search-for-Packages"><a class="header-anchor" href="#Search-for-Packages">¶</a>Search for Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt search nginx  <span class="comment"># Search for packages containing nginx</span></span><br><span class="line">apt-cache search nginx  <span class="comment"># Same (old command)</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-package-information">View Package Information</h3>
+<h3 id="View-Package-Information"><a class="header-anchor" href="#View-Package-Information">¶</a>View Package Information</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt show nginx  <span class="comment"># View nginx detailed info (version, dependencies, description)</span></span><br><span class="line">apt-cache policy nginx  <span class="comment"># View nginx version and installation status</span></span><br></pre></td></tr></table></figure>
-<h3 id="install-packages">Install Packages</h3>
+<h3 id="Install-Packages"><a class="header-anchor" href="#Install-Packages">¶</a>Install Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install nginx  <span class="comment"># Install nginx</span></span><br><span class="line">sudo apt install nginx=1.18.0-0ubuntu1  <span class="comment"># Install specific version</span></span><br><span class="line">sudo apt install nginx -y  <span class="comment"># Auto-answer yes (no confirmation prompts)</span></span><br></pre></td></tr></table></figure>
-<h3 id="uninstall-packages">Uninstall Packages</h3>
+<h3 id="Uninstall-Packages"><a class="header-anchor" href="#Uninstall-Packages">¶</a>Uninstall Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt remove nginx  <span class="comment"># Uninstall nginx (keep config files)</span></span><br><span class="line">sudo apt purge nginx   <span class="comment"># Completely uninstall nginx (delete config files)</span></span><br><span class="line">sudo apt autoremove    <span class="comment"># Delete no-longer-needed dependency packages (cleanup)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Difference</strong>: - <code>remove</code>: Only deletes
-program files, keeps config files in <code>/etc/</code> (convenient for
-restoring config when reinstalling later) - <code>purge</code>: Deletes
-config files too (complete uninstall)</p>
-<h3 id="upgrade-packages">Upgrade Packages</h3>
+<p><strong>Difference</strong>:</p>
+<ul>
+<li><code>remove</code>: Only deletes program files, keeps config files in <code>/etc/</code> (convenient for restoring config when reinstalling later)</li>
+<li><code>purge</code>: Deletes config files too (complete uninstall)</li>
+</ul>
+<h3 id="Upgrade-Packages"><a class="header-anchor" href="#Upgrade-Packages">¶</a>Upgrade Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt upgrade  <span class="comment"># Upgrade all upgradable packages (won&#x27;t remove installed packages)</span></span><br><span class="line">sudo apt full-upgrade  <span class="comment"># Upgrade all packages (can remove old packages if necessary)</span></span><br><span class="line">sudo apt dist-upgrade  <span class="comment"># Same as full-upgrade (old command)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Difference</strong>: - <code>upgrade</code>: Conservative
-upgrade, won't remove installed packages - <code>full-upgrade</code>:
-Aggressive upgrade, can delete or install packages if necessary (like
-dependency changes)</p>
-<h3 id="view-installed-packages">View Installed Packages</h3>
+<p><strong>Difference</strong>:</p>
+<ul>
+<li><code>upgrade</code>: Conservative upgrade, won’t remove installed packages</li>
+<li><code>full-upgrade</code>: Aggressive upgrade, can delete or install packages if necessary (like dependency changes)</li>
+</ul>
+<h3 id="View-Installed-Packages"><a class="header-anchor" href="#View-Installed-Packages">¶</a>View Installed Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dpkg -l  <span class="comment"># List all installed packages</span></span><br><span class="line">dpkg -l | grep nginx  <span class="comment"># Check if nginx is installed</span></span><br><span class="line">apt list --installed  <span class="comment"># Same (apt command)</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-files-installed-by-package">View Files Installed by
-Package</h3>
+<h3 id="View-Files-Installed-by-Package"><a class="header-anchor" href="#View-Files-Installed-by-Package">¶</a>View Files Installed by Package</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dpkg -L nginx  <span class="comment"># See what files nginx installed</span></span><br></pre></td></tr></table></figure>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/usr/sbin/nginx</span><br><span class="line">/etc/nginx/nginx.conf</span><br><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
-<h3 id="find-which-package-a-file-belongs-to">Find Which Package a File
-Belongs To</h3>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/usr/sbin/nginx</span><br><span class="line">/etc/nginx/nginx.conf</span><br><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<h3 id="Find-Which-Package-a-File-Belongs-To"><a class="header-anchor" href="#Find-Which-Package-a-File-Belongs-To">¶</a>Find Which Package a File Belongs To</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dpkg -S /usr/sbin/nginx  <span class="comment"># See which package /usr/sbin/nginx belongs to</span></span><br></pre></td></tr></table></figure>
 <p>Output: <code>nginx-core: /usr/sbin/nginx</code></p>
-<h3 id="manually-install-.deb-package">Manually Install .deb
-Package</h3>
+<h3 id="Manually-Install-deb-Package"><a class="header-anchor" href="#Manually-Install-deb-Package">¶</a>Manually Install .deb Package</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dpkg -i package.deb  <span class="comment"># Install .deb package (won&#x27;t auto-resolve dependencies)</span></span><br><span class="line">sudo apt install -f  <span class="comment"># Fix dependencies (if above errors)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Better way</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install ./package.deb  <span class="comment"># apt will auto-resolve dependencies</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="advanced-usage">Advanced Usage</h2>
-<h3 id="lock-package-version-prevent-upgrade">Lock Package Version
-(Prevent Upgrade)</h3>
+<p><strong>Better way</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install ./package.deb  <span class="comment"># apt will auto-resolve dependencies</span></span><br></pre></td></tr></table></figure>
+<h2 id="Advanced-Usage"><a class="header-anchor" href="#Advanced-Usage">¶</a>Advanced Usage</h2>
+<h3 id="Lock-Package-Version-Prevent-Upgrade"><a class="header-anchor" href="#Lock-Package-Version-Prevent-Upgrade">¶</a>Lock Package Version (Prevent Upgrade)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-mark hold nginx  <span class="comment"># Lock nginx, prevent upgrade</span></span><br><span class="line">apt-mark showhold  <span class="comment"># View locked packages</span></span><br><span class="line">sudo apt-mark unhold nginx  <span class="comment"># Unlock</span></span><br></pre></td></tr></table></figure>
-<h3 id="downgrade-package-version">Downgrade Package Version</h3>
+<h3 id="Downgrade-Package-Version"><a class="header-anchor" href="#Downgrade-Package-Version">¶</a>Downgrade Package Version</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. View available versions</span></span><br><span class="line">apt-cache policy nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. Install specific version</span></span><br><span class="line">sudo apt install nginx=1.18.0-0ubuntu1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. Lock version (prevent upgrade)</span></span><br><span class="line">sudo apt-mark hold nginx</span><br></pre></td></tr></table></figure>
-<h3 id="clean-cache-free-disk-space">Clean Cache (Free Disk Space)</h3>
+<h3 id="Clean-Cache-Free-Disk-Space"><a class="header-anchor" href="#Clean-Cache-Free-Disk-Space">¶</a>Clean Cache (Free Disk Space)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt clean  <span class="comment"># Delete all downloaded .deb package cache (in /var/cache/apt/archives/)</span></span><br><span class="line">sudo apt autoclean  <span class="comment"># Only delete outdated package cache</span></span><br><span class="line">sudo apt autoremove  <span class="comment"># Delete no-longer-needed dependency packages</span></span><br></pre></td></tr></table></figure>
-<p><strong>Combined usage</strong> (clean disk space):
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt autoremove &amp;&amp; sudo apt autoclean</span><br></pre></td></tr></table></figure></p>
+<p><strong>Combined usage</strong> (clean disk space):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt autoremove &amp;&amp; sudo apt autoclean</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="rhelcentos-package-management-yumdnf-rpm">RHEL/CentOS Package
-Management: yum/dnf + rpm</h1>
-<h2 id="yum-vs-dnf-vs-rpm">yum vs dnf vs rpm</h2>
+<h1>RHEL/CentOS Package Management: yum/dnf + rpm</h1>
+<h2 id="yum-vs-dnf-vs-rpm-v2"><a class="header-anchor" href="#yum-vs-dnf-vs-rpm-v2">¶</a>yum vs dnf vs rpm</h2>
 <table>
-<colgroup>
-<col style="width: 8%">
-<col style="width: 83%">
-<col style="width: 8%">
-</colgroup>
 <thead>
 <tr>
 <th>Tool</th>
@@ -510,245 +454,214 @@ Management: yum/dnf + rpm</h1>
 <tbody>
 <tr>
 <td><strong>dnf</strong></td>
-<td>New generation high-level tool (CentOS 8+, Fedora), auto-handles
-dependencies, faster, recommended</td>
+<td>New generation high-level tool (CentOS 8+, Fedora), auto-handles dependencies, faster, recommended</td>
 <td>⭐⭐⭐⭐⭐</td>
 </tr>
 <tr>
 <td><strong>yum</strong></td>
-<td>Old high-level tool (CentOS 7 and earlier), same functionality as
-dnf but slower</td>
+<td>Old high-level tool (CentOS 7 and earlier), same functionality as dnf but slower</td>
 <td>⭐⭐⭐⭐</td>
 </tr>
 <tr>
 <td><strong>rpm</strong></td>
-<td>Low-level tool, directly operates .rpm packages, <strong>won't
-auto-handle dependencies</strong> (manual resolution needed)</td>
+<td>Low-level tool, directly operates .rpm packages, <strong>won’t auto-handle dependencies</strong> (manual resolution needed)</td>
 <td>⭐⭐</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Recommendation</strong>: Use <code>dnf</code> for CentOS 8+
-and Fedora, use <code>yum</code> for CentOS 7.</p>
-<h2 id="common-operations-using-dnf-as-example-yum-commands-are-almost-identical">Common
-Operations (Using dnf as Example, yum Commands Are Almost
-Identical)</h2>
-<h3 id="update-package-source-information-1">Update Package Source
-Information</h3>
+<p><strong>Recommendation</strong>: Use <code>dnf</code> for CentOS 8+ and Fedora, use <code>yum</code> for CentOS 7.</p>
+<h2 id="Common-Operations-Using-dnf-as-Example-yum-Commands-Are-Almost-Identical"><a class="header-anchor" href="#Common-Operations-Using-dnf-as-Example-yum-Commands-Are-Almost-Identical">¶</a>Common Operations (Using dnf as Example, yum Commands Are Almost Identical)</h2>
+<h3 id="Update-Package-Source-Information-v2"><a class="header-anchor" href="#Update-Package-Source-Information-v2">¶</a>Update Package Source Information</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf makecache  <span class="comment"># Download latest package list from sources</span></span><br><span class="line">sudo dnf check-update  <span class="comment"># Check which packages can be upgraded</span></span><br></pre></td></tr></table></figure>
-<h3 id="search-for-packages-1">Search for Packages</h3>
+<h3 id="Search-for-Packages-v2"><a class="header-anchor" href="#Search-for-Packages-v2">¶</a>Search for Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf search nginx  <span class="comment"># Search for packages containing nginx</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-package-information-1">View Package Information</h3>
+<h3 id="View-Package-Information-v2"><a class="header-anchor" href="#View-Package-Information-v2">¶</a>View Package Information</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf info nginx  <span class="comment"># View nginx detailed info (version, dependencies, description)</span></span><br></pre></td></tr></table></figure>
-<h3 id="install-packages-1">Install Packages</h3>
+<h3 id="Install-Packages-v2"><a class="header-anchor" href="#Install-Packages-v2">¶</a>Install Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf install nginx  <span class="comment"># Install nginx</span></span><br><span class="line">sudo dnf install nginx-1.20.1  <span class="comment"># Install specific version</span></span><br><span class="line">sudo dnf install nginx -y  <span class="comment"># Auto-answer yes</span></span><br></pre></td></tr></table></figure>
-<h3 id="uninstall-packages-1">Uninstall Packages</h3>
+<h3 id="Uninstall-Packages-v2"><a class="header-anchor" href="#Uninstall-Packages-v2">¶</a>Uninstall Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf remove nginx  <span class="comment"># Uninstall nginx</span></span><br><span class="line">sudo dnf autoremove  <span class="comment"># Delete no-longer-needed dependency packages</span></span><br></pre></td></tr></table></figure>
-<h3 id="upgrade-packages-1">Upgrade Packages</h3>
+<h3 id="Upgrade-Packages-v2"><a class="header-anchor" href="#Upgrade-Packages-v2">¶</a>Upgrade Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf upgrade  <span class="comment"># Upgrade all upgradable packages</span></span><br><span class="line">sudo dnf upgrade nginx  <span class="comment"># Only upgrade nginx</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-installed-packages-1">View Installed Packages</h3>
+<h3 id="View-Installed-Packages-v2"><a class="header-anchor" href="#View-Installed-Packages-v2">¶</a>View Installed Packages</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa  <span class="comment"># List all installed packages</span></span><br><span class="line">rpm -qa | grep nginx  <span class="comment"># Check if nginx is installed</span></span><br><span class="line">dnf list installed  <span class="comment"># Same (dnf command)</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-files-installed-by-package-1">View Files Installed by
-Package</h3>
+<h3 id="View-Files-Installed-by-Package-v2"><a class="header-anchor" href="#View-Files-Installed-by-Package-v2">¶</a>View Files Installed by Package</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -ql nginx  <span class="comment"># See what files nginx installed</span></span><br></pre></td></tr></table></figure>
-<h3 id="find-which-package-a-file-belongs-to-1">Find Which Package a
-File Belongs To</h3>
+<h3 id="Find-Which-Package-a-File-Belongs-To-v2"><a class="header-anchor" href="#Find-Which-Package-a-File-Belongs-To-v2">¶</a>Find Which Package a File Belongs To</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -qf /usr/sbin/nginx  <span class="comment"># See which package /usr/sbin/nginx belongs to</span></span><br></pre></td></tr></table></figure>
-<h3 id="manually-install-.rpm-package">Manually Install .rpm
-Package</h3>
+<h3 id="Manually-Install-rpm-Package"><a class="header-anchor" href="#Manually-Install-rpm-Package">¶</a>Manually Install .rpm Package</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo rpm -ivh package.rpm  <span class="comment"># Install .rpm package (won&#x27;t auto-resolve dependencies)</span></span><br><span class="line">sudo dnf install package.rpm  <span class="comment"># Better way (will auto-resolve dependencies)</span></span><br></pre></td></tr></table></figure>
-<h2 id="advanced-usage-1">Advanced Usage</h2>
-<h3 id="lock-package-version-prevent-upgrade-1">Lock Package Version
-(Prevent Upgrade)</h3>
+<h2 id="Advanced-Usage-v2"><a class="header-anchor" href="#Advanced-Usage-v2">¶</a>Advanced Usage</h2>
+<h3 id="Lock-Package-Version-Prevent-Upgrade-v2"><a class="header-anchor" href="#Lock-Package-Version-Prevent-Upgrade-v2">¶</a>Lock Package Version (Prevent Upgrade)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf install <span class="string">&#x27;dnf-command(versionlock)&#x27;</span>  <span class="comment"># Install versionlock plugin</span></span><br><span class="line">sudo dnf versionlock add nginx  <span class="comment"># Lock nginx</span></span><br><span class="line">dnf versionlock list  <span class="comment"># View locked packages</span></span><br><span class="line">sudo dnf versionlock delete nginx  <span class="comment"># Unlock</span></span><br></pre></td></tr></table></figure>
-<h3 id="downgrade-package-version-1">Downgrade Package Version</h3>
+<h3 id="Downgrade-Package-Version-v2"><a class="header-anchor" href="#Downgrade-Package-Version-v2">¶</a>Downgrade Package Version</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. View available versions</span></span><br><span class="line">dnf list --showduplicates nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. Downgrade to specific version</span></span><br><span class="line">sudo dnf downgrade nginx-1.18.0</span><br></pre></td></tr></table></figure>
-<h3 id="clean-cache">Clean Cache</h3>
+<h3 id="Clean-Cache"><a class="header-anchor" href="#Clean-Cache">¶</a>Clean Cache</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf clean all  <span class="comment"># Delete all cache</span></span><br><span class="line">sudo dnf autoremove  <span class="comment"># Delete no-longer-needed dependency packages</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="configure-domestic-mirrors-speed-up-downloads">Configure
-Domestic Mirrors (Speed Up Downloads)</h1>
-<h2 id="debianubuntu-configure-aliyun-mirror">Debian/Ubuntu Configure
-Aliyun Mirror</h2>
-<h3 id="backup-original-sources">1. Backup Original Sources</h3>
+<h1>Configure Domestic Mirrors (Speed Up Downloads)</h1>
+<h2 id="Debian-Ubuntu-Configure-Aliyun-Mirror"><a class="header-anchor" href="#Debian-Ubuntu-Configure-Aliyun-Mirror">¶</a>Debian/Ubuntu Configure Aliyun Mirror</h2>
+<h3 id="1-Backup-Original-Sources"><a class="header-anchor" href="#1-Backup-Original-Sources">¶</a>1. Backup Original Sources</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/apt/sources.list /etc/apt/sources.list.bak</span><br></pre></td></tr></table></figure>
-<h3 id="replace-with-aliyun-mirror">2. Replace with Aliyun Mirror</h3>
-<p><strong>Method 1: Auto-replace</strong> (Recommended)
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*archive.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*security.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br></pre></td></tr></table></figure></p>
-<p><strong>Method 2: Manual edit</strong> <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/apt/sources.list</span><br></pre></td></tr></table></figure></p>
-<p>Delete original content, replace with (Ubuntu 22.04 example):
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse</span><br></pre></td></tr></table></figure></p>
-<p><strong>Version codenames</strong>: - Ubuntu 22.04:
-<code>jammy</code> - Ubuntu 20.04: <code>focal</code> - Ubuntu 18.04:
-<code>bionic</code></p>
-<h3 id="update-package-sources">3. Update Package Sources</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update &amp;&amp; sudo apt upgrade -y</span><br></pre></td></tr></table></figure>
-<h3 id="verify-effectiveness">4. Verify Effectiveness</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /etc/apt/sources.list | grep mirrors.aliyun.com</span><br></pre></td></tr></table></figure>
-<p>If you see <code>mirrors.aliyun.com</code>, configuration
-succeeded.</p>
-<h2 id="centosrhel-configure-aliyun-mirror">CentOS/RHEL Configure Aliyun
-Mirror</h2>
-<h3 id="backup-original-sources-1">1. Backup Original Sources</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak</span><br></pre></td></tr></table></figure>
-<h3 id="download-aliyun-mirror-config">2. Download Aliyun Mirror
-Config</h3>
-<p><strong>CentOS 7</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo</span><br></pre></td></tr></table></figure></p>
-<p><strong>CentOS 8</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo</span><br></pre></td></tr></table></figure></p>
-<h3 id="clean-and-update-cache">3. Clean and Update Cache</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf clean all</span><br><span class="line">sudo dnf makecache</span><br></pre></td></tr></table></figure>
-<h3 id="verify-effectiveness-1">4. Verify Effectiveness</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf repolist</span><br></pre></td></tr></table></figure>
-<p>If you see <code>mirrors.aliyun.com</code>, configuration
-succeeded.</p>
-<h2 id="other-domestic-mirrors">Other Domestic Mirrors</h2>
+<h3 id="2-Replace-with-Aliyun-Mirror"><a class="header-anchor" href="#2-Replace-with-Aliyun-Mirror">¶</a>2. Replace with Aliyun Mirror</h3>
+<p><strong>Method 1: Auto-replace</strong> (Recommended)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*archive.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*security.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
+<p><strong>Method 2: Manual edit</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
+<p>Delete original content, replace with (Ubuntu 22.04 example):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse</span><br><span class="line">deb http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse</span><br></pre></td></tr></table></figure>
+<p><strong>Version codenames</strong>:</p>
 <ul>
-<li><strong>Tsinghua University Mirror</strong>:
-https://mirrors.tuna.tsinghua.edu.cn/</li>
-<li><strong>USTC Mirror</strong>: https://mirrors.ustc.edu.cn/</li>
-<li><strong>NetEase Mirror</strong>: http://mirrors.163.com/</li>
+<li>Ubuntu 22.04: <code>jammy</code></li>
+<li>Ubuntu 20.04: <code>focal</code></li>
+<li>Ubuntu 18.04: <code>bionic</code></li>
 </ul>
-<p><strong>Configuration method is similar, just replace URLs with
-corresponding mirror sites.</strong></p>
+<h3 id="3-Update-Package-Sources"><a class="header-anchor" href="#3-Update-Package-Sources">¶</a>3. Update Package Sources</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update &amp;&amp; sudo apt upgrade -y</span><br></pre></td></tr></table></figure>
+<h3 id="4-Verify-Effectiveness"><a class="header-anchor" href="#4-Verify-Effectiveness">¶</a>4. Verify Effectiveness</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /etc/apt/sources.list | grep mirrors.aliyun.com</span><br></pre></td></tr></table></figure>
+<p>If you see <code>mirrors.aliyun.com</code>, configuration succeeded.</p>
+<h2 id="CentOS-RHEL-Configure-Aliyun-Mirror"><a class="header-anchor" href="#CentOS-RHEL-Configure-Aliyun-Mirror">¶</a>CentOS/RHEL Configure Aliyun Mirror</h2>
+<h3 id="1-Backup-Original-Sources-v2"><a class="header-anchor" href="#1-Backup-Original-Sources-v2">¶</a>1. Backup Original Sources</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak</span><br></pre></td></tr></table></figure>
+<h3 id="2-Download-Aliyun-Mirror-Config"><a class="header-anchor" href="#2-Download-Aliyun-Mirror-Config">¶</a>2. Download Aliyun Mirror Config</h3>
+<p><strong>CentOS 7</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo</span><br></pre></td></tr></table></figure>
+<p><strong>CentOS 8</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo</span><br></pre></td></tr></table></figure>
+<h3 id="3-Clean-and-Update-Cache"><a class="header-anchor" href="#3-Clean-and-Update-Cache">¶</a>3. Clean and Update Cache</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf clean all</span><br><span class="line">sudo dnf makecache</span><br></pre></td></tr></table></figure>
+<h3 id="4-Verify-Effectiveness-v2"><a class="header-anchor" href="#4-Verify-Effectiveness-v2">¶</a>4. Verify Effectiveness</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf repolist</span><br></pre></td></tr></table></figure>
+<p>If you see <code>mirrors.aliyun.com</code>, configuration succeeded.</p>
+<h2 id="Other-Domestic-Mirrors"><a class="header-anchor" href="#Other-Domestic-Mirrors">¶</a>Other Domestic Mirrors</h2>
+<ul>
+<li><strong>Tsinghua University Mirror</strong>: <a class="link" target="_blank" rel="noopener" href="https://mirrors.tuna.tsinghua.edu.cn/">https://mirrors.tuna.tsinghua.edu.cn/<i class="fas fa-external-link-alt"></i></a></li>
+<li><strong>USTC Mirror</strong>: <a class="link" target="_blank" rel="noopener" href="https://mirrors.ustc.edu.cn/">https://mirrors.ustc.edu.cn/<i class="fas fa-external-link-alt"></i></a></li>
+<li><strong>NetEase Mirror</strong>: <a class="link" target="_blank" rel="noopener" href="http://mirrors.163.com/">http://mirrors.163.com/<i class="fas fa-external-link-alt"></i></a></li>
+</ul>
+<p><strong>Configuration method is similar, just replace URLs with corresponding mirror sites.</strong></p>
 <hr>
-<h1 id="building-from-source-from-configure-to-make-install">Building
-from Source: From configure to make install</h1>
-<p>Sometimes package repository versions are too old, or you need custom
-compilation options (like enabling a module, optimizing performance),
-requiring building from source.</p>
-<h2 id="the-three-step-build-process">The Three-Step Build Process</h2>
-<ol type="1">
-<li><strong><code>./configure</code></strong>: Check system environment,
-generate Makefile</li>
-<li><strong><code>make</code></strong>: Compile source code according to
-Makefile</li>
-<li><strong><code>make install</code></strong>: Install compiled files
-to system</li>
+<h1>Building from Source: From configure to make install</h1>
+<p>Sometimes package repository versions are too old, or you need custom compilation options (like enabling a module, optimizing performance), requiring building from source.</p>
+<h2 id="The-Three-Step-Build-Process"><a class="header-anchor" href="#The-Three-Step-Build-Process">¶</a>The Three-Step Build Process</h2>
+<ol>
+<li><strong><code>./configure</code></strong>: Check system environment, generate Makefile</li>
+<li><strong><code>make</code></strong>: Compile source code according to Makefile</li>
+<li><strong><code>make install</code></strong>: Install compiled files to system</li>
 </ol>
-<h2 id="hands-on-compiling-nginx-tengine">Hands-On: Compiling Nginx
-(Tengine)</h2>
-<p><strong>Tengine</strong> is Taobao's Nginx fork with enhanced
-performance and features.</p>
-<h3 id="install-build-dependencies">1. Install Build Dependencies</h3>
+<h2 id="Hands-On-Compiling-Nginx-Tengine"><a class="header-anchor" href="#Hands-On-Compiling-Nginx-Tengine">¶</a>Hands-On: Compiling Nginx (Tengine)</h2>
+<p><strong>Tengine</strong> is Taobao’s Nginx fork with enhanced performance and features.</p>
+<h3 id="1-Install-Build-Dependencies"><a class="header-anchor" href="#1-Install-Build-Dependencies">¶</a>1. Install Build Dependencies</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf install gcc make pcre-devel openssl-devel zlib-devel  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<h3 id="download-source-code">2. Download Source Code</h3>
+<h3 id="2-Download-Source-Code"><a class="header-anchor" href="#2-Download-Source-Code">¶</a>2. Download Source Code</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget http://tengine.taobao.org/download/tengine-2.3.3.tar.gz</span><br><span class="line">tar -zxvf tengine-2.3.3.tar.gz</span><br><span class="line"><span class="built_in">cd</span> tengine-2.3.3</span><br></pre></td></tr></table></figure>
-<h3 id="configure-build-parameters-.configure">3. Configure Build
-Parameters (<code>./configure</code>)</h3>
+<h3 id="3-Configure-Build-Parameters-configure"><a class="header-anchor" href="#3-Configure-Build-Parameters-configure">¶</a>3. Configure Build Parameters (<code>./configure</code>)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">./configure \</span><br><span class="line">  --prefix=/usr/local/nginx \</span><br><span class="line">  --with-http_ssl_module \</span><br><span class="line">  --with-http_v2_module \</span><br><span class="line">  --with-http_realip_module \</span><br><span class="line">  --with-http_gzip_static_module</span><br></pre></td></tr></table></figure>
-<p><strong>Common parameters</strong>: - <code>--prefix=PATH</code>:
-Installation path (default <code>/usr/local/nginx</code>) -
-<code>--with-http_ssl_module</code>: Enable HTTPS support -
-<code>--with-http_v2_module</code>: Enable HTTP/2 support -
-<code>--with-http_realip_module</code>: Get real client IP (suitable for
-reverse proxy)</p>
-<p><strong>What does <code>./configure</code> do?</strong> - Checks if
-system has required libraries (like OpenSSL, PCRE, zlib) - Generates
-<code>Makefile</code> (build configuration file) based on your
-parameters - If dependencies are missing, will error and prompt
-installation</p>
-<h3 id="compile-make">4. Compile (<code>make</code>)</h3>
+<p><strong>Common parameters</strong>:</p>
+<ul>
+<li><code>--prefix=PATH</code>: Installation path (default <code>/usr/local/nginx</code>)</li>
+<li><code>--with-http_ssl_module</code>: Enable HTTPS support</li>
+<li><code>--with-http_v2_module</code>: Enable HTTP/2 support</li>
+<li><code>--with-http_realip_module</code>: Get real client IP (suitable for reverse proxy)</li>
+</ul>
+<p><strong>What does <code>./configure</code> do?</strong></p>
+<ul>
+<li>Checks if system has required libraries (like OpenSSL, PCRE, zlib)</li>
+<li>Generates <code>Makefile</code> (build configuration file) based on your parameters</li>
+<li>If dependencies are missing, will error and prompt installation</li>
+</ul>
+<h3 id="4-Compile-make"><a class="header-anchor" href="#4-Compile-make">¶</a>4. Compile (<code>make</code>)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make -j$(<span class="built_in">nproc</span>)  <span class="comment"># Use all CPU cores for parallel compilation (speedup)</span></span><br></pre></td></tr></table></figure>
-<p><strong>What does <code>make</code> do?</strong> - Reads
-<code>Makefile</code>, compiles source code in order - Generates
-executable files (like <code>objs/nginx</code>) - If compilation fails,
-check for missing dependencies or incorrect parameters</p>
-<h3 id="install-make-install">5. Install
-(<code>make install</code>)</h3>
+<p><strong>What does <code>make</code> do?</strong></p>
+<ul>
+<li>Reads <code>Makefile</code>, compiles source code in order</li>
+<li>Generates executable files (like <code>objs/nginx</code>)</li>
+<li>If compilation fails, check for missing dependencies or incorrect parameters</li>
+</ul>
+<h3 id="5-Install-make-install"><a class="header-anchor" href="#5-Install-make-install">¶</a>5. Install (<code>make install</code>)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make install</span><br></pre></td></tr></table></figure>
-<p><strong>What does <code>make install</code> do?</strong> - Copies
-compiled files to directory specified by <code>--prefix</code> (like
-<code>/usr/local/nginx</code>) - Creates necessary directory structure
-(<code>conf/</code>, <code>logs/</code>, <code>html/</code>,
-<code>sbin/</code>) - Won't create systemd service file (needs manual
-creation)</p>
-<h3 id="start-nginx">6. Start Nginx</h3>
+<p><strong>What does <code>make install</code> do?</strong></p>
+<ul>
+<li>Copies compiled files to directory specified by <code>--prefix</code> (like <code>/usr/local/nginx</code>)</li>
+<li>Creates necessary directory structure (<code>conf/</code>, <code>logs/</code>, <code>html/</code>, <code>sbin/</code>)</li>
+<li>Won’t create systemd service file (needs manual creation)</li>
+</ul>
+<h3 id="6-Start-Nginx"><a class="header-anchor" href="#6-Start-Nginx">¶</a>6. Start Nginx</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx  <span class="comment"># Start</span></span><br><span class="line">/usr/local/nginx/sbin/nginx -s stop  <span class="comment"># Stop</span></span><br><span class="line">/usr/local/nginx/sbin/nginx -s reload  <span class="comment"># Reload config</span></span><br></pre></td></tr></table></figure>
-<h3 id="create-systemd-service-optional">7. Create systemd Service
-(Optional)</h3>
-<p>Create <code>/etc/systemd/system/nginx.service</code>:
-<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Unit]</span></span><br><span class="line"><span class="attr">Description</span>=Nginx HTTP Server</span><br><span class="line"><span class="attr">After</span>=network.target</span><br><span class="line"></span><br><span class="line"><span class="section">[Service]</span></span><br><span class="line"><span class="attr">Type</span>=forking</span><br><span class="line"><span class="attr">ExecStart</span>=/usr/local/nginx/sbin/nginx</span><br><span class="line"><span class="attr">ExecReload</span>=/usr/local/nginx/sbin/nginx -s reload</span><br><span class="line"><span class="attr">ExecStop</span>=/usr/local/nginx/sbin/nginx -s stop</span><br><span class="line"><span class="attr">PrivateTmp</span>=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="section">[Install]</span></span><br><span class="line"><span class="attr">WantedBy</span>=multi-user.target</span><br></pre></td></tr></table></figure></p>
-<p>Then enable: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> nginx</span><br><span class="line">sudo systemctl start nginx</span><br></pre></td></tr></table></figure></p>
+<h3 id="7-Create-systemd-Service-Optional"><a class="header-anchor" href="#7-Create-systemd-Service-Optional">¶</a>7. Create systemd Service (Optional)</h3>
+<p>Create <code>/etc/systemd/system/nginx.service</code>:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Unit]</span></span><br><span class="line"><span class="attr">Description</span>=Nginx HTTP Server</span><br><span class="line"><span class="attr">After</span>=network.target</span><br><span class="line"></span><br><span class="line"><span class="section">[Service]</span></span><br><span class="line"><span class="attr">Type</span>=forking</span><br><span class="line"><span class="attr">ExecStart</span>=/usr/local/nginx/sbin/nginx</span><br><span class="line"><span class="attr">ExecReload</span>=/usr/local/nginx/sbin/nginx -s reload</span><br><span class="line"><span class="attr">ExecStop</span>=/usr/local/nginx/sbin/nginx -s stop</span><br><span class="line"><span class="attr">PrivateTmp</span>=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="section">[Install]</span></span><br><span class="line"><span class="attr">WantedBy</span>=multi-user.target</span><br></pre></td></tr></table></figure>
+<p>Then enable:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> nginx</span><br><span class="line">sudo systemctl start nginx</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="binary-portable-configuration-java-example">Binary Portable
-Configuration: Java Example</h1>
-<p>Some software (like Java, Go, Node.js) provides pre-compiled binary
-packages, extract-and-use, no installation needed.</p>
-<h2 id="hands-on-configure-java-environment">Hands-On: Configure Java
-Environment</h2>
-<h3 id="download-jdk">1. Download JDK</h3>
-<p>Download JDK from Oracle official site or open-source mirrors (like
-<code>jdk-17_linux-x64_bin.tar.gz</code>).</p>
-<h3 id="extract-to-opt">2. Extract to <code>/opt</code></h3>
+<h1>Binary Portable Configuration: Java Example</h1>
+<p>Some software (like Java, Go, Node.js) provides pre-compiled binary packages, extract-and-use, no installation needed.</p>
+<h2 id="Hands-On-Configure-Java-Environment"><a class="header-anchor" href="#Hands-On-Configure-Java-Environment">¶</a>Hands-On: Configure Java Environment</h2>
+<h3 id="1-Download-JDK"><a class="header-anchor" href="#1-Download-JDK">¶</a>1. Download JDK</h3>
+<p>Download JDK from Oracle official site or open-source mirrors (like <code>jdk-17_linux-x64_bin.tar.gz</code>).</p>
+<h3 id="2-Extract-to-opt"><a class="header-anchor" href="#2-Extract-to-opt">¶</a>2. Extract to <code>/opt</code></h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo tar -zxvf jdk-17_linux-x64_bin.tar.gz -C /opt</span><br><span class="line">sudo <span class="built_in">mv</span> /opt/jdk-17* /opt/jdk-17  <span class="comment"># Rename to shorter path</span></span><br></pre></td></tr></table></figure>
-<h3 id="configure-environment-variables">3. Configure Environment
-Variables</h3>
-<p>Edit <code>~/.bashrc</code> (or <code>/etc/profile</code> for all
-users): <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/opt/jdk-17</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$JAVA_HOME</span>/bin:<span class="variable">$PATH</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="make-config-effective">4. Make Config Effective</h3>
+<h3 id="3-Configure-Environment-Variables"><a class="header-anchor" href="#3-Configure-Environment-Variables">¶</a>3. Configure Environment Variables</h3>
+<p>Edit <code>~/.bashrc</code> (or <code>/etc/profile</code> for all users):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/opt/jdk-17</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$JAVA_HOME</span>/bin:<span class="variable">$PATH</span></span><br></pre></td></tr></table></figure>
+<h3 id="4-Make-Config-Effective"><a class="header-anchor" href="#4-Make-Config-Effective">¶</a>4. Make Config Effective</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
-<h3 id="verify">5. Verify</h3>
+<h3 id="5-Verify"><a class="header-anchor" href="#5-Verify">¶</a>5. Verify</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java -version</span><br><span class="line">javac -version</span><br></pre></td></tr></table></figure>
 <p>If version numbers display, configuration succeeded.</p>
 <hr>
-<h1 id="package-management-best-practices">Package Management Best
-Practices</h1>
-<h2 id="regularly-update-system">1. Regularly Update System</h2>
+<h1>Package Management Best Practices</h1>
+<h2 id="1-Regularly-Update-System"><a class="header-anchor" href="#1-Regularly-Update-System">¶</a>1. Regularly Update System</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update &amp;&amp; sudo apt upgrade -y  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf upgrade -y  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<p><strong>Frequency</strong>: Recommend updating weekly or monthly to
-promptly fix security vulnerabilities.</p>
-<h2 id="clean-unused-packages-and-cache">2. Clean Unused Packages and
-Cache</h2>
+<p><strong>Frequency</strong>: Recommend updating weekly or monthly to promptly fix security vulnerabilities.</p>
+<h2 id="2-Clean-Unused-Packages-and-Cache"><a class="header-anchor" href="#2-Clean-Unused-Packages-and-Cache">¶</a>2. Clean Unused Packages and Cache</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt autoremove &amp;&amp; sudo apt autoclean  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf autoremove &amp;&amp; sudo dnf clean all  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<h2 id="lock-critical-software-versions">3. Lock Critical Software
-Versions</h2>
-<p>If upgrading某个软件 might cause compatibility issues (like
-databases, kernels), recommend locking version: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-mark hold mysql-server  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf versionlock add mysql-server  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="dont-mix-package-managers-and-compiled-installations">4. Don't
-Mix Package Managers and Compiled Installations</h2>
-<p><strong>Problem</strong>: If you install nginx with apt, then also
-install nginx compiled from source, conflicts occur (two nginx might
-listen on same port, config file locations differ).</p>
-<p><strong>Recommendation</strong>: - Prefer package manager (apt/dnf)
-installation (easy to update and uninstall) - Only build from source
-when package manager version is too old or lacks features - If building
-from source, recommend installing to <code>/opt</code> or
-<code>/usr/local</code> (avoid path conflicts with package manager)</p>
-<h2 id="backup-important-configs">5. Backup Important Configs</h2>
-<p>Backup before modifying config files: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak</span><br></pre></td></tr></table></figure></p>
-<h2 id="use-virtual-environments-pythonnode.js">6. Use Virtual
-Environments (Python/Node.js)</h2>
-<p>Python and Node.js have their own package managers (pip/npm),
-recommend using virtual environments to isolate project dependencies: -
-<strong>Python</strong>: <code>python3 -m venv venv</code> -
-<strong>Node.js</strong>: <code>nvm</code> or <code>n</code> to manage
-Node.js versions</p>
+<h2 id="3-Lock-Critical-Software-Versions"><a class="header-anchor" href="#3-Lock-Critical-Software-Versions">¶</a>3. Lock Critical Software Versions</h2>
+<p>If upgrading某个软件 might cause compatibility issues (like databases, kernels), recommend locking version:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-mark hold mysql-server  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf versionlock add mysql-server  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
+<h2 id="4-Don’t-Mix-Package-Managers-and-Compiled-Installations"><a class="header-anchor" href="#4-Don’t-Mix-Package-Managers-and-Compiled-Installations">¶</a>4. Don’t Mix Package Managers and Compiled Installations</h2>
+<p><strong>Problem</strong>: If you install nginx with apt, then also install nginx compiled from source, conflicts occur (two nginx might listen on same port, config file locations differ).</p>
+<p><strong>Recommendation</strong>:</p>
+<ul>
+<li>Prefer package manager (apt/dnf) installation (easy to update and uninstall)</li>
+<li>Only build from source when package manager version is too old or lacks features</li>
+<li>If building from source, recommend installing to <code>/opt</code> or <code>/usr/local</code> (avoid path conflicts with package manager)</li>
+</ul>
+<h2 id="5-Backup-Important-Configs"><a class="header-anchor" href="#5-Backup-Important-Configs">¶</a>5. Backup Important Configs</h2>
+<p>Backup before modifying config files:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak</span><br></pre></td></tr></table></figure>
+<h2 id="6-Use-Virtual-Environments-Python-Node-js"><a class="header-anchor" href="#6-Use-Virtual-Environments-Python-Node-js">¶</a>6. Use Virtual Environments (Python/Node.js)</h2>
+<p>Python and Node.js have their own package managers (pip/npm), recommend using virtual environments to isolate project dependencies:</p>
+<ul>
+<li><strong>Python</strong>: <code>python3 -m venv venv</code></li>
+<li><strong>Node.js</strong>: <code>nvm</code> or <code>n</code> to manage Node.js versions</li>
+</ul>
 <hr>
-<h1 id="summary-and-further-reading">Summary and Further Reading</h1>
-<p>This article covers the core content of Linux package management: 1.
-✅ Basic package concepts (what's in a package, why we need package
-managers) 2. ✅ Debian/Ubuntu package management (apt/dpkg common
-operations and advanced usage) 3. ✅ RHEL/CentOS package management
-(yum/dnf/rpm common operations and advanced usage) 4. ✅ Configure
-domestic mirrors (Aliyun mirror, Tsinghua mirror) 5. ✅ Building from
-source (using Nginx as example, explaining configure/make/make install)
-6. ✅ Binary portable configuration (using Java as example) 7. ✅
-Package management best practices (cleanup, version locking, avoiding
-conflicts)</p>
-<p><strong>Further Reading</strong>: - Debian Package Management Manual:
-https://www.debian.org/doc/manuals/debian-reference/ch02 - RPM Packaging
-Guide: https://rpm-packaging-guide.github.io/ - DNF Official
-Documentation: https://dnf.readthedocs.io/</p>
-<p><strong>Next Steps</strong>: - <strong>《Linux Process and Resource
-Management》</strong>: Learn how to monitor and limit process CPU/memory
-usage - <strong>《Linux User Management》</strong>: Learn how to manage
-users/groups/permissions</p>
+<h1>Summary and Further Reading</h1>
+<p>This article covers the core content of Linux package management:</p>
+<ol>
+<li>✅ Basic package concepts (what’s in a package, why we need package managers)</li>
+<li>✅ Debian/Ubuntu package management (apt/dpkg common operations and advanced usage)</li>
+<li>✅ RHEL/CentOS package management (yum/dnf/rpm common operations and advanced usage)</li>
+<li>✅ Configure domestic mirrors (Aliyun mirror, Tsinghua mirror)</li>
+<li>✅ Building from source (using Nginx as example, explaining configure/make/make install)</li>
+<li>✅ Binary portable configuration (using Java as example)</li>
+<li>✅ Package management best practices (cleanup, version locking, avoiding conflicts)</li>
+</ol>
+<p><strong>Further Reading</strong>:</p>
+<ul>
+<li>Debian Package Management Manual: <a class="link" target="_blank" rel="noopener" href="https://www.debian.org/doc/manuals/debian-reference/ch02">https://www.debian.org/doc/manuals/debian-reference/ch02<i class="fas fa-external-link-alt"></i></a></li>
+<li>RPM Packaging Guide: <a class="link" target="_blank" rel="noopener" href="https://rpm-packaging-guide.github.io/">https://rpm-packaging-guide.github.io/<i class="fas fa-external-link-alt"></i></a></li>
+<li>DNF Official Documentation: <a class="link" target="_blank" rel="noopener" href="https://dnf.readthedocs.io/">https://dnf.readthedocs.io/<i class="fas fa-external-link-alt"></i></a></li>
+</ul>
+<p><strong>Next Steps</strong>:</p>
+<ul>
+<li><strong>《Linux Process and Resource Management》</strong>: Learn how to monitor and limit process CPU/memory usage</li>
+<li><strong>《Linux User Management》</strong>: Learn how to manage users/groups/permissions</li>
+</ul>
 <hr>
-<p><strong>By this point, you should have upgraded from "can install
-packages" to "can configure mirrors, can build from source, can
-troubleshoot dependency conflicts." Package management is a fundamental
-Linux operations skill; mastering it allows you to better manage
-servers.</strong></p>
+<p><strong>By this point, you should have upgraded from “can install packages” to “can configure mirrors, can build from source, can troubleshoot dependency conflicts.” Package management is a fundamental Linux operations skill; mastering it allows you to better manage servers.</strong></p>
 
         </div>
 
@@ -799,13 +712,13 @@ servers.</strong></p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/linux-process-resource-management/"
+                           href="/en/vim-essentials/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux Process and Resource Management: Monitoring, Troubleshooting, and Optimization</span>
+                                <span class="post-nav-title-item">Vim Essentials: Modal Editing, Motions, and a Repeatable Workflow</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -815,10 +728,10 @@ servers.</strong></p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/linux-disk-management/"
+                           href="/en/linux-pipelines/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux Disk Management: From Hardware to Filesystems (RAID, LVM, GPT/MBR, Mounting, and Recovery)</span>
+                                <span class="post-nav-title-item">Linux Pipelines and Text Processing: Composing Tools into Data Flows</span>
                                 <span class="post-nav-item">Next posts</span>
                             </span>
                             <span class="right arrow-icon flex-center">
@@ -1031,41 +944,7 @@ servers.</strong></p>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#basic-package-concepts-whats-inside-why-we-need-package-managers"><span class="nav-number">1.</span> <span class="nav-text">Basic
-Package Concepts: What&#39;s Inside, Why We Need Package Managers</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#package-composition"><span class="nav-number">1.1.</span> <span class="nav-text">Package Composition</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#binary-executables"><span class="nav-number">1.1.1.</span> <span class="nav-text">1. Binary Executables</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#configuration-files"><span class="nav-number">1.1.2.</span> <span class="nav-text">2. Configuration Files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shared-libraries"><span class="nav-number">1.1.3.</span> <span class="nav-text">3. Shared Libraries</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#data-files"><span class="nav-number">1.1.4.</span> <span class="nav-text">4. Data Files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#documentation"><span class="nav-number">1.1.5.</span> <span class="nav-text">5. Documentation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#service-unit-files-if-its-a-service"><span class="nav-number">1.1.6.</span> <span class="nav-text">6. Service Unit Files (If
-It&#39;s a Service)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#why-we-need-package-managers"><span class="nav-number">1.2.</span> <span class="nav-text">Why We Need Package Managers</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#mainstream-linux-package-managers-comparison"><span class="nav-number">2.</span> <span class="nav-text">Mainstream Linux
-Package Managers Comparison</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#debianubuntu-package-management-apt-dpkg"><span class="nav-number">3.</span> <span class="nav-text">Debian&#x2F;Ubuntu Package
-Management: apt + dpkg</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#apt-vs-apt-get-vs-dpkg"><span class="nav-number">3.1.</span> <span class="nav-text">apt vs apt-get vs dpkg</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#common-operations"><span class="nav-number">3.2.</span> <span class="nav-text">Common Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#update-package-source-information"><span class="nav-number">3.2.1.</span> <span class="nav-text">Update Package Source
-Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#search-for-packages"><span class="nav-number">3.2.2.</span> <span class="nav-text">Search for Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-package-information"><span class="nav-number">3.2.3.</span> <span class="nav-text">View Package Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#install-packages"><span class="nav-number">3.2.4.</span> <span class="nav-text">Install Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#uninstall-packages"><span class="nav-number">3.2.5.</span> <span class="nav-text">Uninstall Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#upgrade-packages"><span class="nav-number">3.2.6.</span> <span class="nav-text">Upgrade Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-installed-packages"><span class="nav-number">3.2.7.</span> <span class="nav-text">View Installed Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-files-installed-by-package"><span class="nav-number">3.2.8.</span> <span class="nav-text">View Files Installed by
-Package</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#find-which-package-a-file-belongs-to"><span class="nav-number">3.2.9.</span> <span class="nav-text">Find Which Package a File
-Belongs To</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#manually-install-.deb-package"><span class="nav-number">3.2.10.</span> <span class="nav-text">Manually Install .deb
-Package</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#advanced-usage"><span class="nav-number">3.3.</span> <span class="nav-text">Advanced Usage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#lock-package-version-prevent-upgrade"><span class="nav-number">3.3.1.</span> <span class="nav-text">Lock Package Version
-(Prevent Upgrade)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#downgrade-package-version"><span class="nav-number">3.3.2.</span> <span class="nav-text">Downgrade Package Version</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#clean-cache-free-disk-space"><span class="nav-number">3.3.3.</span> <span class="nav-text">Clean Cache (Free Disk Space)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#rhelcentos-package-management-yumdnf-rpm"><span class="nav-number">4.</span> <span class="nav-text">RHEL&#x2F;CentOS Package
-Management: yum&#x2F;dnf + rpm</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#yum-vs-dnf-vs-rpm"><span class="nav-number">4.1.</span> <span class="nav-text">yum vs dnf vs rpm</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#common-operations-using-dnf-as-example-yum-commands-are-almost-identical"><span class="nav-number">4.2.</span> <span class="nav-text">Common
-Operations (Using dnf as Example, yum Commands Are Almost
-Identical)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#update-package-source-information-1"><span class="nav-number">4.2.1.</span> <span class="nav-text">Update Package Source
-Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#search-for-packages-1"><span class="nav-number">4.2.2.</span> <span class="nav-text">Search for Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-package-information-1"><span class="nav-number">4.2.3.</span> <span class="nav-text">View Package Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#install-packages-1"><span class="nav-number">4.2.4.</span> <span class="nav-text">Install Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#uninstall-packages-1"><span class="nav-number">4.2.5.</span> <span class="nav-text">Uninstall Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#upgrade-packages-1"><span class="nav-number">4.2.6.</span> <span class="nav-text">Upgrade Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-installed-packages-1"><span class="nav-number">4.2.7.</span> <span class="nav-text">View Installed Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-files-installed-by-package-1"><span class="nav-number">4.2.8.</span> <span class="nav-text">View Files Installed by
-Package</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#find-which-package-a-file-belongs-to-1"><span class="nav-number">4.2.9.</span> <span class="nav-text">Find Which Package a
-File Belongs To</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#manually-install-.rpm-package"><span class="nav-number">4.2.10.</span> <span class="nav-text">Manually Install .rpm
-Package</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#advanced-usage-1"><span class="nav-number">4.3.</span> <span class="nav-text">Advanced Usage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#lock-package-version-prevent-upgrade-1"><span class="nav-number">4.3.1.</span> <span class="nav-text">Lock Package Version
-(Prevent Upgrade)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#downgrade-package-version-1"><span class="nav-number">4.3.2.</span> <span class="nav-text">Downgrade Package Version</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#clean-cache"><span class="nav-number">4.3.3.</span> <span class="nav-text">Clean Cache</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#configure-domestic-mirrors-speed-up-downloads"><span class="nav-number">5.</span> <span class="nav-text">Configure
-Domestic Mirrors (Speed Up Downloads)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#debianubuntu-configure-aliyun-mirror"><span class="nav-number">5.1.</span> <span class="nav-text">Debian&#x2F;Ubuntu Configure
-Aliyun Mirror</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#backup-original-sources"><span class="nav-number">5.1.1.</span> <span class="nav-text">1. Backup Original Sources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#replace-with-aliyun-mirror"><span class="nav-number">5.1.2.</span> <span class="nav-text">2. Replace with Aliyun Mirror</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#update-package-sources"><span class="nav-number">5.1.3.</span> <span class="nav-text">3. Update Package Sources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#verify-effectiveness"><span class="nav-number">5.1.4.</span> <span class="nav-text">4. Verify Effectiveness</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#centosrhel-configure-aliyun-mirror"><span class="nav-number">5.2.</span> <span class="nav-text">CentOS&#x2F;RHEL Configure Aliyun
-Mirror</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#backup-original-sources-1"><span class="nav-number">5.2.1.</span> <span class="nav-text">1. Backup Original Sources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#download-aliyun-mirror-config"><span class="nav-number">5.2.2.</span> <span class="nav-text">2. Download Aliyun Mirror
-Config</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#clean-and-update-cache"><span class="nav-number">5.2.3.</span> <span class="nav-text">3. Clean and Update Cache</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#verify-effectiveness-1"><span class="nav-number">5.2.4.</span> <span class="nav-text">4. Verify Effectiveness</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#other-domestic-mirrors"><span class="nav-number">5.3.</span> <span class="nav-text">Other Domestic Mirrors</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#building-from-source-from-configure-to-make-install"><span class="nav-number">6.</span> <span class="nav-text">Building
-from Source: From configure to make install</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#the-three-step-build-process"><span class="nav-number">6.1.</span> <span class="nav-text">The Three-Step Build Process</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hands-on-compiling-nginx-tengine"><span class="nav-number">6.2.</span> <span class="nav-text">Hands-On: Compiling Nginx
-(Tengine)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#install-build-dependencies"><span class="nav-number">6.2.1.</span> <span class="nav-text">1. Install Build Dependencies</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#download-source-code"><span class="nav-number">6.2.2.</span> <span class="nav-text">2. Download Source Code</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#configure-build-parameters-.configure"><span class="nav-number">6.2.3.</span> <span class="nav-text">3. Configure Build
-Parameters (.&#x2F;configure)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#compile-make"><span class="nav-number">6.2.4.</span> <span class="nav-text">4. Compile (make)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#install-make-install"><span class="nav-number">6.2.5.</span> <span class="nav-text">5. Install
-(make install)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#start-nginx"><span class="nav-number">6.2.6.</span> <span class="nav-text">6. Start Nginx</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#create-systemd-service-optional"><span class="nav-number">6.2.7.</span> <span class="nav-text">7. Create systemd Service
-(Optional)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#binary-portable-configuration-java-example"><span class="nav-number">7.</span> <span class="nav-text">Binary Portable
-Configuration: Java Example</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#hands-on-configure-java-environment"><span class="nav-number">7.1.</span> <span class="nav-text">Hands-On: Configure Java
-Environment</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#download-jdk"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. Download JDK</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#extract-to-opt"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. Extract to &#x2F;opt</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#configure-environment-variables"><span class="nav-number">7.1.3.</span> <span class="nav-text">3. Configure Environment
-Variables</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#make-config-effective"><span class="nav-number">7.1.4.</span> <span class="nav-text">4. Make Config Effective</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#verify"><span class="nav-number">7.1.5.</span> <span class="nav-text">5. Verify</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#package-management-best-practices"><span class="nav-number">8.</span> <span class="nav-text">Package Management Best
-Practices</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#regularly-update-system"><span class="nav-number">8.1.</span> <span class="nav-text">1. Regularly Update System</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#clean-unused-packages-and-cache"><span class="nav-number">8.2.</span> <span class="nav-text">2. Clean Unused Packages and
-Cache</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lock-critical-software-versions"><span class="nav-number">8.3.</span> <span class="nav-text">3. Lock Critical Software
-Versions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dont-mix-package-managers-and-compiled-installations"><span class="nav-number">8.4.</span> <span class="nav-text">4. Don&#39;t
-Mix Package Managers and Compiled Installations</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#backup-important-configs"><span class="nav-number">8.5.</span> <span class="nav-text">5. Backup Important Configs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#use-virtual-environments-pythonnode.js"><span class="nav-number">8.6.</span> <span class="nav-text">6. Use Virtual
-Environments (Python&#x2F;Node.js)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#summary-and-further-reading"><span class="nav-number">9.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">Basic Package Concepts: What’s Inside, Why We Need Package Managers</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Package-Composition"><span class="nav-number">1.1.</span> <span class="nav-text">Package Composition</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Binary-Executables"><span class="nav-number">1.1.1.</span> <span class="nav-text">1. Binary Executables</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Configuration-Files"><span class="nav-number">1.1.2.</span> <span class="nav-text">2. Configuration Files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Shared-Libraries"><span class="nav-number">1.1.3.</span> <span class="nav-text">3. Shared Libraries</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Data-Files"><span class="nav-number">1.1.4.</span> <span class="nav-text">4. Data Files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Documentation"><span class="nav-number">1.1.5.</span> <span class="nav-text">5. Documentation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Service-Unit-Files-If-It%E2%80%99s-a-Service"><span class="nav-number">1.1.6.</span> <span class="nav-text">6. Service Unit Files (If It’s a Service)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Why-We-Need-Package-Managers"><span class="nav-number">1.2.</span> <span class="nav-text">Why We Need Package Managers</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Mainstream Linux Package Managers Comparison</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">Debian&#x2F;Ubuntu Package Management: apt + dpkg</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#apt-vs-apt-get-vs-dpkg-v2"><span class="nav-number">3.1.</span> <span class="nav-text">apt vs apt-get vs dpkg</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Common-Operations"><span class="nav-number">3.2.</span> <span class="nav-text">Common Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Update-Package-Source-Information"><span class="nav-number">3.2.1.</span> <span class="nav-text">Update Package Source Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Search-for-Packages"><span class="nav-number">3.2.2.</span> <span class="nav-text">Search for Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Package-Information"><span class="nav-number">3.2.3.</span> <span class="nav-text">View Package Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Install-Packages"><span class="nav-number">3.2.4.</span> <span class="nav-text">Install Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Uninstall-Packages"><span class="nav-number">3.2.5.</span> <span class="nav-text">Uninstall Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Upgrade-Packages"><span class="nav-number">3.2.6.</span> <span class="nav-text">Upgrade Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Installed-Packages"><span class="nav-number">3.2.7.</span> <span class="nav-text">View Installed Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Files-Installed-by-Package"><span class="nav-number">3.2.8.</span> <span class="nav-text">View Files Installed by Package</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Find-Which-Package-a-File-Belongs-To"><span class="nav-number">3.2.9.</span> <span class="nav-text">Find Which Package a File Belongs To</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Manually-Install-deb-Package"><span class="nav-number">3.2.10.</span> <span class="nav-text">Manually Install .deb Package</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Advanced-Usage"><span class="nav-number">3.3.</span> <span class="nav-text">Advanced Usage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Lock-Package-Version-Prevent-Upgrade"><span class="nav-number">3.3.1.</span> <span class="nav-text">Lock Package Version (Prevent Upgrade)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Downgrade-Package-Version"><span class="nav-number">3.3.2.</span> <span class="nav-text">Downgrade Package Version</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Clean-Cache-Free-Disk-Space"><span class="nav-number">3.3.3.</span> <span class="nav-text">Clean Cache (Free Disk Space)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">RHEL&#x2F;CentOS Package Management: yum&#x2F;dnf + rpm</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#yum-vs-dnf-vs-rpm-v2"><span class="nav-number">4.1.</span> <span class="nav-text">yum vs dnf vs rpm</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Common-Operations-Using-dnf-as-Example-yum-Commands-Are-Almost-Identical"><span class="nav-number">4.2.</span> <span class="nav-text">Common Operations (Using dnf as Example, yum Commands Are Almost Identical)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Update-Package-Source-Information-v2"><span class="nav-number">4.2.1.</span> <span class="nav-text">Update Package Source Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Search-for-Packages-v2"><span class="nav-number">4.2.2.</span> <span class="nav-text">Search for Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Package-Information-v2"><span class="nav-number">4.2.3.</span> <span class="nav-text">View Package Information</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Install-Packages-v2"><span class="nav-number">4.2.4.</span> <span class="nav-text">Install Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Uninstall-Packages-v2"><span class="nav-number">4.2.5.</span> <span class="nav-text">Uninstall Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Upgrade-Packages-v2"><span class="nav-number">4.2.6.</span> <span class="nav-text">Upgrade Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Installed-Packages-v2"><span class="nav-number">4.2.7.</span> <span class="nav-text">View Installed Packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Files-Installed-by-Package-v2"><span class="nav-number">4.2.8.</span> <span class="nav-text">View Files Installed by Package</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Find-Which-Package-a-File-Belongs-To-v2"><span class="nav-number">4.2.9.</span> <span class="nav-text">Find Which Package a File Belongs To</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Manually-Install-rpm-Package"><span class="nav-number">4.2.10.</span> <span class="nav-text">Manually Install .rpm Package</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Advanced-Usage-v2"><span class="nav-number">4.3.</span> <span class="nav-text">Advanced Usage</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Lock-Package-Version-Prevent-Upgrade-v2"><span class="nav-number">4.3.1.</span> <span class="nav-text">Lock Package Version (Prevent Upgrade)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Downgrade-Package-Version-v2"><span class="nav-number">4.3.2.</span> <span class="nav-text">Downgrade Package Version</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Clean-Cache"><span class="nav-number">4.3.3.</span> <span class="nav-text">Clean Cache</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">Configure Domestic Mirrors (Speed Up Downloads)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Debian-Ubuntu-Configure-Aliyun-Mirror"><span class="nav-number">5.1.</span> <span class="nav-text">Debian&#x2F;Ubuntu Configure Aliyun Mirror</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Backup-Original-Sources"><span class="nav-number">5.1.1.</span> <span class="nav-text">1. Backup Original Sources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Replace-with-Aliyun-Mirror"><span class="nav-number">5.1.2.</span> <span class="nav-text">2. Replace with Aliyun Mirror</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Update-Package-Sources"><span class="nav-number">5.1.3.</span> <span class="nav-text">3. Update Package Sources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Verify-Effectiveness"><span class="nav-number">5.1.4.</span> <span class="nav-text">4. Verify Effectiveness</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CentOS-RHEL-Configure-Aliyun-Mirror"><span class="nav-number">5.2.</span> <span class="nav-text">CentOS&#x2F;RHEL Configure Aliyun Mirror</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Backup-Original-Sources-v2"><span class="nav-number">5.2.1.</span> <span class="nav-text">1. Backup Original Sources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Download-Aliyun-Mirror-Config"><span class="nav-number">5.2.2.</span> <span class="nav-text">2. Download Aliyun Mirror Config</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Clean-and-Update-Cache"><span class="nav-number">5.2.3.</span> <span class="nav-text">3. Clean and Update Cache</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Verify-Effectiveness-v2"><span class="nav-number">5.2.4.</span> <span class="nav-text">4. Verify Effectiveness</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Other-Domestic-Mirrors"><span class="nav-number">5.3.</span> <span class="nav-text">Other Domestic Mirrors</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">Building from Source: From configure to make install</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Three-Step-Build-Process"><span class="nav-number">6.1.</span> <span class="nav-text">The Three-Step Build Process</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hands-On-Compiling-Nginx-Tengine"><span class="nav-number">6.2.</span> <span class="nav-text">Hands-On: Compiling Nginx (Tengine)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Install-Build-Dependencies"><span class="nav-number">6.2.1.</span> <span class="nav-text">1. Install Build Dependencies</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Download-Source-Code"><span class="nav-number">6.2.2.</span> <span class="nav-text">2. Download Source Code</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Configure-Build-Parameters-configure"><span class="nav-number">6.2.3.</span> <span class="nav-text">3. Configure Build Parameters (.&#x2F;configure)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Compile-make"><span class="nav-number">6.2.4.</span> <span class="nav-text">4. Compile (make)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Install-make-install"><span class="nav-number">6.2.5.</span> <span class="nav-text">5. Install (make install)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Start-Nginx"><span class="nav-number">6.2.6.</span> <span class="nav-text">6. Start Nginx</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-Create-systemd-Service-Optional"><span class="nav-number">6.2.7.</span> <span class="nav-text">7. Create systemd Service (Optional)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Binary Portable Configuration: Java Example</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Hands-On-Configure-Java-Environment"><span class="nav-number">7.1.</span> <span class="nav-text">Hands-On: Configure Java Environment</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Download-JDK"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. Download JDK</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Extract-to-opt"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. Extract to &#x2F;opt</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Configure-Environment-Variables"><span class="nav-number">7.1.3.</span> <span class="nav-text">3. Configure Environment Variables</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Make-Config-Effective"><span class="nav-number">7.1.4.</span> <span class="nav-text">4. Make Config Effective</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Verify"><span class="nav-number">7.1.5.</span> <span class="nav-text">5. Verify</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">Package Management Best Practices</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Regularly-Update-System"><span class="nav-number">8.1.</span> <span class="nav-text">1. Regularly Update System</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Clean-Unused-Packages-and-Cache"><span class="nav-number">8.2.</span> <span class="nav-text">2. Clean Unused Packages and Cache</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Lock-Critical-Software-Versions"><span class="nav-number">8.3.</span> <span class="nav-text">3. Lock Critical Software Versions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Don%E2%80%99t-Mix-Package-Managers-and-Compiled-Installations"><span class="nav-number">8.4.</span> <span class="nav-text">4. Don’t Mix Package Managers and Compiled Installations</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Backup-Important-Configs"><span class="nav-number">8.5.</span> <span class="nav-text">5. Backup Important Configs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-Use-Virtual-Environments-Python-Node-js"><span class="nav-number">8.6.</span> <span class="nav-text">6. Use Virtual Environments (Python&#x2F;Node.js)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">9.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
     </div>
 </div>
         </aside>
