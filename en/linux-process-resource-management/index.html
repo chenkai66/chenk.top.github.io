@@ -215,8 +215,8 @@
     
     <span class="article-date article-meta-item">
         <i class="fas fa-edit"></i>&nbsp;
-        <span class="pc">2025-02-08 00:00:00</span>
-        <span class="mobile">2025-02-08 00:00</span>
+        <span class="pc">2025-01-10 00:00:00</span>
+        <span class="mobile">2025-01-10 00:00</span>
     </span>
     
     
@@ -260,38 +260,12 @@
         
 
         <div class="article-content markdown-body">
-            <p>In production troubleshooting, the most critical skill isn't
-"memorizing commands" but quickly mapping symptoms to resources and
-processes: is CPU maxed out, is memory being consumed by cache, is disk
-I/O blocking, and exactly which process/file/port is slowing down the
-system. This post starts from basic concepts of processes/threads and
-parent-child relationships, explains Linux's resource perspective
-(especially the meaning of buffer/cache and the "out of memory"
-misjudgment), then systematically organizes a commonly used monitoring
-and locating toolchain (<code>top/htop/ps/pstree/lsof</code>,
-ports/network, I/O, load and stress testing). Then it fills in the
-"process control" operations: signals and background tasks,
-<code>nice/renice</code> priority, orphan/zombie process causes and
-handling; finally, using a complete troubleshooting case (what to do
-when Nginx log files are accidentally deleted) to apply the "resource
-perspective" to practical scenarios, helping you run through a complete
-troubleshooting workflow. If you're a sysadmin or need to troubleshoot
-performance issues, this article will upgrade you from "can view top" to
-"can quickly locate resource bottlenecks, can optimize process
-priorities, can handle abnormal process states."</p>
+            <p>In production troubleshooting, the most critical skill isn’t “memorizing commands” but quickly mapping symptoms to resources and processes: is CPU maxed out, is memory being consumed by cache, is disk I/O blocking, and exactly which process/file/port is slowing down the system. This post starts from basic concepts of processes/threads and parent-child relationships, explains Linux’s resource perspective (especially the meaning of buffer/cache and the “out of memory” misjudgment), then systematically organizes a commonly used monitoring and locating toolchain (<code>top/htop/ps/pstree/lsof</code>, ports/network, I/O, load and stress testing). Then it fills in the “process control” operations: signals and background tasks, <code>nice/renice</code> priority, orphan/zombie process causes and handling; finally, using a complete troubleshooting case (what to do when Nginx log files are accidentally deleted) to apply the “resource perspective” to practical scenarios, helping you run through a complete troubleshooting workflow. If you’re a sysadmin or need to troubleshoot performance issues, this article will upgrade you from “can view top” to “can quickly locate resource bottlenecks, can optimize process priorities, can handle abnormal process states.”</p>
 <span id="more"></span>
-<h1 id="basic-concepts-process-vs-program-vs-thread">Basic Concepts:
-Process vs Program vs Thread</h1>
-<h2 id="the-three-concepts-often-confused">The Three Concepts Often
-Confused</h2>
-<p>Understanding the differences between these three is important for
-grasping Linux systems:</p>
+<h1>Basic Concepts: Process vs Program vs Thread</h1>
+<h2 id="The-Three-Concepts-Often-Confused"><a class="header-anchor" href="#The-Three-Concepts-Often-Confused">¶</a>The Three Concepts Often Confused</h2>
+<p>Understanding the differences between these three is important for grasping Linux systems:</p>
 <table>
-<colgroup>
-<col style="width: 11%">
-<col style="width: 63%">
-<col style="width: 25%">
-</colgroup>
 <thead>
 <tr>
 <th>Concept</th>
@@ -302,150 +276,121 @@ grasping Linux systems:</p>
 <tbody>
 <tr>
 <td><strong>Program</strong></td>
-<td>Static executable file stored on disk (like
-<code>/usr/bin/vim</code>)</td>
+<td>Static executable file stored on disk (like <code>/usr/bin/vim</code>)</td>
 <td>Architectural blueprint</td>
 </tr>
 <tr>
 <td><strong>Process</strong></td>
-<td>Running instance after program is loaded into memory (has PID,
-memory space, open files)</td>
+<td>Running instance after program is loaded into memory (has PID, memory space, open files)</td>
 <td>Construction site in progress (foreman)</td>
 </tr>
 <tr>
 <td><strong>Thread</strong></td>
-<td>Execution unit within a process (shares process memory but has
-independent execution flow)</td>
+<td>Execution unit within a process (shares process memory but has independent execution flow)</td>
 <td>Workers on site</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Examples</strong>: - When you run
-<code>vim myfile.txt</code>, the <code>vim</code> program loads from
-disk into memory, creating a process responsible for editing
-<code>myfile.txt</code>. - The same program can start multiple processes
-simultaneously; for example, when opening multiple browser tabs, each
-tab might correspond to an independent process (or multiple threads). -
-A process can contain multiple threads; for example, a music player
-process might have two threads: one downloading music, one playing
-songs.</p>
-<p><strong>Why have threads?</strong> - Threads are lighter than
-processes (lower creation/destruction overhead) - Threads share process
-memory space (easier communication) - Multi-threading can fully utilize
-multi-core CPUs (parallel computing)</p>
-<h2 id="five-key-process-characteristics">Five Key Process
-Characteristics</h2>
-<ol type="1">
-<li><strong>Independence</strong>: Each process has its own memory space
-and system resources, isolated from each other (process A's variables
-won't affect process B)</li>
-<li><strong>Concurrency</strong>: OS allows multiple processes to run
-simultaneously, achieving concurrent processing through multi-task
-scheduling</li>
-<li><strong>Dynamism</strong>: Processes continuously create, execute,
-terminate; state changes in real-time (OS operation is continuously
-creating and destroying processes)</li>
-<li><strong>Parent-Child Relationship</strong>: Processes are created by
-parent processes via <code>fork()</code> call, forming parent-child
-structure (PPID field indicates parent process)</li>
-<li><strong>Schedulability</strong>: OS uses scheduling algorithms (like
-time-slice rotation, priority scheduling) to determine process execution
-order</li>
+<p><strong>Examples</strong>:</p>
+<ul>
+<li>When you run <code>vim myfile.txt</code>, the <code>vim</code> program loads from disk into memory, creating a process responsible for editing <code>myfile.txt</code>.</li>
+<li>The same program can start multiple processes simultaneously; for example, when opening multiple browser tabs, each tab might correspond to an independent process (or multiple threads).</li>
+<li>A process can contain multiple threads; for example, a music player process might have two threads: one downloading music, one playing songs.</li>
+</ul>
+<p><strong>Why have threads?</strong></p>
+<ul>
+<li>Threads are lighter than processes (lower creation/destruction overhead)</li>
+<li>Threads share process memory space (easier communication)</li>
+<li>Multi-threading can fully utilize multi-core CPUs (parallel computing)</li>
+</ul>
+<h2 id="Five-Key-Process-Characteristics"><a class="header-anchor" href="#Five-Key-Process-Characteristics">¶</a>Five Key Process Characteristics</h2>
+<ol>
+<li><strong>Independence</strong>: Each process has its own memory space and system resources, isolated from each other (process A’s variables won’t affect process B)</li>
+<li><strong>Concurrency</strong>: OS allows multiple processes to run simultaneously, achieving concurrent processing through multi-task scheduling</li>
+<li><strong>Dynamism</strong>: Processes continuously create, execute, terminate; state changes in real-time (OS operation is continuously creating and destroying processes)</li>
+<li><strong>Parent-Child Relationship</strong>: Processes are created by parent processes via <code>fork()</code> call, forming parent-child structure (PPID field indicates parent process)</li>
+<li><strong>Schedulability</strong>: OS uses scheduling algorithms (like time-slice rotation, priority scheduling) to determine process execution order</li>
 </ol>
-<h2 id="process-parent-child-relationship-pid-and-ppid">Process
-Parent-Child Relationship (PID and PPID)</h2>
-<p>Every process has two important IDs: - <strong>PID</strong> (Process
-ID): Process ID, uniquely identifies a process - <strong>PPID</strong>
-(Parent Process ID): Parent process ID, identifies the parent process
-that created this process</p>
-<p><strong>Example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep bash</span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">UID   PID  PPID  C STIME TTY      TIME CMD</span><br><span class="line">root  1234 1     0 12:00 ?        00:00:00 /bin/bash /usr/local/bin/startup.sh</span><br><span class="line">user  5678 1234  0 12:05 pts/0    00:00:00 bash</span><br></pre></td></tr></table></figure></p>
+<h2 id="Process-Parent-Child-Relationship-PID-and-PPID"><a class="header-anchor" href="#Process-Parent-Child-Relationship-PID-and-PPID">¶</a>Process Parent-Child Relationship (PID and PPID)</h2>
+<p>Every process has two important IDs:</p>
 <ul>
-<li>PID 5678 process is <code>bash</code>, its PPID is 1234 (parent
-process is <code>/bin/bash /usr/local/bin/startup.sh</code>)</li>
-<li>All processes can ultimately be traced back to PID 1 (systemd or
-init)</li>
+<li><strong>PID</strong> (Process ID): Process ID, uniquely identifies a process</li>
+<li><strong>PPID</strong> (Parent Process ID): Parent process ID, identifies the parent process that created this process</li>
 </ul>
-<p><strong>View process tree</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pstree -p  <span class="comment"># Display process parent-child relationships in tree structure (-p shows PID)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Example</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep bash</span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">UID   PID  PPID  C STIME TTY      TIME CMD</span><br><span class="line">root  1234 1     0 12:00 ?        00:00:00 /bin/bash /usr/local/bin/startup.sh</span><br><span class="line">user  5678 1234  0 12:05 pts/0    00:00:00 bash</span><br></pre></td></tr></table></figure>
+<ul>
+<li>PID 5678 process is <code>bash</code>, its PPID is 1234 (parent process is <code>/bin/bash /usr/local/bin/startup.sh</code>)</li>
+<li>All processes can ultimately be traced back to PID 1 (systemd or init)</li>
+</ul>
+<p><strong>View process tree</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pstree -p  <span class="comment"># Display process parent-child relationships in tree structure (-p shows PID)</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="linux-resource-management-overview-cpumemorydisknetwork">Linux
-Resource Management Overview: CPU/Memory/Disk/Network</h1>
-<p>Operations work revolves around hardware and software resources;
-properly managing these resources ensures system runs efficiently and
-stably.</p>
-<h2 id="four-major-hardware-resource-categories">Four Major Hardware
-Resource Categories</h2>
-<h3 id="cpu-resources">1. CPU Resources</h3>
+<h1>Linux Resource Management Overview: CPU/Memory/Disk/Network</h1>
+<p>Operations work revolves around hardware and software resources; properly managing these resources ensures system runs efficiently and stably.</p>
+<h2 id="Four-Major-Hardware-Resource-Categories"><a class="header-anchor" href="#Four-Major-Hardware-Resource-Categories">¶</a>Four Major Hardware Resource Categories</h2>
+<h3 id="1-CPU-Resources"><a class="header-anchor" href="#1-CPU-Resources">¶</a>1. CPU Resources</h3>
 <ul>
-<li><strong>Core count</strong>: Modern CPUs are typically multi-core
-(like 4-core, 8-core, 16-core)</li>
-<li><strong>Load</strong>: Number of processes waiting to execute (load
-average)</li>
-<li><strong>Utilization</strong>: Percentage of CPU occupied by
-processes</li>
+<li><strong>Core count</strong>: Modern CPUs are typically multi-core (like 4-core, 8-core, 16-core)</li>
+<li><strong>Load</strong>: Number of processes waiting to execute (load average)</li>
+<li><strong>Utilization</strong>: Percentage of CPU occupied by processes</li>
 </ul>
-<p><strong>Check CPU core count</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lscpu | grep <span class="string">&#x27;^CPU(s)&#x27;</span>  <span class="comment"># Output: CPU(s): 4</span></span><br><span class="line"><span class="built_in">nproc</span>  <span class="comment"># Output core count: 4</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Check CPU load</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">uptime</span>  <span class="comment"># Output: 06:56:12 up 12 days, 3:45, 3 users, load average: 0.22, 0.45, 0.56</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>load average interpretation</strong> (for 4-core CPU
-example): - <code>load average: 0.22, 0.45, 0.56</code>: Average loads
-for 1 minute, 5 minutes, 15 minutes - Load &lt; core count (like load
-&lt; 4 for 4-core): System idle - Load = core count (like load = 4 for
-4-core): System at full capacity - Load &gt; core count (like load &gt;
-4 for 4-core): System overloaded (processes waiting for CPU)</p>
-<p><strong>High load but low CPU usage?</strong> This usually indicates
-processes are waiting for I/O (disk read/write, network), not CPU
-bottleneck.</p>
-<h3 id="memory-resources">2. Memory Resources</h3>
+<p><strong>Check CPU core count</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lscpu | grep <span class="string">&#x27;^CPU(s)&#x27;</span>  <span class="comment"># Output: CPU(s): 4</span></span><br><span class="line"><span class="built_in">nproc</span>  <span class="comment"># Output core count: 4</span></span><br></pre></td></tr></table></figure>
+<p><strong>Check CPU load</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">uptime</span>  <span class="comment"># Output: 06:56:12 up 12 days, 3:45, 3 users, load average: 0.22, 0.45, 0.56</span></span><br></pre></td></tr></table></figure>
+<p><strong>load average interpretation</strong> (for 4-core CPU example):</p>
+<ul>
+<li><code>load average: 0.22, 0.45, 0.56</code>: Average loads for 1 minute, 5 minutes, 15 minutes</li>
+<li>Load &lt; core count (like load &lt; 4 for 4-core): System idle</li>
+<li>Load = core count (like load = 4 for 4-core): System at full capacity</li>
+<li>Load &gt; core count (like load &gt; 4 for 4-core): System overloaded (processes waiting for CPU)</li>
+</ul>
+<p><strong>High load but low CPU usage?</strong> This usually indicates processes are waiting for I/O (disk read/write, network), not CPU bottleneck.</p>
+<h3 id="2-Memory-Resources"><a class="header-anchor" href="#2-Memory-Resources">¶</a>2. Memory Resources</h3>
 <ul>
 <li><strong>Total memory</strong>: Total physical memory</li>
 <li><strong>Used memory</strong>: Allocated memory</li>
-<li><strong>Available memory</strong>: Actually available memory
-(includes reclaimable buffer/cache)</li>
-<li><strong>Swap</strong>: Swap space (virtual memory on hard drive,
-slow)</li>
+<li><strong>Available memory</strong>: Actually available memory (includes reclaimable buffer/cache)</li>
+<li><strong>Swap</strong>: Swap space (virtual memory on hard drive, slow)</li>
 </ul>
-<p><strong>Check memory usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">free -h  <span class="comment"># -h human-readable display (MB/GB)</span></span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">              total        used        free      shared  buff/cache   available</span><br><span class="line">Mem:           15Gi       2.5Gi       8.0Gi       100Mi       4.5Gi        12Gi</span><br><span class="line">Swap:         2.0Gi          0B       2.0Gi</span><br></pre></td></tr></table></figure></p>
-<p><strong>Important concept: buffer and cache</strong> (detailed in
-next section)</p>
-<h3 id="disk-resources">3. Disk Resources</h3>
+<p><strong>Check memory usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">free -h  <span class="comment"># -h human-readable display (MB/GB)</span></span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">              total        used        free      shared  buff/cache   available</span><br><span class="line">Mem:           15Gi       2.5Gi       8.0Gi       100Mi       4.5Gi        12Gi</span><br><span class="line">Swap:         2.0Gi          0B       2.0Gi</span><br></pre></td></tr></table></figure>
+<p><strong>Important concept: buffer and cache</strong> (detailed in next section)</p>
+<h3 id="3-Disk-Resources"><a class="header-anchor" href="#3-Disk-Resources">¶</a>3. Disk Resources</h3>
 <ul>
-<li><strong>Capacity</strong>: Total storage space provided by hard
-drive or SSD</li>
+<li><strong>Capacity</strong>: Total storage space provided by hard drive or SSD</li>
 <li><strong>Read/Write Performance</strong>:
 <ul>
-<li><strong>Mechanical Hard Drive (HDD)</strong>: Large capacity, low
-price, slow speed (100-200 MB/s)</li>
-<li><strong>Solid State Drive (SSD)</strong>: Fast speed, high price,
-relatively small capacity (500-3000 MB/s)</li>
+<li><strong>Mechanical Hard Drive (HDD)</strong>: Large capacity, low price, slow speed (100-200 MB/s)</li>
+<li><strong>Solid State Drive (SSD)</strong>: Fast speed, high price, relatively small capacity (500-3000 MB/s)</li>
 <li><strong>NVMe SSD</strong>: Even faster (3000-7000 MB/s)</li>
-</ul></li>
 </ul>
-<p><strong>Check disk usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">df</span> -h  <span class="comment"># View partition usage</span></span><br><span class="line">lsblk  <span class="comment"># List block devices and mount points</span></span><br><span class="line"><span class="built_in">du</span> -sh /*  <span class="comment"># View space occupied by each directory under root</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Check disk I/O</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iostat -x 1  <span class="comment"># Refresh every second (requires sysstat package)</span></span><br><span class="line">iotop  <span class="comment"># Real-time view of each process&#x27;s disk I/O (requires root privileges)</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="network-resources">4. Network Resources</h3>
+</li>
+</ul>
+<p><strong>Check disk usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">df</span> -h  <span class="comment"># View partition usage</span></span><br><span class="line">lsblk  <span class="comment"># List block devices and mount points</span></span><br><span class="line"><span class="built_in">du</span> -sh /*  <span class="comment"># View space occupied by each directory under root</span></span><br></pre></td></tr></table></figure>
+<p><strong>Check disk I/O</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iostat -x 1  <span class="comment"># Refresh every second (requires sysstat package)</span></span><br><span class="line">iotop  <span class="comment"># Real-time view of each process&#x27;s disk I/O (requires root privileges)</span></span><br></pre></td></tr></table></figure>
+<h3 id="4-Network-Resources"><a class="header-anchor" href="#4-Network-Resources">¶</a>4. Network Resources</h3>
 <ul>
-<li><strong>Bandwidth</strong>: Network interface maximum transfer rate
-(like 1 Gbps, 10 Gbps)</li>
+<li><strong>Bandwidth</strong>: Network interface maximum transfer rate (like 1 Gbps, 10 Gbps)</li>
 <li><strong>Throughput</strong>: Actual transfer rate</li>
 <li><strong>Latency</strong>: Packet round-trip time (RTT)</li>
 </ul>
-<p><strong>Check network traffic</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iftop -i eth0  <span class="comment"># Real-time display of network traffic (needs iftop installation)</span></span><br><span class="line">ip -s <span class="built_in">link</span>  <span class="comment"># View interface statistics (sent/received packets, dropped packets)</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Check network connections</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ss -tulnp  <span class="comment"># View listening ports and connections (replaces netstat)</span></span><br><span class="line">lsof -i :80  <span class="comment"># See which process is using port 80</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Check network traffic</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iftop -i eth0  <span class="comment"># Real-time display of network traffic (needs iftop installation)</span></span><br><span class="line">ip -s <span class="built_in">link</span>  <span class="comment"># View interface statistics (sent/received packets, dropped packets)</span></span><br></pre></td></tr></table></figure>
+<p><strong>Check network connections</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ss -tulnp  <span class="comment"># View listening ports and connections (replaces netstat)</span></span><br><span class="line">lsof -i :80  <span class="comment"># See which process is using port 80</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="buffer-and-cache-explained-why-out-of-memory-is-often-a-misjudgment">Buffer
-and Cache Explained: Why "Out of Memory" Is Often a Misjudgment</h1>
-<p>Linux memory management is aggressive: <strong>use as much memory as
-possible to cache data, improving performance</strong>. So you'll find
-<code>free</code> shows very little <code>free</code>, but this
-<strong>doesn't mean you're out of memory</strong>.</p>
-<h2 id="buffer-vs-cache">Buffer vs Cache</h2>
+<h1>Buffer and Cache Explained: Why “Out of Memory” Is Often a Misjudgment</h1>
+<p>Linux memory management is aggressive: <strong>use as much memory as possible to cache data, improving performance</strong>. So you’ll find <code>free</code> shows very little <code>free</code>, but this <strong>doesn’t mean you’re out of memory</strong>.</p>
+<h2 id="Buffer-vs-Cache-v2"><a class="header-anchor" href="#Buffer-vs-Cache-v2">¶</a>Buffer vs Cache</h2>
 <table>
-<colgroup>
-<col style="width: 8%">
-<col style="width: 56%">
-<col style="width: 34%">
-</colgroup>
 <thead>
 <tr>
 <th>Type</th>
@@ -456,154 +401,155 @@ possible to cache data, improving performance</strong>. So you'll find
 <tbody>
 <tr>
 <td><strong>Buffer</strong></td>
-<td>Write buffer (temporary storage before data is written from memory
-to disk)</td>
-<td>When writing files, data first stored in buffer, then batch-written
-to disk</td>
+<td>Write buffer (temporary storage before data is written from memory to disk)</td>
+<td>When writing files, data first stored in buffer, then batch-written to disk</td>
 </tr>
 <tr>
 <td><strong>Cache</strong></td>
-<td>Read cache (data read from disk cached in memory, next read directly
-from memory)</td>
+<td>Read cache (data read from disk cached in memory, next read directly from memory)</td>
 <td>When reading files, content cached in cache, next read instant</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Why this design?</strong> - <strong>Buffer</strong>: Reduces
-disk write operations. If every write went directly to disk, too slow
-(especially for lots of small files). First accumulate a batch of data,
-then write to disk all at once, much faster. - <strong>Cache</strong>:
-Reduces disk read operations. Frequently accessed files cached in
-memory, reading speed hundreds of times faster.</p>
-<p><strong>Important</strong>: <strong>Buffer and Cache are
-reclaimable</strong>. When programs need more memory, the kernel
-automatically releases buffer/cache to programs. So the
-<code>available</code> shown in <code>free</code> is the truly available
-memory (including reclaimable buffer/cache).</p>
-<p><strong>Misjudgment example</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">              total        used        free      shared  buff/cache   available</span><br><span class="line">Mem:           15Gi       2.5Gi       1.0Gi       100Mi      11.5Gi        12Gi</span><br></pre></td></tr></table></figure></p>
-<p>Beginners see <code>free</code> only has 1.0Gi and think memory is
-running out. But actually <code>available</code> is 12Gi (because the
-11.5Gi buff/cache is reclaimable).</p>
-<p><strong>When is memory truly running out?</strong> -
-<code>available</code> approaches 0 - Swap usage is very high (indicates
-insufficient memory, starting to use hard drive as memory) - Processes
-are killed by OOM killer (kernel's out-of-memory killer)</p>
-<hr>
-<h1 id="process-monitoring-toolchain-from-overview-to-details">Process
-Monitoring Toolchain: From Overview to Details</h1>
-<h2 id="top-the-swiss-army-knife-of-real-time-monitoring">1. top: The
-"Swiss Army Knife" of Real-Time Monitoring</h2>
-<p><code>top</code> is the most commonly used real-time monitoring tool,
-displaying CPU, memory, process info, etc.</p>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">top</span><br></pre></td></tr></table></figure></p>
-<p><strong>Interface interpretation</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">top - 12:00:00 up 10 days,  3:45,  2 users,  load average: 1.23, 0.87, 0.45</span><br><span class="line">Tasks: 150 total,   2 running, 148 sleeping,   0 stopped,   0 zombie</span><br><span class="line">%Cpu(s):  5.2 us,  2.1 sy,  0.0 ni, 92.3 id,  0.3 wa,  0.0 hi,  0.1 si,  0.0 st</span><br><span class="line">MiB Mem :  15872.0 total,   8234.5 free,   3456.2 used,   4181.3 buff/cache</span><br><span class="line">MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.  11234.5 avail Mem</span><br><span class="line"></span><br><span class="line">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND</span><br><span class="line"> 1234 root      20   0  123456  12345   1234 R  50.0   0.8   1:23.45 python3</span><br><span class="line"> 5678 www-data  20   0  234567  23456   2345 S  10.0   1.5   0:12.34 nginx</span><br></pre></td></tr></table></figure></p>
-<p><strong>Key metrics</strong>: - <strong>load average</strong>:
-1/5/15-minute average load (approaching CPU core count means system at
-full capacity) - <strong>Tasks</strong>: Total processes,
-running/sleeping/stopped/zombie process counts -
-<strong>%Cpu(s)</strong>: - <code>us</code> (user): User-space CPU usage
-- <code>sy</code> (system): Kernel-space CPU usage - <code>ni</code>
-(nice): Low-priority process CPU usage - <code>id</code> (idle): Idle
-CPU (higher is better) - <code>wa</code> (wait): CPU time waiting for
-I/O (high indicates slow disk/network) - <strong>Mem/Swap</strong>:
-Memory and swap space usage</p>
-<p><strong>Common hotkeys</strong>: - <code>P</code>: Sort by CPU usage
-- <code>M</code>: Sort by memory usage - <code>k</code>: Enter PID to
-send signal to terminate process - <code>1</code>: Show each CPU core's
-usage rate - <code>q</code>: Quit</p>
-<h2 id="htop-enhanced-version-of-top">2. htop: Enhanced Version of
-top</h2>
-<p><code>htop</code> is a colorful enhanced version of <code>top</code>,
-supporting mouse operations, tree view, direct process termination.</p>
-<p><strong>Install and use</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install htop  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf install htop  <span class="comment"># CentOS/RHEL</span></span><br><span class="line">htop</span><br></pre></td></tr></table></figure></p>
-<p><strong>Advantages</strong>: - Colorful interface, more intuitive -
-Supports mouse clicking to select processes - Displays process tree (F5
-to toggle tree view) - Can directly select and terminate processes (F9
-to send signal)</p>
-<h2 id="ps-static-process-snapshot">3. ps: Static Process Snapshot</h2>
-<p><code>ps</code> provides a static snapshot of current processes
-(doesn't refresh in real-time like top).</p>
-<p><strong>Common usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ps -ef  <span class="comment"># Unix style, show all processes (-e) with full info (-f)</span></span><br><span class="line">ps aux  <span class="comment"># BSD style, show all processes (a) with user info (u) and background processes (x)</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Output field interpretation</strong> (<code>ps aux</code>): -
-<strong>USER</strong>: Process owner - <strong>PID</strong>: Process ID
-- <strong>%CPU</strong>: CPU usage - <strong>%MEM</strong>: Memory usage
-- <strong>VSZ</strong>: Virtual memory size (total memory requested by
-process) - <strong>RSS</strong>: Resident memory size (actual physical
-memory occupied) - <strong>STAT</strong>: Process state -
-<code>R</code>: Running - <code>S</code>: Sleeping (waiting for event) -
-<code>D</code>: Uninterruptible sleep (usually waiting for disk I/O) -
-<code>Z</code>: Zombie (exited but not reaped by parent) -
-<code>T</code>: Stopped (usually paused by Ctrl+Z) -
-<strong>TIME</strong>: Process cumulative CPU time -
-<strong>COMMAND</strong>: Process command</p>
-<p><strong>Advanced usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep nginx  <span class="comment"># View nginx-related processes</span></span><br><span class="line">ps -ef | grep -v grep  <span class="comment"># Remove grep&#x27;s own process</span></span><br><span class="line">ps -eo pid,ppid,cmd,%cpu,%mem --<span class="built_in">sort</span>=-%cpu | <span class="built_in">head</span> -10  <span class="comment"># Sort by CPU usage, show top 10</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="pstree-process-tree">4. pstree: Process Tree</h2>
-<p><code>pstree</code> displays process parent-child relationships in
-tree structure, helping understand process hierarchy.</p>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pstree -p  <span class="comment"># -p displays PID</span></span><br><span class="line">pstree -ap  <span class="comment"># -a displays command parameters</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="lsof-view-open-files">5. lsof: View Open Files</h2>
-<p><code>lsof</code> (List Open Files) lists all open files in the
-system, including regular files, network connections, devices, etc.</p>
-<p><strong>Why use lsof?</strong> - View which files a process has
-opened (like config files, log files, database files) - View which
-process is using a port (like who's using port 80) - View which process
-is using a file (like if a file can't be deleted, might be in use by a
-process) - Recover accidentally deleted files (if process is still
-running, file handle still exists, can recover via
-<code>/proc/&lt;pid&gt;/fd/</code>)</p>
-<p><strong>Common usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">lsof  <span class="comment"># List all open files (very long output)</span></span><br><span class="line">lsof -p &lt;PID&gt;  <span class="comment"># View files opened by specified process</span></span><br><span class="line">lsof -u &lt;user&gt;  <span class="comment"># View files opened by specified user</span></span><br><span class="line">lsof -c &lt;<span class="built_in">command</span>&gt;  <span class="comment"># View files opened by specified command</span></span><br><span class="line">lsof -i :80  <span class="comment"># See which process is using port 80</span></span><br><span class="line">lsof -i tcp  <span class="comment"># View all TCP connections</span></span><br><span class="line">lsof +D /var/log  <span class="comment"># View files opened under /var/log directory</span></span><br><span class="line">lsof +L1  <span class="comment"># View files with link count &lt; 1 (usually deleted but still occupied by process)</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Example</strong>: View all files opened by nginx
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsof -c nginx</span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">COMMAND   PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME</span><br><span class="line">nginx    1234     root  cwd    DIR    8,1     4096    2 /</span><br><span class="line">nginx    1234     root  txt    REG    8,1   123456  789 /usr/sbin/nginx</span><br><span class="line">nginx    1234     root    1w   REG    8,1    12345 1011 /var/log/nginx/access.log</span><br><span class="line">nginx    1234     root    2w   REG    8,1     6789 1012 /var/log/nginx/error.log</span><br><span class="line">nginx    1234     root    6u  IPv4  12345      0t0  TCP *:80 (LISTEN)</span><br></pre></td></tr></table></figure></p>
+<p><strong>Why this design?</strong></p>
 <ul>
-<li><code>FD</code>: File descriptor (<code>cwd</code> is current
-directory, <code>txt</code> is program file, <code>1w</code> is stdout,
-<code>2w</code> is stderr, <code>6u</code> is open socket)</li>
-<li><code>TYPE</code>: Type (<code>DIR</code> is directory,
-<code>REG</code> is regular file, <code>IPv4</code> is network
-socket)</li>
+<li><strong>Buffer</strong>: Reduces disk write operations. If every write went directly to disk, too slow (especially for lots of small files). First accumulate a batch of data, then write to disk all at once, much faster.</li>
+<li><strong>Cache</strong>: Reduces disk read operations. Frequently accessed files cached in memory, reading speed hundreds of times faster.</li>
 </ul>
-<h2 id="network-port-monitoring">6. Network Port Monitoring</h2>
-<h3 id="ss-view-network-connections-replaces-netstat">ss: View Network
-Connections (Replaces netstat)</h3>
+<p><strong>Important</strong>: <strong>Buffer and Cache are reclaimable</strong>. When programs need more memory, the kernel automatically releases buffer/cache to programs. So the <code>available</code> shown in <code>free</code> is the truly available memory (including reclaimable buffer/cache).</p>
+<p><strong>Misjudgment example</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">              total        used        free      shared  buff/cache   available</span><br><span class="line">Mem:           15Gi       2.5Gi       1.0Gi       100Mi      11.5Gi        12Gi</span><br></pre></td></tr></table></figure>
+<p>Beginners see <code>free</code> only has 1.0Gi and think memory is running out. But actually <code>available</code> is 12Gi (because the 11.5Gi buff/cache is reclaimable).</p>
+<p><strong>When is memory truly running out?</strong></p>
+<ul>
+<li><code>available</code> approaches 0</li>
+<li>Swap usage is very high (indicates insufficient memory, starting to use hard drive as memory)</li>
+<li>Processes are killed by OOM killer (kernel’s out-of-memory killer)</li>
+</ul>
+<hr>
+<h1>Process Monitoring Toolchain: From Overview to Details</h1>
+<h2 id="1-top-The-“Swiss-Army-Knife”-of-Real-Time-Monitoring"><a class="header-anchor" href="#1-top-The-“Swiss-Army-Knife”-of-Real-Time-Monitoring">¶</a>1. top: The “Swiss Army Knife” of Real-Time Monitoring</h2>
+<p><code>top</code> is the most commonly used real-time monitoring tool, displaying CPU, memory, process info, etc.</p>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">top</span><br></pre></td></tr></table></figure>
+<p><strong>Interface interpretation</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">top - 12:00:00 up 10 days,  3:45,  2 users,  load average: 1.23, 0.87, 0.45</span><br><span class="line">Tasks: 150 total,   2 running, 148 sleeping,   0 stopped,   0 zombie</span><br><span class="line">%Cpu(s):  5.2 us,  2.1 sy,  0.0 ni, 92.3 id,  0.3 wa,  0.0 hi,  0.1 si,  0.0 st</span><br><span class="line">MiB Mem :  15872.0 total,   8234.5 free,   3456.2 used,   4181.3 buff/cache</span><br><span class="line">MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.  11234.5 avail Mem</span><br><span class="line"></span><br><span class="line">  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND</span><br><span class="line"> 1234 root      20   0  123456  12345   1234 R  50.0   0.8   1:23.45 python3</span><br><span class="line"> 5678 www-data  20   0  234567  23456   2345 S  10.0   1.5   0:12.34 nginx</span><br></pre></td></tr></table></figure>
+<p><strong>Key metrics</strong>:</p>
+<ul>
+<li><strong>load average</strong>: 1/5/15-minute average load (approaching CPU core count means system at full capacity)</li>
+<li><strong>Tasks</strong>: Total processes, running/sleeping/stopped/zombie process counts</li>
+<li><strong>%Cpu(s)</strong>:
+<ul>
+<li><code>us</code> (user): User-space CPU usage</li>
+<li><code>sy</code> (system): Kernel-space CPU usage</li>
+<li><code>ni</code> (nice): Low-priority process CPU usage</li>
+<li><code>id</code> (idle): Idle CPU (higher is better)</li>
+<li><code>wa</code> (wait): CPU time waiting for I/O (high indicates slow disk/network)</li>
+</ul>
+</li>
+<li><strong>Mem/Swap</strong>: Memory and swap space usage</li>
+</ul>
+<p><strong>Common hotkeys</strong>:</p>
+<ul>
+<li><code>P</code>: Sort by CPU usage</li>
+<li><code>M</code>: Sort by memory usage</li>
+<li><code>k</code>: Enter PID to send signal to terminate process</li>
+<li><code>1</code>: Show each CPU core’s usage rate</li>
+<li><code>q</code>: Quit</li>
+</ul>
+<h2 id="2-htop-Enhanced-Version-of-top"><a class="header-anchor" href="#2-htop-Enhanced-Version-of-top">¶</a>2. htop: Enhanced Version of top</h2>
+<p><code>htop</code> is a colorful enhanced version of <code>top</code>, supporting mouse operations, tree view, direct process termination.</p>
+<p><strong>Install and use</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install htop  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf install htop  <span class="comment"># CentOS/RHEL</span></span><br><span class="line">htop</span><br></pre></td></tr></table></figure>
+<p><strong>Advantages</strong>:</p>
+<ul>
+<li>Colorful interface, more intuitive</li>
+<li>Supports mouse clicking to select processes</li>
+<li>Displays process tree (F5 to toggle tree view)</li>
+<li>Can directly select and terminate processes (F9 to send signal)</li>
+</ul>
+<h2 id="3-ps-Static-Process-Snapshot"><a class="header-anchor" href="#3-ps-Static-Process-Snapshot">¶</a>3. ps: Static Process Snapshot</h2>
+<p><code>ps</code> provides a static snapshot of current processes (doesn’t refresh in real-time like top).</p>
+<p><strong>Common usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ps -ef  <span class="comment"># Unix style, show all processes (-e) with full info (-f)</span></span><br><span class="line">ps aux  <span class="comment"># BSD style, show all processes (a) with user info (u) and background processes (x)</span></span><br></pre></td></tr></table></figure>
+<p><strong>Output field interpretation</strong> (<code>ps aux</code>):</p>
+<ul>
+<li><strong>USER</strong>: Process owner</li>
+<li><strong>PID</strong>: Process ID</li>
+<li><strong>%CPU</strong>: CPU usage</li>
+<li><strong>%MEM</strong>: Memory usage</li>
+<li><strong>VSZ</strong>: Virtual memory size (total memory requested by process)</li>
+<li><strong>RSS</strong>: Resident memory size (actual physical memory occupied)</li>
+<li><strong>STAT</strong>: Process state
+<ul>
+<li><code>R</code>: Running</li>
+<li><code>S</code>: Sleeping (waiting for event)</li>
+<li><code>D</code>: Uninterruptible sleep (usually waiting for disk I/O)</li>
+<li><code>Z</code>: Zombie (exited but not reaped by parent)</li>
+<li><code>T</code>: Stopped (usually paused by Ctrl+Z)</li>
+</ul>
+</li>
+<li><strong>TIME</strong>: Process cumulative CPU time</li>
+<li><strong>COMMAND</strong>: Process command</li>
+</ul>
+<p><strong>Advanced usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep nginx  <span class="comment"># View nginx-related processes</span></span><br><span class="line">ps -ef | grep -v grep  <span class="comment"># Remove grep&#x27;s own process</span></span><br><span class="line">ps -eo pid,ppid,cmd,%cpu,%mem --<span class="built_in">sort</span>=-%cpu | <span class="built_in">head</span> -10  <span class="comment"># Sort by CPU usage, show top 10</span></span><br></pre></td></tr></table></figure>
+<h2 id="4-pstree-Process-Tree"><a class="header-anchor" href="#4-pstree-Process-Tree">¶</a>4. pstree: Process Tree</h2>
+<p><code>pstree</code> displays process parent-child relationships in tree structure, helping understand process hierarchy.</p>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pstree -p  <span class="comment"># -p displays PID</span></span><br><span class="line">pstree -ap  <span class="comment"># -a displays command parameters</span></span><br></pre></td></tr></table></figure>
+<h2 id="5-lsof-View-Open-Files"><a class="header-anchor" href="#5-lsof-View-Open-Files">¶</a>5. lsof: View Open Files</h2>
+<p><code>lsof</code> (List Open Files) lists all open files in the system, including regular files, network connections, devices, etc.</p>
+<p><strong>Why use lsof?</strong></p>
+<ul>
+<li>View which files a process has opened (like config files, log files, database files)</li>
+<li>View which process is using a port (like who’s using port 80)</li>
+<li>View which process is using a file (like if a file can’t be deleted, might be in use by a process)</li>
+<li>Recover accidentally deleted files (if process is still running, file handle still exists, can recover via <code>/proc/&lt;pid&gt;/fd/</code>)</li>
+</ul>
+<p><strong>Common usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">lsof  <span class="comment"># List all open files (very long output)</span></span><br><span class="line">lsof -p &lt;PID&gt;  <span class="comment"># View files opened by specified process</span></span><br><span class="line">lsof -u &lt;user&gt;  <span class="comment"># View files opened by specified user</span></span><br><span class="line">lsof -c &lt;<span class="built_in">command</span>&gt;  <span class="comment"># View files opened by specified command</span></span><br><span class="line">lsof -i :80  <span class="comment"># See which process is using port 80</span></span><br><span class="line">lsof -i tcp  <span class="comment"># View all TCP connections</span></span><br><span class="line">lsof +D /var/log  <span class="comment"># View files opened under /var/log directory</span></span><br><span class="line">lsof +L1  <span class="comment"># View files with link count &lt; 1 (usually deleted but still occupied by process)</span></span><br></pre></td></tr></table></figure>
+<p><strong>Example</strong>: View all files opened by nginx</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsof -c nginx</span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">COMMAND   PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME</span><br><span class="line">nginx    1234     root  cwd    DIR    8,1     4096    2 /</span><br><span class="line">nginx    1234     root  txt    REG    8,1   123456  789 /usr/sbin/nginx</span><br><span class="line">nginx    1234     root    1w   REG    8,1    12345 1011 /var/log/nginx/access.log</span><br><span class="line">nginx    1234     root    2w   REG    8,1     6789 1012 /var/log/nginx/error.log</span><br><span class="line">nginx    1234     root    6u  IPv4  12345      0t0  TCP *:80 (LISTEN)</span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>FD</code>: File descriptor (<code>cwd</code> is current directory, <code>txt</code> is program file, <code>1w</code> is stdout, <code>2w</code> is stderr, <code>6u</code> is open socket)</li>
+<li><code>TYPE</code>: Type (<code>DIR</code> is directory, <code>REG</code> is regular file, <code>IPv4</code> is network socket)</li>
+</ul>
+<h2 id="6-Network-Port-Monitoring"><a class="header-anchor" href="#6-Network-Port-Monitoring">¶</a>6. Network Port Monitoring</h2>
+<h3 id="ss-View-Network-Connections-Replaces-netstat"><a class="header-anchor" href="#ss-View-Network-Connections-Replaces-netstat">¶</a>ss: View Network Connections (Replaces netstat)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ss -tulnp  <span class="comment"># View listening ports and connections</span></span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-t</code>: TCP connections</li>
 <li><code>-u</code>: UDP connections</li>
 <li><code>-l</code>: Listening ports (LISTEN state)</li>
-<li><code>-n</code>: Display numeric addresses and ports (don't resolve
-hostnames)</li>
+<li><code>-n</code>: Display numeric addresses and ports (don’t resolve hostnames)</li>
 <li><code>-p</code>: Display process PID and name</li>
 </ul>
-<p><strong>Example</strong>: Check port 80 listening status
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ss -tulnp | grep :80</span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tcp   LISTEN 0   128   *:80   *:*   users:((&quot;nginx&quot;,pid=1234,fd=6))</span><br></pre></td></tr></table></figure></p>
-<h3 id="lsof-view-port-usage">lsof: View Port Usage</h3>
+<p><strong>Example</strong>: Check port 80 listening status</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ss -tulnp | grep :80</span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tcp   LISTEN 0   128   *:80   *:*   users:((&quot;nginx&quot;,pid=1234,fd=6))</span><br></pre></td></tr></table></figure>
+<h3 id="lsof-View-Port-Usage"><a class="header-anchor" href="#lsof-View-Port-Usage">¶</a>lsof: View Port Usage</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lsof -i :80  <span class="comment"># See which process is using port 80</span></span><br><span class="line">lsof -i tcp  <span class="comment"># View all TCP connections</span></span><br></pre></td></tr></table></figure>
-<h2 id="disk-io-monitoring">7. Disk I/O Monitoring</h2>
-<h3 id="iostat-disk-io-statistics">iostat: Disk I/O Statistics</h3>
+<h2 id="7-Disk-I-O-Monitoring"><a class="header-anchor" href="#7-Disk-I-O-Monitoring">¶</a>7. Disk I/O Monitoring</h2>
+<h3 id="iostat-Disk-I-O-Statistics"><a class="header-anchor" href="#iostat-Disk-I-O-Statistics">¶</a>iostat: Disk I/O Statistics</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iostat -x 1  <span class="comment"># Refresh every second, show extended info</span></span><br></pre></td></tr></table></figure>
-<p><strong>Key metrics</strong>: - <strong>%util</strong>: Disk
-utilization (approaching 100% means disk is very busy) -
-<strong>await</strong>: Average wait time (milliseconds) - <strong>r/s,
-w/s</strong>: Read/write operations per second</p>
-<h3 id="iotop-real-time-view-of-process-disk-io">iotop: Real-Time View
-of Process Disk I/O</h3>
+<p><strong>Key metrics</strong>:</p>
+<ul>
+<li><strong>%util</strong>: Disk utilization (approaching 100% means disk is very busy)</li>
+<li><strong>await</strong>: Average wait time (milliseconds)</li>
+<li><strong>r/s, w/s</strong>: Read/write operations per second</li>
+</ul>
+<h3 id="iotop-Real-Time-View-of-Process-Disk-I-O"><a class="header-anchor" href="#iotop-Real-Time-View-of-Process-Disk-I-O">¶</a>iotop: Real-Time View of Process Disk I/O</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo iotop -o  <span class="comment"># -o only shows processes with I/O</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="process-control-signals-background-tasks-priorities">Process
-Control: Signals, Background Tasks, Priorities</h1>
-<h2 id="kill-send-signals">1. kill: Send Signals</h2>
-<p><code>kill</code> isn't just "kill process"; its essence is
-<strong>sending signals to processes</strong>.</p>
+<h1>Process Control: Signals, Background Tasks, Priorities</h1>
+<h2 id="1-kill-Send-Signals"><a class="header-anchor" href="#1-kill-Send-Signals">¶</a>1. kill: Send Signals</h2>
+<p><code>kill</code> isn’t just “kill process”; its essence is <strong>sending signals to processes</strong>.</p>
 <p><strong>Common signals</strong>:</p>
 <table>
-<colgroup>
-<col style="width: 15%">
-<col style="width: 13%">
-<col style="width: 48%">
-<col style="width: 24%">
-</colgroup>
 <thead>
 <tr>
 <th>Signal Number</th>
@@ -616,7 +562,7 @@ Control: Signals, Background Tasks, Priorities</h1>
 <tr>
 <td>1</td>
 <td>SIGHUP</td>
-<td>Reload config (don't terminate process)</td>
+<td>Reload config (don’t terminate process)</td>
 <td><code>kill -1 &lt;PID&gt;</code></td>
 </tr>
 <tr>
@@ -628,7 +574,7 @@ Control: Signals, Background Tasks, Priorities</h1>
 <tr>
 <td>9</td>
 <td>SIGKILL</td>
-<td>Force terminate (process can't catch, immediate termination)</td>
+<td>Force terminate (process can’t catch, immediate termination)</td>
 <td><code>kill -9 &lt;PID&gt;</code></td>
 </tr>
 <tr>
@@ -645,155 +591,149 @@ Control: Signals, Background Tasks, Priorities</h1>
 </tr>
 </tbody>
 </table>
-<p><strong>Best practices</strong>: 1. First use
-<code>kill &lt;PID&gt;</code> (SIGTERM), give process chance to cleanup
-(like saving data, closing connections) 2. If process doesn't respond,
-then use <code>kill -9 &lt;PID&gt;</code> (SIGKILL) to force
-terminate</p>
-<p><strong>Example</strong>: Reload nginx config (without stopping
-service) <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">kill</span> -1 $(pidof nginx | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)  <span class="comment"># Send SIGHUP signal</span></span><br><span class="line"><span class="comment"># Or</span></span><br><span class="line">sudo nginx -s reload  <span class="comment"># Nginx&#x27;s convenient command</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="background-task-running">2. Background Task Running</h2>
-<h3 id="method-1-use">Method 1: Use <code>&amp;</code></h3>
+<p><strong>Best practices</strong>:</p>
+<ol>
+<li>First use <code>kill &lt;PID&gt;</code> (SIGTERM), give process chance to cleanup (like saving data, closing connections)</li>
+<li>If process doesn’t respond, then use <code>kill -9 &lt;PID&gt;</code> (SIGKILL) to force terminate</li>
+</ol>
+<p><strong>Example</strong>: Reload nginx config (without stopping service)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">kill</span> -1 $(pidof nginx | awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>)  <span class="comment"># Send SIGHUP signal</span></span><br><span class="line"><span class="comment"># Or</span></span><br><span class="line">sudo nginx -s reload  <span class="comment"># Nginx&#x27;s convenient command</span></span><br></pre></td></tr></table></figure>
+<h2 id="2-Background-Task-Running"><a class="header-anchor" href="#2-Background-Task-Running">¶</a>2. Background Task Running</h2>
+<h3 id="Method-1-Use"><a class="header-anchor" href="#Method-1-Use">¶</a>Method 1: Use <code>&amp;</code></h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./long_task.sh &amp;  <span class="comment"># Run in background (but will be terminated after exiting SSH)</span></span><br></pre></td></tr></table></figure>
-<h3 id="method-2-use-nohup-recommended">Method 2: Use <code>nohup</code>
-(Recommended)</h3>
+<h3 id="Method-2-Use-nohup-Recommended"><a class="header-anchor" href="#Method-2-Use-nohup-Recommended">¶</a>Method 2: Use <code>nohup</code> (Recommended)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nohup</span> ./long_task.sh &amp;  <span class="comment"># Run in background, continues after exiting SSH</span></span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>nohup</code>: No Hangup, ignores SIGHUP signal (signal sent
-when SSH disconnects)</li>
+<li><code>nohup</code>: No Hangup, ignores SIGHUP signal (signal sent when SSH disconnects)</li>
 <li>Output defaults to redirecting to <code>nohup.out</code></li>
 </ul>
-<p><strong>Better way</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nohup</span> ./long_task.sh &gt; /dev/null 2&gt;&amp;1 &amp;  <span class="comment"># Discard output, don&#x27;t save to file</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="method-3-use-screen-or-tmux-best-practice">Method 3: Use
-<code>screen</code> or <code>tmux</code> (Best Practice)</h3>
+<p><strong>Better way</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nohup</span> ./long_task.sh &gt; /dev/null 2&gt;&amp;1 &amp;  <span class="comment"># Discard output, don&#x27;t save to file</span></span><br></pre></td></tr></table></figure>
+<h3 id="Method-3-Use-screen-or-tmux-Best-Practice"><a class="header-anchor" href="#Method-3-Use-screen-or-tmux-Best-Practice">¶</a>Method 3: Use <code>screen</code> or <code>tmux</code> (Best Practice)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">screen -S mysession  <span class="comment"># Create a screen session</span></span><br><span class="line">./long_task.sh  <span class="comment"># Run task in screen</span></span><br><span class="line"><span class="comment"># Press Ctrl+A+D to detach session (task continues running)</span></span><br><span class="line"><span class="comment"># After exiting SSH, task still runs</span></span><br><span class="line"></span><br><span class="line">screen -r mysession  <span class="comment"># Reconnect to session</span></span><br></pre></td></tr></table></figure>
-<h3 id="manage-background-tasks">Manage Background Tasks</h3>
+<h3 id="Manage-Background-Tasks"><a class="header-anchor" href="#Manage-Background-Tasks">¶</a>Manage Background Tasks</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">jobs</span>  <span class="comment"># View background tasks</span></span><br><span class="line"><span class="built_in">fg</span> %1  <span class="comment"># Bring task 1 to foreground</span></span><br><span class="line"><span class="built_in">bg</span> %1  <span class="comment"># Continue task 1 in background (usually used after Ctrl+Z pause)</span></span><br></pre></td></tr></table></figure>
-<h2 id="adjust-process-priority-nicerenice">3. Adjust Process Priority
-(nice/renice)</h2>
-<p>Linux uses <strong>nice values</strong> to control process priority:
-- nice value range: <code>-20</code> (highest priority) to
-<code>19</code> (lowest priority) - Default nice value: <code>0</code> -
-Lower nice value = higher priority (easier to grab CPU)</p>
-<h3 id="specify-priority-at-startup-nice">Specify Priority at Startup
-(nice)</h3>
+<h2 id="3-Adjust-Process-Priority-nice-renice"><a class="header-anchor" href="#3-Adjust-Process-Priority-nice-renice">¶</a>3. Adjust Process Priority (nice/renice)</h2>
+<p>Linux uses <strong>nice values</strong> to control process priority:</p>
+<ul>
+<li>nice value range: <code>-20</code> (highest priority) to <code>19</code> (lowest priority)</li>
+<li>Default nice value: <code>0</code></li>
+<li>Lower nice value = higher priority (easier to grab CPU)</li>
+</ul>
+<h3 id="Specify-Priority-at-Startup-nice"><a class="header-anchor" href="#Specify-Priority-at-Startup-nice">¶</a>Specify Priority at Startup (nice)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nice</span> -n 10 ./cpu_intensive_task.sh  <span class="comment"># Start with nice value 10 (lower priority)</span></span><br><span class="line"><span class="built_in">nice</span> -n -10 ./important_task.sh  <span class="comment"># Start with nice value -10 (higher priority, needs root)</span></span><br></pre></td></tr></table></figure>
-<h3 id="adjust-running-process-priority-renice">Adjust Running Process
-Priority (renice)</h3>
+<h3 id="Adjust-Running-Process-Priority-renice"><a class="header-anchor" href="#Adjust-Running-Process-Priority-renice">¶</a>Adjust Running Process Priority (renice)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">renice -n 10 -p &lt;PID&gt;  <span class="comment"># Change process PID&#x27;s nice value to 10</span></span><br><span class="line">renice -n -5 -p &lt;PID&gt;  <span class="comment"># Increase priority (needs root)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Use cases</strong>: - Background backup tasks: Start with
-<code>nice -n 19</code>, don't affect normal business - Critical
-business processes: Use <code>renice -n -10</code> to increase
-priority</p>
+<p><strong>Use cases</strong>:</p>
+<ul>
+<li>Background backup tasks: Start with <code>nice -n 19</code>, don’t affect normal business</li>
+<li>Critical business processes: Use <code>renice -n -10</code> to increase priority</li>
+</ul>
 <hr>
-<h1 id="special-process-states-orphan-and-zombie-processes">Special
-Process States: Orphan and Zombie Processes</h1>
-<h2 id="orphan-process">Orphan Process</h2>
-<p><strong>Definition</strong>: After parent process exits, child
-process is adopted by PID 1 (systemd or init).</p>
-<p><strong>Example code</strong> (Python): <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">child_process</span>():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Child: PID=<span class="subst">&#123;os.getpid()&#125;</span>, PPID=<span class="subst">&#123;os.getppid()&#125;</span>&quot;</span>)</span><br><span class="line">    time.sleep(<span class="number">3</span>)  <span class="comment"># Wait for parent to exit</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Child after parent exit: PID=<span class="subst">&#123;os.getpid()&#125;</span>, PPID=<span class="subst">&#123;os.getppid()&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    pid = os.fork()</span><br><span class="line">    <span class="keyword">if</span> pid &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="comment"># Parent process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Parent: PID=<span class="subst">&#123;os.getpid()&#125;</span>, Child PID=<span class="subst">&#123;pid&#125;</span>&quot;</span>)</span><br><span class="line">        os._exit(<span class="number">0</span>)  <span class="comment"># Parent exits immediately</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># Child process</span></span><br><span class="line">        child_process()</span><br></pre></td></tr></table></figure></p>
-<p><strong>Example output</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Parent: PID=1234, Child PID=1235</span><br><span class="line">Child: PID=1235, PPID=1234</span><br><span class="line">Child after parent exit: PID=1235, PPID=1  # PPID becomes 1 (adopted by systemd)</span><br></pre></td></tr></table></figure></p>
-<p><strong>Are orphan processes harmful?</strong> Not necessarily.
-systemd adopts orphan processes and manages them normally.</p>
-<h2 id="zombie-process">Zombie Process</h2>
-<p><strong>Definition</strong>: Process has exited, but parent hasn't
-called <code>wait()</code> to reap its exit status, causing process info
-to remain in process table.</p>
-<p><strong>Characteristics</strong>: - Doesn't occupy CPU or memory
-(already exited) - But occupies process table entry (too many can
-exhaust system process table) - State shows as <code>Z</code>
-(Zombie)</p>
-<p><strong>View zombie processes</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps aux | grep <span class="string">&#x27; Z &#x27;</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Example code</strong> (Python): <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    pid = os.fork()</span><br><span class="line">    <span class="keyword">if</span> pid &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="comment"># Parent process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Parent: PID=<span class="subst">&#123;os.getpid()&#125;</span>, Child PID=<span class="subst">&#123;pid&#125;</span> (will become zombie)&quot;</span>)</span><br><span class="line">        time.sleep(<span class="number">15</span>)  <span class="comment"># Parent pauses 15 seconds, child exits but not reaped (zombie state)</span></span><br><span class="line">        os.wait()  <span class="comment"># Reap zombie process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;Zombie child has been reaped.&quot;</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># Child process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Child: PID=<span class="subst">&#123;os.getpid()&#125;</span>, PPID=<span class="subst">&#123;os.getppid()&#125;</span>&quot;</span>)</span><br><span class="line">        os._exit(<span class="number">0</span>)  <span class="comment"># Child exits immediately, enters zombie state</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>How to resolve zombie processes?</strong> 1. Make parent call
-<code>wait()</code> (if parent is your program, fix the code) 2. Kill
-parent process (after parent exits, child is adopted by systemd and
-reaped) 3. Reboot system (last resort)</p>
+<h1>Special Process States: Orphan and Zombie Processes</h1>
+<h2 id="Orphan-Process"><a class="header-anchor" href="#Orphan-Process">¶</a>Orphan Process</h2>
+<p><strong>Definition</strong>: After parent process exits, child process is adopted by PID 1 (systemd or init).</p>
+<p><strong>Example code</strong> (Python):</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">child_process</span>():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Child: PID=<span class="subst">&#123;os.getpid()&#125;</span>, PPID=<span class="subst">&#123;os.getppid()&#125;</span>&quot;</span>)</span><br><span class="line">    time.sleep(<span class="number">3</span>)  <span class="comment"># Wait for parent to exit</span></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Child after parent exit: PID=<span class="subst">&#123;os.getpid()&#125;</span>, PPID=<span class="subst">&#123;os.getppid()&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    pid = os.fork()</span><br><span class="line">    <span class="keyword">if</span> pid &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="comment"># Parent process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Parent: PID=<span class="subst">&#123;os.getpid()&#125;</span>, Child PID=<span class="subst">&#123;pid&#125;</span>&quot;</span>)</span><br><span class="line">        os._exit(<span class="number">0</span>)  <span class="comment"># Parent exits immediately</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># Child process</span></span><br><span class="line">        child_process()</span><br></pre></td></tr></table></figure>
+<p><strong>Example output</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Parent: PID=1234, Child PID=1235</span><br><span class="line">Child: PID=1235, PPID=1234</span><br><span class="line">Child after parent exit: PID=1235, PPID=1  # PPID becomes 1 (adopted by systemd)</span><br></pre></td></tr></table></figure>
+<p><strong>Are orphan processes harmful?</strong> Not necessarily. systemd adopts orphan processes and manages them normally.</p>
+<h2 id="Zombie-Process"><a class="header-anchor" href="#Zombie-Process">¶</a>Zombie Process</h2>
+<p><strong>Definition</strong>: Process has exited, but parent hasn’t called <code>wait()</code> to reap its exit status, causing process info to remain in process table.</p>
+<p><strong>Characteristics</strong>:</p>
+<ul>
+<li>Doesn’t occupy CPU or memory (already exited)</li>
+<li>But occupies process table entry (too many can exhaust system process table)</li>
+<li>State shows as <code>Z</code> (Zombie)</li>
+</ul>
+<p><strong>View zombie processes</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps aux | grep <span class="string">&#x27; Z &#x27;</span></span><br></pre></td></tr></table></figure>
+<p><strong>Example code</strong> (Python):</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    pid = os.fork()</span><br><span class="line">    <span class="keyword">if</span> pid &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="comment"># Parent process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Parent: PID=<span class="subst">&#123;os.getpid()&#125;</span>, Child PID=<span class="subst">&#123;pid&#125;</span> (will become zombie)&quot;</span>)</span><br><span class="line">        time.sleep(<span class="number">15</span>)  <span class="comment"># Parent pauses 15 seconds, child exits but not reaped (zombie state)</span></span><br><span class="line">        os.wait()  <span class="comment"># Reap zombie process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;Zombie child has been reaped.&quot;</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># Child process</span></span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Child: PID=<span class="subst">&#123;os.getpid()&#125;</span>, PPID=<span class="subst">&#123;os.getppid()&#125;</span>&quot;</span>)</span><br><span class="line">        os._exit(<span class="number">0</span>)  <span class="comment"># Child exits immediately, enters zombie state</span></span><br></pre></td></tr></table></figure>
+<p><strong>How to resolve zombie processes?</strong></p>
+<ol>
+<li>Make parent call <code>wait()</code> (if parent is your program, fix the code)</li>
+<li>Kill parent process (after parent exits, child is adopted by systemd and reaped)</li>
+<li>Reboot system (last resort)</li>
+</ol>
 <hr>
-<h1 id="hands-on-complete-performance-troubleshooting-workflow">Hands-On:
-Complete Performance Troubleshooting Workflow</h1>
-<h2 id="scenario-system-slowed-down-how-to-troubleshoot">Scenario:
-System Slowed Down, How to Troubleshoot</h2>
-<h3 id="check-overall-load">1. Check Overall Load</h3>
+<h1>Hands-On: Complete Performance Troubleshooting Workflow</h1>
+<h2 id="Scenario-System-Slowed-Down-How-to-Troubleshoot"><a class="header-anchor" href="#Scenario-System-Slowed-Down-How-to-Troubleshoot">¶</a>Scenario: System Slowed Down, How to Troubleshoot</h2>
+<h3 id="1-Check-Overall-Load"><a class="header-anchor" href="#1-Check-Overall-Load">¶</a>1. Check Overall Load</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">uptime</span>  <span class="comment"># Check load average</span></span><br><span class="line">top  <span class="comment"># Real-time view of CPU, memory, processes</span></span><br></pre></td></tr></table></figure>
-<p><strong>Diagnosis</strong>: - load average high? Possibly CPU maxed
-or I/O slow - CPU idle low? CPU bottleneck - CPU wa high? Disk I/O
-slow</p>
-<h3 id="find-resource-consuming-processes">2. Find Resource-Consuming
-Processes</h3>
+<p><strong>Diagnosis</strong>:</p>
+<ul>
+<li>load average high? Possibly CPU maxed or I/O slow</li>
+<li>CPU idle low? CPU bottleneck</li>
+<li>CPU wa high? Disk I/O slow</li>
+</ul>
+<h3 id="2-Find-Resource-Consuming-Processes"><a class="header-anchor" href="#2-Find-Resource-Consuming-Processes">¶</a>2. Find Resource-Consuming Processes</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">top  <span class="comment"># Press P to sort by CPU, M to sort by memory</span></span><br><span class="line">ps aux --<span class="built_in">sort</span>=-%cpu | <span class="built_in">head</span> -10  <span class="comment"># View top 10 CPU-consuming processes</span></span><br><span class="line">ps aux --<span class="built_in">sort</span>=-%mem | <span class="built_in">head</span> -10  <span class="comment"># View top 10 memory-consuming processes</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-process-details">3. View Process Details</h3>
+<h3 id="3-View-Process-Details"><a class="header-anchor" href="#3-View-Process-Details">¶</a>3. View Process Details</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lsof -p &lt;PID&gt;  <span class="comment"># View files opened by process</span></span><br><span class="line"><span class="built_in">ls</span> -l /proc/&lt;PID&gt;/fd/  <span class="comment"># View process file descriptors</span></span><br><span class="line"><span class="built_in">cat</span> /proc/&lt;PID&gt;/status  <span class="comment"># View detailed process status</span></span><br></pre></td></tr></table></figure>
-<h3 id="check-disk-io">4. Check Disk I/O</h3>
+<h3 id="4-Check-Disk-I-O"><a class="header-anchor" href="#4-Check-Disk-I-O">¶</a>4. Check Disk I/O</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iostat -x 1  <span class="comment"># View disk I/O</span></span><br><span class="line">sudo iotop -o  <span class="comment"># See which process is reading/writing disk</span></span><br></pre></td></tr></table></figure>
-<h3 id="check-network-connections">5. Check Network Connections</h3>
+<h3 id="5-Check-Network-Connections"><a class="header-anchor" href="#5-Check-Network-Connections">¶</a>5. Check Network Connections</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ss -tulnp  <span class="comment"># View listening ports</span></span><br><span class="line">lsof -i  <span class="comment"># View all network connections</span></span><br></pre></td></tr></table></figure>
-<h3 id="optimize-or-terminate-process">6. Optimize or Terminate
-Process</h3>
+<h3 id="6-Optimize-or-Terminate-Process"><a class="header-anchor" href="#6-Optimize-or-Terminate-Process">¶</a>6. Optimize or Terminate Process</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">renice -n 10 -p &lt;PID&gt;  <span class="comment"># Lower process priority</span></span><br><span class="line"><span class="built_in">kill</span> &lt;PID&gt;  <span class="comment"># Gentle terminate</span></span><br><span class="line"><span class="built_in">kill</span> -9 &lt;PID&gt;  <span class="comment"># Force terminate</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="real-case-what-to-do-when-nginx-log-file-is-accidentally-deleted">Real
-Case: What to Do When Nginx Log File Is Accidentally Deleted</h1>
-<h2 id="scenario">Scenario</h2>
-<p>An ops person accidentally ran
-<code>rm -rf /var/log/nginx/access.log</code>, but nginx process is
-still running.</p>
-<h2 id="problem">Problem</h2>
-<p>Although file was deleted, nginx process still holds file handle
-(under <code>/proc/&lt;pid&gt;/fd/</code>), continues writing data to
-"deleted file". At this point: - <code>df -h</code> shows disk usage
-hasn't decreased (because file still occupies space) -
-<code>ls /var/log/nginx/</code> doesn't show <code>access.log</code>
-(because directory entry was deleted)</p>
-<h2 id="solution">Solution</h2>
-<h3 id="find-nginx-process-pid">1. Find nginx Process PID</h3>
+<h1>Real Case: What to Do When Nginx Log File Is Accidentally Deleted</h1>
+<h2 id="Scenario"><a class="header-anchor" href="#Scenario">¶</a>Scenario</h2>
+<p>An ops person accidentally ran <code>rm -rf /var/log/nginx/access.log</code>, but nginx process is still running.</p>
+<h2 id="Problem"><a class="header-anchor" href="#Problem">¶</a>Problem</h2>
+<p>Although file was deleted, nginx process still holds file handle (under <code>/proc/&lt;pid&gt;/fd/</code>), continues writing data to “deleted file”. At this point:</p>
+<ul>
+<li><code>df -h</code> shows disk usage hasn’t decreased (because file still occupies space)</li>
+<li><code>ls /var/log/nginx/</code> doesn’t show <code>access.log</code> (because directory entry was deleted)</li>
+</ul>
+<h2 id="Solution-v13"><a class="header-anchor" href="#Solution-v13">¶</a>Solution</h2>
+<h3 id="1-Find-nginx-Process-PID"><a class="header-anchor" href="#1-Find-nginx-Process-PID">¶</a>1. Find nginx Process PID</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pidof nginx  <span class="comment"># Or ps aux | grep nginx</span></span><br></pre></td></tr></table></figure>
 <p>Suppose main process PID is 1234.</p>
-<h3 id="view-files-opened-by-process">2. View Files Opened by
-Process</h3>
+<h3 id="2-View-Files-Opened-by-Process"><a class="header-anchor" href="#2-View-Files-Opened-by-Process">¶</a>2. View Files Opened by Process</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsof -p 1234 | grep access.log</span><br></pre></td></tr></table></figure>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nginx  1234 root  6w  REG  8,1  123456789  /var/log/nginx/access.log (deleted)</span><br></pre></td></tr></table></figure></p>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nginx  1234 root  6w  REG  8,1  123456789  /var/log/nginx/access.log (deleted)</span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>6w</code>: File descriptor is 6, mode is <code>w</code>
-(write)</li>
-<li><code>(deleted)</code>: File was deleted but process still holds
-handle</li>
+<li><code>6w</code>: File descriptor is 6, mode is <code>w</code> (write)</li>
+<li><code>(deleted)</code>: File was deleted but process still holds handle</li>
 </ul>
-<h3 id="recover-file">3. Recover File</h3>
+<h3 id="3-Recover-File"><a class="header-anchor" href="#3-Recover-File">¶</a>3. Recover File</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /proc/1234/fd/6 /var/log/nginx/access.log</span><br></pre></td></tr></table></figure>
-<h3 id="reload-nginx">4. Reload nginx</h3>
+<h3 id="4-Reload-nginx"><a class="header-anchor" href="#4-Reload-nginx">¶</a>4. Reload nginx</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo nginx -s reload  <span class="comment"># Make nginx reopen log file</span></span><br></pre></td></tr></table></figure>
-<p><strong>Principle</strong>: - Deleting file only deletes directory
-entry (filename); inode and data blocks remain (because process is still
-using it) - Via <code>/proc/&lt;pid&gt;/fd/&lt;fd&gt;</code> you can
-access files opened by process (even if deleted) - After <code>cp</code>
-copying file, reload nginx to make it reopen log file</p>
+<p><strong>Principle</strong>:</p>
+<ul>
+<li>Deleting file only deletes directory entry (filename); inode and data blocks remain (because process is still using it)</li>
+<li>Via <code>/proc/&lt;pid&gt;/fd/&lt;fd&gt;</code> you can access files opened by process (even if deleted)</li>
+<li>After <code>cp</code> copying file, reload nginx to make it reopen log file</li>
+</ul>
 <hr>
-<h1 id="summary-and-further-reading">Summary and Further Reading</h1>
-<p>This article covers the core content of Linux process and resource
-management: 1. ✅ Basic concepts of processes and programs (process vs
-program vs thread, parent-child relationships) 2. ✅ Linux resource
-management overview (CPU/memory/disk/network) 3. ✅ Buffer and Cache
-explained (why "out of memory" is often a misjudgment) 4. ✅ Process
-monitoring toolchain (top/htop/ps/pstree/lsof/ss/iostat) 5. ✅ Process
-control (kill signals, background tasks, priority adjustment) 6. ✅
-Special process states (orphan processes, zombie processes) 7. ✅ Real
-cases (performance troubleshooting workflow, Nginx log recovery)</p>
-<p><strong>Further Reading</strong>: - Linux Performance (Brendan
-Gregg): http://www.brendangregg.com/linuxperf.html -
-<code>man proc</code>: View detailed explanation of <code>/proc</code>
-filesystem - <code>man 7 signal</code>: View explanation of all
-signals</p>
-<p><strong>Next Steps</strong>: - <strong>《Linux Disk
-Management》</strong>: Learn partitioning, formatting, mounting, LVM,
-RAID, etc. - <strong>《Linux User Management》</strong>: Learn how to
-manage users/groups/permissions</p>
+<h1>Summary and Further Reading</h1>
+<p>This article covers the core content of Linux process and resource management:</p>
+<ol>
+<li>✅ Basic concepts of processes and programs (process vs program vs thread, parent-child relationships)</li>
+<li>✅ Linux resource management overview (CPU/memory/disk/network)</li>
+<li>✅ Buffer and Cache explained (why “out of memory” is often a misjudgment)</li>
+<li>✅ Process monitoring toolchain (top/htop/ps/pstree/lsof/ss/iostat)</li>
+<li>✅ Process control (kill signals, background tasks, priority adjustment)</li>
+<li>✅ Special process states (orphan processes, zombie processes)</li>
+<li>✅ Real cases (performance troubleshooting workflow, Nginx log recovery)</li>
+</ol>
+<p><strong>Further Reading</strong>:</p>
+<ul>
+<li>Linux Performance (Brendan Gregg): <a class="link" target="_blank" rel="noopener" href="http://www.brendangregg.com/linuxperf.html">http://www.brendangregg.com/linuxperf.html<i class="fas fa-external-link-alt"></i></a></li>
+<li><code>man proc</code>: View detailed explanation of <code>/proc</code> filesystem</li>
+<li><code>man 7 signal</code>: View explanation of all signals</li>
+</ul>
+<p><strong>Next Steps</strong>:</p>
+<ul>
+<li><strong>《Linux Disk Management》</strong>: Learn partitioning, formatting, mounting, LVM, RAID, etc.</li>
+<li><strong>《Linux User Management》</strong>: Learn how to manage users/groups/permissions</li>
+</ul>
 <hr>
-<p><strong>By this point, you should have upgraded from "can view top"
-to "can quickly locate resource bottlenecks, can optimize process
-priorities, can handle abnormal process states." Process and resource
-management is a core Linux ops skill; mastering it allows you to better
-troubleshoot performance issues.</strong></p>
+<p><strong>By this point, you should have upgraded from “can view top” to “can quickly locate resource bottlenecks, can optimize process priorities, can handle abnormal process states.” Process and resource management is a core Linux ops skill; mastering it allows you to better troubleshoot performance issues.</strong></p>
 
         </div>
 
@@ -809,7 +749,7 @@ troubleshoot performance issues.</strong></p>
     <ul>
         <li>Post title：Linux Process and Resource Management: Monitoring, Troubleshooting, and Optimization</li>
         <li>Post author：Chen Kai</li>
-        <li>Create time：2025-02-08 00:00:00</li>
+        <li>Create time：2025-01-10 00:00:00</li>
         <li>
             Post link：https://www.chenk.top/en/linux-process-resource-management/
         </li>
@@ -844,13 +784,13 @@ troubleshoot performance issues.</strong></p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/vim-essentials/"
+                           href="/en/paper2repo%EF%BC%9AGitHub%20Repository%20Recommendation%20for%20Academic%20Papers/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Vim Essentials: Modal Editing, Motions, and a Repeatable Workflow</span>
+                                <span class="post-nav-title-item">paper2repo：GitHub Repository Recommendation for Academic Papers</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -860,10 +800,10 @@ troubleshoot performance issues.</strong></p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/linux-pipelines/"
+                           href="/en/moslora/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux Pipelines and Text Processing: Composing Tools into Data Flows</span>
+                                <span class="post-nav-title-item">MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation</span>
                                 <span class="post-nav-item">Next posts</span>
                             </span>
                             <span class="right arrow-icon flex-center">
@@ -1076,32 +1016,7 @@ troubleshoot performance issues.</strong></p>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#basic-concepts-process-vs-program-vs-thread"><span class="nav-number">1.</span> <span class="nav-text">Basic Concepts:
-Process vs Program vs Thread</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#the-three-concepts-often-confused"><span class="nav-number">1.1.</span> <span class="nav-text">The Three Concepts Often
-Confused</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#five-key-process-characteristics"><span class="nav-number">1.2.</span> <span class="nav-text">Five Key Process
-Characteristics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#process-parent-child-relationship-pid-and-ppid"><span class="nav-number">1.3.</span> <span class="nav-text">Process
-Parent-Child Relationship (PID and PPID)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#linux-resource-management-overview-cpumemorydisknetwork"><span class="nav-number">2.</span> <span class="nav-text">Linux
-Resource Management Overview: CPU&#x2F;Memory&#x2F;Disk&#x2F;Network</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#four-major-hardware-resource-categories"><span class="nav-number">2.1.</span> <span class="nav-text">Four Major Hardware
-Resource Categories</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cpu-resources"><span class="nav-number">2.1.1.</span> <span class="nav-text">1. CPU Resources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#memory-resources"><span class="nav-number">2.1.2.</span> <span class="nav-text">2. Memory Resources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#disk-resources"><span class="nav-number">2.1.3.</span> <span class="nav-text">3. Disk Resources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#network-resources"><span class="nav-number">2.1.4.</span> <span class="nav-text">4. Network Resources</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#buffer-and-cache-explained-why-out-of-memory-is-often-a-misjudgment"><span class="nav-number">3.</span> <span class="nav-text">Buffer
-and Cache Explained: Why &quot;Out of Memory&quot; Is Often a Misjudgment</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#buffer-vs-cache"><span class="nav-number">3.1.</span> <span class="nav-text">Buffer vs Cache</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#process-monitoring-toolchain-from-overview-to-details"><span class="nav-number">4.</span> <span class="nav-text">Process
-Monitoring Toolchain: From Overview to Details</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#top-the-swiss-army-knife-of-real-time-monitoring"><span class="nav-number">4.1.</span> <span class="nav-text">1. top: The
-&quot;Swiss Army Knife&quot; of Real-Time Monitoring</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#htop-enhanced-version-of-top"><span class="nav-number">4.2.</span> <span class="nav-text">2. htop: Enhanced Version of
-top</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ps-static-process-snapshot"><span class="nav-number">4.3.</span> <span class="nav-text">3. ps: Static Process Snapshot</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#pstree-process-tree"><span class="nav-number">4.4.</span> <span class="nav-text">4. pstree: Process Tree</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lsof-view-open-files"><span class="nav-number">4.5.</span> <span class="nav-text">5. lsof: View Open Files</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#network-port-monitoring"><span class="nav-number">4.6.</span> <span class="nav-text">6. Network Port Monitoring</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ss-view-network-connections-replaces-netstat"><span class="nav-number">4.6.1.</span> <span class="nav-text">ss: View Network
-Connections (Replaces netstat)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lsof-view-port-usage"><span class="nav-number">4.6.2.</span> <span class="nav-text">lsof: View Port Usage</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#disk-io-monitoring"><span class="nav-number">4.7.</span> <span class="nav-text">7. Disk I&#x2F;O Monitoring</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#iostat-disk-io-statistics"><span class="nav-number">4.7.1.</span> <span class="nav-text">iostat: Disk I&#x2F;O Statistics</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#iotop-real-time-view-of-process-disk-io"><span class="nav-number">4.7.2.</span> <span class="nav-text">iotop: Real-Time View
-of Process Disk I&#x2F;O</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#process-control-signals-background-tasks-priorities"><span class="nav-number">5.</span> <span class="nav-text">Process
-Control: Signals, Background Tasks, Priorities</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#kill-send-signals"><span class="nav-number">5.1.</span> <span class="nav-text">1. kill: Send Signals</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#background-task-running"><span class="nav-number">5.2.</span> <span class="nav-text">2. Background Task Running</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#method-1-use"><span class="nav-number">5.2.1.</span> <span class="nav-text">Method 1: Use &amp;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#method-2-use-nohup-recommended"><span class="nav-number">5.2.2.</span> <span class="nav-text">Method 2: Use nohup
-(Recommended)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#method-3-use-screen-or-tmux-best-practice"><span class="nav-number">5.2.3.</span> <span class="nav-text">Method 3: Use
-screen or tmux (Best Practice)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#manage-background-tasks"><span class="nav-number">5.2.4.</span> <span class="nav-text">Manage Background Tasks</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#adjust-process-priority-nicerenice"><span class="nav-number">5.3.</span> <span class="nav-text">3. Adjust Process Priority
-(nice&#x2F;renice)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#specify-priority-at-startup-nice"><span class="nav-number">5.3.1.</span> <span class="nav-text">Specify Priority at Startup
-(nice)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#adjust-running-process-priority-renice"><span class="nav-number">5.3.2.</span> <span class="nav-text">Adjust Running Process
-Priority (renice)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#special-process-states-orphan-and-zombie-processes"><span class="nav-number">6.</span> <span class="nav-text">Special
-Process States: Orphan and Zombie Processes</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#orphan-process"><span class="nav-number">6.1.</span> <span class="nav-text">Orphan Process</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#zombie-process"><span class="nav-number">6.2.</span> <span class="nav-text">Zombie Process</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#hands-on-complete-performance-troubleshooting-workflow"><span class="nav-number">7.</span> <span class="nav-text">Hands-On:
-Complete Performance Troubleshooting Workflow</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-system-slowed-down-how-to-troubleshoot"><span class="nav-number">7.1.</span> <span class="nav-text">Scenario:
-System Slowed Down, How to Troubleshoot</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#check-overall-load"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. Check Overall Load</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#find-resource-consuming-processes"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. Find Resource-Consuming
-Processes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-process-details"><span class="nav-number">7.1.3.</span> <span class="nav-text">3. View Process Details</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#check-disk-io"><span class="nav-number">7.1.4.</span> <span class="nav-text">4. Check Disk I&#x2F;O</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#check-network-connections"><span class="nav-number">7.1.5.</span> <span class="nav-text">5. Check Network Connections</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#optimize-or-terminate-process"><span class="nav-number">7.1.6.</span> <span class="nav-text">6. Optimize or Terminate
-Process</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#real-case-what-to-do-when-nginx-log-file-is-accidentally-deleted"><span class="nav-number">8.</span> <span class="nav-text">Real
-Case: What to Do When Nginx Log File Is Accidentally Deleted</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario"><span class="nav-number">8.1.</span> <span class="nav-text">Scenario</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem"><span class="nav-number">8.2.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#solution"><span class="nav-number">8.3.</span> <span class="nav-text">Solution</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#find-nginx-process-pid"><span class="nav-number">8.3.1.</span> <span class="nav-text">1. Find nginx Process PID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-files-opened-by-process"><span class="nav-number">8.3.2.</span> <span class="nav-text">2. View Files Opened by
-Process</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#recover-file"><span class="nav-number">8.3.3.</span> <span class="nav-text">3. Recover File</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reload-nginx"><span class="nav-number">8.3.4.</span> <span class="nav-text">4. Reload nginx</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#summary-and-further-reading"><span class="nav-number">9.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">Basic Concepts: Process vs Program vs Thread</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Three-Concepts-Often-Confused"><span class="nav-number">1.1.</span> <span class="nav-text">The Three Concepts Often Confused</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Five-Key-Process-Characteristics"><span class="nav-number">1.2.</span> <span class="nav-text">Five Key Process Characteristics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Process-Parent-Child-Relationship-PID-and-PPID"><span class="nav-number">1.3.</span> <span class="nav-text">Process Parent-Child Relationship (PID and PPID)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Linux Resource Management Overview: CPU&#x2F;Memory&#x2F;Disk&#x2F;Network</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Four-Major-Hardware-Resource-Categories"><span class="nav-number">2.1.</span> <span class="nav-text">Four Major Hardware Resource Categories</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-CPU-Resources"><span class="nav-number">2.1.1.</span> <span class="nav-text">1. CPU Resources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Memory-Resources"><span class="nav-number">2.1.2.</span> <span class="nav-text">2. Memory Resources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Disk-Resources"><span class="nav-number">2.1.3.</span> <span class="nav-text">3. Disk Resources</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Network-Resources"><span class="nav-number">2.1.4.</span> <span class="nav-text">4. Network Resources</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">Buffer and Cache Explained: Why “Out of Memory” Is Often a Misjudgment</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Buffer-vs-Cache-v2"><span class="nav-number">3.1.</span> <span class="nav-text">Buffer vs Cache</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">Process Monitoring Toolchain: From Overview to Details</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-top-The-%E2%80%9CSwiss-Army-Knife%E2%80%9D-of-Real-Time-Monitoring"><span class="nav-number">4.1.</span> <span class="nav-text">1. top: The “Swiss Army Knife” of Real-Time Monitoring</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-htop-Enhanced-Version-of-top"><span class="nav-number">4.2.</span> <span class="nav-text">2. htop: Enhanced Version of top</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-ps-Static-Process-Snapshot"><span class="nav-number">4.3.</span> <span class="nav-text">3. ps: Static Process Snapshot</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-pstree-Process-Tree"><span class="nav-number">4.4.</span> <span class="nav-text">4. pstree: Process Tree</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-lsof-View-Open-Files"><span class="nav-number">4.5.</span> <span class="nav-text">5. lsof: View Open Files</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-Network-Port-Monitoring"><span class="nav-number">4.6.</span> <span class="nav-text">6. Network Port Monitoring</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ss-View-Network-Connections-Replaces-netstat"><span class="nav-number">4.6.1.</span> <span class="nav-text">ss: View Network Connections (Replaces netstat)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lsof-View-Port-Usage"><span class="nav-number">4.6.2.</span> <span class="nav-text">lsof: View Port Usage</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Disk-I-O-Monitoring"><span class="nav-number">4.7.</span> <span class="nav-text">7. Disk I&#x2F;O Monitoring</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#iostat-Disk-I-O-Statistics"><span class="nav-number">4.7.1.</span> <span class="nav-text">iostat: Disk I&#x2F;O Statistics</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#iotop-Real-Time-View-of-Process-Disk-I-O"><span class="nav-number">4.7.2.</span> <span class="nav-text">iotop: Real-Time View of Process Disk I&#x2F;O</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">Process Control: Signals, Background Tasks, Priorities</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-kill-Send-Signals"><span class="nav-number">5.1.</span> <span class="nav-text">1. kill: Send Signals</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Background-Task-Running"><span class="nav-number">5.2.</span> <span class="nav-text">2. Background Task Running</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Method-1-Use"><span class="nav-number">5.2.1.</span> <span class="nav-text">Method 1: Use &amp;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Method-2-Use-nohup-Recommended"><span class="nav-number">5.2.2.</span> <span class="nav-text">Method 2: Use nohup (Recommended)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Method-3-Use-screen-or-tmux-Best-Practice"><span class="nav-number">5.2.3.</span> <span class="nav-text">Method 3: Use screen or tmux (Best Practice)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Manage-Background-Tasks"><span class="nav-number">5.2.4.</span> <span class="nav-text">Manage Background Tasks</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Adjust-Process-Priority-nice-renice"><span class="nav-number">5.3.</span> <span class="nav-text">3. Adjust Process Priority (nice&#x2F;renice)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Specify-Priority-at-Startup-nice"><span class="nav-number">5.3.1.</span> <span class="nav-text">Specify Priority at Startup (nice)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Adjust-Running-Process-Priority-renice"><span class="nav-number">5.3.2.</span> <span class="nav-text">Adjust Running Process Priority (renice)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">Special Process States: Orphan and Zombie Processes</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Orphan-Process"><span class="nav-number">6.1.</span> <span class="nav-text">Orphan Process</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Zombie-Process"><span class="nav-number">6.2.</span> <span class="nav-text">Zombie Process</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Hands-On: Complete Performance Troubleshooting Workflow</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-System-Slowed-Down-How-to-Troubleshoot"><span class="nav-number">7.1.</span> <span class="nav-text">Scenario: System Slowed Down, How to Troubleshoot</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Check-Overall-Load"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. Check Overall Load</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Find-Resource-Consuming-Processes"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. Find Resource-Consuming Processes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-View-Process-Details"><span class="nav-number">7.1.3.</span> <span class="nav-text">3. View Process Details</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Check-Disk-I-O"><span class="nav-number">7.1.4.</span> <span class="nav-text">4. Check Disk I&#x2F;O</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Check-Network-Connections"><span class="nav-number">7.1.5.</span> <span class="nav-text">5. Check Network Connections</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Optimize-or-Terminate-Process"><span class="nav-number">7.1.6.</span> <span class="nav-text">6. Optimize or Terminate Process</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">Real Case: What to Do When Nginx Log File Is Accidentally Deleted</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario"><span class="nav-number">8.1.</span> <span class="nav-text">Scenario</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Problem"><span class="nav-number">8.2.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Solution-v13"><span class="nav-number">8.3.</span> <span class="nav-text">Solution</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Find-nginx-Process-PID"><span class="nav-number">8.3.1.</span> <span class="nav-text">1. Find nginx Process PID</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-View-Files-Opened-by-Process"><span class="nav-number">8.3.2.</span> <span class="nav-text">2. View Files Opened by Process</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Recover-File"><span class="nav-number">8.3.3.</span> <span class="nav-text">3. Recover File</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Reload-nginx"><span class="nav-number">8.3.4.</span> <span class="nav-text">4. Reload nginx</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">9.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
     </div>
 </div>
         </aside>
