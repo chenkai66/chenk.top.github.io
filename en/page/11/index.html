@@ -305,21 +305,33 @@ mjx-container[display="true"] + br {
                 
 
                 <h3 class="home-article-title">
-                    <a href="/en/prefix-tuning/">
-                        Prefix-Tuning: Optimizing Continuous Prompts for Generation
+                    <a href="/en/time-series-attention-mechanism/">
+                        Time Series Forecasting (4): Attention Mechanisms - Direct Long-Range Dependencies
                     </a>
                 </h3>
 
                 <div class="home-article-content markdown-body">
                     
-                        <p>Prefix-Tuning is a parameter-efficient way to adapt a frozen language
-model: instead of updating model weights, you learn a small set of
-continuous vectors (“prefixes”) that steer the model’s generation. A key
-practical variant injects learned prefixes into the attention mechanism
-as per-layer key/value prefixes. This note explains the method, why
-reparameterization helps optimization stability, how Prefix-Tuning
-compares to prompt tuning and LoRA, and what implementation details
-matter in real training.</p>
+                        <p>In time series forecasting, critical information often doesn't reside
+in the "most recent step." It might be a specific phase within a cycle,
+a recovery after a sudden spike, or similar patterns separated by long
+intervals. Traditional recurrent neural networks (RNNs) and their
+variants like LSTM struggle with these long-range dependencies because
+they must sequentially propagate information through time, leading to
+vanishing gradients and computational bottlenecks.</p>
+<p>Attention mechanisms revolutionize this approach. Instead of forcing
+information to flow step-by-step through time, attention allows the
+model to directly learn "which segments of history to look at and with
+what weight." This direct access to any position in the sequence makes
+attention particularly powerful for capturing long-distance dependencies
+and irregular correlations that are common in time series data.</p>
+<p>This article breaks down the self-attention computation step-by-step
+through formulas (<span class="math inline"><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="7.803ex" height="2.262ex" role="img" focusable="false" viewbox="0 -750 3449 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D444" d="M399 -80Q399 -47 400 -30T402 -11V-7L387 -11Q341 -22 303 -22Q208 -22 138 35T51 201Q50 209 50 244Q50 346 98 438T227 601Q351 704 476 704Q514 704 524 703Q621 689 680 617T740 435Q740 255 592 107Q529 47 461 16L444 8V3Q444 2 449 -24T470 -66T516 -82Q551 -82 583 -60T625 -3Q631 11 638 11Q647 11 649 2Q649 -6 639 -34T611 -100T557 -165T481 -194Q399 -194 399 -87V-80ZM636 468Q636 523 621 564T580 625T530 655T477 665Q429 665 379 640Q277 591 215 464T153 216Q153 110 207 59Q231 38 236 38V46Q236 86 269 120T347 155Q372 155 390 144T417 114T429 82T435 55L448 64Q512 108 557 185T619 334T636 468ZM314 18Q362 18 404 39L403 49Q399 104 366 115Q354 117 347 117Q344 117 341 117T337 118Q317 118 296 98T274 52Q274 18 314 18Z"/></g><g data-mml-node="TeXAtom" data-mjx-texclass="ORD" transform="translate(791,0)"><g data-mml-node="mo"><path data-c="2F" d="M423 750Q432 750 438 744T444 730Q444 725 271 248T92 -240Q85 -250 75 -250Q68 -250 62 -245T56 -231Q56 -221 230 257T407 740Q411 750 423 750Z"/></g></g><g data-mml-node="mi" transform="translate(1291,0)"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"/></g><g data-mml-node="TeXAtom" data-mjx-texclass="ORD" transform="translate(2180,0)"><g data-mml-node="mo"><path data-c="2F" d="M423 750Q432 750 438 744T444 730Q444 725 271 248T92 -240Q85 -250 75 -250Q68 -250 62 -245T56 -231Q56 -221 230 257T407 740Q411 750 423 750Z"/></g></g><g data-mml-node="mi" transform="translate(2680,0)"><path data-c="1D449" d="M52 648Q52 670 65 683H76Q118 680 181 680Q299 680 320 683H330Q336 677 336 674T334 656Q329 641 325 637H304Q282 635 274 635Q245 630 242 620Q242 618 271 369T301 118L374 235Q447 352 520 471T595 594Q599 601 599 609Q599 633 555 637Q537 637 537 648Q537 649 539 661Q542 675 545 679T558 683Q560 683 570 683T604 682T668 681Q737 681 755 683H762Q769 676 769 672Q769 655 760 640Q757 637 743 637Q730 636 719 635T698 630T682 623T670 615T660 608T652 599T645 592L452 282Q272 -9 266 -16Q263 -18 259 -21L241 -22H234Q216 -22 216 -15Q213 -9 177 305Q139 623 138 626Q133 637 76 637H59Q52 642 52 648Z"/></g></g></g></svg></mjx-container></span>
+transformations, scaled dot-product, softmax weights, weighted
+summation), explains what these matrix operations actually accomplish,
+analyzes the computational complexity relative to sequence length, and
+demonstrates how to organize inputs for time series tasks and interpret
+attention weights for explainability.</p>
                     
                 </div>
 
@@ -330,14 +342,14 @@ matter in real training.</p>
     
 
     <div class="home-article-meta-info">
-        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Mon Feb 26 2024 00:00:00 GMT+0800">2024-02-26</span></span>
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Sat May 18 2024 00:00:00 GMT+0800">2024-05-18</span></span>
         
             <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
                 <ul>
                     
                         <li>
                             
-                            <a href="/en/categories/Paper/">Paper</a>&nbsp;
+                            <a href="/en/categories/Algorithm/">Algorithm</a>&nbsp;
                         </li>
                     
                     
@@ -351,12 +363,17 @@ matter in real training.</p>
                     
                         <li>
                             
-                            <a href="/en/tags/LLM/">LLM</a>&nbsp;
+                            <a href="/en/tags/Deep-Learning/">Deep Learning</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/PEFT/">PEFT</a>&nbsp;
+                            <a href="/en/tags/Time-Series/">Time Series</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/en/tags/Attention/">Attention</a>&nbsp;
                         </li>
                     
                 </ul>
@@ -364,7 +381,7 @@ matter in real training.</p>
         
     </div>
 
-    <a href="/en/prefix-tuning/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
+    <a href="/en/time-series-attention-mechanism/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
 </div>
 
             </li>
@@ -374,25 +391,26 @@ matter in real training.</p>
                 
 
                 <h3 class="home-article-title">
-                    <a href="/en/cloud-computing-multi-cloud-hybrid/">
-                        Cloud Computing (8): Multi-Cloud Management and Hybrid Architecture
+                    <a href="/en/time-series-gru/">
+                        Time Series Forecasting (3): GRU - Lightweight Gates &amp; Efficiency Trade-offs
                     </a>
                 </h3>
 
                 <div class="home-article-content markdown-body">
                     
-                        <p>As organizations mature in their cloud journey, the question shifts
-from "should we use the cloud?" to "which cloud strategy maximizes our
-business value?" Multi-cloud and hybrid architectures have emerged as
-the dominant paradigms for enterprises seeking resilience, cost
-optimization, and strategic flexibility. Unlike single-cloud approaches
-that create dependencies on a single vendor, multi-cloud strategies
-distribute workloads across multiple providers, while hybrid
-architectures bridge on-premises infrastructure with public cloud
-services. This article explores the strategic, technical, and
-operational dimensions of multi-cloud and hybrid cloud adoption,
-providing actionable frameworks for architecture design, migration
-planning, and ongoing management.</p>
+                        <p>If LSTM is a memory system with "many gates and fine-grained
+control," then GRU is more like its lightweight version: using fewer
+gates to clearly handle "how much old information to retain and how much
+new information to inject." GRU typically has fewer parameters, trains
+faster, and is less prone to overfitting. This article explains GRU's
+core computations around the update gate and reset gate: how they
+determine the decay rate of historical information, when GRU might be
+more suitable than LSTM, and the most common pitfalls in implementation
+and hyperparameter tuning (such as hidden state initialization, the
+relationship between sequence length and gradient stability). After
+reading this, you should be able to treat GRU as a reliable alternative
+for time series modeling, rather than just a "simplified version that's
+good enough."</p>
                     
                 </div>
 
@@ -403,14 +421,14 @@ planning, and ongoing management.</p>
     
 
     <div class="home-article-meta-info">
-        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Thu Feb 22 2024 00:00:00 GMT+0800">2024-02-22</span></span>
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Thu Apr 25 2024 00:00:00 GMT+0800">2024-04-25</span></span>
         
             <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
                 <ul>
                     
                         <li>
                             
-                            <a href="/en/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                            <a href="/en/categories/Algorithm/">Algorithm</a>&nbsp;
                         </li>
                     
                     
@@ -424,27 +442,17 @@ planning, and ongoing management.</p>
                     
                         <li>
                             
-                            <a href="/en/tags/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                            <a href="/en/tags/Deep-Learning/">Deep Learning</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/Multi-Cloud/">Multi-Cloud</a>&nbsp;
+                            <a href="/en/tags/Time-Series/">Time Series</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/Hybrid-Cloud/">Hybrid Cloud</a>&nbsp;
-                        </li>
-                    
-                        <li>
-                            | 
-                            <a href="/en/tags/Cloud-Migration/">Cloud Migration</a>&nbsp;
-                        </li>
-                    
-                        <li>
-                            | 
-                            <a href="/en/tags/Edge-Computing/">Edge Computing</a>&nbsp;
+                            <a href="/en/tags/GRU/">GRU</a>&nbsp;
                         </li>
                     
                 </ul>
@@ -452,7 +460,7 @@ planning, and ongoing management.</p>
         
     </div>
 
-    <a href="/en/cloud-computing-multi-cloud-hybrid/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
+    <a href="/en/time-series-gru/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
 </div>
 
             </li>
@@ -462,35 +470,23 @@ planning, and ongoing management.</p>
                 
 
                 <h3 class="home-article-title">
-                    <a href="/en/cloud-computing-operations-devops/">
-                        Cloud Computing (7): Operations and DevOps Practices
+                    <a href="/en/time-series-lstm/">
+                        Time Series Forecasting (2): LSTM - Gate Mechanisms &amp; Long-Term Dependencies
                     </a>
                 </h3>
 
                 <div class="home-article-content markdown-body">
                     
-                        <p>Picture this: you've deployed your application to the cloud. It's
-running smoothly, users are happy, and everything looks great. Then, at
-3 AM on a Sunday, your monitoring alerts start firing. Response times
-have spiked, error rates are climbing, and your on-call engineer is
-scrambling to figure out what's wrong. Is it a database connection pool
-exhaustion? A memory leak? A sudden traffic spike? Or something else
-entirely?</p>
-<p>This scenario plays out daily in cloud operations. Building and
-deploying applications is only half the battle—keeping them running
-reliably, efficiently, and cost-effectively is where operations and
-DevOps practices become critical. The difference between a well-operated
-cloud system and a poorly managed one isn't just uptime; it's the
-ability to detect issues before they impact users, respond to incidents
-quickly, optimize costs continuously, and scale seamlessly.</p>
-<p>In this comprehensive guide, we'll explore the full spectrum of cloud
-operations and DevOps practices: infrastructure as code, monitoring and
-observability, logging and analysis, application performance management,
-automation pipelines, auto-scaling strategies, cost optimization
-techniques, troubleshooting methodologies, Site Reliability Engineering
-principles, and modern GitOps workflows. We'll dive deep into tools like
-Terraform, Ansible, Prometheus, Grafana, ELK stack, and examine
-real-world case studies that demonstrate these practices in action.</p>
+                        <p>The fundamental problem with RNNs on long sequences—their tendency to
+"forget"—stems from information and gradients decaying or exploding
+across time steps. LSTM addresses this by introducing a controllable
+"memory ledger": gates decide what information to write, what to erase,
+and what to read, transforming long-term dependencies into learnable,
+controllable pathways. This article breaks down LSTM's three gates and
+memory cell mechanism step by step: the intuition behind each formula,
+how it mitigates gradient problems, and how to structure inputs/outputs
+for time series forecasting, along with practical insights on training
+stability and performance evaluation.</p>
                     
                 </div>
 
@@ -501,14 +497,14 @@ real-world case studies that demonstrate these practices in action.</p>
     
 
     <div class="home-article-meta-info">
-        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Mon Jan 29 2024 00:00:00 GMT+0800">2024-01-29</span></span>
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Tue Apr 02 2024 00:00:00 GMT+0800">2024-04-02</span></span>
         
             <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
                 <ul>
                     
                         <li>
                             
-                            <a href="/en/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                            <a href="/en/categories/Algorithm/">Algorithm</a>&nbsp;
                         </li>
                     
                     
@@ -522,27 +518,17 @@ real-world case studies that demonstrate these practices in action.</p>
                     
                         <li>
                             
-                            <a href="/en/tags/DevOps/">DevOps</a>&nbsp;
+                            <a href="/en/tags/Deep-Learning/">Deep Learning</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                            <a href="/en/tags/Time-Series/">Time Series</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/Operations/">Operations</a>&nbsp;
-                        </li>
-                    
-                        <li>
-                            | 
-                            <a href="/en/tags/Monitoring/">Monitoring</a>&nbsp;
-                        </li>
-                    
-                        <li>
-                            | 
-                            <a href="/en/tags/Automation/">Automation</a>&nbsp;
+                            <a href="/en/tags/LSTM/">LSTM</a>&nbsp;
                         </li>
                     
                 </ul>
@@ -550,7 +536,7 @@ real-world case studies that demonstrate these practices in action.</p>
         
     </div>
 
-    <a href="/en/cloud-computing-operations-devops/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
+    <a href="/en/time-series-lstm/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
 </div>
 
             </li>
@@ -560,36 +546,22 @@ real-world case studies that demonstrate these practices in action.</p>
                 
 
                 <h3 class="home-article-title">
-                    <a href="/en/cloud-computing-security-privacy/">
-                        Cloud Computing (6): Security and Privacy Protection
+                    <a href="/en/vae-guide/">
+                        Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting
                     </a>
                 </h3>
 
                 <div class="home-article-content markdown-body">
                     
-                        <p>In 2017, Equifax, one of the largest credit reporting agencies in the
-United States, suffered a catastrophic data breach. Attackers exploited
-a vulnerability in Apache Struts, a web application framework, gaining
-access to sensitive personal information of 147 million people—names,
-Social Security numbers, birth dates, addresses, and credit card
-numbers. The breach cost Equifax over $1.4 billion in settlements, legal
-fees, and remediation costs. More importantly, it exposed a fundamental
-truth: in the cloud era, security isn't optional—it's existential.</p>
-<p>As organizations migrate to cloud platforms, they gain unprecedented
-scalability and flexibility, but they also inherit new security
-challenges. The shared responsibility model means that while cloud
-providers secure the infrastructure, customers must protect their data,
-applications, and access controls. A single misconfigured S3 bucket, an
-exposed API key, or a weak IAM policy can lead to devastating
-breaches.</p>
-<p>This comprehensive guide explores cloud security and privacy from
-multiple angles: understanding threat models, implementing robust
-identity and access management, encrypting data at rest and in transit,
-defending against distributed attacks, maintaining compliance with
-regulations, and responding to incidents when they occur. Whether you're
-a security engineer hardening a production system or a developer
-building your first cloud application, these principles and practices
-are essential for protecting your digital assets.</p>
+                        <p>A Variational Autoencoder (VAE) is a generative model that learns a
+latent-variable distribution so it can both <strong>reconstruct</strong>
+inputs and <strong>sample</strong> new data. The key engineering trick
+is the <strong>reparameterization trick</strong>, which makes stochastic
+sampling differentiable. This guide builds the intuition from
+autoencoders, walks through the VAE objective (ELBO), explains the
+reparameterization trick with code, and provides a complete PyTorch
+implementation, troubleshooting checklist, and practical tips for
+training stable VAEs.</p>
                     
                 </div>
 
@@ -600,14 +572,14 @@ are essential for protecting your digital assets.</p>
     
 
     <div class="home-article-meta-info">
-        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Mon Jan 08 2024 00:00:00 GMT+0800">2024-01-08</span></span>
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Tue Mar 05 2024 00:00:00 GMT+0800">2024-03-05</span></span>
         
             <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
                 <ul>
                     
                         <li>
                             
-                            <a href="/en/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                            <a href="/en/categories/Algorithm/">Algorithm</a>&nbsp;
                         </li>
                     
                     
@@ -621,27 +593,17 @@ are essential for protecting your digital assets.</p>
                     
                         <li>
                             
-                            <a href="/en/tags/IAM/">IAM</a>&nbsp;
+                            <a href="/en/tags/Deep-Learning/">Deep Learning</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                            <a href="/en/tags/ML/">ML</a>&nbsp;
                         </li>
                     
                         <li>
                             | 
-                            <a href="/en/tags/Cloud-Security/">Cloud Security</a>&nbsp;
-                        </li>
-                    
-                        <li>
-                            | 
-                            <a href="/en/tags/Encryption/">Encryption</a>&nbsp;
-                        </li>
-                    
-                        <li>
-                            | 
-                            <a href="/en/tags/Compliance/">Compliance</a>&nbsp;
+                            <a href="/en/tags/Generative-Models/">Generative Models</a>&nbsp;
                         </li>
                     
                 </ul>
@@ -649,7 +611,7 @@ are essential for protecting your digital assets.</p>
         
     </div>
 
-    <a href="/en/cloud-computing-security-privacy/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
+    <a href="/en/vae-guide/">Read more&nbsp;<i class="fas fa-angle-right"></i></a>
 </div>
 
             </li>

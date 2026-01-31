@@ -366,12 +366,12 @@ mjx-container[display="true"] + br {
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>2.9k Words</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>3.3k Words</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>18 Mins</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>20 Mins</span>
         </span>
     
     
@@ -654,9 +654,44 @@ Summary</h3>
 <p>BERT's strength lies in its generality: the same pretrained model can
 be adapted to various downstream tasks through finetuning.</p>
 <h3 id="text-classification">Text Classification</h3>
+<p><strong>Problem Context</strong>: Text classification is one of the
+most common NLP tasks, requiring mapping text to predefined categories.
+BERT's bidirectional encoding capability allows it to leverage both
+forward and backward context simultaneously, making it ideal for
+understanding tasks.</p>
+<p><strong>Solution Approach</strong>: BERT adds a special
+<code>[CLS]</code> token at the beginning of the sequence. After passing
+through multiple Transformer layers, its representation aggregates
+information from the entire sequence. We add a classification head
+(linear layer + softmax) on top of this representation to complete the
+classification task.</p>
+<p><strong>Design Considerations</strong>: - The <code>[CLS]</code>
+token is specifically designed for sequence-level representation - The
+classification head is typically a simple linear layer with few
+parameters, easy to train - Different pooling strategies (e.g., average
+pooling) can be used, but <code>[CLS]</code> usually works best</p>
 <p>For single-sentence classification tasks (like sentiment analysis),
 use the <code>[CLS]</code> token representation for classification:</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForSequenceClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line">model = BertForSequenceClassification.from_pretrained(<span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Input text</span></span><br><span class="line">text = <span class="string">"I love this movie!"</span></span><br><span class="line">inputs = tokenizer(text, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Forward pass</span></span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">logits = outputs.logits</span><br><span class="line">predictions = torch.argmax(logits, dim=-<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> BertTokenizer, BertForSequenceClassification</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"><span class="comment"># Problem: How to use BERT for text classification?</span></span><br><span class="line"><span class="comment"># Solution: Use [CLS] token representation as sequence-level features for classification</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Load pretrained tokenizer and model</span></span><br><span class="line"><span class="comment"># tokenizer converts text to token IDs and adds special tokens ([CLS], [SEP])</span></span><br><span class="line">tokenizer = BertTokenizer.from_pretrained(<span class="string">'bert-base-uncased'</span>)</span><br><span class="line"><span class="comment"># num_labels specifies the number of classes; model automatically adds classification head</span></span><br><span class="line">model = BertForSequenceClassification.from_pretrained(<span class="string">'bert-base-uncased'</span>, num_labels=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Input text</span></span><br><span class="line">text = <span class="string">"I love this movie!"</span></span><br><span class="line"><span class="comment"># tokenizer returns a dict containing:</span></span><br><span class="line"><span class="comment"># - input_ids: token IDs, shape: [batch_size, seq_len]</span></span><br><span class="line"><span class="comment"># - attention_mask: attention mask, shape: [batch_size, seq_len]</span></span><br><span class="line"><span class="comment"># - token_type_ids: sentence type IDs (all 0s for single sentence), shape: [batch_size, seq_len]</span></span><br><span class="line">inputs = tokenizer(text, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Forward pass</span></span><br><span class="line"><span class="comment"># Internal model flow:</span></span><br><span class="line"><span class="comment"># 1. Token embedding + position embedding + sentence embedding -&gt; [batch_size, seq_len, hidden_size]</span></span><br><span class="line"><span class="comment"># 2. 12 Transformer encoder layers -&gt; [batch_size, seq_len, hidden_size]</span></span><br><span class="line"><span class="comment"># 3. Extract [CLS] position representation -&gt; [batch_size, hidden_size]</span></span><br><span class="line"><span class="comment"># 4. Classification head (linear layer) -&gt; [batch_size, num_labels]</span></span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">logits = outputs.logits  <span class="comment"># shape: [batch_size, num_labels], unnormalized scores</span></span><br><span class="line">predictions = torch.argmax(logits, dim=-<span class="number">1</span>)  <span class="comment"># shape: [batch_size], predicted class indices</span></span><br></pre></td></tr></table></figure>
+<p><strong>Key Points</strong>: - <strong><code>[CLS]</code> token
+role</strong>: Located at sequence start, aggregates entire sequence
+information after multi-layer encoding, suitable for sequence-level
+tasks - <strong>Classification head design</strong>: Typically just a
+linear layer with <code>hidden_size × num_labels</code> parameters, very
+lightweight - <strong>Input format</strong>: Tokenizer automatically
+adds <code>[CLS]</code> and <code>[SEP]</code> tokens, handles padding
+and truncation</p>
+<p><strong>Design Trade-offs</strong>: - ✅ Pros: Simple and efficient,
+<code>[CLS]</code> token specifically designed for classification - ⚠️
+Note: For long texts, truncation may be needed, potentially losing
+information</p>
+<p><strong>Common Questions</strong>: - Q: Why use <code>[CLS]</code>
+instead of other positions? A: <code>[CLS]</code> is specifically
+trained for sequence-level representation during pretraining, works best
+- Q: How to handle multi-class classification? A: Just set
+<code>num_labels</code> to the number of classes, use cross-entropy
+loss</p>
+<p><strong>Usage Example</strong>: <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Batch processing</span></span><br><span class="line">texts = [<span class="string">"I love this movie!"</span>, <span class="string">"This is terrible."</span>]</span><br><span class="line">inputs = tokenizer(texts, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">predictions = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br><span class="line"><span class="comment"># predictions: tensor([1, 0])  # Assuming 1 is positive, 0 is negative</span></span><br></pre></td></tr></table></figure></p>
 <h3 id="named-entity-recognition-ner">Named Entity Recognition
 (NER)</h3>
 <p>For sequence labeling tasks, use each token's representation for
@@ -848,13 +883,13 @@ RoBERTa-Chinese.</p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/nlp-frontiers-applications/"
+                           href="/en/nlp-gpt-generative-models/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">NLP (12): Frontiers and Practical Applications</span>
+                                <span class="post-nav-title-item">NLP (6): GPT and Generative Language Models</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -864,10 +899,10 @@ RoBERTa-Chinese.</p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/nlp-attention-transformer/"
+                           href="/en/nlp-rnn-sequence-modeling/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">NLP (4): Attention Mechanism and Transformer</span>
+                                <span class="post-nav-title-item">NLP (3): RNN and Sequence Modeling</span>
                                 <span class="post-nav-item">Next posts</span>
                             </span>
                             <span class="right arrow-icon flex-center">

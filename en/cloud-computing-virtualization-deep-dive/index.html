@@ -262,12 +262,12 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>5.4k Words</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>7.4k Words</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>33 Mins</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>46 Mins</span>
         </span>
     
     
@@ -473,9 +473,295 @@ Let's explore the major hypervisor platforms.</p>
 server hardware without requiring a host operating system.</p>
 <p><strong>Installation and Configuration</strong></p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ESXi is typically installed via ISO on bare metal</span></span><br><span class="line"><span class="comment"># Once installed, access via vSphere Client or Web UI</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># SSH into ESXi host (if enabled)</span></span><br><span class="line">ssh root@esxi-host-ip</span><br><span class="line"></span><br><span class="line"><span class="comment"># View VM list</span></span><br><span class="line">vim-cmd vmsvc/getallvms</span><br><span class="line"></span><br><span class="line"><span class="comment"># Get VM power state</span></span><br><span class="line">vim-cmd vmsvc/power.getstate &lt;vmid&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Start a VM</span></span><br><span class="line">vim-cmd vmsvc/power.on &lt;vmid&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Stop a VM</span></span><br><span class="line">vim-cmd vmsvc/power.shutdown &lt;vmid&gt;</span><br></pre></td></tr></table></figure>
-<p><strong>VM Configuration File Example</strong></p>
-<p>VMware VMs are defined by <code>.vmx</code> files:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">.encoding = &quot;UTF-8&quot;</span><br><span class="line">config.version = &quot;8&quot;</span><br><span class="line">virtualHW.version = &quot;14&quot;</span><br><span class="line">vmci0.present = &quot;TRUE&quot;</span><br><span class="line">displayName = &quot;Ubuntu-Server-22.04&quot;</span><br><span class="line">guestOS = &quot;ubuntu-64&quot;</span><br><span class="line">numa.autosize = &quot;TRUE&quot;</span><br><span class="line">scsi0.present = &quot;TRUE&quot;</span><br><span class="line">scsi0.sharedBus = &quot;none&quot;</span><br><span class="line">scsi0.virtualDev = &quot;lsilogic&quot;</span><br><span class="line">memsize = &quot;4096&quot;</span><br><span class="line">scsi0:0.present = &quot;TRUE&quot;</span><br><span class="line">scsi0:0.fileName = &quot;Ubuntu-Server-22.04.vmdk&quot;</span><br><span class="line">scsi0:0.deviceType = &quot;scsi-hardDisk&quot;</span><br><span class="line">ethernet0.present = &quot;TRUE&quot;</span><br><span class="line">ethernet0.virtualDev = &quot;vmxnet3&quot;</span><br><span class="line">ethernet0.networkName = &quot;VM Network&quot;</span><br><span class="line">ethernet0.addressType = &quot;generated&quot;</span><br></pre></td></tr></table></figure>
+<p><strong>VM Configuration File for Production Performance</strong></p>
+<h3 id="vmware-vmx-configuration-enterprise-grade-performance-tuning">VMware
+VMX Configuration: Enterprise-Grade Performance Tuning</h3>
+<p>VMware virtual machines are defined by <code>.vmx</code>
+configuration files that control every aspect of VM hardware. While the
+default configuration works for most use cases, production environments
+with high I/O demands (databases, web servers, big data workloads)
+require careful tuning to achieve near-native performance. This section
+provides a comprehensive guide to optimizing VMX settings for maximum
+performance.</p>
+<p><strong>Problem Background</strong>: Default VMware configurations
+use emulated hardware (LSI Logic SCSI, E1000 network adapter) that
+suffers from significant performance penalties. For example: -
+<strong>LSI Logic SCSI</strong>: Provides broad compatibility but limits
+IOPS to ~80,000-100,000 (modern NVMe SSDs can deliver 500,000+ IOPS) -
+<strong>E1000 Network</strong>: Limited to ~1Gbps throughput even on
+10Gbps networks - <strong>vCPU Topology</strong>: Incorrect CPU topology
+(sockets vs cores) causes NUMA penalties, reducing performance by 20-40%
+These limitations make default configurations unsuitable for production
+workloads that demand high performance.</p>
+<p><strong>Solution Approach</strong>: 1. <strong>PVSCSI
+Controller</strong>: Replace LSI Logic with VMware Paravirtual SCSI,
+reducing CPU overhead by 30-50% and increasing IOPS by 2-3x 2.
+<strong>VMXNET3 Network</strong>: Replace E1000 with VMXNET3
+paravirtualized network adapter, achieving near-line-rate performance
+(9.5Gbps on 10Gbps links) 3. <strong>CPU Topology Optimization</strong>:
+Configure CPU topology to match physical CPU layout (sockets, cores per
+socket) to minimize NUMA memory access latency 4. <strong>Virtual
+Hardware Version</strong>: Use the latest hardware version (19 for
+vSphere 7.0+) to access new features and performance improvements 5.
+<strong>Memory Reservation</strong>: Reserve all allocated memory to
+eliminate swapping and memory ballooning overhead</p>
+<p><strong>Design Considerations</strong>: - <strong>PVSCSI/VMXNET3
+require VMware Tools</strong>: These paravirtualized drivers are only
+available after installing VMware Tools in the guest OS. During OS
+installation, you must use LSI Logic and E1000, then switch to
+PVSCSI/VMXNET3 after installation. - <strong>Performance vs
+Compatibility</strong>: PVSCSI and VMXNET3 provide best performance but
+require recent guest OS versions (Linux 2.6.32+, Windows Server 2008+).
+Legacy OS may require emulated drivers. - <strong>NUMA
+Awareness</strong>: For VMs with &gt; 8 vCPUs, NUMA topology becomes
+critical. Incorrect configuration causes remote NUMA node access,
+increasing memory latency by 2-3x. - <strong>CPU
+Overcommitment</strong>: Production databases should avoid CPU
+overcommitment (keep vCPU:pCPU ratio &lt; 2:1). Overcommitment causes
+CPU ready time, degrading performance.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br></pre></td><td class="code"><pre><span class="line"># ========== Basic VM Information ==========</span><br><span class="line"># Character encoding for VMX file (UTF-8 recommended for international characters)</span><br><span class="line">.encoding = &quot;UTF-8&quot;</span><br><span class="line"></span><br><span class="line"># VM display name (shown in vCenter/vSphere Client)</span><br><span class="line">displayName = &quot;Ubuntu-Server-22.04&quot;</span><br><span class="line"></span><br><span class="line"># Guest OS type (determines default hardware compatibility and drivers)</span><br><span class="line"># Options: ubuntu-64, centos-64, windows9Server64Guest, rhel8-64, etc.</span><br><span class="line"># Choosing correct guestOS ensures optimal default settings</span><br><span class="line">guestOS = &quot;ubuntu-64&quot;</span><br><span class="line"></span><br><span class="line"># Virtual hardware version (19 = vSphere 7.0 Update 2+)</span><br><span class="line"># Higher versions unlock new features: NVMe, Precision Time, improved vMotion</span><br><span class="line"># Note: Upgrading hardware version requires VM power-off and may break snapshots</span><br><span class="line"># Recommendation: Use latest version for new VMs, keep stable version for existing VMs</span><br><span class="line">virtualHW.version = &quot;19&quot;</span><br><span class="line"></span><br><span class="line"># ========== CPU Configuration ==========</span><br><span class="line"># Number of virtual CPUs (vCPUs) assigned to this VM</span><br><span class="line"># Rule of thumb: For production, keep vCPU:pCPU ratio &lt; 2:1 to avoid CPU contention</span><br><span class="line"># Over-allocation causes &quot;CPU Ready&quot; time, where vCPU waits for physical CPU</span><br><span class="line">numvcpus = &quot;4&quot;</span><br><span class="line"></span><br><span class="line"># Cores per socket (CPU topology)</span><br><span class="line"># Formula: numvcpus = sockets × cores per socket × threads per core</span><br><span class="line"># Example: 4 vCPUs = 2 sockets × 2 cores × 1 thread</span><br><span class="line"># Why it matters: OS licensing (SQL Server, Windows Server charge per socket)</span><br><span class="line"># NUMA impact: Incorrect topology causes remote NUMA access (2-3x latency penalty)</span><br><span class="line"># Best practice: Match physical CPU topology when possible</span><br><span class="line"># - Single-socket systems: cpuid.coresPerSocket = numvcpus (e.g., 1 socket × 4 cores)</span><br><span class="line"># - Multi-socket systems: Balance cores across sockets (e.g., 2 sockets × 2 cores)</span><br><span class="line">cpuid.coresPerSocket = &quot;2&quot;</span><br><span class="line"></span><br><span class="line"># ========== Memory Configuration ==========</span><br><span class="line"># VM memory size in MB (8192 MB = 8 GB)</span><br><span class="line"># Note: Memory is allocated from host RAM, ensure host has sufficient memory</span><br><span class="line"># For production: Reserve all allocated memory to prevent swapping/ballooning</span><br><span class="line">memory = &quot;8192&quot;</span><br><span class="line"></span><br><span class="line"># Memory reservation (MB) - guarantees this amount of physical RAM</span><br><span class="line"># Setting reservation = memory eliminates swapping and ballooning overhead</span><br><span class="line"># Trade-off: Prevents memory overcommitment, reduces VM density on host</span><br><span class="line"># Recommendation: Reserve memory for latency-sensitive workloads (databases, real-time systems)</span><br><span class="line"># sched.mem.min = &quot;8192&quot;</span><br><span class="line"></span><br><span class="line"># ========== Storage Configuration ==========</span><br><span class="line"># Enable SCSI controller 0</span><br><span class="line"># SCSI controllers manage virtual disks attached to the VM</span><br><span class="line">scsi0.present = &quot;TRUE&quot;</span><br><span class="line"></span><br><span class="line"># SCSI controller type: pvscsi (VMware Paravirtual SCSI)</span><br><span class="line"># Performance comparison:</span><br><span class="line"># - lsilogic (default): ~80,000 IOPS, high CPU overhead, broad compatibility</span><br><span class="line"># - pvscsi: ~300,000+ IOPS, 30-50% lower CPU overhead, requires VMware Tools</span><br><span class="line"># Why pvscsi wins: Bypasses hardware emulation, uses optimized driver path</span><br><span class="line"># Limitation: Not available during OS installation (use lsilogic first, then change)</span><br><span class="line"># Requirement: VMware Tools must be installed for pvscsi driver</span><br><span class="line"># Use case: All production VMs, especially databases and high I/O workloads</span><br><span class="line">scsi0.virtualDev = &quot;pvscsi&quot;</span><br><span class="line"></span><br><span class="line"># Virtual disk 0 on SCSI controller 0</span><br><span class="line"># This is the primary boot disk for the VM</span><br><span class="line">scsi0:0.fileName = &quot;Ubuntu-Server-22.04.vmdk&quot;</span><br><span class="line">scsi0:0.present = &quot;TRUE&quot;</span><br><span class="line"></span><br><span class="line"># Disk mode (persistent = changes are immediately written to disk)</span><br><span class="line"># Options: persistent, nonpersistent (discards changes on power-off), independent</span><br><span class="line"># Production systems always use persistent mode</span><br><span class="line"># scsi0:0.mode = &quot;persistent&quot;</span><br><span class="line"></span><br><span class="line"># ========== Network Configuration ==========</span><br><span class="line"># Enable network adapter 0</span><br><span class="line">ethernet0.present = &quot;TRUE&quot;</span><br><span class="line"></span><br><span class="line"># Network adapter type: vmxnet3 (VMware Paravirtualized NIC)</span><br><span class="line"># Performance comparison:</span><br><span class="line"># - e1000 (default): ~1 Gbps, high CPU overhead, broad compatibility</span><br><span class="line"># - vmxnet3: ~9.5 Gbps (on 10 Gbps link), 70-80% lower CPU overhead</span><br><span class="line"># Why vmxnet3 wins: Paravirtualized driver eliminates hardware emulation overhead</span><br><span class="line"># Requirement: VMware Tools must be installed for vmxnet3 driver</span><br><span class="line"># Limitation: Not available during OS installation (use e1000 first, then change)</span><br><span class="line"># Use case: All production VMs, especially web servers and network-intensive workloads</span><br><span class="line">ethernet0.virtualDev = &quot;vmxnet3&quot;</span><br><span class="line"></span><br><span class="line"># Port group/network name (must match vSwitch port group in vSphere)</span><br><span class="line"># &quot;VM Network&quot; is the default standard switch port group</span><br><span class="line"># For production: Use distributed vSwitch (dvSwitch) for advanced features</span><br><span class="line">ethernet0.networkName = &quot;VM Network&quot;</span><br><span class="line"></span><br><span class="line"># MAC address assignment (generated = vSphere assigns unique MAC automatically)</span><br><span class="line"># Options: generated, static (manually specified), vpx (vCenter manages)</span><br><span class="line"># Recommendation: Use generated for most cases, static only for specific licensing</span><br><span class="line"># ethernet0.addressType = &quot;generated&quot;</span><br><span class="line"></span><br><span class="line"># ========== Advanced Performance Tuning ==========</span><br><span class="line"># Disable memory page sharing (transparent page sharing)</span><br><span class="line"># TPS shares identical memory pages across VMs to save RAM</span><br><span class="line"># Security concern: Potential side-channel attacks (disabled by default in vSphere 6.0+)</span><br><span class="line"># Performance: Disabling TPS may reduce VM density but improves security</span><br><span class="line"># sched.mem.pshare.enable = &quot;FALSE&quot;</span><br><span class="line"></span><br><span class="line"># Enable hypervisor-assisted guest memory swapping (vmem swapping)</span><br><span class="line"># Allows hypervisor to swap VM memory to disk when host memory is overcommitted</span><br><span class="line"># Recommendation: Disable for production (use memory reservation instead)</span><br><span class="line"># sched.swap.derivedName = &quot;/vmfs/volumes/datastore1/Ubuntu-Server-22.04/Ubuntu-Server-22.04.vswp&quot;</span><br><span class="line"></span><br><span class="line"># CPU affinity (pin vCPUs to specific physical CPUs)</span><br><span class="line"># Use only for special cases (NUMA optimization, CPU isolation)</span><br><span class="line"># Warning: Reduces vMotion flexibility and load balancing</span><br><span class="line"># sched.cpu.affinity = &quot;0,1,2,3&quot;</span><br><span class="line"></span><br><span class="line"># ========== Monitoring and Logging ==========</span><br><span class="line"># Enable VMware Tools heartbeat monitoring</span><br><span class="line"># Allows vSphere to detect guest OS health and automate recovery</span><br><span class="line"># tools.syncTime = &quot;TRUE&quot;</span><br><span class="line"></span><br><span class="line"># Disable logging (reduces disk I/O overhead)</span><br><span class="line"># For production: Enable logging only for troubleshooting</span><br><span class="line"># logging = &quot;FALSE&quot;</span><br></pre></td></tr></table></figure>
+<p><strong>In-Depth Analysis</strong>:</p>
+<p><strong>Key Points Explained</strong>:</p>
+<ol type="1">
+<li><strong>PVSCSI vs LSI Logic Performance</strong>: The PVSCSI
+controller is VMware's paravirtualized SCSI adapter that dramatically
+outperforms the default LSI Logic controller:
+<ul>
+<li><strong>IOPS</strong>: PVSCSI delivers 300,000+ IOPS vs LSI Logic's
+80,000-100,000 IOPS (3-4x improvement)</li>
+<li><strong>CPU Overhead</strong>: PVSCSI reduces CPU overhead by 30-50%
+compared to LSI Logic, freeing up CPU for application workloads</li>
+<li><strong>Latency</strong>: PVSCSI reduces average I/O latency from
+~10ms to ~2-3ms (emulation overhead eliminated)</li>
+<li><strong>How it works</strong>: PVSCSI bypasses hardware emulation by
+using a paravirtualized driver that communicates directly with the
+hypervisor, eliminating the binary translation overhead of full
+virtualization.</li>
+<li><strong>Limitation</strong>: PVSCSI requires VMware Tools to be
+installed in the guest OS. During OS installation, you must use LSI
+Logic or BusLogic, then change to PVSCSI after installation.</li>
+</ul></li>
+<li><strong>VMXNET3 Network Performance</strong>: VMXNET3 is VMware's
+paravirtualized network adapter that eliminates the performance
+bottleneck of emulated NICs:
+<ul>
+<li><strong>Throughput</strong>: VMXNET3 achieves 9.5Gbps on 10Gbps
+links vs E1000's ~1Gbps (10x improvement)</li>
+<li><strong>CPU Overhead</strong>: VMXNET3 reduces CPU overhead by
+70-80% compared to E1000, crucial for network-intensive workloads</li>
+<li><strong>Latency</strong>: VMXNET3 reduces network latency from
+~200μs to ~50μs</li>
+<li><strong>Features</strong>: Supports jumbo frames (MTU 9000), TCP/UDP
+checksum offload, TSO/LRO, multiple TX/RX queues</li>
+<li><strong>Limitation</strong>: Like PVSCSI, VMXNET3 requires VMware
+Tools. During OS installation, use E1000 or E1000E, then switch to
+VMXNET3.</li>
+</ul></li>
+<li><strong>CPU Topology and NUMA Optimization</strong>: CPU topology
+(sockets, cores per socket) significantly impacts performance,
+especially for VMs with &gt; 8 vCPUs:
+<ul>
+<li><strong>NUMA Architecture</strong>: Modern servers have NUMA
+(Non-Uniform Memory Access) architecture where each CPU socket has local
+memory. Accessing remote memory (on another socket) is 2-3x slower.</li>
+<li><strong>Topology Impact</strong>: If you configure a 16-vCPU VM as 1
+socket × 16 cores, but the physical host has 2 sockets × 8 cores, the VM
+will span NUMA nodes, causing remote memory access and performance
+degradation.</li>
+<li><strong>Best Practice</strong>: Match the VM's CPU topology to the
+physical host's topology. For a 2-socket host with 8 cores per socket,
+configure VMs as multiples of the physical topology (e.g., 4 vCPUs = 1
+socket × 4 cores, 16 vCPUs = 2 sockets × 8 cores).</li>
+<li><strong>Checking NUMA</strong>: Use <code>esxtop</code> (press 'm'
+for memory, then 'n' for NUMA) to check NUMA statistics. High "Remote
+Memory %" indicates NUMA misalignment.</li>
+</ul></li>
+<li><strong>Virtual Hardware Version</strong>: The virtualHW.version
+parameter determines which features and performance enhancements are
+available:
+<ul>
+<li><strong>Version 19</strong> (vSphere 7.0 U2+): NVMe storage,
+Precision Time Protocol, improved vMotion</li>
+<li><strong>Version 14</strong> (vSphere 6.5/6.7): Up to 128 vCPUs, 6TB
+RAM</li>
+<li><strong>Version 10</strong> (vSphere 5.5/6.0): Up to 64 vCPUs, 4TB
+RAM</li>
+<li><strong>Upgrade Consideration</strong>: Upgrading hardware version
+requires VM power-off and may invalidate snapshots. Test thoroughly
+before upgrading production VMs.</li>
+</ul></li>
+</ol>
+<p><strong>Design Trade-offs</strong>:</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 13%">
+<col style="width: 20%">
+<col style="width: 25%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Option</th>
+<th>Advantages</th>
+<th>Disadvantages</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SCSI Controller</td>
+<td>LSI Logic</td>
+<td>Broad compatibility, no VMware Tools needed</td>
+<td>Low IOPS (~80K), high CPU overhead</td>
+<td>OS installation, legacy systems</td>
+</tr>
+<tr>
+<td></td>
+<td>PVSCSI</td>
+<td>High IOPS (300K+), low CPU overhead</td>
+<td>Requires VMware Tools, not for OS install</td>
+<td>Production VMs, databases</td>
+</tr>
+<tr>
+<td>Network Adapter</td>
+<td>E1000</td>
+<td>Universal compatibility</td>
+<td>Limited to ~1Gbps, high CPU overhead</td>
+<td>OS installation, legacy systems</td>
+</tr>
+<tr>
+<td></td>
+<td>VMXNET3</td>
+<td>Near line-rate (9.5Gbps), low CPU overhead</td>
+<td>Requires VMware Tools</td>
+<td>Production VMs, web servers</td>
+</tr>
+<tr>
+<td>CPU Topology</td>
+<td>Single Socket</td>
+<td>Simplifies licensing (per-socket)</td>
+<td>May cause NUMA penalties</td>
+<td>Small VMs (≤ 8 vCPU)</td>
+</tr>
+<tr>
+<td></td>
+<td>Multi-Socket</td>
+<td>NUMA-aware, better scalability</td>
+<td>Higher licensing costs</td>
+<td>Large VMs (&gt; 8 vCPU)</td>
+</tr>
+<tr>
+<td>Memory Reservation</td>
+<td>No Reservation</td>
+<td>Allows memory overcommitment</td>
+<td>Risk of swapping/ballooning</td>
+<td>Non-critical VMs</td>
+</tr>
+<tr>
+<td></td>
+<td>Full Reservation</td>
+<td>Guaranteed performance</td>
+<td>Reduces VM density</td>
+<td>Databases, latency-sensitive apps</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Common Issues and Solutions</strong>:</p>
+<table>
+<colgroup>
+<col style="width: 29%">
+<col style="width: 29%">
+<col style="width: 41%">
+</colgroup>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Poor disk performance after changing to PVSCSI</td>
+<td>VMware Tools not installed or outdated</td>
+<td>Install/update VMware Tools, verify driver is loaded
+(<code>lsmod | grep vmw_pvscsi</code>)</td>
+</tr>
+<tr>
+<td>Network drops to 1Gbps after changing to VMXNET3</td>
+<td>VMware Tools missing vmxnet3 driver</td>
+<td>Install VMware Tools, verify driver
+(<code>ethtool -i eth0</code>)</td>
+</tr>
+<tr>
+<td>VM fails to boot after changing to PVSCSI</td>
+<td>OS doesn't have PVSCSI driver in initramfs</td>
+<td>Boot from rescue disk, rebuild initramfs to include PVSCSI
+driver</td>
+</tr>
+<tr>
+<td>High CPU Ready time (&gt; 5%)</td>
+<td>vCPU overcommitment (too many vCPUs vs pCPUs)</td>
+<td>Reduce vCPU count or migrate VMs to less loaded host</td>
+</tr>
+<tr>
+<td>Inconsistent performance</td>
+<td>NUMA misalignment (remote memory access)</td>
+<td>Adjust CPU topology to match physical host, enable NUMA
+affinity</td>
+</tr>
+<tr>
+<td>VM cannot power on (hardware version too new)</td>
+<td>ESXi host version too old</td>
+<td>Downgrade VM hardware version or upgrade ESXi host</td>
+</tr>
+<tr>
+<td>Poor performance despite PVSCSI/VMXNET3</td>
+<td>Virtual hardware version too old (&lt; 10)</td>
+<td>Upgrade VM hardware version (requires power-off)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Production Best Practices</strong>:</p>
+<ol type="1">
+<li><p><strong>Standardize Configuration Templates</strong>: Create VM
+templates with optimized settings (PVSCSI, VMXNET3, correct hardware
+version) to ensure consistency across your environment. Use vSphere
+Content Library to share templates across data centers.</p></li>
+<li><p><strong>Post-Deployment Checklist</strong>:
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Verify PVSCSI driver is loaded (Linux)</span></span><br><span class="line">lsmod | grep vmw_pvscsi</span><br><span class="line"></span><br><span class="line"><span class="comment"># Verify VMXNET3 driver is loaded</span></span><br><span class="line">ethtool -i eth0  <span class="comment"># Should show &quot;vmxnet3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Check for high CPU Ready time (vSphere)</span></span><br><span class="line"><span class="comment"># CPU Ready &gt; 5% indicates CPU contention</span></span><br><span class="line">esxtop  <span class="comment"># Press &#x27;c&#x27; for CPU view, check &#x27;%RDY&#x27; column</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Verify NUMA alignment</span></span><br><span class="line">esxtop  <span class="comment"># Press &#x27;m&#x27;, then &#x27;n&#x27; for NUMA stats</span></span><br><span class="line"><span class="comment"># Look for low &quot;Remote Memory %&quot; (&lt; 10%)</span></span><br></pre></td></tr></table></figure></p></li>
+<li><p><strong>Monitoring</strong>:</p>
+<ul>
+<li><strong>Disk IOPS</strong>: Monitor <code>esxtop</code> (press 'd'
+for disk view) to verify PVSCSI delivers expected IOPS (&gt; 100K for
+NVMe)</li>
+<li><strong>Network Throughput</strong>: Use <code>iperf3</code> to
+verify VMXNET3 achieves near line-rate (9Gbps+ on 10Gbps)</li>
+<li><strong>CPU Ready Time</strong>: Alert if CPU Ready &gt; 5%
+(indicates CPU overcommitment)</li>
+<li><strong>Memory Ballooning</strong>: Alert if ballooning &gt; 100MB
+(indicates memory overcommitment)</li>
+</ul></li>
+<li><p><strong>Upgrade Strategy</strong>:</p>
+<ul>
+<li>Test hardware version upgrades in dev/test environment first</li>
+<li>Schedule upgrades during maintenance windows (requires VM
+reboot)</li>
+<li>Take VM snapshot before upgrading (allows rollback)</li>
+<li>Verify application functionality after upgrade</li>
+</ul></li>
+<li><p><strong>Security Considerations</strong>:</p>
+<ul>
+<li>Disable TPS (Transparent Page Sharing) to prevent side-channel
+attacks: <code>sched.mem.pshare.enable = "FALSE"</code></li>
+<li>Enable Secure Boot for VMs running trusted operating systems
+(requires hardware version 13+)</li>
+<li>Use encrypted vMotion for VMs with sensitive data</li>
+<li>Regularly update VMware Tools to patch vulnerabilities</li>
+</ul></li>
+</ol>
 <p><strong>Best Practices:</strong></p>
 <ul>
 <li>Use VMXNET3 network adapters for better performance</li>
@@ -1150,13 +1436,13 @@ successful virtualization deployments.</p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/cloud-computing-storage-distributed-systems/"
+                           href="/en/cloud-computing-cloud-native-containers/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Cloud Computing (3): Storage Systems and Distributed Architecture</span>
+                                <span class="post-nav-title-item">Cloud Computing (4): Cloud-Native and Container Technologies</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -1387,8 +1673,9 @@ Virtualization Fundamentals</span></a><ol class="nav-child"><li class="nav-item 
 Virtualization Technologies</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#full-virtualization"><span class="nav-number">2.1.</span> <span class="nav-text">Full Virtualization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#para-virtualization"><span class="nav-number">2.2.</span> <span class="nav-text">Para-virtualization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hardware-assisted-virtualization"><span class="nav-number">2.3.</span> <span class="nav-text">Hardware-Assisted
 Virtualization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#operating-system-level-virtualization-containers"><span class="nav-number">2.4.</span> <span class="nav-text">Operating
 System-Level Virtualization (Containers)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#comparison-matrix"><span class="nav-number">2.5.</span> <span class="nav-text">Comparison Matrix</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#server-virtualization-hands-on-implementation"><span class="nav-number">3.</span> <span class="nav-text">Server
-Virtualization: Hands-On Implementation</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#vmware-vsphereesxi"><span class="nav-number">3.1.</span> <span class="nav-text">VMware vSphere&#x2F;ESXi</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kvm-kernel-based-virtual-machine"><span class="nav-number">3.2.</span> <span class="nav-text">KVM (Kernel-based Virtual
-Machine)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xen-hypervisor"><span class="nav-number">3.3.</span> <span class="nav-text">Xen Hypervisor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#microsoft-hyper-v"><span class="nav-number">3.4.</span> <span class="nav-text">Microsoft Hyper-V</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#storage-virtualization-deep-dive"><span class="nav-number">4.</span> <span class="nav-text">Storage Virtualization Deep
+Virtualization: Hands-On Implementation</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#vmware-vsphereesxi"><span class="nav-number">3.1.</span> <span class="nav-text">VMware vSphere&#x2F;ESXi</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#vmware-vmx-configuration-enterprise-grade-performance-tuning"><span class="nav-number">3.2.</span> <span class="nav-text">VMware
+VMX Configuration: Enterprise-Grade Performance Tuning</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kvm-kernel-based-virtual-machine"><span class="nav-number">3.3.</span> <span class="nav-text">KVM (Kernel-based Virtual
+Machine)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xen-hypervisor"><span class="nav-number">3.4.</span> <span class="nav-text">Xen Hypervisor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#microsoft-hyper-v"><span class="nav-number">3.5.</span> <span class="nav-text">Microsoft Hyper-V</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#storage-virtualization-deep-dive"><span class="nav-number">4.</span> <span class="nav-text">Storage Virtualization Deep
 Dive</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#storage-virtualization-concepts"><span class="nav-number">4.1.</span> <span class="nav-text">Storage Virtualization
 Concepts</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lvm-implementation"><span class="nav-number">4.2.</span> <span class="nav-text">LVM Implementation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#zfs-storage-pools"><span class="nav-number">4.3.</span> <span class="nav-text">ZFS Storage Pools</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#storage-performance-optimization"><span class="nav-number">4.4.</span> <span class="nav-text">Storage Performance
 Optimization</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#network-virtualization"><span class="nav-number">5.</span> <span class="nav-text">Network Virtualization</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#vlan-virtual-lan"><span class="nav-number">5.1.</span> <span class="nav-text">VLAN (Virtual LAN)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#vxlan-virtual-extensible-lan"><span class="nav-number">5.2.</span> <span class="nav-text">VXLAN (Virtual eXtensible

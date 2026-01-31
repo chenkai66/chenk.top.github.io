@@ -366,12 +366,12 @@ mjx-container[display="true"] + br {
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>4.6k 字</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>5.2k 字</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>22 分钟</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>23 分钟</span>
         </span>
     
     
@@ -387,37 +387,56 @@ mjx-container[display="true"] + br {
         
 
         <div class="article-content markdown-body">
-            <p>随着大语言模型能力的不断提升，NLP 领域正在经历前所未有的变革。从
-Agent 与工具使用（Function
-Calling、ReAct），到代码生成与理解（CodeLlama、StarCoder），再到长上下文建模（LongLoRA、LongLLaMA），这些前沿技术正在重新定义
-AI 的能力边界。</p>
-<p>然而，随着模型能力的增强，幻觉问题、安全性与对齐等挑战也日益凸显。如何评估模型性能、如何构建完整的
-NLP 项目部署系统，成为实际应用中的关键问题。从 FastAPI 服务部署到 Docker
-容器化，从监控系统到性能优化，生产级 NLP
-应用需要综合考虑技术、工程和业务等多个维度。</p>
-<p>本文将深入探讨 NLP 领域的前沿技术，包括 Agent
-与工具使用、代码生成、长上下文建模、幻觉缓解、安全性与对齐、模型评估体系，并通过完整的实战案例展示如何构建和部署生产级
-NLP 应用系统。</p>
+            <p>大语言模型的能力边界正在快速扩展：从简单的文本生成到复杂的工具调用，从代码补全到长文档理解，从单轮对话到多轮推理。这些能力背后是
+Agent 架构、代码专用模型、长上下文技术等前沿研究的突破。</p>
+<p>但能力提升也带来了新挑战。模型会"编造"看似合理但实际不存在的信息（幻觉问题），可能生成有害内容（安全性问题），需要与人类价值观对齐（对齐问题）。更重要的是，如何将这些技术落地到生产环境？如何设计可扩展的架构？如何监控和优化性能？</p>
+<p>本文深入解析 NLP 领域的前沿技术：从 Function Calling 和 ReAct 的
+Agent 架构设计，到 CodeLlama 和 StarCoder 的代码生成原理，从 LongLoRA 和
+LongLLaMA
+的长上下文实现，到幻觉缓解和安全对齐的技术方案。更重要的是，本文提供了完整的生产级部署方案：从
+FastAPI 服务设计到 Docker
+容器化，从监控系统到性能优化，每个环节都配有可运行的代码和最佳实践。</p>
 <span id="more"></span>
 <h2 id="agent-与工具使用">Agent 与工具使用</h2>
 <h3 id="function-calling让-llm-调用外部工具">Function Calling：让 LLM
 调用外部工具</h3>
-<p>Function Calling 允许大语言模型调用外部函数和
-API，实现与外部系统的交互。</p>
+<p>Function Calling 是 OpenAI 在 GPT-4
+中引入的功能，允许模型在生成文本的过程中调用外部函数和 API。这使得 LLM
+能够突破纯文本的限制，与外部系统（如数据库、API、工具）进行交互，实现更强大的功能。</p>
 <p><strong>核心概念</strong>：</p>
-<p>模型接收函数定义和用户查询，决定是否需要调用函数，并生成符合函数签名的参数。</p>
+<p>Function Calling 的工作流程分为三个步骤：</p>
+<ol type="1">
+<li><p><strong>函数定义</strong>：开发者定义可用的函数及其参数，包括函数名、描述、参数类型和约束。这些定义以
+JSON Schema 格式提供给模型。</p></li>
+<li><p><strong>函数决策</strong>：模型根据用户查询和函数定义，决定是否需要调用函数。如果需要，模型会生成符合函数签名的参数（JSON
+格式）。</p></li>
+<li><p><strong>函数执行与结果整合</strong>：系统执行函数调用，将结果返回给模型，模型基于函数结果生成最终回答。</p></li>
+</ol>
+<p><strong>为什么有效</strong>：</p>
+<p>Function Calling
+的优势在于它将"理解"和"执行"分离：模型负责理解用户意图并生成正确的参数，外部系统负责执行具体操作。这种设计既保证了安全性（函数执行在受控环境中），又提供了灵活性（可以轻松添加新函数）。</p>
 <p><strong>实现示例</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">from</span> openai <span class="keyword">import</span> OpenAI</span><br><span class="line"></span><br><span class="line">client = OpenAI()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义可用函数</span></span><br><span class="line">functions = [</span><br><span class="line">    {</span><br><span class="line">        <span class="string">"name"</span>: <span class="string">"get_weather"</span>,</span><br><span class="line">        <span class="string">"description"</span>: <span class="string">"获取指定城市的天气信息"</span>,</span><br><span class="line">        <span class="string">"parameters"</span>: {</span><br><span class="line">            <span class="string">"type"</span>: <span class="string">"object"</span>,</span><br><span class="line">            <span class="string">"properties"</span>: {</span><br><span class="line">                <span class="string">"location"</span>: {</span><br><span class="line">                    <span class="string">"type"</span>: <span class="string">"string"</span>,</span><br><span class="line">                    <span class="string">"description"</span>: <span class="string">"城市名称，例如：北京、上海"</span></span><br><span class="line">                },</span><br><span class="line">                <span class="string">"unit"</span>: {</span><br><span class="line">                    <span class="string">"type"</span>: <span class="string">"string"</span>,</span><br><span class="line">                    <span class="string">"enum"</span>: [<span class="string">"celsius"</span>, <span class="string">"fahrenheit"</span>],</span><br><span class="line">                    <span class="string">"description"</span>: <span class="string">"温度单位"</span></span><br><span class="line">                }</span><br><span class="line">            },</span><br><span class="line">            <span class="string">"required"</span>: [<span class="string">"location"</span>]</span><br><span class="line">        }</span><br><span class="line">    },</span><br><span class="line">    {</span><br><span class="line">        <span class="string">"name"</span>: <span class="string">"send_email"</span>,</span><br><span class="line">        <span class="string">"description"</span>: <span class="string">"发送电子邮件"</span>,</span><br><span class="line">        <span class="string">"parameters"</span>: {</span><br><span class="line">            <span class="string">"type"</span>: <span class="string">"object"</span>,</span><br><span class="line">            <span class="string">"properties"</span>: {</span><br><span class="line">                <span class="string">"to"</span>: {<span class="string">"type"</span>: <span class="string">"string"</span>, <span class="string">"description"</span>: <span class="string">"收件人邮箱"</span>},</span><br><span class="line">                <span class="string">"subject"</span>: {<span class="string">"type"</span>: <span class="string">"string"</span>, <span class="string">"description"</span>: <span class="string">"邮件主题"</span>},</span><br><span class="line">                <span class="string">"body"</span>: {<span class="string">"type"</span>: <span class="string">"string"</span>, <span class="string">"description"</span>: <span class="string">"邮件内容"</span>}</span><br><span class="line">            },</span><br><span class="line">            <span class="string">"required"</span>: [<span class="string">"to"</span>, <span class="string">"subject"</span>, <span class="string">"body"</span>]</span><br><span class="line">        }</span><br><span class="line">    }</span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_weather</span>(<span class="params">location, unit=<span class="string">"celsius"</span></span>):</span><br><span class="line">    <span class="string">"""模拟天气查询函数"""</span></span><br><span class="line">    <span class="comment"># 实际应用中调用真实天气 API</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">f"<span class="subst">{location}</span>的天气：25度<span class="subst">{unit}</span>，晴天"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">send_email</span>(<span class="params">to, subject, body</span>):</span><br><span class="line">    <span class="string">"""模拟邮件发送函数"""</span></span><br><span class="line">    <span class="comment"># 实际应用中调用邮件服务</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">f"邮件已发送至 <span class="subst">{to}</span>"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">chat_with_functions</span>(<span class="params">user_message</span>):</span><br><span class="line">    <span class="string">"""使用 Function Calling 进行对话"""</span></span><br><span class="line">    response = client.chat.completions.create(</span><br><span class="line">        model=<span class="string">"gpt-4"</span>,</span><br><span class="line">        messages=[{<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: user_message}],</span><br><span class="line">        functions=functions,</span><br><span class="line">        function_call=<span class="string">"auto"</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    message = response.choices[<span class="number">0</span>].message</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 检查是否需要调用函数</span></span><br><span class="line">    <span class="keyword">if</span> message.function_call:</span><br><span class="line">        function_name = message.function_call.name</span><br><span class="line">        function_args = json.loads(message.function_call.arguments)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 调用对应函数</span></span><br><span class="line">        <span class="keyword">if</span> function_name == <span class="string">"get_weather"</span>:</span><br><span class="line">            result = get_weather(**function_args)</span><br><span class="line">        <span class="keyword">elif</span> function_name == <span class="string">"send_email"</span>:</span><br><span class="line">            result = send_email(**function_args)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            result = <span class="string">"未知函数"</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 将函数结果返回给模型</span></span><br><span class="line">        second_response = client.chat.completions.create(</span><br><span class="line">            model=<span class="string">"gpt-4"</span>,</span><br><span class="line">            messages=[</span><br><span class="line">                {<span class="string">"role"</span>: <span class="string">"user"</span>, <span class="string">"content"</span>: user_message},</span><br><span class="line">                message,</span><br><span class="line">                {</span><br><span class="line">                    <span class="string">"role"</span>: <span class="string">"function"</span>,</span><br><span class="line">                    <span class="string">"name"</span>: function_name,</span><br><span class="line">                    <span class="string">"content"</span>: result</span><br><span class="line">                }</span><br><span class="line">            ],</span><br><span class="line">            functions=functions</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> second_response.choices[<span class="number">0</span>].message.content</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> message.content</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用示例</span></span><br><span class="line">response = chat_with_functions(<span class="string">"北京今天天气怎么样？"</span>)</span><br><span class="line"><span class="built_in">print</span>(response)</span><br></pre></td></tr></table></figure>
 <h3 id="react推理与行动结合">ReAct：推理与行动结合</h3>
-<p>ReAct（Reasoning +
-Acting）框架让模型能够进行推理并执行行动，通过循环迭代完成任务。</p>
-<p><strong>ReAct 循环</strong>：</p>
+<p>ReAct（Reasoning + Acting）是 Google Research
+提出的框架，它将推理和行动交织在一起，让模型能够通过迭代的"思考-行动-观察"循环完成复杂任务。与
+Function Calling 的静态工具调用不同，ReAct
+允许模型动态规划步骤，根据中间结果调整策略。</p>
+<p><strong>ReAct 循环详解</strong>：</p>
+<p>ReAct 的核心是一个迭代循环，每次迭代包含三个步骤：</p>
 <ol type="1">
-<li><strong>思考（Thought）</strong>：分析当前状态和需要执行的操作</li>
-<li><strong>行动（Action）</strong>：调用工具或执行操作</li>
-<li><strong>观察（Observation）</strong>：获取行动结果</li>
-<li>重复直到完成任务</li>
+<li><p><strong>思考（Thought）</strong>：模型分析当前状态、任务目标、可用工具，决定下一步应该执行什么操作。思考过程是显式的，以文本形式输出，这使得推理过程可解释。</p></li>
+<li><p><strong>行动（Action）</strong>：模型根据思考结果，选择要调用的工具并生成参数。行动格式通常是
+<code>Action: [tool_name](parameters)</code>。</p></li>
+<li><p><strong>观察（Observation）</strong>：系统执行行动并返回结果，模型观察结果并更新内部状态。观察结果会被添加到上下文中，供下一轮思考使用。</p></li>
+<li><p><strong>迭代</strong>：重复上述过程，直到模型输出
+<code>Final Answer</code> 或达到最大迭代次数。</p></li>
 </ol>
+<p><strong>为什么有效</strong>：</p>
+<p>ReAct
+的优势在于它将推理过程显式化，让模型能够"看到"自己的思考过程。这使得模型能够：
+- 根据中间结果调整策略 - 处理需要多步推理的复杂任务 -
+从错误中学习（通过观察失败的行动结果） - 提供可解释的推理路径</p>
 <p><strong>实现示例</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> initialize_agent, Tool</span><br><span class="line"><span class="keyword">from</span> langchain.llms <span class="keyword">import</span> OpenAI</span><br><span class="line"><span class="keyword">from</span> langchain <span class="keyword">import</span> SerpAPIWrapper</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ReActAgent</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self.llm = OpenAI(temperature=<span class="number">0</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 定义工具</span></span><br><span class="line">        search = SerpAPIWrapper()</span><br><span class="line">        self.tools = [</span><br><span class="line">            Tool(</span><br><span class="line">                name=<span class="string">"Search"</span>,</span><br><span class="line">                func=search.run,</span><br><span class="line">                description=<span class="string">"用于搜索最新信息，输入应该是搜索查询"</span></span><br><span class="line">            ),</span><br><span class="line">            Tool(</span><br><span class="line">                name=<span class="string">"Calculator"</span>,</span><br><span class="line">                func=self.calculator,</span><br><span class="line">                description=<span class="string">"用于执行数学计算，输入应该是数学表达式"</span></span><br><span class="line">            )</span><br><span class="line">        ]</span><br><span class="line">        </span><br><span class="line">        self.agent = initialize_agent(</span><br><span class="line">            self.tools,</span><br><span class="line">            self.llm,</span><br><span class="line">            agent=<span class="string">"react-docstore"</span>,</span><br><span class="line">            verbose=<span class="literal">True</span></span><br><span class="line">        )</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">calculator</span>(<span class="params">self, expression</span>):</span><br><span class="line">        <span class="string">"""计算器工具"""</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            result = <span class="built_in">eval</span>(expression)</span><br><span class="line">            <span class="keyword">return</span> <span class="built_in">str</span>(result)</span><br><span class="line">        <span class="keyword">except</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="string">"计算错误"</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">self, query</span>):</span><br><span class="line">        <span class="string">"""执行查询"""</span></span><br><span class="line">        <span class="keyword">return</span> self.agent.run(query)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用示例</span></span><br><span class="line">agent = ReActAgent()</span><br><span class="line">result = agent.run(<span class="string">"搜索 OpenAI 的最新模型，然后计算 2024 减去 2015 的结果"</span>)</span><br><span class="line"><span class="built_in">print</span>(result)</span><br></pre></td></tr></table></figure>
 <p><strong>自定义 ReAct 实现</strong>：</p>
@@ -637,13 +656,13 @@ Kubernetes 进行资源管理和扩缩容。</p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86%EF%BC%88%E5%8D%81%EF%BC%89%E2%80%94%E2%80%94-RAG%E4%B8%8E%E7%9F%A5%E8%AF%86%E5%A2%9E%E5%BC%BA%E7%B3%BB%E7%BB%9F/"
+                           href="/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86%EF%BC%88%E5%9B%9B%EF%BC%89%E2%80%94%E2%80%94-%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6%E4%B8%8ETransformer/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">自然语言处理（十）—— RAG与知识增强系统</span>
+                                <span class="post-nav-title-item">自然语言处理（四）—— 注意力机制与Transformer</span>
                                 <span class="post-nav-item">上一篇</span>
                             </span>
                         </a>
@@ -653,10 +672,10 @@ Kubernetes 进行资源管理和扩缩容。</p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86%EF%BC%88%E5%8D%81%E4%B8%80%EF%BC%89%E2%80%94%E2%80%94-%E5%A4%9A%E6%A8%A1%E6%80%81%E5%A4%A7%E6%A8%A1%E5%9E%8B/"
+                           href="/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86%EF%BC%88%E5%85%AD%EF%BC%89%E2%80%94%E2%80%94-GPT%E4%B8%8E%E7%94%9F%E6%88%90%E5%BC%8F%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">自然语言处理（十一）—— 多模态大模型</span>
+                                <span class="post-nav-title-item">自然语言处理（六）—— GPT与生成式语言模型</span>
                                 <span class="post-nav-item">下一篇</span>
                             </span>
                             <span class="right arrow-icon flex-center">
