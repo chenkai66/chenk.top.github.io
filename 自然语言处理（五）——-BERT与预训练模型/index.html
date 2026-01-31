@@ -633,7 +633,7 @@ token专门为分类设计 - ⚠️
 <p><strong>使用示例</strong>： <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 批量处理</span></span><br><span class="line">texts = [<span class="string">"I love this movie!"</span>, <span class="string">"This is terrible."</span>]</span><br><span class="line">inputs = tokenizer(texts, return_tensors=<span class="string">'pt'</span>, padding=<span class="literal">True</span>, truncation=<span class="literal">True</span>)</span><br><span class="line">outputs = model(**inputs)</span><br><span class="line">predictions = torch.argmax(outputs.logits, dim=-<span class="number">1</span>)</span><br><span class="line"><span class="comment"># predictions: tensor([1, 0])  # 假设1是积极，0是消极</span></span><br></pre></td></tr></table></figure></p>
 <h3 id="命名实体识别ner">命名实体识别（NER）</h3>
 <p><strong>问题背景</strong>：NER是序列标注任务，需要为每个token分配一个标签（如人名、地名、组织名等）。与分类任务不同，NER需要token级别的表示，而不是序列级表示。</p>
-<p><strong>解决思路</strong>：BERT为每个token位置都生成一个表示向量，我们可以直接在这些表示上添加分类头，为每个token预测标签。使用BIO标注体系（B-开始，I-内部，O-外部）可以处理多词实体。</p>
+<p><strong>解决思路</strong>：BERT为每个token位置都生成一个表示向量，可以直接在这些表示上添加分类头，为每个token预测标签。使用BIO标注体系（B-开始，I-内部，O-外部）可以处理多词实体。</p>
 <p><strong>设计考虑</strong>： -
 使用每个token的最终层表示，而不是<code>[CLS]</code> -
 需要处理WordPiece分词导致的子词对齐问题 -
@@ -704,7 +704,7 @@ size）可能较小。但较小的批次大小会导致梯度估计不稳定，�
 累积步数（accumulation_steps）决定了有效批次大小 = batch_size ×
 accumulation_steps - 需要将损失除以累积步数，确保梯度大小与正常批次一致
 - 只在累积完成后更新参数，避免中间更新</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 问题：如何在内存受限的情况下模拟大批次训练？</span></span><br><span class="line"><span class="comment"># 解决：使用梯度累积，多次前向传播累积梯度后再更新</span></span><br><span class="line"></span><br><span class="line">accumulation_steps = <span class="number">4</span>  <span class="comment"># 累积4个batch的梯度</span></span><br><span class="line">effective_batch_size = batch_size * accumulation_steps  <span class="comment"># 有效批次大小</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i, batch <span class="keyword">in</span> <span class="built_in">enumerate</span>(dataloader):</span><br><span class="line">    <span class="comment"># 前向传播</span></span><br><span class="line">    outputs = model(**batch)</span><br><span class="line">    <span class="comment"># 损失需要除以累积步数，确保梯度大小正确</span></span><br><span class="line">    <span class="comment"># 原因：PyTorch的backward()会累加梯度，我们需要平均梯度</span></span><br><span class="line">    loss = outputs.loss / accumulation_steps</span><br><span class="line">    loss.backward()  <span class="comment"># 梯度累积到参数的.grad属性中</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 每accumulation_steps个batch更新一次参数</span></span><br><span class="line">    <span class="keyword">if</span> (i + <span class="number">1</span>) % accumulation_steps == <span class="number">0</span>:</span><br><span class="line">        optimizer.step()      <span class="comment"># 更新参数</span></span><br><span class="line">        optimizer.zero_grad()  <span class="comment"># 清零梯度，准备下一轮累积</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 问题：如何在内存受限的情况下模拟大批次训练？</span></span><br><span class="line"><span class="comment"># 解决：使用梯度累积，多次前向传播累积梯度后再更新</span></span><br><span class="line"></span><br><span class="line">accumulation_steps = <span class="number">4</span>  <span class="comment"># 累积4个batch的梯度</span></span><br><span class="line">effective_batch_size = batch_size * accumulation_steps  <span class="comment"># 有效批次大小</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i, batch <span class="keyword">in</span> <span class="built_in">enumerate</span>(dataloader):</span><br><span class="line">    <span class="comment"># 前向传播</span></span><br><span class="line">    outputs = model(**batch)</span><br><span class="line">    <span class="comment"># 损失需要除以累积步数，确保梯度大小正确</span></span><br><span class="line">    <span class="comment"># 原因：PyTorch的backward()会累加梯度，需要平均梯度</span></span><br><span class="line">    loss = outputs.loss / accumulation_steps</span><br><span class="line">    loss.backward()  <span class="comment"># 梯度累积到参数的.grad属性中</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 每accumulation_steps个batch更新一次参数</span></span><br><span class="line">    <span class="keyword">if</span> (i + <span class="number">1</span>) % accumulation_steps == <span class="number">0</span>:</span><br><span class="line">        optimizer.step()      <span class="comment"># 更新参数</span></span><br><span class="line">        optimizer.zero_grad()  <span class="comment"># 清零梯度，准备下一轮累积</span></span><br></pre></td></tr></table></figure>
 <p><strong>关键点解读</strong>： -
 <strong>梯度累积原理</strong>：多次<code>backward()</code>会累加梯度，相当于计算了更大批次的平均梯度
 -
@@ -741,7 +741,7 @@ accumulation_steps - 需要将损失除以累积步数，确保梯度大小与�
 线性衰减简单有效，对于微调任务通常足够</p>
 <h2 id="huggingface-实战完整微调流程">HuggingFace
 实战：完整微调流程</h2>
-<p><strong>问题背景</strong>：实际应用中，我们需要一个完整的微调流程，包括数据加载、预处理、训练、评估等步骤。HuggingFace提供了<code>Trainer</code>类来简化这些流程。</p>
+<p><strong>问题背景</strong>：实际应用中，需要一个完整的微调流程，包括数据加载、预处理、训练、评估等步骤。HuggingFace提供了<code>Trainer</code>类来简化这些流程。</p>
 <p><strong>解决思路</strong>：使用HuggingFace的<code>Trainer</code>和<code>TrainingArguments</code>，可以自动处理训练循环、学习率调度、模型保存等细节。我们只需要定义数据预处理函数和训练参数即可。</p>
 <p><strong>设计考虑</strong>： -
 使用<code>DataCollatorWithPadding</code>动态padding，节省内存 -
@@ -896,13 +896,13 @@ BERT</strong>：为每种语言训练专门的模型，性能更好但需要更�
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86%EF%BC%88%E4%B9%9D%EF%BC%89%E2%80%94%E2%80%94-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/"
+                           href="/%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86%EF%BC%88%E4%BA%8C%EF%BC%89%E2%80%94%E2%80%94-%E8%AF%8D%E5%90%91%E9%87%8F%E4%B8%8E%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">自然语言处理（九）—— 大语言模型架构深度解析</span>
+                                <span class="post-nav-title-item">自然语言处理（二）—— 词向量与语言模型</span>
                                 <span class="post-nav-item">上一篇</span>
                             </span>
                         </a>

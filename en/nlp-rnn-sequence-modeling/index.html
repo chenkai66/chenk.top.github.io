@@ -750,9 +750,9 @@ run in parallel, capturing different relationships.</li>
 </ul>
 <h2 id="pytorch-implementation-text-generation">PyTorch Implementation:
 Text Generation</h2>
-<p>Let's implement a character-level RNN for text generation using
-PyTorch. The model learns to predict the next character given a sequence
-of previous characters.</p>
+<p>implement a character-level RNN for text generation using PyTorch.
+The model learns to predict the next character given a sequence of
+previous characters.</p>
 <h3 id="dataset-preparation">Dataset Preparation</h3>
 <p>We'll use a simple text dataset. For demonstration, we'll train on a
 small corpus and generate text.</p>
@@ -774,8 +774,8 @@ simple grammar. For longer texts and more layers, the model can generate
 surprisingly coherent passages.</p>
 <h2 id="pytorch-implementation-simple-translation">PyTorch
 Implementation: Simple Translation</h2>
-<p>Let's implement a basic Seq2Seq model for English-to-French
-translation using LSTM encoder and decoder.</p>
+<p>implement a basic Seq2Seq model for English-to-French translation
+using LSTM encoder and decoder.</p>
 <h3 id="data-preparation">Data Preparation</h3>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"><span class="keyword">import</span> torch.nn <span class="keyword">as</span> nn</span><br><span class="line"><span class="keyword">import</span> torch.optim <span class="keyword">as</span> optim</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"></span><br><span class="line"><span class="comment"># Sample parallel corpus (English -&gt; French)</span></span><br><span class="line">pairs = [</span><br><span class="line">    (<span class="string">"hello"</span>, <span class="string">"bonjour"</span>),</span><br><span class="line">    (<span class="string">"good morning"</span>, <span class="string">"bon matin"</span>),</span><br><span class="line">    (<span class="string">"thank you"</span>, <span class="string">"merci"</span>),</span><br><span class="line">    (<span class="string">"goodbye"</span>, <span class="string">"au revoir"</span>),</span><br><span class="line">    (<span class="string">"how are you"</span>, <span class="string">"comment allez vous"</span>),</span><br><span class="line">    (<span class="string">"i love you"</span>, <span class="string">"je t aime"</span>),</span><br><span class="line">    (<span class="string">"welcome"</span>, <span class="string">"bienvenue"</span>),</span><br><span class="line">    (<span class="string">"good night"</span>, <span class="string">"bonne nuit"</span>),</span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="comment"># Build vocabularies</span></span><br><span class="line">SOS_token = <span class="number">0</span>  <span class="comment"># Start of sentence</span></span><br><span class="line">EOS_token = <span class="number">1</span>  <span class="comment"># End of sentence</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Vocabulary</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, name</span>):</span><br><span class="line">        self.name = name</span><br><span class="line">        self.word2idx = {<span class="string">"&lt;SOS&gt;"</span>: SOS_token, <span class="string">"&lt;EOS&gt;"</span>: EOS_token}</span><br><span class="line">        self.idx2word = {SOS_token: <span class="string">"&lt;SOS&gt;"</span>, EOS_token: <span class="string">"&lt;EOS&gt;"</span>}</span><br><span class="line">        self.word2count = {}</span><br><span class="line">        self.n_words = <span class="number">2</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">add_sentence</span>(<span class="params">self, sentence</span>):</span><br><span class="line">        <span class="keyword">for</span> word <span class="keyword">in</span> sentence.split():</span><br><span class="line">            self.add_word(word)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">add_word</span>(<span class="params">self, word</span>):</span><br><span class="line">        <span class="keyword">if</span> word <span class="keyword">not</span> <span class="keyword">in</span> self.word2idx:</span><br><span class="line">            self.word2idx[word] = self.n_words</span><br><span class="line">            self.idx2word[self.n_words] = word</span><br><span class="line">            self.word2count[word] = <span class="number">1</span></span><br><span class="line">            self.n_words += <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            self.word2count[word] += <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create vocabularies</span></span><br><span class="line">input_vocab = Vocabulary(<span class="string">"English"</span>)</span><br><span class="line">output_vocab = Vocabulary(<span class="string">"French"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> pair <span class="keyword">in</span> pairs:</span><br><span class="line">    input_vocab.add_sentence(pair[<span class="number">0</span>])</span><br><span class="line">    output_vocab.add_sentence(pair[<span class="number">1</span>])</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f"Input vocab size: <span class="subst">{input_vocab.n_words}</span>"</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f"Output vocab size: <span class="subst">{output_vocab.n_words}</span>"</span>)</span><br></pre></td></tr></table></figure>
 <h3 id="encoder-1">Encoder</h3>
@@ -953,13 +953,13 @@ and intuitive framework for sequence modeling.</p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/nlp-bert-pretrained-models/"
+                           href="/en/nlp-attention-transformer/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">NLP (5): BERT and Pretrained Models</span>
+                                <span class="post-nav-title-item">NLP (4): Attention Mechanism and Transformer</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -969,10 +969,10 @@ and intuitive framework for sequence modeling.</p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/nlp-frontiers-applications/"
+                           href="/en/nlp-bert-pretrained-models/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">NLP (12): Frontiers and Practical Applications</span>
+                                <span class="post-nav-title-item">NLP (5): BERT and Pretrained Models</span>
                                 <span class="post-nav-item">Next posts</span>
                             </span>
                             <span class="right arrow-icon flex-center">
