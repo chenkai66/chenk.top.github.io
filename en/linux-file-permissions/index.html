@@ -260,23 +260,48 @@
         
 
         <div class="article-content markdown-body">
-            <p>File permissions are “basic” in Linux, but they are also one of the most common causes of production incidents: a service won’t start, a deploy script can’t execute, a web app returns 403, or a shared directory becomes a security hole because permissions were made too broad. To use permissions correctly, you need more than memorizing <code>chmod 755</code>—you need to understand how <strong>permission bits have completely different semantics on files vs directories</strong> (r/w/x mean different things for directories), the boundaries between owner/group/others, and why mechanisms like <code>umask</code>, SUID/SGID, and the sticky bit exist and when they should be used. This post starts from the minimal concept set, systematically explains rwx semantics, numeric/symbolic notation, typical usage and troubleshooting approaches for chmod/chown, uses common scenarios (shared directories, executable scripts, temp directories, security hardening) to explain “how to grant permissions and to what extent,” then adds extended mechanisms like ACL and <code>chattr</code> plus a practical troubleshooting checklist, enabling you to locate and correctly fix permission issues in one shot.</p>
+            <p>File permissions are "basic" in Linux, but they are also one of the
+most common causes of production incidents: a service won't start, a
+deploy script can't execute, a web app returns 403, or a shared
+directory becomes a security hole because permissions were made too
+broad. To use permissions correctly, you need more than memorizing
+<code>chmod 755</code>—you need to understand how <strong>permission
+bits have completely different semantics on files vs
+directories</strong> (r/w/x mean different things for directories), the
+boundaries between owner/group/others, and why mechanisms like
+<code>umask</code>, SUID/SGID, and the sticky bit exist and when they
+should be used. This post starts from the minimal concept set,
+systematically explains rwx semantics, numeric/symbolic notation,
+typical usage and troubleshooting approaches for chmod/chown, uses
+common scenarios (shared directories, executable scripts, temp
+directories, security hardening) to explain "how to grant permissions
+and to what extent," then adds extended mechanisms like ACL and
+<code>chattr</code> plus a practical troubleshooting checklist, enabling
+you to locate and correctly fix permission issues in one shot.</p>
 <span id="more"></span>
-<h1>Linux Permission Model: The Three-Tier Architecture of owner/group/others</h1>
-<h2 id="Basic-Concepts"><a class="header-anchor" href="#Basic-Concepts">¶</a>Basic Concepts</h2>
-<p>Linux is a multi-user system; every file/directory has three identity attributes:</p>
+<h1 id="linux-permission-model-the-three-tier-architecture-of-ownergroupothers">Linux
+Permission Model: The Three-Tier Architecture of owner/group/others</h1>
+<h2 id="basic-concepts">Basic Concepts</h2>
+<p>Linux is a multi-user system; every file/directory has three identity
+attributes:</p>
 <ul>
-<li><strong>Owner (u)</strong>: The user (UID) who created or was designated as the file/directory owner</li>
-<li><strong>Group (g)</strong>: Multiple users can belong to one group, sharing permissions within the group (GID)</li>
-<li><strong>Others (o)</strong>: Everyone who is neither the file owner nor in the file’s group</li>
+<li><strong>Owner (u)</strong>: The user (UID) who created or was
+designated as the file/directory owner</li>
+<li><strong>Group (g)</strong>: Multiple users can belong to one group,
+sharing permissions within the group (GID)</li>
+<li><strong>Others (o)</strong>: Everyone who is neither the file owner
+nor in the file's group</li>
 </ul>
 <p><strong>Why this design?</strong></p>
 <ul>
-<li><strong>Owner</strong>: The file’s “owner,” usually has highest permissions (like read/write/execute)</li>
-<li><strong>Group</strong>: Suitable for team collaboration (like dev team, ops team), members share permissions</li>
-<li><strong>Others</strong>: Prevents files from being accessed by arbitrary users (security isolation)</li>
+<li><strong>Owner</strong>: The file's "owner," usually has highest
+permissions (like read/write/execute)</li>
+<li><strong>Group</strong>: Suitable for team collaboration (like dev
+team, ops team), members share permissions</li>
+<li><strong>Others</strong>: Prevents files from being accessed by
+arbitrary users (security isolation)</li>
 </ul>
-<h2 id="Three-Permission-Bits-rwx"><a class="header-anchor" href="#Three-Permission-Bits-rwx">¶</a>Three Permission Bits (rwx)</h2>
+<h2 id="three-permission-bits-rwx">Three Permission Bits (rwx)</h2>
 <p>Each identity (u/g/o) has three permission bits:</p>
 <ul>
 <li><strong>r (read)</strong>: Read permission</li>
@@ -297,10 +322,18 @@
 <li>So <code>rwxr-xr-x</code> = <code>755</code></li>
 </ul>
 <hr>
-<h1>rwx Semantic Differences on Files vs Directories (The Most Common Pitfall)</h1>
-<p><strong>This is the most confusing point</strong>: rwx mean completely different things on files vs directories.</p>
-<h2 id="On-Files-Regular-Files"><a class="header-anchor" href="#On-Files-Regular-Files">¶</a>On Files (Regular Files)</h2>
+<h1 id="rwx-semantic-differences-on-files-vs-directories-the-most-common-pitfall">rwx
+Semantic Differences on Files vs Directories (The Most Common
+Pitfall)</h1>
+<p><strong>This is the most confusing point</strong>: rwx mean
+completely different things on files vs directories.</p>
+<h2 id="on-files-regular-files">On Files (Regular Files)</h2>
 <table>
+<colgroup>
+<col style="width: 11%">
+<col style="width: 57%">
+<col style="width: 30%">
+</colgroup>
 <thead>
 <tr>
 <th>Permission</th>
@@ -317,17 +350,23 @@
 <tr>
 <td><code>w</code></td>
 <td>Can modify file contents</td>
-<td><code>echo &quot;new&quot; &gt; file.txt</code></td>
+<td><code>echo "new" &gt; file.txt</code></td>
 </tr>
 <tr>
 <td><code>x</code></td>
-<td>Can execute file (scripts need shebang like <code>#!/bin/bash</code>)</td>
+<td>Can execute file (scripts need shebang like
+<code>#!/bin/bash</code>)</td>
 <td><code>./script.sh</code></td>
 </tr>
 </tbody>
 </table>
-<h2 id="On-Directories"><a class="header-anchor" href="#On-Directories">¶</a>On Directories</h2>
+<h2 id="on-directories">On Directories</h2>
 <table>
+<colgroup>
+<col style="width: 11%">
+<col style="width: 57%">
+<col style="width: 30%">
+</colgroup>
 <thead>
 <tr>
 <th>Permission</th>
@@ -343,30 +382,43 @@
 </tr>
 <tr>
 <td><code>w</code></td>
-<td>Can create, delete, rename files within directory (<strong>usually requires <code>x</code></strong>)</td>
+<td>Can create, delete, rename files within directory (<strong>usually
+requires <code>x</code></strong>)</td>
 <td><code>touch dir/newfile</code></td>
 </tr>
 <tr>
 <td><code>x</code></td>
-<td>Can enter directory (<code>cd</code>), access files within if you know the name</td>
+<td>Can enter directory (<code>cd</code>), access files within if you
+know the name</td>
 <td><code>cd dir</code> or <code>cat dir/file.txt</code></td>
 </tr>
 </tbody>
 </table>
 <p><strong>Real-world examples</strong>:</p>
-<h3 id="Case-1-Directory-has-r-but-not-x"><a class="header-anchor" href="#Case-1-Directory-has-r-but-not-x">¶</a>Case 1: Directory has <code>r</code> but not <code>x</code></h3>
+<h3 id="case-1-directory-has-r-but-not-x">Case 1: Directory has
+<code>r</code> but not <code>x</code></h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 644 mydir  <span class="comment"># mydir permissions become rw-r--r-- (no x)</span></span><br><span class="line"><span class="built_in">ls</span> mydir  <span class="comment"># ✅ Can list filenames</span></span><br><span class="line"><span class="built_in">cd</span> mydir  <span class="comment"># ❌ Permission denied (can&#x27;t enter)</span></span><br><span class="line"><span class="built_in">cat</span> mydir/file.txt  <span class="comment"># ❌ Permission denied (can&#x27;t access file)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Reason</strong>: Without <code>x</code>, can’t enter directory or access files within.</p>
-<h3 id="Case-2-Directory-has-x-but-not-r"><a class="header-anchor" href="#Case-2-Directory-has-x-but-not-r">¶</a>Case 2: Directory has <code>x</code> but not <code>r</code></h3>
+<p><strong>Reason</strong>: Without <code>x</code>, can't enter
+directory or access files within.</p>
+<h3 id="case-2-directory-has-x-but-not-r">Case 2: Directory has
+<code>x</code> but not <code>r</code></h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 311 mydir  <span class="comment"># mydir permissions become -wx--x--x (has x but not r)</span></span><br><span class="line"><span class="built_in">ls</span> mydir  <span class="comment"># ❌ Permission denied (can&#x27;t list filenames)</span></span><br><span class="line"><span class="built_in">cd</span> mydir  <span class="comment"># ✅ Can enter</span></span><br><span class="line"><span class="built_in">cat</span> mydir/file.txt  <span class="comment"># ✅ Can access (if you know the filename)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Reason</strong>: With <code>x</code> you can enter and access files, but without <code>r</code> you can’t list directory contents.</p>
-<h3 id="Case-3-Directory-has-w-but-not-x"><a class="header-anchor" href="#Case-3-Directory-has-w-but-not-x">¶</a>Case 3: Directory has <code>w</code> but not <code>x</code></h3>
+<p><strong>Reason</strong>: With <code>x</code> you can enter and access
+files, but without <code>r</code> you can't list directory contents.</p>
+<h3 id="case-3-directory-has-w-but-not-x">Case 3: Directory has
+<code>w</code> but not <code>x</code></h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 622 mydir  <span class="comment"># mydir permissions become rw--w--w- (has w but not x)</span></span><br><span class="line"><span class="built_in">touch</span> mydir/newfile  <span class="comment"># ❌ Permission denied (can&#x27;t create file)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Reason</strong>: Although it has <code>w</code>, without <code>x</code> you can’t enter directory, so can’t operate within.</p>
-<p><strong>Conclusion</strong>: For directories, <strong><code>x</code> is the most fundamental permission</strong> (without <code>x</code> you can’t do anything); <code>w</code> usually needs to be used with <code>x</code>.</p>
+<p><strong>Reason</strong>: Although it has <code>w</code>, without
+<code>x</code> you can't enter directory, so can't operate within.</p>
+<p><strong>Conclusion</strong>: For directories, <strong><code>x</code>
+is the most fundamental permission</strong> (without <code>x</code> you
+can't do anything); <code>w</code> usually needs to be used with
+<code>x</code>.</p>
 <hr>
-<h1>chmod: Modifying Permissions (Numeric and Symbolic Notation)</h1>
-<h2 id="Numeric-Notation-Fast-and-Common"><a class="header-anchor" href="#Numeric-Notation-Fast-and-Common">¶</a>Numeric Notation (Fast and Common)</h2>
+<h1 id="chmod-modifying-permissions-numeric-and-symbolic-notation">chmod:
+Modifying Permissions (Numeric and Symbolic Notation)</h1>
+<h2 id="numeric-notation-fast-and-common">Numeric Notation (Fast and
+Common)</h2>
 <p>Each permission bit corresponds to a number:</p>
 <ul>
 <li><code>r = 4</code></li>
@@ -381,64 +433,74 @@
 <li><code>4 = r--</code> (4)</li>
 <li><code>0 = ---</code> (no permissions)</li>
 </ul>
-<p><strong>Common examples</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 755 script.sh  <span class="comment"># owner=rwx, group=r-x, others=r-x (executable script)</span></span><br><span class="line"><span class="built_in">chmod</span> 644 file.txt  <span class="comment"># owner=rw-, group=r--, others=r-- (regular file)</span></span><br><span class="line"><span class="built_in">chmod</span> 600 secret.key  <span class="comment"># owner=rw-, group=---, others=--- (private key file)</span></span><br><span class="line"><span class="built_in">chmod</span> 777 shared  <span class="comment"># owner=rwx, group=rwx, others=rwx (fully open, not recommended)</span></span><br></pre></td></tr></table></figure>
-<h2 id="Symbolic-Notation-Safer-Suitable-for-Incremental-Changes"><a class="header-anchor" href="#Symbolic-Notation-Safer-Suitable-for-Incremental-Changes">¶</a>Symbolic Notation (Safer, Suitable for Incremental Changes)</h2>
+<p><strong>Common examples</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> 755 script.sh  <span class="comment"># owner=rwx, group=r-x, others=r-x (executable script)</span></span><br><span class="line"><span class="built_in">chmod</span> 644 file.txt  <span class="comment"># owner=rw-, group=r--, others=r-- (regular file)</span></span><br><span class="line"><span class="built_in">chmod</span> 600 secret.key  <span class="comment"># owner=rw-, group=---, others=--- (private key file)</span></span><br><span class="line"><span class="built_in">chmod</span> 777 shared  <span class="comment"># owner=rwx, group=rwx, others=rwx (fully open, not recommended)</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="symbolic-notation-safer-suitable-for-incremental-changes">Symbolic
+Notation (Safer, Suitable for Incremental Changes)</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+x script.sh  <span class="comment"># Add execute permission for owner</span></span><br><span class="line"><span class="built_in">chmod</span> g-w file.txt  <span class="comment"># Remove write permission for group</span></span><br><span class="line"><span class="built_in">chmod</span> o=r file.txt  <span class="comment"># Set others to only read permission</span></span><br><span class="line"><span class="built_in">chmod</span> a+r notes.md  <span class="comment"># Add read permission for all (a=all)</span></span><br><span class="line"><span class="built_in">chmod</span> u+rwx,g+rx,o-rwx <span class="built_in">dir</span>  <span class="comment"># Combined modification (comma-separated)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Recursive modification</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> -R 755 <span class="built_in">dir</span>  <span class="comment"># Recursively modify directory and its contents</span></span><br><span class="line"><span class="built_in">chmod</span> -R u+rwX,g+rX,o-rwx <span class="built_in">dir</span>  <span class="comment"># Capital X only adds x to directories and files that already have execute (avoids making all files executable)</span></span><br></pre></td></tr></table></figure>
+<p><strong>Recursive modification</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> -R 755 <span class="built_in">dir</span>  <span class="comment"># Recursively modify directory and its contents</span></span><br><span class="line"><span class="built_in">chmod</span> -R u+rwX,g+rX,o-rwx <span class="built_in">dir</span>  <span class="comment"># Capital X only adds x to directories and files that already have execute (avoids making all files executable)</span></span><br></pre></td></tr></table></figure></p>
 <p><strong>When to use numeric vs symbolic?</strong></p>
 <ul>
-<li><strong>Numeric</strong>: Suitable for “one-shot set to target value” (like <code>chmod 644 file</code>)</li>
-<li><strong>Symbolic</strong>: Suitable for “incremental modification” (like <code>chmod u+x script.sh</code>), safer (won’t accidentally change other permission bits)</li>
+<li><strong>Numeric</strong>: Suitable for "one-shot set to target
+value" (like <code>chmod 644 file</code>)</li>
+<li><strong>Symbolic</strong>: Suitable for "incremental modification"
+(like <code>chmod u+x script.sh</code>), safer (won't accidentally
+change other permission bits)</li>
 </ul>
 <hr>
-<h1>chown: Modifying File Ownership</h1>
+<h1 id="chown-modifying-file-ownership">chown: Modifying File
+Ownership</h1>
 <p><code>chown</code> is used to modify file owner and group.</p>
-<p><strong>Basic usage</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> newowner file  <span class="comment"># Only change owner</span></span><br><span class="line">sudo <span class="built_in">chown</span> newowner:newgroup file  <span class="comment"># Change both owner and group</span></span><br><span class="line">sudo <span class="built_in">chown</span> :newgroup file  <span class="comment"># Only change group</span></span><br><span class="line">sudo <span class="built_in">chown</span> -R user:group <span class="built_in">dir</span>  <span class="comment"># Recursively modify directory and its contents</span></span><br></pre></td></tr></table></figure>
+<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> newowner file  <span class="comment"># Only change owner</span></span><br><span class="line">sudo <span class="built_in">chown</span> newowner:newgroup file  <span class="comment"># Change both owner and group</span></span><br><span class="line">sudo <span class="built_in">chown</span> :newgroup file  <span class="comment"># Only change group</span></span><br><span class="line">sudo <span class="built_in">chown</span> -R user:group <span class="built_in">dir</span>  <span class="comment"># Recursively modify directory and its contents</span></span><br></pre></td></tr></table></figure></p>
 <p><strong>Notes</strong>:</p>
 <ul>
-<li>Only <code>root</code> or the file’s current owner can modify ownership</li>
-<li>Regular users can’t “give” files to others (prevents malicious quota abuse)</li>
+<li>Only <code>root</code> or the file's current owner can modify
+ownership</li>
+<li>Regular users can't "give" files to others (prevents malicious quota
+abuse)</li>
 </ul>
 <p><strong>Common scenarios</strong>:</p>
 <ul>
-<li>Web server directory: <code>sudo chown -R www-data:www-data /var/www/html</code></li>
-<li>Shared project directory: <code>sudo chown -R :developers /srv/project</code></li>
+<li>Web server directory:
+<code>sudo chown -R www-data:www-data /var/www/html</code></li>
+<li>Shared project directory:
+<code>sudo chown -R :developers /srv/project</code></li>
 </ul>
 <hr>
-<h1>umask: Default Permissions for New Files</h1>
-<h2 id="What-is-umask"><a class="header-anchor" href="#What-is-umask">¶</a>What is umask</h2>
-<p><code>umask</code> is the <strong>User File Creation Mask</strong>, determining default permissions for newly created files/directories.</p>
-<p><strong>Calculation method</strong>:</p>
-<ol>
-<li>
-<p><strong>Default permissions</strong> (system preset):</p>
+<h1 id="umask-default-permissions-for-new-files">umask: Default
+Permissions for New Files</h1>
+<h2 id="what-is-umask">What is umask</h2>
+<p><code>umask</code> is the <strong>User File Creation Mask</strong>,
+determining default permissions for newly created files/directories.</p>
+<p><strong>Calculation method</strong>: 1. <strong>Default
+permissions</strong> (system preset):</p>
 <ul>
-<li>Files: <code>666</code> (rw-rw-rw-, no execute permission, prevents accidental execution)</li>
-<li>Directories: <code>777</code> (rwxrwxrwx, directories need x to be enterable)</li>
+<li>Files: <code>666</code> (rw-rw-rw-, no execute permission, prevents
+accidental execution)</li>
+<li>Directories: <code>777</code> (rwxrwxrwx, directories need x to be
+enterable)</li>
 </ul>
-</li>
-<li>
-<p><strong>Actual permissions</strong> = Default permissions - umask value</p>
-</li>
+<ol start="2" type="1">
+<li><strong>Actual permissions</strong> = Default permissions - umask
+value</li>
 </ol>
 <p><strong>Example</strong> (umask = 022):</p>
 <ul>
-<li>File: <code>666 - 022 = 644</code> (rw-r–r–)</li>
+<li>File: <code>666 - 022 = 644</code> (rw-r--r--)</li>
 <li>Directory: <code>777 - 022 = 755</code> (rwxr-xr-x)</li>
 </ul>
-<h2 id="View-and-Set-umask"><a class="header-anchor" href="#View-and-Set-umask">¶</a>View and Set umask</h2>
-<p><strong>View current umask</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span>  <span class="comment"># Output: 0022 (first digit is special permission bit, usually ignored)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Temporarily set umask</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span> 027  <span class="comment"># Set to 027</span></span><br><span class="line"><span class="comment"># New files will have 640 (666-027), directories 750 (777-027)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Permanently set umask</strong> (for current user):<br>
-Edit <code>~/.bashrc</code> or <code>~/.zshrc</code>, add:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span> 027</span><br></pre></td></tr></table></figure>
+<h2 id="view-and-set-umask">View and Set umask</h2>
+<p><strong>View current umask</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span>  <span class="comment"># Output: 0022 (first digit is special permission bit, usually ignored)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Temporarily set umask</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span> 027  <span class="comment"># Set to 027</span></span><br><span class="line"><span class="comment"># New files will have 640 (666-027), directories 750 (777-027)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Permanently set umask</strong> (for current user): Edit
+<code>~/.bashrc</code> or <code>~/.zshrc</code>, add: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">umask</span> 027</span><br></pre></td></tr></table></figure></p>
 <p><strong>Common umask values</strong>:</p>
 <table>
+<colgroup>
+<col style="width: 9%">
+<col style="width: 16%">
+<col style="width: 14%">
+<col style="width: 60%">
+</colgroup>
 <thead>
 <tr>
 <th>umask</th>
@@ -458,250 +520,286 @@ Edit <code>~/.bashrc</code> or <code>~/.zshrc</code>, add:</p>
 <td>027</td>
 <td>640</td>
 <td>750</td>
-<td>Stricter (only group can access), <strong>recommended for production</strong></td>
+<td>Stricter (only group can access), <strong>recommended for
+production</strong></td>
 </tr>
 <tr>
 <td>002</td>
 <td>664</td>
 <td>775</td>
-<td>Shared environment (group can modify), <strong>development</strong></td>
+<td>Shared environment (group can modify),
+<strong>development</strong></td>
 </tr>
 <tr>
 <td>077</td>
 <td>600</td>
 <td>700</td>
-<td>Extremely strict (only owner can access), personal private files</td>
+<td>Extremely strict (only owner can access), personal private
+files</td>
 </tr>
 </tbody>
 </table>
 <hr>
-<h1>Special Permissions: SUID/SGID/Sticky Bit</h1>
-<p>These three special permission bits are for specific operational needs; understanding their principles and use cases is important.</p>
-<h2 id="SUID-Set-User-ID"><a class="header-anchor" href="#SUID-Set-User-ID">¶</a>SUID (Set User ID)</h2>
-<h3 id="Principle"><a class="header-anchor" href="#Principle">¶</a>Principle</h3>
-<p>When an executable file is given SUID permission, <strong>ordinary users executing the file run it with the file owner’s identity</strong>, not the caller’s own identity.</p>
+<h1 id="special-permissions-suidsgidsticky-bit">Special Permissions:
+SUID/SGID/Sticky Bit</h1>
+<p>These three special permission bits are for specific operational
+needs; understanding their principles and use cases is important.</p>
+<h2 id="suid-set-user-id">SUID (Set User ID)</h2>
+<h3 id="principle">Principle</h3>
+<p>When an executable file is given SUID permission, <strong>ordinary
+users executing the file run it with the file owner's identity</strong>,
+not the caller's own identity.</p>
 <p><strong>Common example</strong>: <code>/usr/bin/passwd</code></p>
 <ul>
-<li><code>ls -l /usr/bin/passwd</code> shows: <code>-rwsr-xr-x</code> root root (note owner’s x became s)</li>
-<li>When ordinary users execute <code>passwd</code>, it runs as root, allowing modification of <code>/etc/shadow</code> (only root can write)</li>
+<li><code>ls -l /usr/bin/passwd</code> shows: <code>-rwsr-xr-x</code>
+root root (note owner's x became s)</li>
+<li>When ordinary users execute <code>passwd</code>, it runs as root,
+allowing modification of <code>/etc/shadow</code> (only root can
+write)</li>
 </ul>
 <p><strong>Why is SUID needed?</strong></p>
 <ul>
-<li>Allows ordinary users to execute specific operations requiring high permissions (like changing own password)</li>
-<li>Doesn’t need to give users <code>sudo</code> privileges (more secure)</li>
+<li>Allows ordinary users to execute specific operations requiring high
+permissions (like changing own password)</li>
+<li>Doesn't need to give users <code>sudo</code> privileges (more
+secure)</li>
 </ul>
-<h3 id="View-and-Set"><a class="header-anchor" href="#View-and-Set">¶</a>View and Set</h3>
-<p><strong>View</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l file  <span class="comment"># If owner&#x27;s x position shows s (lowercase) or S (uppercase), SUID is set</span></span><br></pre></td></tr></table></figure>
+<h3 id="view-and-set">View and Set</h3>
+<p><strong>View</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l file  <span class="comment"># If owner&#x27;s x position shows s (lowercase) or S (uppercase), SUID is set</span></span><br></pre></td></tr></table></figure></p>
 <ul>
 <li><code>s</code> (lowercase): SUID and has execute permission</li>
-<li><code>S</code> (uppercase): SUID but no execute permission (usually a configuration error)</li>
+<li><code>S</code> (uppercase): SUID but no execute permission (usually
+a configuration error)</li>
 </ul>
-<p><strong>Set SUID</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+s myprog  <span class="comment"># Symbolic notation</span></span><br><span class="line"><span class="built_in">chmod</span> 4755 myprog  <span class="comment"># Numeric notation (4 means SUID, 755 is base permissions)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Remove SUID</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u-s myprog</span><br></pre></td></tr></table></figure>
-<h3 id="Hands-On-Example"><a class="header-anchor" href="#Hands-On-Example">¶</a>Hands-On Example</h3>
-<p>Suppose you have a C program <code>myprog.c</code>:</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Real UID=%d, Effective UID=%d\n&quot;</span>, getuid(), geteuid());</span><br><span class="line">    system(<span class="string">&quot;id&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>Compile and set SUID:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gcc -o myprog myprog.c</span><br><span class="line">sudo <span class="built_in">chown</span> root myprog  <span class="comment"># Change owner to root</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 4755 myprog  <span class="comment"># Set SUID + 755</span></span><br></pre></td></tr></table></figure>
-<p>Execute as ordinary user:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./myprog</span><br></pre></td></tr></table></figure>
-<p>Example output:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Real UID=1000, Effective UID=0</span><br><span class="line">uid=1000(user) gid=1000(user) euid=0(root) groups=1000(user)</span><br></pre></td></tr></table></figure>
+<p><strong>Set SUID</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u+s myprog  <span class="comment"># Symbolic notation</span></span><br><span class="line"><span class="built_in">chmod</span> 4755 myprog  <span class="comment"># Numeric notation (4 means SUID, 755 is base permissions)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Remove SUID</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> u-s myprog</span><br></pre></td></tr></table></figure></p>
+<h3 id="hands-on-example">Hands-On Example</h3>
+<p>Suppose you have a C program <code>myprog.c</code>:
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Real UID=%d, Effective UID=%d\n&quot;</span>, getuid(), geteuid());</span><br><span class="line">    system(<span class="string">&quot;id&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Compile and set SUID: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gcc -o myprog myprog.c</span><br><span class="line">sudo <span class="built_in">chown</span> root myprog  <span class="comment"># Change owner to root</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 4755 myprog  <span class="comment"># Set SUID + 755</span></span><br></pre></td></tr></table></figure></p>
+<p>Execute as ordinary user: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./myprog</span><br></pre></td></tr></table></figure></p>
+<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Real UID=1000, Effective UID=0</span><br><span class="line">uid=1000(user) gid=1000(user) euid=0(root) groups=1000(user)</span><br></pre></td></tr></table></figure></p>
 <ul>
 <li>Real UID is current user (1000)</li>
 <li>Effective UID is file owner (0=root)</li>
 <li>So program runs with root privileges</li>
 </ul>
-<h3 id="Security-Considerations-v2"><a class="header-anchor" href="#Security-Considerations-v2">¶</a>Security Considerations</h3>
+<h3 id="security-considerations">Security Considerations</h3>
 <p><strong>SUID is high-risk</strong>:</p>
 <ul>
-<li>If SUID program has vulnerabilities (like buffer overflow, command injection), attackers can gain root privileges</li>
+<li>If SUID program has vulnerabilities (like buffer overflow, command
+injection), attackers can gain root privileges</li>
 <li>Avoid setting SUID on untrusted programs</li>
 <li>Regularly audit SUID programs on system</li>
 </ul>
-<p><strong>Find all SUID programs on system</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -4000 -<span class="built_in">type</span> f 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+<p><strong>Find all SUID programs on system</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -perm -4000 -<span class="built_in">type</span> f 2&gt;/dev/null</span><br></pre></td></tr></table></figure></p>
 <p><strong>Common SUID programs</strong> (these are reasonable):</p>
 <ul>
 <li><code>/usr/bin/passwd</code>: Change password</li>
 <li><code>/usr/bin/sudo</code>: Temporary privilege escalation</li>
 <li><code>/usr/bin/mount</code>: Mount filesystems</li>
-<li><code>/usr/bin/ping</code>: Send ICMP packets (needs raw socket permission)</li>
+<li><code>/usr/bin/ping</code>: Send ICMP packets (needs raw socket
+permission)</li>
 </ul>
 <hr>
-<h2 id="SGID-Set-Group-ID"><a class="header-anchor" href="#SGID-Set-Group-ID">¶</a>SGID (Set Group ID)</h2>
-<h3 id="Use-Cases-v3"><a class="header-anchor" href="#Use-Cases-v3">¶</a>Use Cases</h3>
+<h2 id="sgid-set-group-id">SGID (Set Group ID)</h2>
+<h3 id="use-cases">Use Cases</h3>
 <p>SGID has two uses:</p>
-<h4 id="1-On-Executable-Files"><a class="header-anchor" href="#1-On-Executable-Files">¶</a>1. On Executable Files</h4>
-<p>When process runs, its effective group ID (GID) is replaced by the file’s group. Common in tools that need to access specific group resources.</p>
-<h4 id="2-On-Directories-More-Common"><a class="header-anchor" href="#2-On-Directories-More-Common">¶</a>2. On Directories (More Common)</h4>
-<p><strong>When a directory has SGID set, new files or subdirectories created within inherit the directory’s group</strong>, not the creator’s default group. This is perfect for team shared directories.</p>
-<p><strong>Example</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> /srv/project</span><br><span class="line">sudo <span class="built_in">chown</span> :developers /srv/project  <span class="comment"># Change group to developers</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 2775 /srv/project  <span class="comment"># Set SGID + 775 (2 means SGID)</span></span><br></pre></td></tr></table></figure>
-<p>Now, any files created by developers group members in <code>/srv/project</code> automatically have group <code>developers</code>, accessible to other group members.</p>
-<h3 id="View-and-Set-v2"><a class="header-anchor" href="#View-and-Set-v2">¶</a>View and Set</h3>
-<p><strong>View</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l file  <span class="comment"># If group&#x27;s x position shows s (lowercase) or S (uppercase), SGID is set</span></span><br></pre></td></tr></table></figure>
-<p><strong>Set SGID</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> g+s shared_dir  <span class="comment"># Symbolic notation</span></span><br><span class="line"><span class="built_in">chmod</span> 2775 shared_dir  <span class="comment"># Numeric notation (2 means SGID)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Remove SGID</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> g-s shared_dir</span><br></pre></td></tr></table></figure>
+<h4 id="on-executable-files">1. On Executable Files</h4>
+<p>When process runs, its effective group ID (GID) is replaced by the
+file's group. Common in tools that need to access specific group
+resources.</p>
+<h4 id="on-directories-more-common">2. On Directories (More Common)</h4>
+<p><strong>When a directory has SGID set, new files or subdirectories
+created within inherit the directory's group</strong>, not the creator's
+default group. This is perfect for team shared directories.</p>
+<p><strong>Example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> /srv/project</span><br><span class="line">sudo <span class="built_in">chown</span> :developers /srv/project  <span class="comment"># Change group to developers</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 2775 /srv/project  <span class="comment"># Set SGID + 775 (2 means SGID)</span></span><br></pre></td></tr></table></figure></p>
+<p>Now, any files created by developers group members in
+<code>/srv/project</code> automatically have group
+<code>developers</code>, accessible to other group members.</p>
+<h3 id="view-and-set-1">View and Set</h3>
+<p><strong>View</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l file  <span class="comment"># If group&#x27;s x position shows s (lowercase) or S (uppercase), SGID is set</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Set SGID</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> g+s shared_dir  <span class="comment"># Symbolic notation</span></span><br><span class="line"><span class="built_in">chmod</span> 2775 shared_dir  <span class="comment"># Numeric notation (2 means SGID)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Remove SGID</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> g-s shared_dir</span><br></pre></td></tr></table></figure></p>
 <hr>
-<h2 id="Sticky-Bit"><a class="header-anchor" href="#Sticky-Bit">¶</a>Sticky Bit</h2>
-<h3 id="Function-and-Principle"><a class="header-anchor" href="#Function-and-Principle">¶</a>Function and Principle</h3>
-<p>Sticky Bit is most common on multi-user writable public directories like <code>/tmp</code>. <strong>When a directory has Sticky Bit set, files in that directory can only be deleted or renamed by their owner or root</strong>, even if others have write permission on the directory.</p>
+<h2 id="sticky-bit">Sticky Bit</h2>
+<h3 id="function-and-principle">Function and Principle</h3>
+<p>Sticky Bit is most common on multi-user writable public directories
+like <code>/tmp</code>. <strong>When a directory has Sticky Bit set,
+files in that directory can only be deleted or renamed by their owner or
+root</strong>, even if others have write permission on the
+directory.</p>
 <p><strong>Why is Sticky Bit needed?</strong></p>
 <ul>
-<li><code>/tmp</code> is a temporary directory shared by all users, permissions are <code>1777</code> (rwxrwxrwt)</li>
-<li>Without Sticky Bit, user A could delete user B’s temp files (security risk)</li>
-<li>With Sticky Bit, user A can only delete their own files, not user B’s files</li>
+<li><code>/tmp</code> is a temporary directory shared by all users,
+permissions are <code>1777</code> (rwxrwxrwt)</li>
+<li>Without Sticky Bit, user A could delete user B's temp files
+(security risk)</li>
+<li>With Sticky Bit, user A can only delete their own files, not user
+B's files</li>
 </ul>
-<h3 id="View-and-Set-v3"><a class="header-anchor" href="#View-and-Set-v3">¶</a>View and Set</h3>
-<p><strong>View</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -ld /tmp  <span class="comment"># Output: drwxrwxrwt (last character is t)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Set Sticky Bit</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> o+t <span class="built_in">dirname</span>  <span class="comment"># Symbolic notation</span></span><br><span class="line"><span class="built_in">chmod</span> 1777 /tmp  <span class="comment"># Numeric notation (1 means Sticky Bit)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Remove Sticky Bit</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> o-t <span class="built_in">dirname</span></span><br></pre></td></tr></table></figure>
+<h3 id="view-and-set-2">View and Set</h3>
+<p><strong>View</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -ld /tmp  <span class="comment"># Output: drwxrwxrwt (last character is t)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Set Sticky Bit</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> o+t <span class="built_in">dirname</span>  <span class="comment"># Symbolic notation</span></span><br><span class="line"><span class="built_in">chmod</span> 1777 /tmp  <span class="comment"># Numeric notation (1 means Sticky Bit)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Remove Sticky Bit</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> o-t <span class="built_in">dirname</span></span><br></pre></td></tr></table></figure></p>
 <hr>
-<h1>Common Scenarios and Best Practices</h1>
-<h2 id="Scenario-1-Executable-Script"><a class="header-anchor" href="#Scenario-1-Executable-Script">¶</a>Scenario 1: Executable Script</h2>
-<p><strong>Problem</strong>: <code>./script.sh: Permission denied</code></p>
-<p><strong>Troubleshoot</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l script.sh  <span class="comment"># Check permissions</span></span><br></pre></td></tr></table></figure>
-<p>If it shows <code>-rw-r--r--</code> (no x), execute permission is missing.</p>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x script.sh  <span class="comment"># Add execute permission for all</span></span><br><span class="line"><span class="comment"># Or</span></span><br><span class="line"><span class="built_in">chmod</span> 755 script.sh  <span class="comment"># owner=rwx, group=r-x, others=r-x</span></span><br></pre></td></tr></table></figure>
-<p><strong>Note</strong>: Script also needs shebang (like <code>#!/bin/bash</code>), otherwise need to run with <code>bash script.sh</code>.</p>
-<h2 id="Scenario-2-Web-Server-Directory"><a class="header-anchor" href="#Scenario-2-Web-Server-Directory">¶</a>Scenario 2: Web Server Directory</h2>
-<p><strong>Requirement</strong>: Nginx/Apache needs to read files in <code>/var/www/html</code>.</p>
-<p><strong>Troubleshoot</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -ld /var/www /var/www/html</span><br><span class="line"><span class="built_in">ls</span> -l /var/www/html/index.html</span><br></pre></td></tr></table></figure>
+<h1 id="common-scenarios-and-best-practices">Common Scenarios and Best
+Practices</h1>
+<h2 id="scenario-1-executable-script">Scenario 1: Executable Script</h2>
+<p><strong>Problem</strong>:
+<code>./script.sh: Permission denied</code></p>
+<p><strong>Troubleshoot</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l script.sh  <span class="comment"># Check permissions</span></span><br></pre></td></tr></table></figure></p>
+<p>If it shows <code>-rw-r--r--</code> (no x), execute permission is
+missing.</p>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x script.sh  <span class="comment"># Add execute permission for all</span></span><br><span class="line"><span class="comment"># Or</span></span><br><span class="line"><span class="built_in">chmod</span> 755 script.sh  <span class="comment"># owner=rwx, group=r-x, others=r-x</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Note</strong>: Script also needs shebang (like
+<code>#!/bin/bash</code>), otherwise need to run with
+<code>bash script.sh</code>.</p>
+<h2 id="scenario-2-web-server-directory">Scenario 2: Web Server
+Directory</h2>
+<p><strong>Requirement</strong>: Nginx/Apache needs to read files in
+<code>/var/www/html</code>.</p>
+<p><strong>Troubleshoot</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -ld /var/www /var/www/html</span><br><span class="line"><span class="built_in">ls</span> -l /var/www/html/index.html</span><br></pre></td></tr></table></figure></p>
 <p><strong>Common issues</strong>:</p>
 <ul>
-<li>Insufficient directory permissions (Nginx user doesn’t have x permission, can’t enter)</li>
-<li>Insufficient file permissions (Nginx user doesn’t have r permission, can’t read)</li>
+<li>Insufficient directory permissions (Nginx user doesn't have x
+permission, can't enter)</li>
+<li>Insufficient file permissions (Nginx user doesn't have r permission,
+can't read)</li>
 </ul>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> -R www-data:www-data /var/www/html  <span class="comment"># Change owner to www-data</span></span><br><span class="line">sudo <span class="built_in">chmod</span> -R 755 /var/www/html  <span class="comment"># Both directories and files set to 755</span></span><br><span class="line"><span class="comment"># Or stricter</span></span><br><span class="line">sudo find /var/www/html -<span class="built_in">type</span> d -<span class="built_in">exec</span> <span class="built_in">chmod</span> 755 &#123;&#125; \;  <span class="comment"># Directories 755</span></span><br><span class="line">sudo find /var/www/html -<span class="built_in">type</span> f -<span class="built_in">exec</span> <span class="built_in">chmod</span> 644 &#123;&#125; \;  <span class="comment"># Files 644</span></span><br></pre></td></tr></table></figure>
-<h2 id="Scenario-3-Shared-Directory-Team-Collaboration"><a class="header-anchor" href="#Scenario-3-Shared-Directory-Team-Collaboration">¶</a>Scenario 3: Shared Directory (Team Collaboration)</h2>
-<p><strong>Requirement</strong>: <code>/srv/project</code> directory, developers group members can all read/write, others cannot access.</p>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> /srv/project</span><br><span class="line">sudo <span class="built_in">chown</span> :developers /srv/project  <span class="comment"># Change group to developers</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 2770 /srv/project  <span class="comment"># SGID + 770 (only owner and group can access)</span></span><br></pre></td></tr></table></figure>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> -R www-data:www-data /var/www/html  <span class="comment"># Change owner to www-data</span></span><br><span class="line">sudo <span class="built_in">chmod</span> -R 755 /var/www/html  <span class="comment"># Both directories and files set to 755</span></span><br><span class="line"><span class="comment"># Or stricter</span></span><br><span class="line">sudo find /var/www/html -<span class="built_in">type</span> d -<span class="built_in">exec</span> <span class="built_in">chmod</span> 755 &#123;&#125; \;  <span class="comment"># Directories 755</span></span><br><span class="line">sudo find /var/www/html -<span class="built_in">type</span> f -<span class="built_in">exec</span> <span class="built_in">chmod</span> 644 &#123;&#125; \;  <span class="comment"># Files 644</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="scenario-3-shared-directory-team-collaboration">Scenario 3:
+Shared Directory (Team Collaboration)</h2>
+<p><strong>Requirement</strong>: <code>/srv/project</code> directory,
+developers group members can all read/write, others cannot access.</p>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> /srv/project</span><br><span class="line">sudo <span class="built_in">chown</span> :developers /srv/project  <span class="comment"># Change group to developers</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 2770 /srv/project  <span class="comment"># SGID + 770 (only owner and group can access)</span></span><br></pre></td></tr></table></figure></p>
 <ul>
-<li><code>2</code>: SGID (new files automatically inherit developers group)</li>
-<li><code>770</code>: owner and group both rwx, others no permissions</li>
+<li><code>2</code>: SGID (new files automatically inherit developers
+group)</li>
+<li><code>770</code>: owner and group both rwx, others no
+permissions</li>
 </ul>
-<p><strong>Verification</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># User A (developers group member) creates file</span></span><br><span class="line"><span class="built_in">touch</span> /srv/project/fileA</span><br><span class="line"><span class="built_in">ls</span> -l /srv/project/fileA  <span class="comment"># Output: -rw-r--r-- userA developers</span></span><br></pre></td></tr></table></figure>
-<p>File group is automatically <code>developers</code>, other group members can also access.</p>
-<h2 id="Scenario-4-Temp-Directory-Prevent-Mutual-File-Deletion"><a class="header-anchor" href="#Scenario-4-Temp-Directory-Prevent-Mutual-File-Deletion">¶</a>Scenario 4: Temp Directory (Prevent Mutual File Deletion)</h2>
-<p><strong>Requirement</strong>: <code>/tmp</code> directory, all users can create files, but can’t delete others’ files.</p>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chmod</span> 1777 /tmp  <span class="comment"># Sticky Bit + 777</span></span><br></pre></td></tr></table></figure>
+<p><strong>Verification</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># User A (developers group member) creates file</span></span><br><span class="line"><span class="built_in">touch</span> /srv/project/fileA</span><br><span class="line"><span class="built_in">ls</span> -l /srv/project/fileA  <span class="comment"># Output: -rw-r--r-- userA developers</span></span><br></pre></td></tr></table></figure></p>
+<p>File group is automatically <code>developers</code>, other group
+members can also access.</p>
+<h2 id="scenario-4-temp-directory-prevent-mutual-file-deletion">Scenario
+4: Temp Directory (Prevent Mutual File Deletion)</h2>
+<p><strong>Requirement</strong>: <code>/tmp</code> directory, all users
+can create files, but can't delete others' files.</p>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chmod</span> 1777 /tmp  <span class="comment"># Sticky Bit + 777</span></span><br></pre></td></tr></table></figure></p>
 <ul>
-<li><code>1</code>: Sticky Bit (only owner and root can delete files)</li>
+<li><code>1</code>: Sticky Bit (only owner and root can delete
+files)</li>
 <li><code>777</code>: All users can read/write/execute</li>
 </ul>
 <hr>
-<h1>Extended Mechanisms: ACL and chattr</h1>
-<h2 id="ACL-Access-Control-Lists"><a class="header-anchor" href="#ACL-Access-Control-Lists">¶</a>ACL (Access Control Lists)</h2>
+<h1 id="extended-mechanisms-acl-and-chattr">Extended Mechanisms: ACL and
+chattr</h1>
+<h2 id="acl-access-control-lists">ACL (Access Control Lists)</h2>
 <p><strong>Why ACL is needed?</strong></p>
 <ul>
-<li>Traditional permissions can only set three layers (owner/group/others), not flexible enough</li>
-<li>ACL can set permissions for specific users or specific groups (like “user A has read permission, user B has write permission”)</li>
+<li>Traditional permissions can only set three layers
+(owner/group/others), not flexible enough</li>
+<li>ACL can set permissions for specific users or specific groups (like
+"user A has read permission, user B has write permission")</li>
 </ul>
-<p><strong>View ACL</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">getfacl file.txt</span><br></pre></td></tr></table></figure>
-<p><strong>Set ACL</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">setfacl -m u:alice:rw file.txt  <span class="comment"># Give user alice read/write permission</span></span><br><span class="line">setfacl -m g:dev:rx <span class="built_in">dir</span>  <span class="comment"># Give group dev read/execute permission</span></span><br><span class="line">setfacl -x u:alice file.txt  <span class="comment"># Remove alice&#x27;s ACL</span></span><br><span class="line">setfacl -b file.txt  <span class="comment"># Remove all ACLs</span></span><br></pre></td></tr></table></figure>
-<p><strong>Recursive setting</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setfacl -R -m u:alice:rwx <span class="built_in">dir</span>  <span class="comment"># Recursively set</span></span><br></pre></td></tr></table></figure>
-<h2 id="chattr-File-Attributes-Prevent-Accidental-Deletion-Modification"><a class="header-anchor" href="#chattr-File-Attributes-Prevent-Accidental-Deletion-Modification">¶</a>chattr: File Attributes (Prevent Accidental Deletion/Modification)</h2>
-<p><code>chattr</code> can set special file attributes (supported by ext4 filesystem).</p>
+<p><strong>View ACL</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">getfacl file.txt</span><br></pre></td></tr></table></figure></p>
+<p><strong>Set ACL</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">setfacl -m u:alice:rw file.txt  <span class="comment"># Give user alice read/write permission</span></span><br><span class="line">setfacl -m g:dev:rx <span class="built_in">dir</span>  <span class="comment"># Give group dev read/execute permission</span></span><br><span class="line">setfacl -x u:alice file.txt  <span class="comment"># Remove alice&#x27;s ACL</span></span><br><span class="line">setfacl -b file.txt  <span class="comment"># Remove all ACLs</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Recursive setting</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setfacl -R -m u:alice:rwx <span class="built_in">dir</span>  <span class="comment"># Recursively set</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="chattr-file-attributes-prevent-accidental-deletionmodification">chattr:
+File Attributes (Prevent Accidental Deletion/Modification)</h2>
+<p><code>chattr</code> can set special file attributes (supported by
+ext4 filesystem).</p>
 <p><strong>Common attributes</strong>:</p>
 <ul>
-<li><code>i</code> (immutable): File cannot be modified, deleted, renamed (not even by root, unless i attribute is removed first)</li>
-<li><code>a</code> (append-only): File can only be appended to, cannot modify existing content (suitable for log files)</li>
+<li><code>i</code> (immutable): File cannot be modified, deleted,
+renamed (not even by root, unless i attribute is removed first)</li>
+<li><code>a</code> (append-only): File can only be appended to, cannot
+modify existing content (suitable for log files)</li>
 </ul>
-<p><strong>Set immutable</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +i important.conf  <span class="comment"># File becomes immutable</span></span><br><span class="line"><span class="built_in">rm</span> important.conf  <span class="comment"># ❌ Operation not permitted (not even root can delete)</span></span><br><span class="line">sudo chattr -i important.conf  <span class="comment"># Remove i attribute before deleting</span></span><br></pre></td></tr></table></figure>
-<p><strong>Set append-only</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +a logfile.txt  <span class="comment"># Only append allowed</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;new line&quot;</span> &gt;&gt; logfile.txt  <span class="comment"># ✅ Can append</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;overwrite&quot;</span> &gt; logfile.txt  <span class="comment"># ❌ Operation not permitted (cannot overwrite)</span></span><br></pre></td></tr></table></figure>
-<p><strong>View attributes</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsattr file.txt</span><br></pre></td></tr></table></figure>
+<p><strong>Set immutable</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +i important.conf  <span class="comment"># File becomes immutable</span></span><br><span class="line"><span class="built_in">rm</span> important.conf  <span class="comment"># ❌ Operation not permitted (not even root can delete)</span></span><br><span class="line">sudo chattr -i important.conf  <span class="comment"># Remove i attribute before deleting</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Set append-only</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr +a logfile.txt  <span class="comment"># Only append allowed</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;new line&quot;</span> &gt;&gt; logfile.txt  <span class="comment"># ✅ Can append</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;overwrite&quot;</span> &gt; logfile.txt  <span class="comment"># ❌ Operation not permitted (cannot overwrite)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>View attributes</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsattr file.txt</span><br></pre></td></tr></table></figure></p>
 <p><strong>Use cases</strong>:</p>
 <ul>
-<li>Protect important config files (<code>/etc/fstab</code>, <code>/etc/passwd</code>)</li>
+<li>Protect important config files (<code>/etc/fstab</code>,
+<code>/etc/passwd</code>)</li>
 <li>Prevent log files from being cleared</li>
 </ul>
 <hr>
-<h1>Permission Troubleshooting Checklist: What to Do When Problems Arise</h1>
-<h2 id="Problem-1-Permission-denied"><a class="header-anchor" href="#Problem-1-Permission-denied">¶</a>Problem 1: <code>Permission denied</code></h2>
-<p><strong>Troubleshooting steps</strong>:</p>
-<ol>
-<li>Confirm executing user: <code>whoami</code> (or check service’s running user, like systemd unit file)</li>
-<li>View file permissions: <code>ls -l file</code></li>
-<li>View all parent directory permissions: <code>namei -l /full/path/to/file</code> (needs <code>util-linux</code> package)</li>
-<li>Check group membership: <code>id</code> (see which groups current user belongs to)</li>
-<li>Check special attributes: <code>lsattr file</code> (whether has <code>i</code> or <code>a</code> attribute)</li>
-</ol>
+<h1 id="permission-troubleshooting-checklist-what-to-do-when-problems-arise">Permission
+Troubleshooting Checklist: What to Do When Problems Arise</h1>
+<h2 id="problem-1-permission-denied">Problem 1:
+<code>Permission denied</code></h2>
+<p><strong>Troubleshooting steps</strong>: 1. Confirm executing user:
+<code>whoami</code> (or check service's running user, like systemd unit
+file) 2. View file permissions: <code>ls -l file</code> 3. View all
+parent directory permissions: <code>namei -l /full/path/to/file</code>
+(needs <code>util-linux</code> package) 4. Check group membership:
+<code>id</code> (see which groups current user belongs to) 5. Check
+special attributes: <code>lsattr file</code> (whether has <code>i</code>
+or <code>a</code> attribute)</p>
 <p><strong>Common causes</strong>:</p>
 <ul>
-<li>File doesn’t have read/write/execute permission</li>
-<li>Parent directory doesn’t have x permission (can’t enter)</li>
-<li>User not in file’s group</li>
+<li>File doesn't have read/write/execute permission</li>
+<li>Parent directory doesn't have x permission (can't enter)</li>
+<li>User not in file's group</li>
 </ul>
-<p><strong>Solutions</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chmod</span> 644 file  <span class="comment"># Give read permission</span></span><br><span class="line">sudo <span class="built_in">chmod</span> +x script.sh  <span class="comment"># Give execute permission</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 755 /path/to/parent/dir  <span class="comment"># Give parent directory x permission</span></span><br><span class="line">sudo <span class="built_in">chown</span> user:group file  <span class="comment"># Modify ownership</span></span><br></pre></td></tr></table></figure>
-<h2 id="Problem-2-Web-Server-403-Forbidden"><a class="header-anchor" href="#Problem-2-Web-Server-403-Forbidden">¶</a>Problem 2: Web Server 403 Forbidden</h2>
-<p><strong>Cause</strong>: Nginx/Apache user (like <code>www-data</code>, <code>nginx</code>) doesn’t have permission to read file.</p>
-<p><strong>Troubleshoot</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ps aux | grep nginx  <span class="comment"># Check nginx running user</span></span><br><span class="line"><span class="built_in">ls</span> -l /var/www/html/index.html  <span class="comment"># Check file permissions</span></span><br><span class="line">namei -l /var/www/html/index.html  <span class="comment"># Check all parent directory permissions</span></span><br></pre></td></tr></table></figure>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> -R www-data:www-data /var/www/html</span><br><span class="line">sudo <span class="built_in">chmod</span> -R 755 /var/www/html  <span class="comment"># Directories 755</span></span><br><span class="line">sudo find /var/www/html -<span class="built_in">type</span> f -<span class="built_in">exec</span> <span class="built_in">chmod</span> 644 &#123;&#125; \;  <span class="comment"># Files 644</span></span><br></pre></td></tr></table></figure>
-<h2 id="Problem-3-Script-Execution-Fails"><a class="header-anchor" href="#Problem-3-Script-Execution-Fails">¶</a>Problem 3: Script Execution Fails</h2>
-<p><strong>Cause</strong>: Script doesn’t have execute permission or shebang is wrong.</p>
-<p><strong>Troubleshoot</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l script.sh  <span class="comment"># Check permissions</span></span><br><span class="line"><span class="built_in">head</span> -1 script.sh  <span class="comment"># Check shebang</span></span><br></pre></td></tr></table></figure>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x script.sh  <span class="comment"># Add execute permission</span></span><br><span class="line"><span class="comment"># Ensure shebang is correct (like #!/bin/bash)</span></span><br></pre></td></tr></table></figure>
-<h2 id="Problem-4-rm-cannot-remove-file-Operation-not-permitted"><a class="header-anchor" href="#Problem-4-rm-cannot-remove-file-Operation-not-permitted">¶</a>Problem 4: <code>rm: cannot remove 'file': Operation not permitted</code></h2>
-<p><strong>Cause</strong>: File might have <code>i</code> attribute (immutable).</p>
-<p><strong>Troubleshoot</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsattr file</span><br></pre></td></tr></table></figure>
-<p>If output contains <code>i</code> (like <code>----i--------</code>), file has immutable attribute.</p>
-<p><strong>Solution</strong>:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr -i file  <span class="comment"># Remove i attribute</span></span><br><span class="line"><span class="built_in">rm</span> file  <span class="comment"># Can delete now</span></span><br></pre></td></tr></table></figure>
+<p><strong>Solutions</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chmod</span> 644 file  <span class="comment"># Give read permission</span></span><br><span class="line">sudo <span class="built_in">chmod</span> +x script.sh  <span class="comment"># Give execute permission</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 755 /path/to/parent/dir  <span class="comment"># Give parent directory x permission</span></span><br><span class="line">sudo <span class="built_in">chown</span> user:group file  <span class="comment"># Modify ownership</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="problem-2-web-server-403-forbidden">Problem 2: Web Server 403
+Forbidden</h2>
+<p><strong>Cause</strong>: Nginx/Apache user (like
+<code>www-data</code>, <code>nginx</code>) doesn't have permission to
+read file.</p>
+<p><strong>Troubleshoot</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ps aux | grep nginx  <span class="comment"># Check nginx running user</span></span><br><span class="line"><span class="built_in">ls</span> -l /var/www/html/index.html  <span class="comment"># Check file permissions</span></span><br><span class="line">namei -l /var/www/html/index.html  <span class="comment"># Check all parent directory permissions</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> -R www-data:www-data /var/www/html</span><br><span class="line">sudo <span class="built_in">chmod</span> -R 755 /var/www/html  <span class="comment"># Directories 755</span></span><br><span class="line">sudo find /var/www/html -<span class="built_in">type</span> f -<span class="built_in">exec</span> <span class="built_in">chmod</span> 644 &#123;&#125; \;  <span class="comment"># Files 644</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="problem-3-script-execution-fails">Problem 3: Script Execution
+Fails</h2>
+<p><strong>Cause</strong>: Script doesn't have execute permission or
+shebang is wrong.</p>
+<p><strong>Troubleshoot</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l script.sh  <span class="comment"># Check permissions</span></span><br><span class="line"><span class="built_in">head</span> -1 script.sh  <span class="comment"># Check shebang</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chmod</span> +x script.sh  <span class="comment"># Add execute permission</span></span><br><span class="line"><span class="comment"># Ensure shebang is correct (like #!/bin/bash)</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="problem-4-rm-cannot-remove-file-operation-not-permitted">Problem
+4: <code>rm: cannot remove 'file': Operation not permitted</code></h2>
+<p><strong>Cause</strong>: File might have <code>i</code> attribute
+(immutable).</p>
+<p><strong>Troubleshoot</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsattr file</span><br></pre></td></tr></table></figure></p>
+<p>If output contains <code>i</code> (like <code>----i--------</code>),
+file has immutable attribute.</p>
+<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chattr -i file  <span class="comment"># Remove i attribute</span></span><br><span class="line"><span class="built_in">rm</span> file  <span class="comment"># Can delete now</span></span><br></pre></td></tr></table></figure></p>
 <hr>
-<h1>Summary and Further Reading</h1>
-<p>This article covers the core content of Linux file permissions:</p>
-<ol>
-<li>✅ Linux permission model (owner/group/others, rwx semantics)</li>
-<li>✅ rwx differences on files vs directories (most common pitfall)</li>
-<li>✅ chmod and chown usage (numeric/symbolic notation)</li>
-<li>✅ umask principles and common values (default permissions for new files)</li>
-<li>✅ Special permissions (SUID/SGID/Sticky Bit principles and use cases)</li>
-<li>✅ Extended mechanisms (ACL, chattr)</li>
-<li>✅ Permission troubleshooting checklist (Permission denied, 403, script execution failure, etc.)</li>
-</ol>
+<h1 id="summary-and-further-reading">Summary and Further Reading</h1>
+<p>This article covers the core content of Linux file permissions: 1. ✅
+Linux permission model (owner/group/others, rwx semantics) 2. ✅ rwx
+differences on files vs directories (most common pitfall) 3. ✅ chmod
+and chown usage (numeric/symbolic notation) 4. ✅ umask principles and
+common values (default permissions for new files) 5. ✅ Special
+permissions (SUID/SGID/Sticky Bit principles and use cases) 6. ✅
+Extended mechanisms (ACL, chattr) 7. ✅ Permission troubleshooting
+checklist (Permission denied, 403, script execution failure, etc.)</p>
 <p><strong>Further Reading</strong>:</p>
 <ul>
 <li><code>man chmod</code>: View detailed chmod manual</li>
 <li><code>man chown</code>: View detailed chown manual</li>
 <li><code>man 5 acl</code>: View detailed ACL explanation</li>
-<li>SELinux / AppArmor: More advanced security models (Mandatory Access Control MAC)</li>
+<li>SELinux / AppArmor: More advanced security models (Mandatory Access
+Control MAC)</li>
 </ul>
 <p><strong>Next Steps</strong>:</p>
 <ul>
-<li><strong>《Linux User Management》</strong>: Learn how to manage users/groups, <code>/etc/passwd</code>, <code>/etc/shadow</code>, sudo configuration</li>
-<li><strong>《Linux Advanced File Operations》</strong>: Learn pipes, redirection, stdin/stdout/stderr, <code>xargs</code>, <code>tee</code></li>
+<li><strong>《Linux User Management》</strong>: Learn how to manage
+users/groups, <code>/etc/passwd</code>, <code>/etc/shadow</code>, sudo
+configuration</li>
+<li><strong>《Linux Advanced File Operations》</strong>: Learn pipes,
+redirection, stdin/stdout/stderr, <code>xargs</code>,
+<code>tee</code></li>
 </ul>
 <hr>
-<p><strong>By this point, you should have upgraded from “can use chmod 755” to “understand permission semantics, can design shared directory permission schemes, can troubleshoot permission issues.” File permissions are the cornerstone of Linux security; mastering them allows you to better protect systems and data.</strong></p>
+<p><strong>By this point, you should have upgraded from "can use chmod
+755" to "understand permission semantics, can design shared directory
+permission schemes, can troubleshoot permission issues." File
+permissions are the cornerstone of Linux security; mastering them allows
+you to better protect systems and data.</strong></p>
 
         </div>
 
@@ -984,7 +1082,30 @@ Edit <code>~/.bashrc</code> or <code>~/.zshrc</code>, add:</p>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">Linux Permission Model: The Three-Tier Architecture of owner&#x2F;group&#x2F;others</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Basic-Concepts"><span class="nav-number">1.1.</span> <span class="nav-text">Basic Concepts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Three-Permission-Bits-rwx"><span class="nav-number">1.2.</span> <span class="nav-text">Three Permission Bits (rwx)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">rwx Semantic Differences on Files vs Directories (The Most Common Pitfall)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#On-Files-Regular-Files"><span class="nav-number">2.1.</span> <span class="nav-text">On Files (Regular Files)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#On-Directories"><span class="nav-number">2.2.</span> <span class="nav-text">On Directories</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Case-1-Directory-has-r-but-not-x"><span class="nav-number">2.2.1.</span> <span class="nav-text">Case 1: Directory has r but not x</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Case-2-Directory-has-x-but-not-r"><span class="nav-number">2.2.2.</span> <span class="nav-text">Case 2: Directory has x but not r</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Case-3-Directory-has-w-but-not-x"><span class="nav-number">2.2.3.</span> <span class="nav-text">Case 3: Directory has w but not x</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">chmod: Modifying Permissions (Numeric and Symbolic Notation)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Numeric-Notation-Fast-and-Common"><span class="nav-number">3.1.</span> <span class="nav-text">Numeric Notation (Fast and Common)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Symbolic-Notation-Safer-Suitable-for-Incremental-Changes"><span class="nav-number">3.2.</span> <span class="nav-text">Symbolic Notation (Safer, Suitable for Incremental Changes)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">chown: Modifying File Ownership</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">umask: Default Permissions for New Files</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#What-is-umask"><span class="nav-number">5.1.</span> <span class="nav-text">What is umask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#View-and-Set-umask"><span class="nav-number">5.2.</span> <span class="nav-text">View and Set umask</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">Special Permissions: SUID&#x2F;SGID&#x2F;Sticky Bit</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#SUID-Set-User-ID"><span class="nav-number">6.1.</span> <span class="nav-text">SUID (Set User ID)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Principle"><span class="nav-number">6.1.1.</span> <span class="nav-text">Principle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-and-Set"><span class="nav-number">6.1.2.</span> <span class="nav-text">View and Set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Hands-On-Example"><span class="nav-number">6.1.3.</span> <span class="nav-text">Hands-On Example</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Security-Considerations-v2"><span class="nav-number">6.1.4.</span> <span class="nav-text">Security Considerations</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SGID-Set-Group-ID"><span class="nav-number">6.2.</span> <span class="nav-text">SGID (Set Group ID)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Use-Cases-v3"><span class="nav-number">6.2.1.</span> <span class="nav-text">Use Cases</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-On-Executable-Files"><span class="nav-number">6.2.1.1.</span> <span class="nav-text">1. On Executable Files</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-On-Directories-More-Common"><span class="nav-number">6.2.1.2.</span> <span class="nav-text">2. On Directories (More Common)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-and-Set-v2"><span class="nav-number">6.2.2.</span> <span class="nav-text">View and Set</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Sticky-Bit"><span class="nav-number">6.3.</span> <span class="nav-text">Sticky Bit</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Function-and-Principle"><span class="nav-number">6.3.1.</span> <span class="nav-text">Function and Principle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-and-Set-v3"><span class="nav-number">6.3.2.</span> <span class="nav-text">View and Set</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Common Scenarios and Best Practices</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-1-Executable-Script"><span class="nav-number">7.1.</span> <span class="nav-text">Scenario 1: Executable Script</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-2-Web-Server-Directory"><span class="nav-number">7.2.</span> <span class="nav-text">Scenario 2: Web Server Directory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-3-Shared-Directory-Team-Collaboration"><span class="nav-number">7.3.</span> <span class="nav-text">Scenario 3: Shared Directory (Team Collaboration)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-4-Temp-Directory-Prevent-Mutual-File-Deletion"><span class="nav-number">7.4.</span> <span class="nav-text">Scenario 4: Temp Directory (Prevent Mutual File Deletion)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">Extended Mechanisms: ACL and chattr</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ACL-Access-Control-Lists"><span class="nav-number">8.1.</span> <span class="nav-text">ACL (Access Control Lists)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#chattr-File-Attributes-Prevent-Accidental-Deletion-Modification"><span class="nav-number">8.2.</span> <span class="nav-text">chattr: File Attributes (Prevent Accidental Deletion&#x2F;Modification)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">9.</span> <span class="nav-text">Permission Troubleshooting Checklist: What to Do When Problems Arise</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Problem-1-Permission-denied"><span class="nav-number">9.1.</span> <span class="nav-text">Problem 1: Permission denied</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Problem-2-Web-Server-403-Forbidden"><span class="nav-number">9.2.</span> <span class="nav-text">Problem 2: Web Server 403 Forbidden</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Problem-3-Script-Execution-Fails"><span class="nav-number">9.3.</span> <span class="nav-text">Problem 3: Script Execution Fails</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Problem-4-rm-cannot-remove-file-Operation-not-permitted"><span class="nav-number">9.4.</span> <span class="nav-text">Problem 4: rm: cannot remove &#39;file&#39;: Operation not permitted</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">10.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#linux-permission-model-the-three-tier-architecture-of-ownergroupothers"><span class="nav-number">1.</span> <span class="nav-text">Linux
+Permission Model: The Three-Tier Architecture of owner&#x2F;group&#x2F;others</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#basic-concepts"><span class="nav-number">1.1.</span> <span class="nav-text">Basic Concepts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#three-permission-bits-rwx"><span class="nav-number">1.2.</span> <span class="nav-text">Three Permission Bits (rwx)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#rwx-semantic-differences-on-files-vs-directories-the-most-common-pitfall"><span class="nav-number">2.</span> <span class="nav-text">rwx
+Semantic Differences on Files vs Directories (The Most Common
+Pitfall)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#on-files-regular-files"><span class="nav-number">2.1.</span> <span class="nav-text">On Files (Regular Files)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#on-directories"><span class="nav-number">2.2.</span> <span class="nav-text">On Directories</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#case-1-directory-has-r-but-not-x"><span class="nav-number">2.2.1.</span> <span class="nav-text">Case 1: Directory has
+r but not x</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#case-2-directory-has-x-but-not-r"><span class="nav-number">2.2.2.</span> <span class="nav-text">Case 2: Directory has
+x but not r</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#case-3-directory-has-w-but-not-x"><span class="nav-number">2.2.3.</span> <span class="nav-text">Case 3: Directory has
+w but not x</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#chmod-modifying-permissions-numeric-and-symbolic-notation"><span class="nav-number">3.</span> <span class="nav-text">chmod:
+Modifying Permissions (Numeric and Symbolic Notation)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#numeric-notation-fast-and-common"><span class="nav-number">3.1.</span> <span class="nav-text">Numeric Notation (Fast and
+Common)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#symbolic-notation-safer-suitable-for-incremental-changes"><span class="nav-number">3.2.</span> <span class="nav-text">Symbolic
+Notation (Safer, Suitable for Incremental Changes)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#chown-modifying-file-ownership"><span class="nav-number">4.</span> <span class="nav-text">chown: Modifying File
+Ownership</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#umask-default-permissions-for-new-files"><span class="nav-number">5.</span> <span class="nav-text">umask: Default
+Permissions for New Files</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#what-is-umask"><span class="nav-number">5.1.</span> <span class="nav-text">What is umask</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#view-and-set-umask"><span class="nav-number">5.2.</span> <span class="nav-text">View and Set umask</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#special-permissions-suidsgidsticky-bit"><span class="nav-number">6.</span> <span class="nav-text">Special Permissions:
+SUID&#x2F;SGID&#x2F;Sticky Bit</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#suid-set-user-id"><span class="nav-number">6.1.</span> <span class="nav-text">SUID (Set User ID)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#principle"><span class="nav-number">6.1.1.</span> <span class="nav-text">Principle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-and-set"><span class="nav-number">6.1.2.</span> <span class="nav-text">View and Set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hands-on-example"><span class="nav-number">6.1.3.</span> <span class="nav-text">Hands-On Example</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#security-considerations"><span class="nav-number">6.1.4.</span> <span class="nav-text">Security Considerations</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sgid-set-group-id"><span class="nav-number">6.2.</span> <span class="nav-text">SGID (Set Group ID)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#use-cases"><span class="nav-number">6.2.1.</span> <span class="nav-text">Use Cases</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#on-executable-files"><span class="nav-number">6.2.1.1.</span> <span class="nav-text">1. On Executable Files</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#on-directories-more-common"><span class="nav-number">6.2.1.2.</span> <span class="nav-text">2. On Directories (More Common)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-and-set-1"><span class="nav-number">6.2.2.</span> <span class="nav-text">View and Set</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sticky-bit"><span class="nav-number">6.3.</span> <span class="nav-text">Sticky Bit</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#function-and-principle"><span class="nav-number">6.3.1.</span> <span class="nav-text">Function and Principle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-and-set-2"><span class="nav-number">6.3.2.</span> <span class="nav-text">View and Set</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#common-scenarios-and-best-practices"><span class="nav-number">7.</span> <span class="nav-text">Common Scenarios and Best
+Practices</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-1-executable-script"><span class="nav-number">7.1.</span> <span class="nav-text">Scenario 1: Executable Script</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-2-web-server-directory"><span class="nav-number">7.2.</span> <span class="nav-text">Scenario 2: Web Server
+Directory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-3-shared-directory-team-collaboration"><span class="nav-number">7.3.</span> <span class="nav-text">Scenario 3:
+Shared Directory (Team Collaboration)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-4-temp-directory-prevent-mutual-file-deletion"><span class="nav-number">7.4.</span> <span class="nav-text">Scenario
+4: Temp Directory (Prevent Mutual File Deletion)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#extended-mechanisms-acl-and-chattr"><span class="nav-number">8.</span> <span class="nav-text">Extended Mechanisms: ACL and
+chattr</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#acl-access-control-lists"><span class="nav-number">8.1.</span> <span class="nav-text">ACL (Access Control Lists)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#chattr-file-attributes-prevent-accidental-deletionmodification"><span class="nav-number">8.2.</span> <span class="nav-text">chattr:
+File Attributes (Prevent Accidental Deletion&#x2F;Modification)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#permission-troubleshooting-checklist-what-to-do-when-problems-arise"><span class="nav-number">9.</span> <span class="nav-text">Permission
+Troubleshooting Checklist: What to Do When Problems Arise</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#problem-1-permission-denied"><span class="nav-number">9.1.</span> <span class="nav-text">Problem 1:
+Permission denied</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem-2-web-server-403-forbidden"><span class="nav-number">9.2.</span> <span class="nav-text">Problem 2: Web Server 403
+Forbidden</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem-3-script-execution-fails"><span class="nav-number">9.3.</span> <span class="nav-text">Problem 3: Script Execution
+Fails</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem-4-rm-cannot-remove-file-operation-not-permitted"><span class="nav-number">9.4.</span> <span class="nav-text">Problem
+4: rm: cannot remove &#39;file&#39;: Operation not permitted</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#summary-and-further-reading"><span class="nav-number">10.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
     </div>
 </div>
         </aside>
