@@ -244,7 +244,7 @@
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>21 Mins</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>20 Mins</span>
         </span>
     
     
@@ -260,96 +260,50 @@
         
 
         <div class="article-content markdown-body">
-            <p>In operating systems, a "service" refers to a background resident
-process or daemon—programs that automatically start when the system
-boots, work silently in the background, and provide various functions
-(such as time synchronization, firewalls, scheduled tasks, web servers,
-databases, etc.). Modern Linux uses <strong>systemd</strong> to
-uniformly manage these services, providing powerful dependency
-management, parallel startup, log integration, and more. This post
-starts from systemd's core concepts, dives deep into
-<code>systemctl</code> command usage, explains configuration and
-troubleshooting for common services (time synchronization, firewall,
-cron, SSH), and teaches you how to create custom services and make your
-own programs start automatically on boot. If you're a sysadmin or need
-to manage Linux servers, this article will upgrade you from "can
-start/stop services" to "can write custom services, can troubleshoot,
-can optimize startup order."</p>
+            <p>In operating systems, a “service” refers to a background resident process or daemon—programs that automatically start when the system boots, work silently in the background, and provide various functions (such as time synchronization, firewalls, scheduled tasks, web servers, databases, etc.). Modern Linux uses <strong>systemd</strong> to uniformly manage these services, providing powerful dependency management, parallel startup, log integration, and more. This post starts from systemd’s core concepts, dives deep into <code>systemctl</code> command usage, explains configuration and troubleshooting for common services (time synchronization, firewall, cron, SSH), and teaches you how to create custom services and make your own programs start automatically on boot. If you’re a sysadmin or need to manage Linux servers, this article will upgrade you from “can start/stop services” to “can write custom services, can troubleshoot, can optimize startup order.”</p>
 <span id="more"></span>
-<h1 id="systemd-core-concepts-why-use-it-what-problems-does-it-solve">systemd
-Core Concepts: Why Use It, What Problems Does It Solve</h1>
-<h2 id="why-we-need-a-service-manager">Why We Need a Service
-Manager</h2>
-<p>In operating systems, a "service" refers to those programs that run
-in the background for extended periods, providing certain functions to
-the system or users. Examples include:</p>
+<h1>systemd Core Concepts: Why Use It, What Problems Does It Solve</h1>
+<h2 id="Why-We-Need-a-Service-Manager"><a class="header-anchor" href="#Why-We-Need-a-Service-Manager">¶</a>Why We Need a Service Manager</h2>
+<p>In operating systems, a “service” refers to those programs that run in the background for extended periods, providing certain functions to the system or users. Examples include:</p>
 <ul>
-<li><strong>Time synchronization service</strong> (ntpd / ntpsec):
-Periodically syncs with time servers to ensure system clock
-accuracy</li>
-<li><strong>Firewall service</strong> (firewalld / iptables): Controls
-network traffic, protects system security</li>
+<li><strong>Time synchronization service</strong> (ntpd / ntpsec): Periodically syncs with time servers to ensure system clock accuracy</li>
+<li><strong>Firewall service</strong> (firewalld / iptables): Controls network traffic, protects system security</li>
 <li><strong>SSH service</strong> (sshd): Allows remote login</li>
-<li><strong>Web server</strong> (nginx / apache): Handles HTTP requests,
-provides website access</li>
-<li><strong>Database service</strong> (mysql / postgresql): Stores and
-queries data</li>
-<li><strong>Cron service</strong> (crond): Automatically executes
-scripts according to schedule</li>
+<li><strong>Web server</strong> (nginx / apache): Handles HTTP requests, provides website access</li>
+<li><strong>Database service</strong> (mysql / postgresql): Stores and queries data</li>
+<li><strong>Cron service</strong> (crond): Automatically executes scripts according to schedule</li>
 </ul>
-<p>These services typically need: 1. <strong>Auto-start on boot</strong>
-(no manual start needed) 2. <strong>Auto-restart after crash</strong>
-(improves availability) 3. <strong>Dependency management</strong> (e.g.,
-web service depends on network service, network service depends on
-network card driver) 4. <strong>Log integration</strong> (easier
-troubleshooting) 5. <strong>Resource limits</strong> (prevent a service
-from consuming too much CPU/memory)</p>
-<p>A <strong>service manager</strong> is the tool used to uniformly
-manage these services.</p>
-<h2 id="systemd-vs-sysv-init-legacy-systems">systemd vs SysV init
-(Legacy Systems)</h2>
-<p>Before systemd appeared, Linux used <strong>SysV init</strong> as the
-service manager (CentOS 6, Ubuntu 14.04 and earlier). Its
-characteristics:</p>
+<p>These services typically need:</p>
+<ol>
+<li><strong>Auto-start on boot</strong> (no manual start needed)</li>
+<li><strong>Auto-restart after crash</strong> (improves availability)</li>
+<li><strong>Dependency management</strong> (e.g., web service depends on network service, network service depends on network card driver)</li>
+<li><strong>Log integration</strong> (easier troubleshooting)</li>
+<li><strong>Resource limits</strong> (prevent a service from consuming too much CPU/memory)</li>
+</ol>
+<p>A <strong>service manager</strong> is the tool used to uniformly manage these services.</p>
+<h2 id="systemd-vs-SysV-init-Legacy-Systems"><a class="header-anchor" href="#systemd-vs-SysV-init-Legacy-Systems">¶</a>systemd vs SysV init (Legacy Systems)</h2>
+<p>Before systemd appeared, Linux used <strong>SysV init</strong> as the service manager (CentOS 6, Ubuntu 14.04 and earlier). Its characteristics:</p>
 <ul>
 <li>Service scripts located in <code>/etc/init.d/</code> directory</li>
-<li>Used <code>service &lt;service&gt; start/stop/restart</code> to
-manage services</li>
+<li>Used <code>service &lt;service&gt; start/stop/restart</code> to manage services</li>
 <li>Used <code>chkconfig</code> to configure auto-start on boot</li>
-<li><strong>Serial startup</strong>: Services start one by one in order,
-slow (especially when there are many services)</li>
-<li><strong>Dependency relationships handled manually in
-scripts</strong>: Error-prone</li>
+<li><strong>Serial startup</strong>: Services start one by one in order, slow (especially when there are many services)</li>
+<li><strong>Dependency relationships handled manually in scripts</strong>: Error-prone</li>
 </ul>
-<p><strong>systemd</strong> is the service manager for modern Linux
-distributions (CentOS 7+, Ubuntu 16.04+, Debian 8+), with
-advantages:</p>
+<p><strong>systemd</strong> is the service manager for modern Linux distributions (CentOS 7+, Ubuntu 16.04+, Debian 8+), with advantages:</p>
 <ul>
-<li><strong>Parallel startup</strong>: Multiple services start
-simultaneously, much faster</li>
-<li><strong>Automatic dependency handling</strong>: systemd knows
-service dependencies, automatically starts in order</li>
-<li><strong>Unified logging system</strong> (journald): All service logs
-centrally managed, easy to query</li>
-<li><strong>Socket activation</strong>: Some services can start
-on-demand (only start when there's a connection, saves resources)</li>
-<li><strong>Cgroup integration</strong>: Can limit service CPU/memory
-usage</li>
-<li><strong>Unified commands</strong>: <code>systemctl</code> one
-command manages all services</li>
+<li><strong>Parallel startup</strong>: Multiple services start simultaneously, much faster</li>
+<li><strong>Automatic dependency handling</strong>: systemd knows service dependencies, automatically starts in order</li>
+<li><strong>Unified logging system</strong> (journald): All service logs centrally managed, easy to query</li>
+<li><strong>Socket activation</strong>: Some services can start on-demand (only start when there’s a connection, saves resources)</li>
+<li><strong>Cgroup integration</strong>: Can limit service CPU/memory usage</li>
+<li><strong>Unified commands</strong>: <code>systemctl</code> one command manages all services</li>
 </ul>
-<p><strong>Compatibility</strong>: systemd is backward compatible with
-SysV init commands (<code>service</code> and <code>chkconfig</code>
-still work on systemd systems, but internally call systemctl).</p>
-<h2 id="systemd-core-concept-unit">systemd Core Concept: unit</h2>
-<p>In systemd, <strong>everything is a unit</strong>. A unit is
-systemd's smallest management unit. Common unit types:</p>
+<p><strong>Compatibility</strong>: systemd is backward compatible with SysV init commands (<code>service</code> and <code>chkconfig</code> still work on systemd systems, but internally call systemctl).</p>
+<h2 id="systemd-Core-Concept-unit"><a class="header-anchor" href="#systemd-Core-Concept-unit">¶</a>systemd Core Concept: unit</h2>
+<p>In systemd, <strong>everything is a unit</strong>. A unit is systemd’s smallest management unit. Common unit types:</p>
 <table>
-<colgroup>
-<col style="width: 15%">
-<col style="width: 56%">
-<col style="width: 27%">
-</colgroup>
 <thead>
 <tr>
 <th>Unit Type</th>
@@ -365,8 +319,7 @@ systemd's smallest management unit. Common unit types:</p>
 </tr>
 <tr>
 <td><strong>socket</strong></td>
-<td>Represents an IPC or network socket for on-demand service
-activation</td>
+<td>Represents an IPC or network socket for on-demand service activation</td>
 <td><code>sshd.socket</code>, <code>docker.socket</code></td>
 </tr>
 <tr>
@@ -396,77 +349,54 @@ activation</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Most commonly used is the service type</strong>
-(<code>.service</code> suffix), so when we talk about "services," we
-usually mean service units.</p>
-<h2 id="systemd-startup-process-overview">systemd Startup Process
-Overview</h2>
-<ol type="1">
-<li><strong>Kernel boots</strong>: After kernel loads, starts systemd
-(PID 1, first user-space process)</li>
-<li><strong>systemd reads config</strong>: Reads unit files from
-<code>/etc/systemd/system/</code> and
-<code>/usr/lib/systemd/system/</code></li>
-<li><strong>Determines startup target</strong>: Usually
-<code>multi-user.target</code> (multi-user text mode) or
-<code>graphical.target</code> (graphical interface)</li>
-<li><strong>Parses dependencies</strong>: Based on
-<code>Requires</code>, <code>After</code>, <code>Before</code> fields in
-unit files, determines startup order</li>
-<li><strong>Starts services in parallel</strong>: Simultaneously starts
-multiple services with no dependencies (improves startup speed)</li>
-<li><strong>Enters target state</strong>: After all dependent services
-start, system enters target state (like login prompt)</li>
+<p><strong>Most commonly used is the service type</strong> (<code>.service</code> suffix), so when we talk about “services,” we usually mean service units.</p>
+<h2 id="systemd-Startup-Process-Overview"><a class="header-anchor" href="#systemd-Startup-Process-Overview">¶</a>systemd Startup Process Overview</h2>
+<ol>
+<li><strong>Kernel boots</strong>: After kernel loads, starts systemd (PID 1, first user-space process)</li>
+<li><strong>systemd reads config</strong>: Reads unit files from <code>/etc/systemd/system/</code> and <code>/usr/lib/systemd/system/</code></li>
+<li><strong>Determines startup target</strong>: Usually <code>multi-user.target</code> (multi-user text mode) or <code>graphical.target</code> (graphical interface)</li>
+<li><strong>Parses dependencies</strong>: Based on <code>Requires</code>, <code>After</code>, <code>Before</code> fields in unit files, determines startup order</li>
+<li><strong>Starts services in parallel</strong>: Simultaneously starts multiple services with no dependencies (improves startup speed)</li>
+<li><strong>Enters target state</strong>: After all dependent services start, system enters target state (like login prompt)</li>
 </ol>
 <hr>
-<h1 id="systemctl-commands-the-muscle-memory-of-daily-use">systemctl
-Commands: The "Muscle Memory" of Daily Use</h1>
-<p><code>systemctl</code> is systemd's main command-line tool for
-managing services. This section covers the commands you'll use most
-frequently in daily operations.</p>
-<h2 id="basic-operations-start-stop-restart-check-status">Basic
-Operations (Start, Stop, Restart, Check Status)</h2>
+<h1>systemctl Commands: The “Muscle Memory” of Daily Use</h1>
+<p><code>systemctl</code> is systemd’s main command-line tool for managing services. This section covers the commands you’ll use most frequently in daily operations.</p>
+<h2 id="Basic-Operations-Start-Stop-Restart-Check-Status"><a class="header-anchor" href="#Basic-Operations-Start-Stop-Restart-Check-Status">¶</a>Basic Operations (Start, Stop, Restart, Check Status)</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Start service (takes effect immediately, but doesn&#x27;t persist after reboot)</span></span><br><span class="line">systemctl start &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Stop service</span></span><br><span class="line">systemctl stop &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Restart service (stops then starts)</span></span><br><span class="line">systemctl restart &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Reload config files (doesn&#x27;t stop service, suitable for services that support hot reload like nginx)</span></span><br><span class="line">systemctl reload &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Check service status (whether running, PID, recent logs, auto-start on boot)</span></span><br><span class="line">systemctl status &lt;service&gt;</span><br></pre></td></tr></table></figure>
-<p><strong>Examples</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl start sshd       <span class="comment"># Start SSH service</span></span><br><span class="line">systemctl status sshd      <span class="comment"># Check SSH service status</span></span><br><span class="line">systemctl reload nginx     <span class="comment"># Reload nginx config (without stopping service)</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="auto-start-on-boot-management">Auto-Start on Boot
-Management</h2>
+<p><strong>Examples</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl start sshd       <span class="comment"># Start SSH service</span></span><br><span class="line">systemctl status sshd      <span class="comment"># Check SSH service status</span></span><br><span class="line">systemctl reload nginx     <span class="comment"># Reload nginx config (without stopping service)</span></span><br></pre></td></tr></table></figure>
+<h2 id="Auto-Start-on-Boot-Management"><a class="header-anchor" href="#Auto-Start-on-Boot-Management">¶</a>Auto-Start on Boot Management</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Enable auto-start on boot (creates symlink to /etc/systemd/system/multi-user.target.wants/)</span></span><br><span class="line">systemctl <span class="built_in">enable</span> &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Disable auto-start on boot (removes symlink)</span></span><br><span class="line">systemctl <span class="built_in">disable</span> &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Check if service is enabled for auto-start</span></span><br><span class="line">systemctl is-enabled &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># One-step: start service + enable auto-start</span></span><br><span class="line">systemctl <span class="built_in">enable</span> --now &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># One-step: stop service + disable auto-start</span></span><br><span class="line">systemctl <span class="built_in">disable</span> --now &lt;service&gt;</span><br></pre></td></tr></table></figure>
-<p><strong>Examples</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">enable</span> sshd      <span class="comment"># Enable SSH service auto-start on boot</span></span><br><span class="line">systemctl is-enabled sshd  <span class="comment"># Output: enabled</span></span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld  <span class="comment"># Disable firewall auto-start on boot</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="view-service-lists">View Service Lists</h2>
+<p><strong>Examples</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">enable</span> sshd      <span class="comment"># Enable SSH service auto-start on boot</span></span><br><span class="line">systemctl is-enabled sshd  <span class="comment"># Output: enabled</span></span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld  <span class="comment"># Disable firewall auto-start on boot</span></span><br></pre></td></tr></table></figure>
+<h2 id="View-Service-Lists"><a class="header-anchor" href="#View-Service-Lists">¶</a>View Service Lists</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># List all running services</span></span><br><span class="line">systemctl list-units --<span class="built_in">type</span>=service --state=running</span><br><span class="line"></span><br><span class="line"><span class="comment"># List all services (including not running)</span></span><br><span class="line">systemctl list-units --<span class="built_in">type</span>=service --all</span><br><span class="line"></span><br><span class="line"><span class="comment"># List all failed services</span></span><br><span class="line">systemctl list-units --<span class="built_in">type</span>=service --state=failed</span><br><span class="line"></span><br><span class="line"><span class="comment"># Search for specific service (like services containing ssh)</span></span><br><span class="line">systemctl list-units --<span class="built_in">type</span>=service --all | grep ssh</span><br></pre></td></tr></table></figure>
-<p><strong>Example output</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">● sshd.service    loaded active running OpenBSD Secure Shell server</span><br><span class="line">● nginx.service   loaded active running A high performance web server</span><br></pre></td></tr></table></figure></p>
-<h2 id="view-service-details">View Service Details</h2>
+<p><strong>Example output</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">● sshd.service    loaded active running OpenBSD Secure Shell server</span><br><span class="line">● nginx.service   loaded active running A high performance web server</span><br></pre></td></tr></table></figure>
+<h2 id="View-Service-Details"><a class="header-anchor" href="#View-Service-Details">¶</a>View Service Details</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># View service unit file content</span></span><br><span class="line">systemctl <span class="built_in">cat</span> &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># View service dependencies</span></span><br><span class="line">systemctl list-dependencies &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># View service startup time (performance analysis)</span></span><br><span class="line">systemd-analyze blame</span><br><span class="line">systemd-analyze critical-chain &lt;service&gt;</span><br></pre></td></tr></table></figure>
-<p><strong>Examples</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">cat</span> sshd.service  <span class="comment"># View sshd unit file</span></span><br><span class="line">systemctl list-dependencies sshd.service  <span class="comment"># View what services sshd depends on</span></span><br><span class="line">systemd-analyze blame  <span class="comment"># View all services&#x27; startup time (sorted by duration)</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Examples</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">cat</span> sshd.service  <span class="comment"># View sshd unit file</span></span><br><span class="line">systemctl list-dependencies sshd.service  <span class="comment"># View what services sshd depends on</span></span><br><span class="line">systemd-analyze blame  <span class="comment"># View all services&#x27; startup time (sorted by duration)</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="custom-services-making-your-programs-auto-start-on-boot">Custom
-Services: Making Your Programs Auto-Start on Boot</h1>
-<p>Suppose you have a Python script or compiled binary program that you
-want to auto-start on boot and auto-restart after crashes. How? Write a
-systemd unit file.</p>
-<h2 id="minimal-working-example">Minimal Working Example</h2>
-<p>Suppose you have a script <code>/usr/local/bin/myapp.sh</code>:
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="keyword">while</span> <span class="literal">true</span>; <span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;MyApp is running...&quot;</span></span><br><span class="line">    <span class="built_in">sleep</span> 10</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure></p>
-<p>Create unit file <code>/etc/systemd/system/myapp.service</code>:
-<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Unit]</span></span><br><span class="line"><span class="attr">Description</span>=My Custom Application</span><br><span class="line"><span class="attr">After</span>=network.target</span><br><span class="line"></span><br><span class="line"><span class="section">[Service]</span></span><br><span class="line"><span class="attr">Type</span>=simple</span><br><span class="line"><span class="attr">ExecStart</span>=/usr/local/bin/myapp.sh</span><br><span class="line"><span class="attr">Restart</span>=always</span><br><span class="line"><span class="attr">RestartSec</span>=<span class="number">10</span></span><br><span class="line"><span class="attr">User</span>=nobody</span><br><span class="line"><span class="attr">Group</span>=nogroup</span><br><span class="line"></span><br><span class="line"><span class="section">[Install]</span></span><br><span class="line"><span class="attr">WantedBy</span>=multi-user.target</span><br></pre></td></tr></table></figure></p>
-<p>Then start and enable: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload  <span class="comment"># Reload systemd config</span></span><br><span class="line">sudo systemctl start myapp</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> myapp</span><br><span class="line">sudo systemctl status myapp</span><br></pre></td></tr></table></figure></p>
-<h2 id="unit-file-explained">Unit File Explained</h2>
-<h3 id="unit-section-description-and-dependencies">[Unit] Section
-(Description and Dependencies)</h3>
+<h1>Custom Services: Making Your Programs Auto-Start on Boot</h1>
+<p>Suppose you have a Python script or compiled binary program that you want to auto-start on boot and auto-restart after crashes. How? Write a systemd unit file.</p>
+<h2 id="Minimal-Working-Example"><a class="header-anchor" href="#Minimal-Working-Example">¶</a>Minimal Working Example</h2>
+<p>Suppose you have a script <code>/usr/local/bin/myapp.sh</code>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="keyword">while</span> <span class="literal">true</span>; <span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;MyApp is running...&quot;</span></span><br><span class="line">    <span class="built_in">sleep</span> 10</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+<p>Create unit file <code>/etc/systemd/system/myapp.service</code>:</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Unit]</span></span><br><span class="line"><span class="attr">Description</span>=My Custom Application</span><br><span class="line"><span class="attr">After</span>=network.target</span><br><span class="line"></span><br><span class="line"><span class="section">[Service]</span></span><br><span class="line"><span class="attr">Type</span>=simple</span><br><span class="line"><span class="attr">ExecStart</span>=/usr/local/bin/myapp.sh</span><br><span class="line"><span class="attr">Restart</span>=always</span><br><span class="line"><span class="attr">RestartSec</span>=<span class="number">10</span></span><br><span class="line"><span class="attr">User</span>=nobody</span><br><span class="line"><span class="attr">Group</span>=nogroup</span><br><span class="line"></span><br><span class="line"><span class="section">[Install]</span></span><br><span class="line"><span class="attr">WantedBy</span>=multi-user.target</span><br></pre></td></tr></table></figure>
+<p>Then start and enable:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload  <span class="comment"># Reload systemd config</span></span><br><span class="line">sudo systemctl start myapp</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> myapp</span><br><span class="line">sudo systemctl status myapp</span><br></pre></td></tr></table></figure>
+<h2 id="Unit-File-Explained"><a class="header-anchor" href="#Unit-File-Explained">¶</a>Unit File Explained</h2>
+<h3 id="Unit-Section-Description-and-Dependencies"><a class="header-anchor" href="#Unit-Section-Description-and-Dependencies">¶</a>[Unit] Section (Description and Dependencies)</h3>
 <figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Unit]</span></span><br><span class="line"><span class="attr">Description</span>=My Custom Application  <span class="comment"># Description (shown in systemctl status)</span></span><br><span class="line"><span class="attr">After</span>=network.target               <span class="comment"># Start after network service</span></span><br><span class="line"><span class="attr">Before</span>=another.service             <span class="comment"># Start before another service</span></span><br><span class="line"><span class="attr">Requires</span>=some.service              <span class="comment"># Strong dependency (if dependency fails, this service fails)</span></span><br><span class="line"><span class="attr">Wants</span>=some.service                 <span class="comment"># Weak dependency (if dependency fails, this service still tries to start)</span></span><br></pre></td></tr></table></figure>
-<h3 id="service-section-service-startup-method-and-behavior">[Service]
-Section (Service Startup Method and Behavior)</h3>
+<h3 id="Service-Section-Service-Startup-Method-and-Behavior"><a class="header-anchor" href="#Service-Section-Service-Startup-Method-and-Behavior">¶</a>[Service] Section (Service Startup Method and Behavior)</h3>
 <figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Service]</span></span><br><span class="line"><span class="attr">Type</span>=simple                        <span class="comment"># Most common type (considered ready after start)</span></span><br><span class="line"><span class="comment"># Type=forking                     # Suitable for services that fork to background (like traditional daemons)</span></span><br><span class="line"><span class="comment"># Type=oneshot                     # Suitable for one-time execution tasks (like init scripts)</span></span><br><span class="line"></span><br><span class="line"><span class="attr">ExecStart</span>=/usr/local/bin/myapp.sh  <span class="comment"># Start command (must be absolute path)</span></span><br><span class="line"><span class="attr">ExecReload</span>=/bin/kill -HUP <span class="variable">$MAINPID</span> <span class="comment"># Reload config (optional)</span></span><br><span class="line"><span class="attr">ExecStop</span>=/bin/kill -TERM <span class="variable">$MAINPID</span>  <span class="comment"># Stop command (optional, default sends SIGTERM)</span></span><br><span class="line"></span><br><span class="line"><span class="attr">Restart</span>=always                     <span class="comment"># Auto-restart after crash (always / on-failure / no)</span></span><br><span class="line"><span class="attr">RestartSec</span>=<span class="number">10</span>                      <span class="comment"># Wait 10 seconds before restart</span></span><br><span class="line"></span><br><span class="line"><span class="attr">User</span>=nobody                        <span class="comment"># Which user to run as (security, don&#x27;t use root)</span></span><br><span class="line"><span class="attr">Group</span>=nogroup                      <span class="comment"># Which group to run as</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Resource limits</span></span><br><span class="line"><span class="attr">LimitNOFILE</span>=<span class="number">65536</span>                  <span class="comment"># Max open files</span></span><br><span class="line"><span class="attr">LimitNPROC</span>=<span class="number">4096</span>                    <span class="comment"># Max processes</span></span><br><span class="line"><span class="attr">MemoryLimit</span>=<span class="number">512</span>M                   <span class="comment"># Memory limit (requires cgroup v2 support)</span></span><br><span class="line"><span class="attr">CPUQuota</span>=<span class="number">50</span>%                       <span class="comment"># CPU limit (50% means max 0.5 core)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Working directory</span></span><br><span class="line"><span class="attr">WorkingDirectory</span>=/var/lib/myapp    <span class="comment"># Working directory at startup</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Environment variables</span></span><br><span class="line"><span class="attr">Environment</span>=<span class="string">&quot;VAR1=value1&quot;</span></span><br><span class="line"><span class="attr">Environment</span>=<span class="string">&quot;VAR2=value2&quot;</span></span><br><span class="line"><span class="attr">EnvironmentFile</span>=/etc/myapp/env     <span class="comment"># Load environment variables from file</span></span><br></pre></td></tr></table></figure>
-<h3 id="install-section-auto-start-configuration">[Install] Section
-(Auto-Start Configuration)</h3>
+<h3 id="Install-Section-Auto-Start-Configuration"><a class="header-anchor" href="#Install-Section-Auto-Start-Configuration">¶</a>[Install] Section (Auto-Start Configuration)</h3>
 <figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Install]</span></span><br><span class="line"><span class="attr">WantedBy</span>=multi-user.target         <span class="comment"># Start in multi-user mode (text mode)</span></span><br><span class="line"><span class="comment"># WantedBy=graphical.target        # Start in graphical mode</span></span><br></pre></td></tr></table></figure>
-<h2 id="common-type-differences">Common Type Differences</h2>
+<h2 id="Common-Type-Differences"><a class="header-anchor" href="#Common-Type-Differences">¶</a>Common Type Differences</h2>
 <table>
-<colgroup>
-<col style="width: 8%">
-<col style="width: 62%">
-<col style="width: 29%">
-</colgroup>
 <thead>
 <tr>
 <th>Type</th>
@@ -482,8 +412,7 @@ Section (Service Startup Method and Behavior)</h3>
 </tr>
 <tr>
 <td><strong>forking</strong></td>
-<td>Service forks a child process then exits (parent exits, child
-becomes main process)</td>
+<td>Service forks a child process then exits (parent exits, child becomes main process)</td>
 <td>Traditional daemon programs (like old Apache)</td>
 </tr>
 <tr>
@@ -493,137 +422,105 @@ becomes main process)</td>
 </tr>
 <tr>
 <td><strong>notify</strong></td>
-<td>Service actively notifies systemd "I'm ready" after start (requires
-program support for sd_notify)</td>
+<td>Service actively notifies systemd “I’m ready” after start (requires program support for sd_notify)</td>
 <td>Advanced services (like systemd-networkd)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="must-reload-after-modifying-unit-file">Must Reload After
-Modifying Unit File</h2>
+<h2 id="Must-Reload-After-Modifying-Unit-File"><a class="header-anchor" href="#Must-Reload-After-Modifying-Unit-File">¶</a>Must Reload After Modifying Unit File</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload  <span class="comment"># Tell systemd to re-read unit files</span></span><br><span class="line">sudo systemctl restart myapp</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="journalctl-systemds-unified-logging-system">journalctl:
-systemd's Unified Logging System</h1>
-<p>systemd comes with <strong>journald</strong>; all service logs are
-centrally stored in <code>/var/log/journal/</code> or
-<code>/run/log/journal/</code> (cleared after reboot). Query with
-<code>journalctl</code>.</p>
-<h2 id="basic-usage">Basic Usage</h2>
+<h1>journalctl: systemd’s Unified Logging System</h1>
+<p>systemd comes with <strong>journald</strong>; all service logs are centrally stored in <code>/var/log/journal/</code> or <code>/run/log/journal/</code> (cleared after reboot). Query with <code>journalctl</code>.</p>
+<h2 id="Basic-Usage-v2"><a class="header-anchor" href="#Basic-Usage-v2">¶</a>Basic Usage</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># View all logs (earliest to newest)</span></span><br><span class="line">journalctl</span><br><span class="line"></span><br><span class="line"><span class="comment"># View logs for a specific service</span></span><br><span class="line">journalctl -u &lt;service&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># Real-time view logs (like tail -f)</span></span><br><span class="line">journalctl -u &lt;service&gt; -f</span><br><span class="line"></span><br><span class="line"><span class="comment"># View last N lines of logs</span></span><br><span class="line">journalctl -u &lt;service&gt; -n 50</span><br><span class="line"></span><br><span class="line"><span class="comment"># View logs from last 1 hour</span></span><br><span class="line">journalctl -u &lt;service&gt; --since <span class="string">&quot;1 hour ago&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># View logs for a time period</span></span><br><span class="line">journalctl -u &lt;service&gt; --since <span class="string">&quot;2025-02-01 00:00:00&quot;</span> --until <span class="string">&quot;2025-02-01 23:59:59&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># View boot logs</span></span><br><span class="line">journalctl -b  <span class="comment"># -b 0 means current boot, -b -1 means previous boot</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># View kernel logs</span></span><br><span class="line">journalctl -k</span><br></pre></td></tr></table></figure>
-<h2 id="advanced-usage">Advanced Usage</h2>
+<h2 id="Advanced-Usage-v3"><a class="header-anchor" href="#Advanced-Usage-v3">¶</a>Advanced Usage</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># View logs with detailed info (including PID, UID, etc.)</span></span><br><span class="line">journalctl -u &lt;service&gt; -o verbose</span><br><span class="line"></span><br><span class="line"><span class="comment"># View logs showing only errors and more severe messages</span></span><br><span class="line">journalctl -u &lt;service&gt; -p err</span><br><span class="line"></span><br><span class="line"><span class="comment"># View all logs for a specific user</span></span><br><span class="line">journalctl _UID=1000</span><br><span class="line"></span><br><span class="line"><span class="comment"># View logs for a specific executable</span></span><br><span class="line">journalctl /usr/bin/python3</span><br><span class="line"></span><br><span class="line"><span class="comment"># Clean logs (keep last 7 days)</span></span><br><span class="line">journalctl --vacuum-time=7d</span><br><span class="line"></span><br><span class="line"><span class="comment"># Clean logs (keep last 1GB)</span></span><br><span class="line">journalctl --vacuum-size=1G</span><br></pre></td></tr></table></figure>
-<h2 id="log-persistence">Log Persistence</h2>
-<p>By default, journald logs are stored in
-<code>/run/log/journal/</code> (in memory, cleared after reboot). To
-persist logs:</p>
-<ol type="1">
-<li><p>Create directory: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> -p /var/log/journal</span><br><span class="line">sudo systemd-tmpfiles --create --prefix /var/log/journal</span><br></pre></td></tr></table></figure></p></li>
-<li><p>Restart journald: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart systemd-journald</span><br></pre></td></tr></table></figure></p></li>
+<h2 id="Log-Persistence"><a class="header-anchor" href="#Log-Persistence">¶</a>Log Persistence</h2>
+<p>By default, journald logs are stored in <code>/run/log/journal/</code> (in memory, cleared after reboot). To persist logs:</p>
+<ol>
+<li>
+<p>Create directory:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> -p /var/log/journal</span><br><span class="line">sudo systemd-tmpfiles --create --prefix /var/log/journal</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>Restart journald:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart systemd-journald</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
-<p>Afterward, logs will be saved in <code>/var/log/journal/</code>,
-persisting after reboot.</p>
+<p>Afterward, logs will be saved in <code>/var/log/journal/</code>, persisting after reboot.</p>
 <hr>
-<h1 id="common-service-configuration-and-troubleshooting">Common Service
-Configuration and Troubleshooting</h1>
-<p>This section explains configuration and troubleshooting methods for
-several of the most common system services.</p>
-<h2 id="time-synchronization-service-ntpd-ntpsec-timedatectl">Time
-Synchronization Service (ntpd / ntpsec / timedatectl)</h2>
-<h3 id="why-time-synchronization-is-needed">Why Time Synchronization Is
-Needed</h3>
-<p>In distributed systems, clusters, log analysis, and other application
-scenarios, time synchronization is critical:</p>
+<h1>Common Service Configuration and Troubleshooting</h1>
+<p>This section explains configuration and troubleshooting methods for several of the most common system services.</p>
+<h2 id="Time-Synchronization-Service-ntpd-ntpsec-timedatectl"><a class="header-anchor" href="#Time-Synchronization-Service-ntpd-ntpsec-timedatectl">¶</a>Time Synchronization Service (ntpd / ntpsec / timedatectl)</h2>
+<h3 id="Why-Time-Synchronization-Is-Needed"><a class="header-anchor" href="#Why-Time-Synchronization-Is-Needed">¶</a>Why Time Synchronization Is Needed</h3>
+<p>In distributed systems, clusters, log analysis, and other application scenarios, time synchronization is critical:</p>
 <ul>
-<li><strong>Scheduled task execution</strong> (like cron jobs): If time
-is inconsistent, tasks may execute early or late</li>
-<li><strong>Log comparison and analysis</strong>: If multiple servers
-have inconsistent time, log timestamps will be chaotic, impossible to
-correlate</li>
-<li><strong>Data synchronization</strong> (like database master-slave
-replication): Inconsistent time can cause data order confusion</li>
-<li><strong>Security protocols</strong> (like Kerberos authentication,
-TLS certificates): Too large time差 causes authentication failure</li>
+<li><strong>Scheduled task execution</strong> (like cron jobs): If time is inconsistent, tasks may execute early or late</li>
+<li><strong>Log comparison and analysis</strong>: If multiple servers have inconsistent time, log timestamps will be chaotic, impossible to correlate</li>
+<li><strong>Data synchronization</strong> (like database master-slave replication): Inconsistent time can cause data order confusion</li>
+<li><strong>Security protocols</strong> (like Kerberos authentication, TLS certificates): Too large time差 causes authentication failure</li>
 </ul>
-<h3 id="solution-1-using-ntpsec-recommended">Solution 1: Using ntpsec
-(Recommended)</h3>
-<p><strong>ntpsec</strong> is the modernized version of traditional
-ntpd, with higher security and cleaner code.</p>
-<p><strong>Install and start</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install ntpsec  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo yum install ntpsec  <span class="comment"># CentOS/RHEL</span></span><br><span class="line">sudo systemctl <span class="built_in">enable</span> --now ntpsec</span><br></pre></td></tr></table></figure></p>
-<p><strong>Configuration</strong>: Edit
-<code>/etc/ntpsec/ntp.conf</code>, add time servers (recommend using
-domestic servers for lower latency): <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">server ntp.aliyun.com iburst prefer</span><br><span class="line">server ntp.tencent.com iburst</span><br><span class="line">server cn.pool.ntp.org iburst</span><br></pre></td></tr></table></figure></p>
+<h3 id="Solution-1-Using-ntpsec-Recommended"><a class="header-anchor" href="#Solution-1-Using-ntpsec-Recommended">¶</a>Solution 1: Using ntpsec (Recommended)</h3>
+<p><strong>ntpsec</strong> is the modernized version of traditional ntpd, with higher security and cleaner code.</p>
+<p><strong>Install and start</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install ntpsec  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo yum install ntpsec  <span class="comment"># CentOS/RHEL</span></span><br><span class="line">sudo systemctl <span class="built_in">enable</span> --now ntpsec</span><br></pre></td></tr></table></figure>
+<p><strong>Configuration</strong>: Edit <code>/etc/ntpsec/ntp.conf</code>, add time servers (recommend using domestic servers for lower latency):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">server ntp.aliyun.com iburst prefer</span><br><span class="line">server ntp.tencent.com iburst</span><br><span class="line">server cn.pool.ntp.org iburst</span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>iburst</code>: Fast sync at startup (sends 8 packets instead
-of 1)</li>
+<li><code>iburst</code>: Fast sync at startup (sends 8 packets instead of 1)</li>
 <li><code>prefer</code>: Prioritize this server</li>
 </ul>
-<p>Restart service: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart ntpsec</span><br></pre></td></tr></table></figure></p>
-<p><strong>Check sync status</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ntpq -p  <span class="comment"># View currently connected time servers</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="solution-2-using-timedatectl-simpler">Solution 2: Using
-timedatectl (Simpler)</h3>
-<p><strong>timedatectl</strong> is systemd's built-in time management
-tool, using <code>systemd-timesyncd</code> for NTP synchronization
-underneath.</p>
-<p><strong>Enable NTP sync</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo timedatectl set-ntp <span class="literal">true</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Check status</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">timedatectl</span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">               Local time: Mon 2025-02-03 12:00:00 UTC</span><br><span class="line">           Universal time: Mon 2025-02-03 12:00:00 UTC</span><br><span class="line">                 RTC time: Mon 2025-02-03 12:00:00</span><br><span class="line">                Time zone: UTC (UTC, +0000)</span><br><span class="line">System clock synchronized: yes</span><br><span class="line">              NTP service: active</span><br><span class="line">          RTC in local TZ: no</span><br></pre></td></tr></table></figure></p>
-<p><strong>Set timezone</strong> (if needed): <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo timedatectl set-timezone Asia/Shanghai</span><br></pre></td></tr></table></figure></p>
-<p><strong>View available timezones</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">timedatectl list-timezones | grep Shanghai</span><br></pre></td></tr></table></figure></p>
-<h3 id="ntpdate-one-time-sync-not-recommended-for-resident-use">ntpdate
-(One-Time Sync, Not Recommended for Resident Use)</h3>
-<p>If you only need to sync time once temporarily (not a resident
-service): <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo ntpdate ntp.aliyun.com</span><br></pre></td></tr></table></figure></p>
+<p>Restart service:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart ntpsec</span><br></pre></td></tr></table></figure>
+<p><strong>Check sync status</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ntpq -p  <span class="comment"># View currently connected time servers</span></span><br></pre></td></tr></table></figure>
+<h3 id="Solution-2-Using-timedatectl-Simpler"><a class="header-anchor" href="#Solution-2-Using-timedatectl-Simpler">¶</a>Solution 2: Using timedatectl (Simpler)</h3>
+<p><strong>timedatectl</strong> is systemd’s built-in time management tool, using <code>systemd-timesyncd</code> for NTP synchronization underneath.</p>
+<p><strong>Enable NTP sync</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo timedatectl set-ntp <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+<p><strong>Check status</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">timedatectl</span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">               Local time: Mon 2025-02-03 12:00:00 UTC</span><br><span class="line">           Universal time: Mon 2025-02-03 12:00:00 UTC</span><br><span class="line">                 RTC time: Mon 2025-02-03 12:00:00</span><br><span class="line">                Time zone: UTC (UTC, +0000)</span><br><span class="line">System clock synchronized: yes</span><br><span class="line">              NTP service: active</span><br><span class="line">          RTC in local TZ: no</span><br></pre></td></tr></table></figure>
+<p><strong>Set timezone</strong> (if needed):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo timedatectl set-timezone Asia/Shanghai</span><br></pre></td></tr></table></figure>
+<p><strong>View available timezones</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">timedatectl list-timezones | grep Shanghai</span><br></pre></td></tr></table></figure>
+<h3 id="ntpdate-One-Time-Sync-Not-Recommended-for-Resident-Use"><a class="header-anchor" href="#ntpdate-One-Time-Sync-Not-Recommended-for-Resident-Use">¶</a>ntpdate (One-Time Sync, Not Recommended for Resident Use)</h3>
+<p>If you only need to sync time once temporarily (not a resident service):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo ntpdate ntp.aliyun.com</span><br></pre></td></tr></table></figure>
 <p><strong>Disadvantages</strong>:</p>
 <ul>
-<li>Brutally modifies time (direct jump), may cause errors in
-time-dependent programs (like cron, database sync)</li>
+<li>Brutally modifies time (direct jump), may cause errors in time-dependent programs (like cron, database sync)</li>
 <li>ntpd / ntpsec uses smooth adjustment, avoids time jumps</li>
 </ul>
-<p><strong>Recommendation</strong>: Use ntpsec or timedatectl for
-long-running synchronization, avoid ntpdate's issues.</p>
+<p><strong>Recommendation</strong>: Use ntpsec or timedatectl for long-running synchronization, avoid ntpdate’s issues.</p>
 <hr>
-<h2 id="firewall-service-firewalld">Firewall Service (firewalld)</h2>
-<h3 id="basic-introduction">Basic Introduction</h3>
-<p>Firewall is a network security tool used to <strong>control and
-filter network traffic</strong>, preventing unauthorized access. Common
-firewalls in Linux:</p>
+<h2 id="Firewall-Service-firewalld"><a class="header-anchor" href="#Firewall-Service-firewalld">¶</a>Firewall Service (firewalld)</h2>
+<h3 id="Basic-Introduction"><a class="header-anchor" href="#Basic-Introduction">¶</a>Basic Introduction</h3>
+<p>Firewall is a network security tool used to <strong>control and filter network traffic</strong>, preventing unauthorized access. Common firewalls in Linux:</p>
 <ul>
-<li><strong>iptables</strong> (traditional, rules are ordered, complex
-configuration)</li>
-<li><strong>firewalld</strong> (modern, dynamic rules, supports zone
-concept, RHEL/CentOS default)</li>
-<li><strong>ufw</strong> (Ubuntu-friendly firewall, simplified
-iptables)</li>
+<li><strong>iptables</strong> (traditional, rules are ordered, complex configuration)</li>
+<li><strong>firewalld</strong> (modern, dynamic rules, supports zone concept, RHEL/CentOS default)</li>
+<li><strong>ufw</strong> (Ubuntu-friendly firewall, simplified iptables)</li>
 </ul>
-<p><strong>firewalld</strong> is a dynamic firewall based on
-iptables/nftables, providing a friendlier command-line interface.</p>
-<h3 id="enable-and-disable">Enable and Disable</h3>
+<p><strong>firewalld</strong> is a dynamic firewall based on iptables/nftables, providing a friendlier command-line interface.</p>
+<h3 id="Enable-and-Disable"><a class="header-anchor" href="#Enable-and-Disable">¶</a>Enable and Disable</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl start firewalld</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> firewalld</span><br><span class="line">sudo systemctl status firewalld</span><br><span class="line"></span><br><span class="line">sudo systemctl stop firewalld</span><br><span class="line">sudo systemctl <span class="built_in">disable</span> firewalld</span><br></pre></td></tr></table></figure>
-<h3 id="basic-rule-operations">Basic Rule Operations</h3>
-<h4 id="openclose-ports">Open/Close Ports</h4>
+<h3 id="Basic-Rule-Operations"><a class="header-anchor" href="#Basic-Rule-Operations">¶</a>Basic Rule Operations</h3>
+<h4 id="Open-Close-Ports"><a class="header-anchor" href="#Open-Close-Ports">¶</a>Open/Close Ports</h4>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Open port 80 (TCP)</span></span><br><span class="line">sudo firewall-cmd --permanent --add-port=80/tcp</span><br><span class="line">sudo firewall-cmd --reload</span><br><span class="line"></span><br><span class="line"><span class="comment"># Open port range 80-90</span></span><br><span class="line">sudo firewall-cmd --permanent --add-port=80-90/tcp</span><br><span class="line">sudo firewall-cmd --reload</span><br><span class="line"></span><br><span class="line"><span class="comment"># Close port 80</span></span><br><span class="line">sudo firewall-cmd --permanent --remove-port=80/tcp</span><br><span class="line">sudo firewall-cmd --reload</span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>--permanent</code>: Write permanent rule (otherwise expires
-after reboot)</li>
-<li><code>--reload</code>: Reload rules (make permanent rules take
-effect)</li>
+<li><code>--permanent</code>: Write permanent rule (otherwise expires after reboot)</li>
+<li><code>--reload</code>: Reload rules (make permanent rules take effect)</li>
 </ul>
-<h4 id="openclose-services">Open/Close Services</h4>
+<h4 id="Open-Close-Services"><a class="header-anchor" href="#Open-Close-Services">¶</a>Open/Close Services</h4>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Open HTTP service (includes port 80)</span></span><br><span class="line">sudo firewall-cmd --permanent --add-service=http</span><br><span class="line">sudo firewall-cmd --reload</span><br><span class="line"></span><br><span class="line"><span class="comment"># View currently open services and ports</span></span><br><span class="line">sudo firewall-cmd --list-all</span><br></pre></td></tr></table></figure>
-<p><strong>Common service names</strong>: <code>http</code>,
-<code>https</code>, <code>ssh</code>, <code>ntp</code>,
-<code>mysql</code>, <code>postgresql</code>, etc.</p>
-<h3 id="zone-concept">zone Concept</h3>
-<p>firewalld uses <strong>zones</strong> to define different security
-levels:</p>
+<p><strong>Common service names</strong>: <code>http</code>, <code>https</code>, <code>ssh</code>, <code>ntp</code>, <code>mysql</code>, <code>postgresql</code>, etc.</p>
+<h3 id="zone-Concept"><a class="header-anchor" href="#zone-Concept">¶</a>zone Concept</h3>
+<p>firewalld uses <strong>zones</strong> to define different security levels:</p>
 <table>
-<colgroup>
-<col style="width: 12%">
-<col style="width: 11%">
-<col style="width: 41%">
-<col style="width: 33%">
-</colgroup>
 <thead>
 <tr>
 <th>Zone Name</th>
@@ -665,157 +562,126 @@ levels:</p>
 </tr>
 </tbody>
 </table>
-<p><strong>View current default zone</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo firewall-cmd --get-default-zone</span><br></pre></td></tr></table></figure></p>
-<p><strong>Change default zone</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo firewall-cmd --set-default-zone=work</span><br></pre></td></tr></table></figure></p>
+<p><strong>View current default zone</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo firewall-cmd --get-default-zone</span><br></pre></td></tr></table></figure>
+<p><strong>Change default zone</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo firewall-cmd --set-default-zone=work</span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="scheduled-tasks-crontab">Scheduled Tasks (crontab)</h2>
-<p>Scheduled tasks allow the system to automatically execute certain
-scripts or commands at specified times, for example:</p>
+<h2 id="Scheduled-Tasks-crontab"><a class="header-anchor" href="#Scheduled-Tasks-crontab">¶</a>Scheduled Tasks (crontab)</h2>
+<p>Scheduled tasks allow the system to automatically execute certain scripts or commands at specified times, for example:</p>
 <ul>
 <li>Scheduled database backup (every day at 2 AM)</li>
 <li>Scheduled log file or temp folder cleanup (every Sunday)</li>
 <li>Scheduled time sync (every hour)</li>
 </ul>
-<h3 id="edit-and-view">Edit and View</h3>
+<h3 id="Edit-and-View"><a class="header-anchor" href="#Edit-and-View">¶</a>Edit and View</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">crontab -e  <span class="comment"># Edit current user&#x27;s scheduled tasks</span></span><br><span class="line">crontab -l  <span class="comment"># View current user&#x27;s scheduled tasks</span></span><br><span class="line">crontab -r  <span class="comment"># Delete all of current user&#x27;s scheduled tasks</span></span><br></pre></td></tr></table></figure>
-<h3 id="format">Format</h3>
+<h3 id="Format-v2"><a class="header-anchor" href="#Format-v2">¶</a>Format</h3>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MIN HOUR DAY MONTH WEEKDAY command</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>MIN</code>: Minutes (0-59)</li>
 <li><code>HOUR</code>: Hours (0-23)</li>
 <li><code>DAY</code>: Day of month (1-31)</li>
 <li><code>MONTH</code>: Month (1-12)</li>
-<li><code>WEEKDAY</code>: Day of week (0-7, 0 and 7 both represent
-Sunday)</li>
-<li><code>command</code>: Command to execute (recommend using absolute
-paths)</li>
+<li><code>WEEKDAY</code>: Day of week (0-7, 0 and 7 both represent Sunday)</li>
+<li><code>command</code>: Command to execute (recommend using absolute paths)</li>
 </ul>
 <p><strong>Special symbols</strong>:</p>
 <ul>
-<li><code>*</code>: Represents "every" (like <code>*</code> in minutes
-means every minute)</li>
-<li><code>-</code>: Represents range (like <code>1-5</code> means 1 to
-5)</li>
-<li><code>/</code>: Represents interval (like <code>*/10</code> means
-every 10 units)</li>
-<li><code>,</code>: Represents multiple values (like <code>1,2,6</code>
-means 1, 2, 6)</li>
+<li><code>*</code>: Represents “every” (like <code>*</code> in minutes means every minute)</li>
+<li><code>-</code>: Represents range (like <code>1-5</code> means 1 to 5)</li>
+<li><code>/</code>: Represents interval (like <code>*/10</code> means every 10 units)</li>
+<li><code>,</code>: Represents multiple values (like <code>1,2,6</code> means 1, 2, 6)</li>
 </ul>
-<h3 id="examples">Examples</h3>
+<h3 id="Examples"><a class="header-anchor" href="#Examples">¶</a>Examples</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Run backup script daily at 1:30 AM</span></span><br><span class="line">30 1 * * * /usr/local/bin/backup.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># Sync time daily at 2:30 AM (redirect output to null, no output)</span></span><br><span class="line">30 2 * * * /usr/sbin/ntpdate -u ntp.aliyun.com &amp;&gt; /dev/null</span><br><span class="line"></span><br><span class="line"><span class="comment"># Execute at 5 minutes past every hour</span></span><br><span class="line">5 * * * * /usr/local/bin/hourly-task.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># Execute every 10 minutes</span></span><br><span class="line">*/10 * * * * /usr/local/bin/monitor.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># Execute every Sunday at 3 AM</span></span><br><span class="line">0 3 * * 0 /usr/local/bin/weekly-cleanup.sh</span><br></pre></td></tr></table></figure>
-<h3 id="view-logs">View Logs</h3>
+<h3 id="View-Logs"><a class="header-anchor" href="#View-Logs">¶</a>View Logs</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep CRON /var/log/syslog  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">grep CRON /var/log/cron    <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h2 id="ssh-service-configuration-and-security-hardening">SSH Service
-Configuration and Security Hardening</h2>
-<p>SSH is the standard way to remotely manage Linux servers. In "Linux
-Basics" we already covered basic usage (<code>ssh user@host</code>,
-password-free login); here we cover some <strong>sshd configuration and
-security hardening</strong>.</p>
-<h3 id="configuration-file">Configuration File</h3>
-<p><strong>Configuration file</strong>:
-<code>/etc/ssh/sshd_config</code></p>
-<p>After modification, restart service: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart sshd</span><br></pre></td></tr></table></figure></p>
-<h3 id="common-configuration-items">Common Configuration Items</h3>
+<h2 id="SSH-Service-Configuration-and-Security-Hardening"><a class="header-anchor" href="#SSH-Service-Configuration-and-Security-Hardening">¶</a>SSH Service Configuration and Security Hardening</h2>
+<p>SSH is the standard way to remotely manage Linux servers. In “Linux Basics” we already covered basic usage (<code>ssh user@host</code>, password-free login); here we cover some <strong>sshd configuration and security hardening</strong>.</p>
+<h3 id="Configuration-File"><a class="header-anchor" href="#Configuration-File">¶</a>Configuration File</h3>
+<p><strong>Configuration file</strong>: <code>/etc/ssh/sshd_config</code></p>
+<p>After modification, restart service:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart sshd</span><br></pre></td></tr></table></figure>
+<h3 id="Common-Configuration-Items"><a class="header-anchor" href="#Common-Configuration-Items">¶</a>Common Configuration Items</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Listening port (default 22, recommend changing to another port to reduce scanning)</span></span><br><span class="line">Port 22222</span><br><span class="line"></span><br><span class="line"><span class="comment"># Whether to allow root user direct login (recommend disabling)</span></span><br><span class="line">PermitRootLogin no</span><br><span class="line"></span><br><span class="line"><span class="comment"># Whether to allow password login (recommend disabling, only use key login)</span></span><br><span class="line">PasswordAuthentication no</span><br><span class="line"></span><br><span class="line"><span class="comment"># Whether to allow empty password login (strongly recommend disabling)</span></span><br><span class="line">PermitEmptyPasswords no</span><br><span class="line"></span><br><span class="line"><span class="comment"># Allow public key authentication</span></span><br><span class="line">PubkeyAuthentication <span class="built_in">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Public key file location</span></span><br><span class="line">AuthorizedKeysFile .ssh/authorized_keys</span><br><span class="line"></span><br><span class="line"><span class="comment"># Whether to allow X11 forwarding (graphical interface forwarding)</span></span><br><span class="line">X11Forwarding <span class="built_in">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Max authentication attempts (prevent brute force)</span></span><br><span class="line">MaxAuthTries 3</span><br><span class="line"></span><br><span class="line"><span class="comment"># Idle timeout (seconds)</span></span><br><span class="line">ClientAliveInterval 300</span><br><span class="line">ClientAliveCountMax 0</span><br></pre></td></tr></table></figure>
-<h3 id="security-hardening-recommendations">Security Hardening
-Recommendations</h3>
-<ol type="1">
-<li><strong>Change port</strong>: Change default port 22 to another
-(like 22222), reduce scan probability</li>
-<li><strong>Disable root login</strong>:
-<code>PermitRootLogin no</code>, only allow regular user login, use
-<code>sudo</code> when permissions needed</li>
-<li><strong>Disable password login</strong>:
-<code>PasswordAuthentication no</code>, only allow key login (prevent
-brute force)</li>
-<li><strong>Install fail2ban</strong>: Automatically ban brute force IPs
-(auto-ban after consecutive failures)</li>
-<li><strong>Configure firewall</strong>: Only allow specific IPs to
-connect to SSH (if you have fixed IPs)</li>
-<li><strong>Use SSH keys</strong>: 4096-bit RSA or Ed25519 keys (much
-more secure than passwords)</li>
+<h3 id="Security-Hardening-Recommendations"><a class="header-anchor" href="#Security-Hardening-Recommendations">¶</a>Security Hardening Recommendations</h3>
+<ol>
+<li><strong>Change port</strong>: Change default port 22 to another (like 22222), reduce scan probability</li>
+<li><strong>Disable root login</strong>: <code>PermitRootLogin no</code>, only allow regular user login, use <code>sudo</code> when permissions needed</li>
+<li><strong>Disable password login</strong>: <code>PasswordAuthentication no</code>, only allow key login (prevent brute force)</li>
+<li><strong>Install fail2ban</strong>: Automatically ban brute force IPs (auto-ban after consecutive failures)</li>
+<li><strong>Configure firewall</strong>: Only allow specific IPs to connect to SSH (if you have fixed IPs)</li>
+<li><strong>Use SSH keys</strong>: 4096-bit RSA or Ed25519 keys (much more secure than passwords)</li>
 </ol>
 <hr>
-<h1 id="service-troubleshooting-process-what-to-do-when-service-wont-start">Service
-Troubleshooting Process: What to Do When Service Won't Start</h1>
-<p>When a service won't start, follow this troubleshooting process:</p>
-<h2 id="check-service-status">1. Check Service Status</h2>
+<h1>Service Troubleshooting Process: What to Do When Service Won’t Start</h1>
+<p>When a service won’t start, follow this troubleshooting process:</p>
+<h2 id="1-Check-Service-Status"><a class="header-anchor" href="#1-Check-Service-Status">¶</a>1. Check Service Status</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl status &lt;service&gt;</span><br></pre></td></tr></table></figure>
 <p>Focus on:</p>
 <ul>
-<li><strong>Active</strong>: Whether it shows
-<code>active (running)</code> or <code>failed</code></li>
-<li><strong>Main PID</strong>: Main process PID (if 0, process has
-exited)</li>
-<li><strong>Recent logs</strong>: Usually shows last few lines of logs,
-check for error messages</li>
+<li><strong>Active</strong>: Whether it shows <code>active (running)</code> or <code>failed</code></li>
+<li><strong>Main PID</strong>: Main process PID (if 0, process has exited)</li>
+<li><strong>Recent logs</strong>: Usually shows last few lines of logs, check for error messages</li>
 </ul>
-<h2 id="view-detailed-logs">2. View Detailed Logs</h2>
+<h2 id="2-View-Detailed-Logs"><a class="header-anchor" href="#2-View-Detailed-Logs">¶</a>2. View Detailed Logs</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo journalctl -u &lt;service&gt; -xe</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-x</code>: Show extra explanatory information</li>
 <li><code>-e</code>: Jump to end of log (newest logs)</li>
 </ul>
-<h2 id="check-configuration-file-syntax">3. Check Configuration File
-Syntax</h2>
+<h2 id="3-Check-Configuration-File-Syntax"><a class="header-anchor" href="#3-Check-Configuration-File-Syntax">¶</a>3. Check Configuration File Syntax</h2>
 <p>Many services provide config file syntax check tools:</p>
 <ul>
 <li><strong>nginx</strong>: <code>nginx -t</code></li>
 <li><strong>apache</strong>: <code>apachectl configtest</code></li>
 <li><strong>sshd</strong>: <code>sshd -t</code></li>
 </ul>
-<h2 id="check-port-conflicts">4. Check Port Conflicts</h2>
+<h2 id="4-Check-Port-Conflicts"><a class="header-anchor" href="#4-Check-Port-Conflicts">¶</a>4. Check Port Conflicts</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo ss -lntp | grep &lt;port&gt;  <span class="comment"># Check if port is occupied</span></span><br><span class="line">sudo lsof -i :&lt;port&gt;         <span class="comment"># See which process is using the port</span></span><br></pre></td></tr></table></figure>
-<h2 id="check-file-permissions">5. Check File Permissions</h2>
-<p>Service may fail to start due to insufficient permissions:
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l /path/to/config</span><br><span class="line"><span class="built_in">ls</span> -l /var/log/&lt;service&gt;</span><br></pre></td></tr></table></figure></p>
-<p>Ensure the user the service runs as (like <code>www-data</code>,
-<code>nginx</code>, <code>nobody</code>) has permissions to read/write
-related files.</p>
-<h2 id="check-selinux-apparmor">6. Check SELinux / AppArmor</h2>
-<p>If SELinux (RHEL/CentOS) or AppArmor (Ubuntu/Debian) is enabled, it
-may prevent service startup.</p>
-<p><strong>Temporarily disable SELinux</strong> (only for
-troubleshooting): <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo setenforce 0  <span class="comment"># Set to Permissive mode</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>View SELinux logs</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo ausearch -m avc -ts recent</span><br></pre></td></tr></table></figure></p>
-<p><strong>Temporarily disable AppArmor</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop apparmor</span><br></pre></td></tr></table></figure></p>
-<h2 id="check-dependencies">7. Check Dependencies</h2>
+<h2 id="5-Check-File-Permissions"><a class="header-anchor" href="#5-Check-File-Permissions">¶</a>5. Check File Permissions</h2>
+<p>Service may fail to start due to insufficient permissions:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l /path/to/config</span><br><span class="line"><span class="built_in">ls</span> -l /var/log/&lt;service&gt;</span><br></pre></td></tr></table></figure>
+<p>Ensure the user the service runs as (like <code>www-data</code>, <code>nginx</code>, <code>nobody</code>) has permissions to read/write related files.</p>
+<h2 id="6-Check-SELinux-AppArmor"><a class="header-anchor" href="#6-Check-SELinux-AppArmor">¶</a>6. Check SELinux / AppArmor</h2>
+<p>If SELinux (RHEL/CentOS) or AppArmor (Ubuntu/Debian) is enabled, it may prevent service startup.</p>
+<p><strong>Temporarily disable SELinux</strong> (only for troubleshooting):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo setenforce 0  <span class="comment"># Set to Permissive mode</span></span><br></pre></td></tr></table></figure>
+<p><strong>View SELinux logs</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo ausearch -m avc -ts recent</span><br></pre></td></tr></table></figure>
+<p><strong>Temporarily disable AppArmor</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl stop apparmor</span><br></pre></td></tr></table></figure>
+<h2 id="7-Check-Dependencies"><a class="header-anchor" href="#7-Check-Dependencies">¶</a>7. Check Dependencies</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl list-dependencies &lt;service&gt;</span><br></pre></td></tr></table></figure>
-<p>If dependent services haven't started, current service also can't
-start.</p>
+<p>If dependent services haven’t started, current service also can’t start.</p>
 <hr>
-<h1 id="summary-and-further-reading">Summary and Further Reading</h1>
-<p>This article covers the core content of systemd service management:
-1. ✅ systemd core concepts (unit, dependencies, startup process) 2. ✅
-systemctl daily usage (start/stop, auto-start on boot, check status) 3.
-✅ Custom services (how to make your program auto-start on boot) 4. ✅
-journalctl log management (query, filter, cleanup) 5. ✅ Common service
-configuration (time sync, firewall, cron, SSH) 6. ✅ Service
-troubleshooting process (what to do when service won't start)</p>
+<h1>Summary and Further Reading</h1>
+<p>This article covers the core content of systemd service management:</p>
+<ol>
+<li>✅ systemd core concepts (unit, dependencies, startup process)</li>
+<li>✅ systemctl daily usage (start/stop, auto-start on boot, check status)</li>
+<li>✅ Custom services (how to make your program auto-start on boot)</li>
+<li>✅ journalctl log management (query, filter, cleanup)</li>
+<li>✅ Common service configuration (time sync, firewall, cron, SSH)</li>
+<li>✅ Service troubleshooting process (what to do when service won’t start)</li>
+</ol>
 <p><strong>Further Reading</strong>:</p>
 <ul>
-<li>systemd official documentation:
-https://www.freedesktop.org/wiki/Software/systemd/</li>
-<li>systemd for Administrators series:
-http://0pointer.de/blog/projects/systemd-for-admins-1.html</li>
+<li>systemd official documentation: <a class="link" target="_blank" rel="noopener" href="https://www.freedesktop.org/wiki/Software/systemd/">https://www.freedesktop.org/wiki/Software/systemd/<i class="fas fa-external-link-alt"></i></a></li>
+<li>systemd for Administrators series: <a class="link" target="_blank" rel="noopener" href="http://0pointer.de/blog/projects/systemd-for-admins-1.html">http://0pointer.de/blog/projects/systemd-for-admins-1.html<i class="fas fa-external-link-alt"></i></a></li>
 <li>journalctl manual: <code>man journalctl</code></li>
 <li>systemd.service manual: <code>man systemd.service</code></li>
 </ul>
 <p><strong>Next Steps</strong>:</p>
 <ul>
-<li><strong>《Linux Package Management》</strong>: Learn how to
-install/uninstall/update packages (apt/yum/dnf/rpm)</li>
-<li><strong>《Linux Process and Resource Management》</strong>: Learn
-how to monitor and limit process CPU/memory usage</li>
-<li><strong>《Linux User Management》</strong>: Learn how to manage
-users/groups/permissions</li>
+<li><strong>《Linux Package Management》</strong>: Learn how to install/uninstall/update packages (apt/yum/dnf/rpm)</li>
+<li><strong>《Linux Process and Resource Management》</strong>: Learn how to monitor and limit process CPU/memory usage</li>
+<li><strong>《Linux User Management》</strong>: Learn how to manage users/groups/permissions</li>
 </ul>
 <hr>
-<p><strong>By this point, you should have upgraded from "can start/stop
-services" to "can write custom services, can troubleshoot, can optimize
-startup order." Service management is a core Linux sysadmin skill;
-mastering systemd allows you to better manage servers.</strong></p>
+<p><strong>By this point, you should have upgraded from “can start/stop services” to “can write custom services, can troubleshoot, can optimize startup order.” Service management is a core Linux sysadmin skill; mastering systemd allows you to better manage servers.</strong></p>
 
         </div>
 
@@ -1098,30 +964,7 @@ mastering systemd allows you to better manage servers.</strong></p>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#systemd-core-concepts-why-use-it-what-problems-does-it-solve"><span class="nav-number">1.</span> <span class="nav-text">systemd
-Core Concepts: Why Use It, What Problems Does It Solve</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#why-we-need-a-service-manager"><span class="nav-number">1.1.</span> <span class="nav-text">Why We Need a Service
-Manager</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#systemd-vs-sysv-init-legacy-systems"><span class="nav-number">1.2.</span> <span class="nav-text">systemd vs SysV init
-(Legacy Systems)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#systemd-core-concept-unit"><span class="nav-number">1.3.</span> <span class="nav-text">systemd Core Concept: unit</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#systemd-startup-process-overview"><span class="nav-number">1.4.</span> <span class="nav-text">systemd Startup Process
-Overview</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#systemctl-commands-the-muscle-memory-of-daily-use"><span class="nav-number">2.</span> <span class="nav-text">systemctl
-Commands: The &quot;Muscle Memory&quot; of Daily Use</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#basic-operations-start-stop-restart-check-status"><span class="nav-number">2.1.</span> <span class="nav-text">Basic
-Operations (Start, Stop, Restart, Check Status)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#auto-start-on-boot-management"><span class="nav-number">2.2.</span> <span class="nav-text">Auto-Start on Boot
-Management</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#view-service-lists"><span class="nav-number">2.3.</span> <span class="nav-text">View Service Lists</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#view-service-details"><span class="nav-number">2.4.</span> <span class="nav-text">View Service Details</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#custom-services-making-your-programs-auto-start-on-boot"><span class="nav-number">3.</span> <span class="nav-text">Custom
-Services: Making Your Programs Auto-Start on Boot</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#minimal-working-example"><span class="nav-number">3.1.</span> <span class="nav-text">Minimal Working Example</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unit-file-explained"><span class="nav-number">3.2.</span> <span class="nav-text">Unit File Explained</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#unit-section-description-and-dependencies"><span class="nav-number">3.2.1.</span> <span class="nav-text">[Unit] Section
-(Description and Dependencies)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#service-section-service-startup-method-and-behavior"><span class="nav-number">3.2.2.</span> <span class="nav-text">[Service]
-Section (Service Startup Method and Behavior)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#install-section-auto-start-configuration"><span class="nav-number">3.2.3.</span> <span class="nav-text">[Install] Section
-(Auto-Start Configuration)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#common-type-differences"><span class="nav-number">3.3.</span> <span class="nav-text">Common Type Differences</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#must-reload-after-modifying-unit-file"><span class="nav-number">3.4.</span> <span class="nav-text">Must Reload After
-Modifying Unit File</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#journalctl-systemds-unified-logging-system"><span class="nav-number">4.</span> <span class="nav-text">journalctl:
-systemd&#39;s Unified Logging System</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#basic-usage"><span class="nav-number">4.1.</span> <span class="nav-text">Basic Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#advanced-usage"><span class="nav-number">4.2.</span> <span class="nav-text">Advanced Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#log-persistence"><span class="nav-number">4.3.</span> <span class="nav-text">Log Persistence</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#common-service-configuration-and-troubleshooting"><span class="nav-number">5.</span> <span class="nav-text">Common Service
-Configuration and Troubleshooting</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#time-synchronization-service-ntpd-ntpsec-timedatectl"><span class="nav-number">5.1.</span> <span class="nav-text">Time
-Synchronization Service (ntpd &#x2F; ntpsec &#x2F; timedatectl)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#why-time-synchronization-is-needed"><span class="nav-number">5.1.1.</span> <span class="nav-text">Why Time Synchronization Is
-Needed</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#solution-1-using-ntpsec-recommended"><span class="nav-number">5.1.2.</span> <span class="nav-text">Solution 1: Using ntpsec
-(Recommended)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#solution-2-using-timedatectl-simpler"><span class="nav-number">5.1.3.</span> <span class="nav-text">Solution 2: Using
-timedatectl (Simpler)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ntpdate-one-time-sync-not-recommended-for-resident-use"><span class="nav-number">5.1.4.</span> <span class="nav-text">ntpdate
-(One-Time Sync, Not Recommended for Resident Use)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#firewall-service-firewalld"><span class="nav-number">5.2.</span> <span class="nav-text">Firewall Service (firewalld)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#basic-introduction"><span class="nav-number">5.2.1.</span> <span class="nav-text">Basic Introduction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#enable-and-disable"><span class="nav-number">5.2.2.</span> <span class="nav-text">Enable and Disable</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#basic-rule-operations"><span class="nav-number">5.2.3.</span> <span class="nav-text">Basic Rule Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#openclose-ports"><span class="nav-number">5.2.3.1.</span> <span class="nav-text">Open&#x2F;Close Ports</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#openclose-services"><span class="nav-number">5.2.3.2.</span> <span class="nav-text">Open&#x2F;Close Services</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#zone-concept"><span class="nav-number">5.2.4.</span> <span class="nav-text">zone Concept</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scheduled-tasks-crontab"><span class="nav-number">5.3.</span> <span class="nav-text">Scheduled Tasks (crontab)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#edit-and-view"><span class="nav-number">5.3.1.</span> <span class="nav-text">Edit and View</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#format"><span class="nav-number">5.3.2.</span> <span class="nav-text">Format</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#examples"><span class="nav-number">5.3.3.</span> <span class="nav-text">Examples</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-logs"><span class="nav-number">5.3.4.</span> <span class="nav-text">View Logs</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ssh-service-configuration-and-security-hardening"><span class="nav-number">5.4.</span> <span class="nav-text">SSH Service
-Configuration and Security Hardening</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#configuration-file"><span class="nav-number">5.4.1.</span> <span class="nav-text">Configuration File</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#common-configuration-items"><span class="nav-number">5.4.2.</span> <span class="nav-text">Common Configuration Items</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#security-hardening-recommendations"><span class="nav-number">5.4.3.</span> <span class="nav-text">Security Hardening
-Recommendations</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#service-troubleshooting-process-what-to-do-when-service-wont-start"><span class="nav-number">6.</span> <span class="nav-text">Service
-Troubleshooting Process: What to Do When Service Won&#39;t Start</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#check-service-status"><span class="nav-number">6.1.</span> <span class="nav-text">1. Check Service Status</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#view-detailed-logs"><span class="nav-number">6.2.</span> <span class="nav-text">2. View Detailed Logs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#check-configuration-file-syntax"><span class="nav-number">6.3.</span> <span class="nav-text">3. Check Configuration File
-Syntax</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#check-port-conflicts"><span class="nav-number">6.4.</span> <span class="nav-text">4. Check Port Conflicts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#check-file-permissions"><span class="nav-number">6.5.</span> <span class="nav-text">5. Check File Permissions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#check-selinux-apparmor"><span class="nav-number">6.6.</span> <span class="nav-text">6. Check SELinux &#x2F; AppArmor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#check-dependencies"><span class="nav-number">6.7.</span> <span class="nav-text">7. Check Dependencies</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#summary-and-further-reading"><span class="nav-number">7.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">systemd Core Concepts: Why Use It, What Problems Does It Solve</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Why-We-Need-a-Service-Manager"><span class="nav-number">1.1.</span> <span class="nav-text">Why We Need a Service Manager</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#systemd-vs-SysV-init-Legacy-Systems"><span class="nav-number">1.2.</span> <span class="nav-text">systemd vs SysV init (Legacy Systems)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#systemd-Core-Concept-unit"><span class="nav-number">1.3.</span> <span class="nav-text">systemd Core Concept: unit</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#systemd-Startup-Process-Overview"><span class="nav-number">1.4.</span> <span class="nav-text">systemd Startup Process Overview</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">systemctl Commands: The “Muscle Memory” of Daily Use</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Basic-Operations-Start-Stop-Restart-Check-Status"><span class="nav-number">2.1.</span> <span class="nav-text">Basic Operations (Start, Stop, Restart, Check Status)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Auto-Start-on-Boot-Management"><span class="nav-number">2.2.</span> <span class="nav-text">Auto-Start on Boot Management</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#View-Service-Lists"><span class="nav-number">2.3.</span> <span class="nav-text">View Service Lists</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#View-Service-Details"><span class="nav-number">2.4.</span> <span class="nav-text">View Service Details</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">Custom Services: Making Your Programs Auto-Start on Boot</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Minimal-Working-Example"><span class="nav-number">3.1.</span> <span class="nav-text">Minimal Working Example</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Unit-File-Explained"><span class="nav-number">3.2.</span> <span class="nav-text">Unit File Explained</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Unit-Section-Description-and-Dependencies"><span class="nav-number">3.2.1.</span> <span class="nav-text">[Unit] Section (Description and Dependencies)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Service-Section-Service-Startup-Method-and-Behavior"><span class="nav-number">3.2.2.</span> <span class="nav-text">[Service] Section (Service Startup Method and Behavior)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Install-Section-Auto-Start-Configuration"><span class="nav-number">3.2.3.</span> <span class="nav-text">[Install] Section (Auto-Start Configuration)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Common-Type-Differences"><span class="nav-number">3.3.</span> <span class="nav-text">Common Type Differences</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Must-Reload-After-Modifying-Unit-File"><span class="nav-number">3.4.</span> <span class="nav-text">Must Reload After Modifying Unit File</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">journalctl: systemd’s Unified Logging System</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Basic-Usage-v2"><span class="nav-number">4.1.</span> <span class="nav-text">Basic Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Advanced-Usage-v3"><span class="nav-number">4.2.</span> <span class="nav-text">Advanced Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Log-Persistence"><span class="nav-number">4.3.</span> <span class="nav-text">Log Persistence</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">Common Service Configuration and Troubleshooting</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Time-Synchronization-Service-ntpd-ntpsec-timedatectl"><span class="nav-number">5.1.</span> <span class="nav-text">Time Synchronization Service (ntpd &#x2F; ntpsec &#x2F; timedatectl)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Why-Time-Synchronization-Is-Needed"><span class="nav-number">5.1.1.</span> <span class="nav-text">Why Time Synchronization Is Needed</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Solution-1-Using-ntpsec-Recommended"><span class="nav-number">5.1.2.</span> <span class="nav-text">Solution 1: Using ntpsec (Recommended)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Solution-2-Using-timedatectl-Simpler"><span class="nav-number">5.1.3.</span> <span class="nav-text">Solution 2: Using timedatectl (Simpler)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ntpdate-One-Time-Sync-Not-Recommended-for-Resident-Use"><span class="nav-number">5.1.4.</span> <span class="nav-text">ntpdate (One-Time Sync, Not Recommended for Resident Use)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Firewall-Service-firewalld"><span class="nav-number">5.2.</span> <span class="nav-text">Firewall Service (firewalld)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Basic-Introduction"><span class="nav-number">5.2.1.</span> <span class="nav-text">Basic Introduction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Enable-and-Disable"><span class="nav-number">5.2.2.</span> <span class="nav-text">Enable and Disable</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Basic-Rule-Operations"><span class="nav-number">5.2.3.</span> <span class="nav-text">Basic Rule Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Open-Close-Ports"><span class="nav-number">5.2.3.1.</span> <span class="nav-text">Open&#x2F;Close Ports</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Open-Close-Services"><span class="nav-number">5.2.3.2.</span> <span class="nav-text">Open&#x2F;Close Services</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#zone-Concept"><span class="nav-number">5.2.4.</span> <span class="nav-text">zone Concept</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scheduled-Tasks-crontab"><span class="nav-number">5.3.</span> <span class="nav-text">Scheduled Tasks (crontab)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Edit-and-View"><span class="nav-number">5.3.1.</span> <span class="nav-text">Edit and View</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Format-v2"><span class="nav-number">5.3.2.</span> <span class="nav-text">Format</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Examples"><span class="nav-number">5.3.3.</span> <span class="nav-text">Examples</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-Logs"><span class="nav-number">5.3.4.</span> <span class="nav-text">View Logs</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSH-Service-Configuration-and-Security-Hardening"><span class="nav-number">5.4.</span> <span class="nav-text">SSH Service Configuration and Security Hardening</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Configuration-File"><span class="nav-number">5.4.1.</span> <span class="nav-text">Configuration File</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Common-Configuration-Items"><span class="nav-number">5.4.2.</span> <span class="nav-text">Common Configuration Items</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Security-Hardening-Recommendations"><span class="nav-number">5.4.3.</span> <span class="nav-text">Security Hardening Recommendations</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">Service Troubleshooting Process: What to Do When Service Won’t Start</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Check-Service-Status"><span class="nav-number">6.1.</span> <span class="nav-text">1. Check Service Status</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-View-Detailed-Logs"><span class="nav-number">6.2.</span> <span class="nav-text">2. View Detailed Logs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Check-Configuration-File-Syntax"><span class="nav-number">6.3.</span> <span class="nav-text">3. Check Configuration File Syntax</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Check-Port-Conflicts"><span class="nav-number">6.4.</span> <span class="nav-text">4. Check Port Conflicts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Check-File-Permissions"><span class="nav-number">6.5.</span> <span class="nav-text">5. Check File Permissions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-Check-SELinux-AppArmor"><span class="nav-number">6.6.</span> <span class="nav-text">6. Check SELinux &#x2F; AppArmor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Check-Dependencies"><span class="nav-number">6.7.</span> <span class="nav-text">7. Check Dependencies</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
     </div>
 </div>
         </aside>

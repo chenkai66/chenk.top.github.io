@@ -239,7 +239,7 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>2.4k Words</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>2.3k Words</span>
         </span>
     
     
@@ -260,62 +260,30 @@
         
 
         <div class="article-content markdown-body">
-            <p>In Linux's multi-user, multi-task environment, user and group
-management is not "just admin work"—it directly determines who can log
-in, which processes run under which identities, how the permission model
-executes, and how sudo privileges are allocated. This post starts from
-the conceptual model of users and groups (users vs groups, UID/GID
-meaning and boundaries), systematically organizes commands you'll
-actually use (<code>useradd/usermod/userdel</code>,
-<code>groupadd/groupmod/groupdel</code>, <code>passwd/chage</code>),
-fills in security mechanisms (account locking, password policies, sudo
-configuration, correct <code>/etc/sudoers</code> syntax), and provides
-detailed analysis of core system files (<code>/etc/passwd</code>,
-<code>/etc/shadow</code>, <code>/etc/group</code>,
-<code>/etc/gshadow</code>, <code>/etc/skel</code> field meanings and
-practical uses). Finally, it uses practical cases (shared project
-directories, service account configuration, sudo permission
-stratification, batch user management) to ground "how to design
-reasonable user permission schemes" in practice, enabling you to
-independently complete the full workflow from creating users to
-permission allocation to security hardening.</p>
+            <p>In Linux’s multi-user, multi-task environment, user and group management is not “just admin work”—it directly determines who can log in, which processes run under which identities, how the permission model executes, and how sudo privileges are allocated. This post starts from the conceptual model of users and groups (users vs groups, UID/GID meaning and boundaries), systematically organizes commands you’ll actually use (<code>useradd/usermod/userdel</code>, <code>groupadd/groupmod/groupdel</code>, <code>passwd/chage</code>), fills in security mechanisms (account locking, password policies, sudo configuration, correct <code>/etc/sudoers</code> syntax), and provides detailed analysis of core system files (<code>/etc/passwd</code>, <code>/etc/shadow</code>, <code>/etc/group</code>, <code>/etc/gshadow</code>, <code>/etc/skel</code> field meanings and practical uses). Finally, it uses practical cases (shared project directories, service account configuration, sudo permission stratification, batch user management) to ground “how to design reasonable user permission schemes” in practice, enabling you to independently complete the full workflow from creating users to permission allocation to security hardening.</p>
 <span id="more"></span>
-<h1 id="core-linux-user-and-group-concepts">Core Linux User and Group
-Concepts</h1>
-<h2 id="relationship-between-users-and-groups">Relationship Between
-Users and Groups</h2>
+<h1>Core Linux User and Group Concepts</h1>
+<h2 id="Relationship-Between-Users-and-Groups"><a class="header-anchor" href="#Relationship-Between-Users-and-Groups">¶</a>Relationship Between Users and Groups</h2>
 <p>Linux is a multi-user system; every user has:</p>
 <ul>
-<li><strong>Unique username</strong> (like <code>alice</code>,
-<code>bob</code>)</li>
+<li><strong>Unique username</strong> (like <code>alice</code>, <code>bob</code>)</li>
 <li><strong>Unique UID</strong> (User ID, numeric identifier)</li>
 <li><strong>One primary group</strong> (Primary Group, GID)</li>
-<li><strong>Zero or more supplementary groups</strong> (Supplementary
-Groups)</li>
+<li><strong>Zero or more supplementary groups</strong> (Supplementary Groups)</li>
 </ul>
 <p><strong>Why groups?</strong></p>
 <ul>
-<li>Convenient permission management (like "all developers can access
-<code>/srv/project</code>")</li>
-<li>Avoids setting permissions for each user individually (high
-maintenance cost)</li>
+<li>Convenient permission management (like “all developers can access <code>/srv/project</code>”)</li>
+<li>Avoids setting permissions for each user individually (high maintenance cost)</li>
 </ul>
 <p><strong>Example</strong>:</p>
 <ul>
-<li>User <code>alice</code>'s primary group is <code>alice</code>
-(default creates same-name group)</li>
-<li>Supplementary groups: <code>developers</code>,
-<code>docker</code></li>
-<li>This way <code>alice</code> can access resources owned by
-<code>developers</code> and <code>docker</code> groups</li>
+<li>User <code>alice</code>’s primary group is <code>alice</code> (default creates same-name group)</li>
+<li>Supplementary groups: <code>developers</code>, <code>docker</code></li>
+<li>This way <code>alice</code> can access resources owned by <code>developers</code> and <code>docker</code> groups</li>
 </ul>
-<h2 id="uid-and-gid-boundaries">UID and GID Boundaries</h2>
+<h2 id="UID-and-GID-Boundaries"><a class="header-anchor" href="#UID-and-GID-Boundaries">¶</a>UID and GID Boundaries</h2>
 <table>
-<colgroup>
-<col style="width: 16%">
-<col style="width: 53%">
-<col style="width: 29%">
-</colgroup>
 <thead>
 <tr>
 <th>UID Range</th>
@@ -348,50 +316,45 @@ maintenance cost)</li>
 </ul>
 <p><strong>Why distinguish system users and normal users?</strong></p>
 <ul>
-<li>System users (like <code>nginx</code>) only run services, don't need
-login (shell set to <code>/sbin/nologin</code>)</li>
+<li>System users (like <code>nginx</code>) only run services, don’t need login (shell set to <code>/sbin/nologin</code>)</li>
 <li>Normal users can log in, run programs, manage files</li>
 </ul>
 <hr>
-<h1 id="core-system-files-explained">Core System Files Explained</h1>
+<h1>Core System Files Explained</h1>
 <p>Linux user information is distributed across several key files:</p>
-<h2 id="etcpasswd-public-user-database">1. <code>/etc/passwd</code>
-(Public User Database)</h2>
-<p>Stores all users' basic information, <strong>any user can
-read</strong> (but only root can modify).</p>
-<p><strong>Format</strong>: Each line represents one user, fields
-separated by colon <code>:</code> <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">username:x:UID:GID:comment:home:shell</span><br></pre></td></tr></table></figure></p>
-<p><strong>Examples</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">testuser:x:1001:1001:Test User:/home/testuser:/bin/bash</span><br><span class="line">nginx:x:33:33:nginx user:/var/lib/nginx:/sbin/nologin</span><br></pre></td></tr></table></figure></p>
+<h2 id="1-etc-passwd-Public-User-Database"><a class="header-anchor" href="#1-etc-passwd-Public-User-Database">¶</a>1. <code>/etc/passwd</code> (Public User Database)</h2>
+<p>Stores all users’ basic information, <strong>any user can read</strong> (but only root can modify).</p>
+<p><strong>Format</strong>: Each line represents one user, fields separated by colon <code>:</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">username:x:UID:GID:comment:home:shell</span><br></pre></td></tr></table></figure>
+<p><strong>Examples</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">testuser:x:1001:1001:Test User:/home/testuser:/bin/bash</span><br><span class="line">nginx:x:33:33:nginx user:/var/lib/nginx:/sbin/nologin</span><br></pre></td></tr></table></figure>
 <p><strong>Field Explanations</strong>:</p>
 <ul>
-<li><strong>username</strong>: Login name (like
-<code>testuser</code>)</li>
-<li><strong>x</strong>: Password placeholder (real password hash in
-<code>/etc/shadow</code>)</li>
+<li><strong>username</strong>: Login name (like <code>testuser</code>)</li>
+<li><strong>x</strong>: Password placeholder (real password hash in <code>/etc/shadow</code>)</li>
 <li><strong>UID</strong>: User ID (1001)
 <ul>
 <li><code>0</code>: root user</li>
 <li><code>1-999</code>: System users (service accounts)</li>
 <li><code>1000+</code>: Normal users</li>
-</ul></li>
+</ul>
+</li>
 <li><strong>GID</strong>: Primary group ID (1001)</li>
-<li><strong>comment</strong>: Comment info (GECOS field, usually user's
-full name or description)</li>
-<li><strong>home</strong>: Home directory
-(<code>/home/testuser</code>)</li>
+<li><strong>comment</strong>: Comment info (GECOS field, usually user’s full name or description)</li>
+<li><strong>home</strong>: Home directory (<code>/home/testuser</code>)</li>
 <li><strong>shell</strong>: Login shell (<code>/bin/bash</code>)
 <ul>
 <li><code>/bin/bash</code>: Login allowed</li>
-<li><code>/sbin/nologin</code>: Login disabled (commonly used for
-service accounts)</li>
-</ul></li>
+<li><code>/sbin/nologin</code>: Login disabled (commonly used for service accounts)</li>
 </ul>
-<h2 id="etcshadow-password-hashes-and-policies">2.
-<code>/etc/shadow</code> (Password Hashes and Policies)</h2>
-<p>Stores user password hashes and password expiration policies,
-<strong>only root can read</strong>.</p>
-<p><strong>Format</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">username:password_hash:last_change:min:max:warn:inactive:expire:reserved</span><br></pre></td></tr></table></figure></p>
-<p><strong>Example</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">testuser:$6$4kTxu1...:19103:0:99999:7:::</span><br></pre></td></tr></table></figure></p>
+</li>
+</ul>
+<h2 id="2-etc-shadow-Password-Hashes-and-Policies"><a class="header-anchor" href="#2-etc-shadow-Password-Hashes-and-Policies">¶</a>2. <code>/etc/shadow</code> (Password Hashes and Policies)</h2>
+<p>Stores user password hashes and password expiration policies, <strong>only root can read</strong>.</p>
+<p><strong>Format</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">username:password_hash:last_change:min:max:warn:inactive:expire:reserved</span><br></pre></td></tr></table></figure>
+<p><strong>Example</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">testuser:$6$4kTxu1...:19103:0:99999:7:::</span><br></pre></td></tr></table></figure>
 <p><strong>Field Explanations</strong>:</p>
 <ul>
 <li><strong>username</strong>: Username</li>
@@ -401,333 +364,281 @@ service accounts)</li>
 <li><code>$5$...</code>: SHA-256 encryption</li>
 <li><code>$1$...</code>: MD5 encryption (not recommended)</li>
 <li><code>!</code> or <code>*</code>: Account locked</li>
-</ul></li>
-<li><strong>last_change</strong>: Date of last password change (days
-since 1970-01-01)</li>
-<li><strong>min</strong>: Minimum password age (days, 0 means can change
-anytime)</li>
-<li><strong>max</strong>: Maximum password age (days, 99999 means never
-expires)</li>
-<li><strong>warn</strong>: Days before password expiration to start
-warnings</li>
-<li><strong>inactive</strong>: Days after password expiration before
-account is disabled</li>
-<li><strong>expire</strong>: Account expiration date (days since
-1970-01-01)</li>
+</ul>
+</li>
+<li><strong>last_change</strong>: Date of last password change (days since 1970-01-01)</li>
+<li><strong>min</strong>: Minimum password age (days, 0 means can change anytime)</li>
+<li><strong>max</strong>: Maximum password age (days, 99999 means never expires)</li>
+<li><strong>warn</strong>: Days before password expiration to start warnings</li>
+<li><strong>inactive</strong>: Days after password expiration before account is disabled</li>
+<li><strong>expire</strong>: Account expiration date (days since 1970-01-01)</li>
 <li><strong>reserved</strong>: Reserved field</li>
 </ul>
-<p><strong>Common operations</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -l testuser  <span class="comment"># View user&#x27;s password policy</span></span><br><span class="line">sudo chage testuser  <span class="comment"># Interactively modify password policy</span></span><br><span class="line">sudo chage -M 90 testuser  <span class="comment"># Set max password age to 90 days</span></span><br><span class="line">sudo chage -E 2025-12-31 testuser  <span class="comment"># Set account expiration date</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="etcgroup-group-information">3. <code>/etc/group</code> (Group
-Information)</h2>
-<p>Stores all groups' basic information.</p>
-<p><strong>Format</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">groupname:x:GID:member1,member2,member3</span><br></pre></td></tr></table></figure></p>
-<p><strong>Examples</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">developers:x:1001:alice,bob,charlie</span><br><span class="line">docker:x:999:alice</span><br></pre></td></tr></table></figure></p>
+<p><strong>Common operations</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -l testuser  <span class="comment"># View user&#x27;s password policy</span></span><br><span class="line">sudo chage testuser  <span class="comment"># Interactively modify password policy</span></span><br><span class="line">sudo chage -M 90 testuser  <span class="comment"># Set max password age to 90 days</span></span><br><span class="line">sudo chage -E 2025-12-31 testuser  <span class="comment"># Set account expiration date</span></span><br></pre></td></tr></table></figure>
+<h2 id="3-etc-group-Group-Information"><a class="header-anchor" href="#3-etc-group-Group-Information">¶</a>3. <code>/etc/group</code> (Group Information)</h2>
+<p>Stores all groups’ basic information.</p>
+<p><strong>Format</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">groupname:x:GID:member1,member2,member3</span><br></pre></td></tr></table></figure>
+<p><strong>Examples</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">developers:x:1001:alice,bob,charlie</span><br><span class="line">docker:x:999:alice</span><br></pre></td></tr></table></figure>
 <p><strong>Field Explanations</strong>:</p>
 <ul>
-<li><strong>groupname</strong>: Group name (like
-<code>developers</code>)</li>
-<li><strong>x</strong>: Group password placeholder (real group password
-in <code>/etc/gshadow</code>, rarely used)</li>
+<li><strong>groupname</strong>: Group name (like <code>developers</code>)</li>
+<li><strong>x</strong>: Group password placeholder (real group password in <code>/etc/gshadow</code>, rarely used)</li>
 <li><strong>GID</strong>: Group ID (1001)</li>
 <li><strong>members</strong>: Group member list (comma-separated)</li>
 </ul>
 <p><strong>Note</strong>:</p>
 <ul>
-<li>Member list <strong>only includes supplementary group
-members</strong> (not primary group members)</li>
-<li>For example, <code>alice</code>'s primary group is
-<code>alice</code> (UID=GID=1001), her supplementary groups are
-<code>developers</code> and <code>docker</code>, so in
-<code>/etc/group</code> she only appears in <code>developers</code> and
-<code>docker</code> member lists</li>
+<li>Member list <strong>only includes supplementary group members</strong> (not primary group members)</li>
+<li>For example, <code>alice</code>’s primary group is <code>alice</code> (UID=GID=1001), her supplementary groups are <code>developers</code> and <code>docker</code>, so in <code>/etc/group</code> she only appears in <code>developers</code> and <code>docker</code> member lists</li>
 </ul>
-<h2 id="etcgshadow-group-passwords-and-admin-info">4.
-<code>/etc/gshadow</code> (Group Passwords and Admin Info)</h2>
-<p>Similar to <code>/etc/shadow</code>, stores group passwords and
-detailed group management info (used in large companies/complex
-permission management scenarios).</p>
-<p><strong>Format</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">groupname:password:administrators:members</span><br></pre></td></tr></table></figure></p>
-<p><strong>Example</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">developers:!::alice,bob,charlie</span><br></pre></td></tr></table></figure></p>
+<h2 id="4-etc-gshadow-Group-Passwords-and-Admin-Info"><a class="header-anchor" href="#4-etc-gshadow-Group-Passwords-and-Admin-Info">¶</a>4. <code>/etc/gshadow</code> (Group Passwords and Admin Info)</h2>
+<p>Similar to <code>/etc/shadow</code>, stores group passwords and detailed group management info (used in large companies/complex permission management scenarios).</p>
+<p><strong>Format</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">groupname:password:administrators:members</span><br></pre></td></tr></table></figure>
+<p><strong>Example</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">developers:!::alice,bob,charlie</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>!</code>: No group password</li>
-<li><code>administrators</code>: Group administrators (can manage group
-members)</li>
+<li><code>administrators</code>: Group administrators (can manage group members)</li>
 <li><code>members</code>: Group member list</li>
 </ul>
-<h2 id="etcskel-home-directory-template">5. <code>/etc/skel</code> (Home
-Directory Template)</h2>
-<p>When creating new users, system copies all files from
-<code>/etc/skel</code> to new user's home directory.</p>
-<p><strong>Default contents</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -la /etc/skel</span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">.bashrc</span><br><span class="line">.bash_logout</span><br><span class="line">.profile</span><br></pre></td></tr></table></figure></p>
+<h2 id="5-etc-skel-Home-Directory-Template"><a class="header-anchor" href="#5-etc-skel-Home-Directory-Template">¶</a>5. <code>/etc/skel</code> (Home Directory Template)</h2>
+<p>When creating new users, system copies all files from <code>/etc/skel</code> to new user’s home directory.</p>
+<p><strong>Default contents</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -la /etc/skel</span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">.bashrc</span><br><span class="line">.bash_logout</span><br><span class="line">.profile</span><br></pre></td></tr></table></figure>
 <p><strong>Purpose</strong>:</p>
 <ul>
-<li>Provide unified initial configuration for all new users (like
-<code>.bashrc</code>, <code>.vimrc</code>, etc.)</li>
-<li>Can customize <code>/etc/skel</code> to provide company-wide unified
-environment configuration</li>
+<li>Provide unified initial configuration for all new users (like <code>.bashrc</code>, <code>.vimrc</code>, etc.)</li>
+<li>Can customize <code>/etc/skel</code> to provide company-wide unified environment configuration</li>
 </ul>
-<p><strong>If you created user without home directory before, can
-manually initialize</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> -p /home/username</span><br><span class="line">sudo <span class="built_in">cp</span> -r /etc/skel/. /home/username/</span><br><span class="line">sudo <span class="built_in">chown</span> -R username:username /home/username</span><br></pre></td></tr></table></figure></p>
+<p><strong>If you created user without home directory before, can manually initialize</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">mkdir</span> -p /home/username</span><br><span class="line">sudo <span class="built_in">cp</span> -r /etc/skel/. /home/username/</span><br><span class="line">sudo <span class="built_in">chown</span> -R username:username /home/username</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="user-management-commands">User Management Commands</h1>
-<h2 id="useradd-create-user">useradd: Create User</h2>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd testuser</span><br></pre></td></tr></table></figure></p>
+<h1>User Management Commands</h1>
+<h2 id="useradd-Create-User"><a class="header-anchor" href="#useradd-Create-User">¶</a>useradd: Create User</h2>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd testuser</span><br></pre></td></tr></table></figure>
 <p><strong>Common parameters</strong>:</p>
 <ul>
 <li><code>-m</code>: Auto-create home directory (recommended)</li>
-<li><code>-d PATH</code>: Specify home directory path (default
-<code>/home/username</code>)</li>
-<li><code>-s SHELL</code>: Specify login shell (like
-<code>/bin/bash</code>, <code>/bin/zsh</code>,
-<code>/sbin/nologin</code>)</li>
-<li><code>-g GROUP</code>: Specify primary group (default creates
-same-name group)</li>
-<li><code>-G GROUPS</code>: Specify supplementary groups
-(comma-separated, like <code>developers,docker</code>)</li>
+<li><code>-d PATH</code>: Specify home directory path (default <code>/home/username</code>)</li>
+<li><code>-s SHELL</code>: Specify login shell (like <code>/bin/bash</code>, <code>/bin/zsh</code>, <code>/sbin/nologin</code>)</li>
+<li><code>-g GROUP</code>: Specify primary group (default creates same-name group)</li>
+<li><code>-G GROUPS</code>: Specify supplementary groups (comma-separated, like <code>developers,docker</code>)</li>
 <li><code>-u UID</code>: Specify UID (default auto-assign)</li>
 <li><code>-c COMMENT</code>: Add comment info</li>
 </ul>
 <p><strong>Practical examples</strong>:</p>
-<h3 id="create-normal-user">1. Create Normal User</h3>
+<h3 id="1-Create-Normal-User"><a class="header-anchor" href="#1-Create-Normal-User">¶</a>1. Create Normal User</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd -m -s /bin/bash alice</span><br><span class="line">sudo passwd alice  <span class="comment"># Set password</span></span><br></pre></td></tr></table></figure>
-<h3 id="create-service-account-no-login-allowed">2. Create Service
-Account (No Login Allowed)</h3>
+<h3 id="2-Create-Service-Account-No-Login-Allowed"><a class="header-anchor" href="#2-Create-Service-Account-No-Login-Allowed">¶</a>2. Create Service Account (No Login Allowed)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd -r -s /sbin/nologin nginx</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-r</code>: Create system user (UID &lt; 1000)</li>
 </ul>
-<h3 id="create-user-with-specified-primary-and-supplementary-groups">3.
-Create User with Specified Primary and Supplementary Groups</h3>
+<h3 id="3-Create-User-with-Specified-Primary-and-Supplementary-Groups"><a class="header-anchor" href="#3-Create-User-with-Specified-Primary-and-Supplementary-Groups">¶</a>3. Create User with Specified Primary and Supplementary Groups</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd -m -g developers -G docker,sudo bob</span><br><span class="line">sudo passwd bob</span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>-g developers</code>: Primary group is
-<code>developers</code></li>
-<li><code>-G docker,sudo</code>: Supplementary groups are
-<code>docker</code> and <code>sudo</code></li>
+<li><code>-g developers</code>: Primary group is <code>developers</code></li>
+<li><code>-G docker,sudo</code>: Supplementary groups are <code>docker</code> and <code>sudo</code></li>
 </ul>
-<h2 id="usermod-modify-user">usermod: Modify User</h2>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod [options] username</span><br></pre></td></tr></table></figure></p>
+<h2 id="usermod-Modify-User"><a class="header-anchor" href="#usermod-Modify-User">¶</a>usermod: Modify User</h2>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod [options] username</span><br></pre></td></tr></table></figure>
 <p><strong>Common parameters</strong>:</p>
 <ul>
 <li><code>-l NEWNAME</code>: Modify username</li>
 <li><code>-d PATH</code>: Modify home directory</li>
-<li><code>-m</code>: Use with <code>-d</code> to migrate original home
-directory contents to new location</li>
+<li><code>-m</code>: Use with <code>-d</code> to migrate original home directory contents to new location</li>
 <li><code>-s SHELL</code>: Modify login shell</li>
 <li><code>-g GROUP</code>: Modify primary group</li>
-<li><code>-G GROUPS</code>: Modify supplementary groups (will overwrite
-existing supplementary groups)</li>
-<li><code>-aG GROUPS</code>: Append supplementary groups
-(<strong>recommended</strong>, doesn't overwrite existing)</li>
+<li><code>-G GROUPS</code>: Modify supplementary groups (will overwrite existing supplementary groups)</li>
+<li><code>-aG GROUPS</code>: Append supplementary groups (<strong>recommended</strong>, doesn’t overwrite existing)</li>
 <li><code>-L</code>: Lock user (disable password)</li>
 <li><code>-U</code>: Unlock user</li>
 </ul>
 <p><strong>Practical examples</strong>:</p>
-<h3 id="add-user-to-sudo-group">1. Add User to sudo Group</h3>
+<h3 id="1-Add-User-to-sudo-Group"><a class="header-anchor" href="#1-Add-User-to-sudo-Group">¶</a>1. Add User to sudo Group</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -aG sudo alice  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo usermod -aG wheel alice  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<h3 id="modify-users-shell">2. Modify User's Shell</h3>
+<h3 id="2-Modify-User’s-Shell"><a class="header-anchor" href="#2-Modify-User’s-Shell">¶</a>2. Modify User’s Shell</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -s /bin/zsh alice</span><br></pre></td></tr></table></figure>
-<h3 id="migrate-user-home-directory">3. Migrate User Home Directory</h3>
+<h3 id="3-Migrate-User-Home-Directory"><a class="header-anchor" href="#3-Migrate-User-Home-Directory">¶</a>3. Migrate User Home Directory</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -d /data/alice -m alice</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-d /data/alice</code>: New home directory</li>
 <li><code>-m</code>: Migrate original home directory contents</li>
 </ul>
-<h3 id="lock-and-unlock-user">4. Lock and Unlock User</h3>
+<h3 id="4-Lock-and-Unlock-User"><a class="header-anchor" href="#4-Lock-and-Unlock-User">¶</a>4. Lock and Unlock User</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -L alice  <span class="comment"># Lock (adds `!` before password hash in /etc/shadow)</span></span><br><span class="line">sudo usermod -U alice  <span class="comment"># Unlock</span></span><br></pre></td></tr></table></figure>
-<h2 id="userdel-delete-user">userdel: Delete User</h2>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo userdel testuser  <span class="comment"># Delete user (keep home directory)</span></span><br><span class="line">sudo userdel -r testuser  <span class="comment"># Delete user and home directory</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="userdel-Delete-User"><a class="header-anchor" href="#userdel-Delete-User">¶</a>userdel: Delete User</h2>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo userdel testuser  <span class="comment"># Delete user (keep home directory)</span></span><br><span class="line">sudo userdel -r testuser  <span class="comment"># Delete user and home directory</span></span><br></pre></td></tr></table></figure>
 <p><strong>Notes</strong>:</p>
 <ul>
-<li>Before deleting user, confirm no processes are running
-(<code>ps -u testuser</code>)</li>
-<li>After deleting user, files created by that user become "orphaned
-files" (owner shows as UID, like <code>1001</code>)</li>
+<li>Before deleting user, confirm no processes are running (<code>ps -u testuser</code>)</li>
+<li>After deleting user, files created by that user become “orphaned files” (owner shows as UID, like <code>1001</code>)</li>
 </ul>
-<p><strong>Best practice</strong>: Don't directly delete user, lock
-first <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -L testuser  <span class="comment"># Lock user (disable login)</span></span><br><span class="line">sudo usermod -s /sbin/nologin testuser  <span class="comment"># Disable shell</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Best practice</strong>: Don’t directly delete user, lock first</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -L testuser  <span class="comment"># Lock user (disable login)</span></span><br><span class="line">sudo usermod -s /sbin/nologin testuser  <span class="comment"># Disable shell</span></span><br></pre></td></tr></table></figure>
 <p>Confirm no issues then delete.</p>
 <hr>
-<h1 id="group-management-commands">Group Management Commands</h1>
-<h2 id="groupadd-create-group">groupadd: Create Group</h2>
+<h1>Group Management Commands</h1>
+<h2 id="groupadd-Create-Group"><a class="header-anchor" href="#groupadd-Create-Group">¶</a>groupadd: Create Group</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo groupadd developers  <span class="comment"># Create group</span></span><br><span class="line">sudo groupadd -g 2000 testgroup  <span class="comment"># Specify GID</span></span><br></pre></td></tr></table></figure>
-<h2 id="groupmod-modify-group">groupmod: Modify Group</h2>
+<h2 id="groupmod-Modify-Group"><a class="header-anchor" href="#groupmod-Modify-Group">¶</a>groupmod: Modify Group</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo groupmod -n newname oldname  <span class="comment"># Modify group name</span></span><br><span class="line">sudo groupmod -g 3000 developers  <span class="comment"># Modify GID</span></span><br></pre></td></tr></table></figure>
-<h2 id="groupdel-delete-group">groupdel: Delete Group</h2>
+<h2 id="groupdel-Delete-Group"><a class="header-anchor" href="#groupdel-Delete-Group">¶</a>groupdel: Delete Group</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo groupdel testgroup</span><br></pre></td></tr></table></figure>
-<p><strong>Note</strong>: Cannot delete user's primary group (need to
-delete user first or modify user's primary group).</p>
-<h2 id="user-group-association-operations">User-Group Association
-Operations</h2>
-<h3 id="add-user-to-group">Add User to Group</h3>
+<p><strong>Note</strong>: Cannot delete user’s primary group (need to delete user first or modify user’s primary group).</p>
+<h2 id="User-Group-Association-Operations"><a class="header-anchor" href="#User-Group-Association-Operations">¶</a>User-Group Association Operations</h2>
+<h3 id="Add-User-to-Group"><a class="header-anchor" href="#Add-User-to-Group">¶</a>Add User to Group</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -aG groupname username  <span class="comment"># -a means append (don&#x27;t overwrite existing supplementary groups)</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-users-groups">View User's Groups</h3>
+<h3 id="View-User’s-Groups"><a class="header-anchor" href="#View-User’s-Groups">¶</a>View User’s Groups</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">groups</span> username  <span class="comment"># View all groups user belongs to</span></span><br><span class="line"><span class="built_in">id</span> username  <span class="comment"># View user&#x27;s UID, GID, supplementary groups</span></span><br></pre></td></tr></table></figure>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uid=1001(alice) gid=1001(alice) groups=1001(alice),1002(developers),999(docker)</span><br></pre></td></tr></table></figure></p>
-<h3 id="remove-user-from-group">Remove User from Group</h3>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uid=1001(alice) gid=1001(alice) groups=1001(alice),1002(developers),999(docker)</span><br></pre></td></tr></table></figure>
+<h3 id="Remove-User-from-Group"><a class="header-anchor" href="#Remove-User-from-Group">¶</a>Remove User from Group</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo gpasswd -d username groupname  <span class="comment"># Remove user from group</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="password-management-and-security-policies">Password Management
-and Security Policies</h1>
-<h2 id="passwd-set-and-modify-passwords">passwd: Set and Modify
-Passwords</h2>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">passwd  <span class="comment"># Modify current user&#x27;s password</span></span><br><span class="line">sudo passwd username  <span class="comment"># Modify specified user&#x27;s password</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Advanced usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo passwd -l username  <span class="comment"># Lock user (disable password)</span></span><br><span class="line">sudo passwd -u username  <span class="comment"># Unlock user</span></span><br><span class="line">sudo passwd -d username  <span class="comment"># Delete user password (allow passwordless login, not recommended)</span></span><br><span class="line">sudo passwd -e username  <span class="comment"># Force user to change password on next login</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="chage-password-expiration-policy">chage: Password Expiration
-Policy</h2>
-<p><code>chage</code> is used to manage user password expiration
-policies.</p>
-<p><strong>View user's password policy</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -l username</span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Last password change                                    : Jan 28, 2025</span><br><span class="line">Password expires                                        : never</span><br><span class="line">Password inactive                                       : never</span><br><span class="line">Account expires                                         : never</span><br><span class="line">Minimum number of days between password change          : 0</span><br><span class="line">Maximum number of days between password change          : 99999</span><br><span class="line">Number of days of warning before password expires       : 7</span><br></pre></td></tr></table></figure></p>
-<p><strong>Common operations</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -M 90 username  <span class="comment"># Max password age 90 days</span></span><br><span class="line">sudo chage -m 7 username  <span class="comment"># Min password age 7 days (prevent frequent password changes to bypass policy)</span></span><br><span class="line">sudo chage -W 7 username  <span class="comment"># Start warnings 7 days before password expiration</span></span><br><span class="line">sudo chage -E 2025-12-31 username  <span class="comment"># Set account expiration date</span></span><br><span class="line">sudo chage -I 30 username  <span class="comment"># Disable account 30 days after password expiration</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Password policy best practices</strong> (security hardening):
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -M 90 -W 7 -I 30 username</span><br></pre></td></tr></table></figure></p>
+<h1>Password Management and Security Policies</h1>
+<h2 id="passwd-Set-and-Modify-Passwords"><a class="header-anchor" href="#passwd-Set-and-Modify-Passwords">¶</a>passwd: Set and Modify Passwords</h2>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">passwd  <span class="comment"># Modify current user&#x27;s password</span></span><br><span class="line">sudo passwd username  <span class="comment"># Modify specified user&#x27;s password</span></span><br></pre></td></tr></table></figure>
+<p><strong>Advanced usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo passwd -l username  <span class="comment"># Lock user (disable password)</span></span><br><span class="line">sudo passwd -u username  <span class="comment"># Unlock user</span></span><br><span class="line">sudo passwd -d username  <span class="comment"># Delete user password (allow passwordless login, not recommended)</span></span><br><span class="line">sudo passwd -e username  <span class="comment"># Force user to change password on next login</span></span><br></pre></td></tr></table></figure>
+<h2 id="chage-Password-Expiration-Policy"><a class="header-anchor" href="#chage-Password-Expiration-Policy">¶</a>chage: Password Expiration Policy</h2>
+<p><code>chage</code> is used to manage user password expiration policies.</p>
+<p><strong>View user’s password policy</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -l username</span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Last password change                                    : Jan 28, 2025</span><br><span class="line">Password expires                                        : never</span><br><span class="line">Password inactive                                       : never</span><br><span class="line">Account expires                                         : never</span><br><span class="line">Minimum number of days between password change          : 0</span><br><span class="line">Maximum number of days between password change          : 99999</span><br><span class="line">Number of days of warning before password expires       : 7</span><br></pre></td></tr></table></figure>
+<p><strong>Common operations</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -M 90 username  <span class="comment"># Max password age 90 days</span></span><br><span class="line">sudo chage -m 7 username  <span class="comment"># Min password age 7 days (prevent frequent password changes to bypass policy)</span></span><br><span class="line">sudo chage -W 7 username  <span class="comment"># Start warnings 7 days before password expiration</span></span><br><span class="line">sudo chage -E 2025-12-31 username  <span class="comment"># Set account expiration date</span></span><br><span class="line">sudo chage -I 30 username  <span class="comment"># Disable account 30 days after password expiration</span></span><br></pre></td></tr></table></figure>
+<p><strong>Password policy best practices</strong> (security hardening):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chage -M 90 -W 7 -I 30 username</span><br></pre></td></tr></table></figure>
 <ul>
 <li>Max password age 90 days</li>
 <li>Start warnings 7 days before expiration</li>
 <li>Disable account 30 days after expiration</li>
 </ul>
 <hr>
-<h1 id="sudo-permission-configuration">sudo Permission
-Configuration</h1>
-<h2 id="why-use-sudo">Why Use sudo</h2>
+<h1>sudo Permission Configuration</h1>
+<h2 id="Why-Use-sudo"><a class="header-anchor" href="#Why-Use-sudo">¶</a>Why Use sudo</h2>
 <p><strong>Problem</strong>: If you log in directly as root:</p>
 <ul>
 <li>High risk (one <code>rm -rf /</code> deletes entire system)</li>
-<li>Logs can't tell who did what (everything is root)</li>
+<li>Logs can’t tell who did what (everything is root)</li>
 </ul>
-<p><strong>Solution</strong>: Log in as normal user, use
-<code>sudo</code> when permissions needed.</p>
+<p><strong>Solution</strong>: Log in as normal user, use <code>sudo</code> when permissions needed.</p>
 <p><strong>Advantages</strong>:</p>
 <ul>
 <li>Logs show which user executed which <code>sudo</code> command</li>
-<li>Can limit users to only execute specific commands (like only restart
-nginx, can't delete files)</li>
-<li>Don't need to tell users root password</li>
+<li>Can limit users to only execute specific commands (like only restart nginx, can’t delete files)</li>
+<li>Don’t need to tell users root password</li>
 </ul>
-<h2 id="how-sudo-works">How sudo Works</h2>
-<ol type="1">
+<h2 id="How-sudo-Works"><a class="header-anchor" href="#How-sudo-Works">¶</a>How sudo Works</h2>
+<ol>
 <li>User executes <code>sudo command</code></li>
-<li>sudo checks <code>/etc/sudoers</code> file to see if user has
-permission</li>
-<li>If has permission, sudo requires user to enter <strong>their own
-password</strong> (not root password)</li>
+<li>sudo checks <code>/etc/sudoers</code> file to see if user has permission</li>
+<li>If has permission, sudo requires user to enter <strong>their own password</strong> (not root password)</li>
 <li>After verification, execute command as root</li>
 </ol>
-<h2 id="configure-sudoers">Configure sudoers</h2>
+<h2 id="Configure-sudoers"><a class="header-anchor" href="#Configure-sudoers">¶</a>Configure sudoers</h2>
 <p><strong>Config file</strong>: <code>/etc/sudoers</code></p>
-<p><strong>Important</strong>: <strong>Always use <code>visudo</code> to
-edit</strong> (don't directly <code>vim /etc/sudoers</code>)
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo visudo</span><br></pre></td></tr></table></figure></p>
-<p><code>visudo</code> checks syntax, preventing you from writing errors
-that completely lock sudo (not even root can fix, only reboot to
-single-user mode to fix).</p>
-<p><strong>Basic format</strong>: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">user    host=(runas_user:runas_group) commands</span><br></pre></td></tr></table></figure></p>
+<p><strong>Important</strong>: <strong>Always use <code>visudo</code> to edit</strong> (don’t directly <code>vim /etc/sudoers</code>)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo visudo</span><br></pre></td></tr></table></figure>
+<p><code>visudo</code> checks syntax, preventing you from writing errors that completely lock sudo (not even root can fix, only reboot to single-user mode to fix).</p>
+<p><strong>Basic format</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">user    host=(runas_user:runas_group) commands</span><br></pre></td></tr></table></figure>
 <p><strong>Examples</strong>:</p>
-<h3 id="give-user-full-sudo-permissions">1. Give User Full sudo
-Permissions</h3>
+<h3 id="1-Give-User-Full-sudo-Permissions"><a class="header-anchor" href="#1-Give-User-Full-sudo-Permissions">¶</a>1. Give User Full sudo Permissions</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">alice ALL=(ALL:ALL) ALL</span><br></pre></td></tr></table></figure>
 <ul>
 <li>First <code>ALL</code>: On all hosts</li>
 <li><code>(ALL:ALL)</code>: Can run as any user and group</li>
 <li>Last <code>ALL</code>: Can execute any command</li>
 </ul>
-<h3 id="give-group-full-sudo-permissions">2. Give Group Full sudo
-Permissions</h3>
+<h3 id="2-Give-Group-Full-sudo-Permissions"><a class="header-anchor" href="#2-Give-Group-Full-sudo-Permissions">¶</a>2. Give Group Full sudo Permissions</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">%sudo ALL=(ALL:ALL) ALL  <span class="comment"># Debian/Ubuntu (% indicates group)</span></span><br><span class="line">%wheel ALL=(ALL:ALL) ALL  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<h3 id="allow-user-to-execute-specific-command-no-password">3. Allow
-User to Execute Specific Command (No Password)</h3>
+<h3 id="3-Allow-User-to-Execute-Specific-Command-No-Password"><a class="header-anchor" href="#3-Allow-User-to-Execute-Specific-Command-No-Password">¶</a>3. Allow User to Execute Specific Command (No Password)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">alice ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx</span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>NOPASSWD:</code>: Don't need to enter password</li>
-<li><code>/usr/bin/systemctl restart nginx</code>: Only allow restarting
-nginx</li>
+<li><code>NOPASSWD:</code>: Don’t need to enter password</li>
+<li><code>/usr/bin/systemctl restart nginx</code>: Only allow restarting nginx</li>
 </ul>
-<h3 id="allow-user-to-execute-multiple-commands">4. Allow User to
-Execute Multiple Commands</h3>
+<h3 id="4-Allow-User-to-Execute-Multiple-Commands"><a class="header-anchor" href="#4-Allow-User-to-Execute-Multiple-Commands">¶</a>4. Allow User to Execute Multiple Commands</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">alice ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl status nginx</span><br></pre></td></tr></table></figure>
-<h2 id="quick-method-add-to-sudo-group">Quick Method: Add to sudo
-Group</h2>
-<p><strong>Debian/Ubuntu</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -aG sudo alice</span><br></pre></td></tr></table></figure></p>
-<p><strong>CentOS/RHEL</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -aG wheel alice</span><br></pre></td></tr></table></figure></p>
-<p>After this, <code>alice</code> can use <code>sudo</code> to execute
-any command.</p>
+<h2 id="Quick-Method-Add-to-sudo-Group"><a class="header-anchor" href="#Quick-Method-Add-to-sudo-Group">¶</a>Quick Method: Add to sudo Group</h2>
+<p><strong>Debian/Ubuntu</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -aG sudo alice</span><br></pre></td></tr></table></figure>
+<p><strong>CentOS/RHEL</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -aG wheel alice</span><br></pre></td></tr></table></figure>
+<p>After this, <code>alice</code> can use <code>sudo</code> to execute any command.</p>
 <hr>
-<h1 id="practical-scenarios">Practical Scenarios</h1>
-<h2 id="scenario-1-create-shared-project-directory">Scenario 1: Create
-Shared Project Directory</h2>
-<p><strong>Requirement</strong>: <code>/srv/project</code> directory,
-developers group members can all read/write, others cannot access, new
-files automatically inherit developers group.</p>
-<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo groupadd developers  <span class="comment"># Create group</span></span><br><span class="line">sudo useradd -m -G developers alice  <span class="comment"># Create user and add to group</span></span><br><span class="line">sudo useradd -m -G developers bob</span><br><span class="line"></span><br><span class="line">sudo <span class="built_in">mkdir</span> /srv/project</span><br><span class="line">sudo <span class="built_in">chown</span> :developers /srv/project  <span class="comment"># Change group to developers</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 2770 /srv/project  <span class="comment"># SGID + 770</span></span><br></pre></td></tr></table></figure></p>
+<h1>Practical Scenarios</h1>
+<h2 id="Scenario-1-Create-Shared-Project-Directory"><a class="header-anchor" href="#Scenario-1-Create-Shared-Project-Directory">¶</a>Scenario 1: Create Shared Project Directory</h2>
+<p><strong>Requirement</strong>: <code>/srv/project</code> directory, developers group members can all read/write, others cannot access, new files automatically inherit developers group.</p>
+<p><strong>Solution</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">sudo groupadd developers  <span class="comment"># Create group</span></span><br><span class="line">sudo useradd -m -G developers alice  <span class="comment"># Create user and add to group</span></span><br><span class="line">sudo useradd -m -G developers bob</span><br><span class="line"></span><br><span class="line">sudo <span class="built_in">mkdir</span> /srv/project</span><br><span class="line">sudo <span class="built_in">chown</span> :developers /srv/project  <span class="comment"># Change group to developers</span></span><br><span class="line">sudo <span class="built_in">chmod</span> 2770 /srv/project  <span class="comment"># SGID + 770</span></span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>2</code>: SGID (new files automatically inherit developers
-group)</li>
-<li><code>770</code>: owner and group both rwx, others no
-permissions</li>
+<li><code>2</code>: SGID (new files automatically inherit developers group)</li>
+<li><code>770</code>: owner and group both rwx, others no permissions</li>
 </ul>
-<p><strong>Verification</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">su - alice</span><br><span class="line"><span class="built_in">touch</span> /srv/project/test.txt</span><br><span class="line"><span class="built_in">ls</span> -l /srv/project/test.txt  <span class="comment"># Output: -rw-r--r-- alice developers</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="scenario-2-create-service-account-like-nginx">Scenario 2: Create
-Service Account (Like Nginx)</h2>
-<p><strong>Requirement</strong>: Create <code>nginx</code> user for
-running Nginx service, no login allowed.</p>
-<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd -r -s /sbin/nologin -d /var/lib/nginx -M nginx</span><br></pre></td></tr></table></figure></p>
+<p><strong>Verification</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">su - alice</span><br><span class="line"><span class="built_in">touch</span> /srv/project/test.txt</span><br><span class="line"><span class="built_in">ls</span> -l /srv/project/test.txt  <span class="comment"># Output: -rw-r--r-- alice developers</span></span><br></pre></td></tr></table></figure>
+<h2 id="Scenario-2-Create-Service-Account-Like-Nginx"><a class="header-anchor" href="#Scenario-2-Create-Service-Account-Like-Nginx">¶</a>Scenario 2: Create Service Account (Like Nginx)</h2>
+<p><strong>Requirement</strong>: Create <code>nginx</code> user for running Nginx service, no login allowed.</p>
+<p><strong>Solution</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo useradd -r -s /sbin/nologin -d /var/lib/nginx -M nginx</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-r</code>: Create system user (UID &lt; 1000)</li>
 <li><code>-s /sbin/nologin</code>: Disable login</li>
 <li><code>-d /var/lib/nginx</code>: Specify home directory</li>
-<li><code>-M</code>: Don't create home directory</li>
+<li><code>-M</code>: Don’t create home directory</li>
 </ul>
-<h2 id="scenario-3-batch-create-users">Scenario 3: Batch Create
-Users</h2>
-<p>Suppose you have a user list <code>users.txt</code>:
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">alice</span><br><span class="line">bob</span><br><span class="line">charlie</span><br></pre></td></tr></table></figure></p>
-<p><strong>Solution</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="keyword">while</span> <span class="built_in">read</span> username; <span class="keyword">do</span></span><br><span class="line">    sudo useradd -m -s /bin/bash <span class="string">&quot;<span class="variable">$username</span>&quot;</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;password123&quot;</span> | sudo passwd --stdin <span class="string">&quot;<span class="variable">$username</span>&quot;</span>  <span class="comment"># CentOS/RHEL</span></span><br><span class="line">    <span class="comment"># Or Ubuntu/Debian:</span></span><br><span class="line">    <span class="comment"># echo &quot;$username:password123&quot; | sudo chpasswd</span></span><br><span class="line"><span class="keyword">done</span> &lt; users.txt</span><br></pre></td></tr></table></figure></p>
-<h2 id="scenario-4-sudo-permission-stratification">Scenario 4: sudo
-Permission Stratification</h2>
+<h2 id="Scenario-3-Batch-Create-Users"><a class="header-anchor" href="#Scenario-3-Batch-Create-Users">¶</a>Scenario 3: Batch Create Users</h2>
+<p>Suppose you have a user list <code>users.txt</code>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">alice</span><br><span class="line">bob</span><br><span class="line">charlie</span><br></pre></td></tr></table></figure>
+<p><strong>Solution</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="keyword">while</span> <span class="built_in">read</span> username; <span class="keyword">do</span></span><br><span class="line">    sudo useradd -m -s /bin/bash <span class="string">&quot;<span class="variable">$username</span>&quot;</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;password123&quot;</span> | sudo passwd --stdin <span class="string">&quot;<span class="variable">$username</span>&quot;</span>  <span class="comment"># CentOS/RHEL</span></span><br><span class="line">    <span class="comment"># Or Ubuntu/Debian:</span></span><br><span class="line">    <span class="comment"># echo &quot;$username:password123&quot; | sudo chpasswd</span></span><br><span class="line"><span class="keyword">done</span> &lt; users.txt</span><br></pre></td></tr></table></figure>
+<h2 id="Scenario-4-sudo-Permission-Stratification"><a class="header-anchor" href="#Scenario-4-sudo-Permission-Stratification">¶</a>Scenario 4: sudo Permission Stratification</h2>
 <p><strong>Requirement</strong>:</p>
 <ul>
 <li><code>alice</code> can execute any command</li>
 <li><code>bob</code> can only restart nginx</li>
 <li><code>charlie</code> can only view logs</li>
 </ul>
-<p><strong>Solution</strong>: Edit <code>sudo visudo</code>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">alice ALL=(ALL:ALL) ALL</span><br><span class="line">bob ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl status nginx</span><br><span class="line">charlie ALL=(ALL) NOPASSWD: /usr/bin/tail, /usr/bin/less, /usr/bin/cat</span><br></pre></td></tr></table></figure></p>
+<p><strong>Solution</strong>: Edit <code>sudo visudo</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">alice ALL=(ALL:ALL) ALL</span><br><span class="line">bob ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx, /usr/bin/systemctl status nginx</span><br><span class="line">charlie ALL=(ALL) NOPASSWD: /usr/bin/tail, /usr/bin/less, /usr/bin/cat</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="summary-and-further-reading">Summary and Further Reading</h1>
-<p>This article covers the core content of Linux user management: 1. ✅
-User and group conceptual model (users vs groups, UID/GID boundaries) 2.
-✅ Core system files explained (<code>/etc/passwd</code>,
-<code>/etc/shadow</code>, <code>/etc/group</code>,
-<code>/etc/gshadow</code>, <code>/etc/skel</code>) 3. ✅ User management
-commands (<code>useradd/usermod/userdel</code>,
-<code>passwd/chage</code>) 4. ✅ Group management commands
-(<code>groupadd/groupmod/groupdel</code>) 5. ✅ sudo permission
-configuration (<code>/etc/sudoers</code>, <code>visudo</code>,
-permission stratification) 6. ✅ Practical scenarios (shared
-directories, service accounts, batch creation, sudo stratification)</p>
+<h1>Summary and Further Reading</h1>
+<p>This article covers the core content of Linux user management:</p>
+<ol>
+<li>✅ User and group conceptual model (users vs groups, UID/GID boundaries)</li>
+<li>✅ Core system files explained (<code>/etc/passwd</code>, <code>/etc/shadow</code>, <code>/etc/group</code>, <code>/etc/gshadow</code>, <code>/etc/skel</code>)</li>
+<li>✅ User management commands (<code>useradd/usermod/userdel</code>, <code>passwd/chage</code>)</li>
+<li>✅ Group management commands (<code>groupadd/groupmod/groupdel</code>)</li>
+<li>✅ sudo permission configuration (<code>/etc/sudoers</code>, <code>visudo</code>, permission stratification)</li>
+<li>✅ Practical scenarios (shared directories, service accounts, batch creation, sudo stratification)</li>
+</ol>
 <p><strong>Further Reading</strong>:</p>
 <ul>
 <li><code>man useradd</code>: View detailed useradd manual</li>
-<li><code>man sudoers</code>: View detailed sudoers configuration
-explanation</li>
-<li>PAM (Pluggable Authentication Modules): More advanced authentication
-framework</li>
+<li><code>man sudoers</code>: View detailed sudoers configuration explanation</li>
+<li>PAM (Pluggable Authentication Modules): More advanced authentication framework</li>
 </ul>
 <p><strong>Next Steps</strong>:</p>
 <ul>
-<li><strong>《Linux File Permissions》</strong>: Learn how to manage
-file/directory permissions (rwx, SUID/SGID, ACL)</li>
-<li><strong>《Linux System Service Management》</strong>: Learn how to
-manage services, configure auto-start on boot</li>
+<li><strong>《Linux File Permissions》</strong>: Learn how to manage file/directory permissions (rwx, SUID/SGID, ACL)</li>
+<li><strong>《Linux System Service Management》</strong>: Learn how to manage services, configure auto-start on boot</li>
 </ul>
 <hr>
-<p><strong>By this point, you should have upgraded from "can create
-users" to "can design reasonable user permission schemes, can configure
-sudo stratified permissions, can manage password policies." User
-management is the foundation of Linux security; mastering it allows you
-to better protect systems and data.</strong></p>
+<p><strong>By this point, you should have upgraded from “can create users” to “can design reasonable user permission schemes, can configure sudo stratified permissions, can manage password policies.” User management is the foundation of Linux security; mastering it allows you to better protect systems and data.</strong></p>
 
         </div>
 
@@ -778,13 +689,13 @@ to better protect systems and data.</strong></p>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/en/llm-workflows-architecture/"
+                           href="/en/moslora/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">LLM Workflows and Application Architecture: Enterprise Implementation Guide</span>
+                                <span class="post-nav-title-item">MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation</span>
                                 <span class="post-nav-item">Prev posts</span>
                             </span>
                         </a>
@@ -1010,30 +921,7 @@ to better protect systems and data.</strong></p>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#core-linux-user-and-group-concepts"><span class="nav-number">1.</span> <span class="nav-text">Core Linux User and Group
-Concepts</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#relationship-between-users-and-groups"><span class="nav-number">1.1.</span> <span class="nav-text">Relationship Between
-Users and Groups</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#uid-and-gid-boundaries"><span class="nav-number">1.2.</span> <span class="nav-text">UID and GID Boundaries</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#core-system-files-explained"><span class="nav-number">2.</span> <span class="nav-text">Core System Files Explained</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#etcpasswd-public-user-database"><span class="nav-number">2.1.</span> <span class="nav-text">1. &#x2F;etc&#x2F;passwd
-(Public User Database)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#etcshadow-password-hashes-and-policies"><span class="nav-number">2.2.</span> <span class="nav-text">2.
-&#x2F;etc&#x2F;shadow (Password Hashes and Policies)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#etcgroup-group-information"><span class="nav-number">2.3.</span> <span class="nav-text">3. &#x2F;etc&#x2F;group (Group
-Information)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#etcgshadow-group-passwords-and-admin-info"><span class="nav-number">2.4.</span> <span class="nav-text">4.
-&#x2F;etc&#x2F;gshadow (Group Passwords and Admin Info)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#etcskel-home-directory-template"><span class="nav-number">2.5.</span> <span class="nav-text">5. &#x2F;etc&#x2F;skel (Home
-Directory Template)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#user-management-commands"><span class="nav-number">3.</span> <span class="nav-text">User Management Commands</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#useradd-create-user"><span class="nav-number">3.1.</span> <span class="nav-text">useradd: Create User</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#create-normal-user"><span class="nav-number">3.1.1.</span> <span class="nav-text">1. Create Normal User</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#create-service-account-no-login-allowed"><span class="nav-number">3.1.2.</span> <span class="nav-text">2. Create Service
-Account (No Login Allowed)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#create-user-with-specified-primary-and-supplementary-groups"><span class="nav-number">3.1.3.</span> <span class="nav-text">3.
-Create User with Specified Primary and Supplementary Groups</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#usermod-modify-user"><span class="nav-number">3.2.</span> <span class="nav-text">usermod: Modify User</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#add-user-to-sudo-group"><span class="nav-number">3.2.1.</span> <span class="nav-text">1. Add User to sudo Group</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#modify-users-shell"><span class="nav-number">3.2.2.</span> <span class="nav-text">2. Modify User&#39;s Shell</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#migrate-user-home-directory"><span class="nav-number">3.2.3.</span> <span class="nav-text">3. Migrate User Home Directory</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lock-and-unlock-user"><span class="nav-number">3.2.4.</span> <span class="nav-text">4. Lock and Unlock User</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#userdel-delete-user"><span class="nav-number">3.3.</span> <span class="nav-text">userdel: Delete User</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#group-management-commands"><span class="nav-number">4.</span> <span class="nav-text">Group Management Commands</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#groupadd-create-group"><span class="nav-number">4.1.</span> <span class="nav-text">groupadd: Create Group</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#groupmod-modify-group"><span class="nav-number">4.2.</span> <span class="nav-text">groupmod: Modify Group</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#groupdel-delete-group"><span class="nav-number">4.3.</span> <span class="nav-text">groupdel: Delete Group</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#user-group-association-operations"><span class="nav-number">4.4.</span> <span class="nav-text">User-Group Association
-Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#add-user-to-group"><span class="nav-number">4.4.1.</span> <span class="nav-text">Add User to Group</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-users-groups"><span class="nav-number">4.4.2.</span> <span class="nav-text">View User&#39;s Groups</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#remove-user-from-group"><span class="nav-number">4.4.3.</span> <span class="nav-text">Remove User from Group</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#password-management-and-security-policies"><span class="nav-number">5.</span> <span class="nav-text">Password Management
-and Security Policies</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#passwd-set-and-modify-passwords"><span class="nav-number">5.1.</span> <span class="nav-text">passwd: Set and Modify
-Passwords</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#chage-password-expiration-policy"><span class="nav-number">5.2.</span> <span class="nav-text">chage: Password Expiration
-Policy</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#sudo-permission-configuration"><span class="nav-number">6.</span> <span class="nav-text">sudo Permission
-Configuration</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#why-use-sudo"><span class="nav-number">6.1.</span> <span class="nav-text">Why Use sudo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#how-sudo-works"><span class="nav-number">6.2.</span> <span class="nav-text">How sudo Works</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#configure-sudoers"><span class="nav-number">6.3.</span> <span class="nav-text">Configure sudoers</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#give-user-full-sudo-permissions"><span class="nav-number">6.3.1.</span> <span class="nav-text">1. Give User Full sudo
-Permissions</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#give-group-full-sudo-permissions"><span class="nav-number">6.3.2.</span> <span class="nav-text">2. Give Group Full sudo
-Permissions</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#allow-user-to-execute-specific-command-no-password"><span class="nav-number">6.3.3.</span> <span class="nav-text">3. Allow
-User to Execute Specific Command (No Password)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#allow-user-to-execute-multiple-commands"><span class="nav-number">6.3.4.</span> <span class="nav-text">4. Allow User to
-Execute Multiple Commands</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#quick-method-add-to-sudo-group"><span class="nav-number">6.4.</span> <span class="nav-text">Quick Method: Add to sudo
-Group</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#practical-scenarios"><span class="nav-number">7.</span> <span class="nav-text">Practical Scenarios</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-1-create-shared-project-directory"><span class="nav-number">7.1.</span> <span class="nav-text">Scenario 1: Create
-Shared Project Directory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-2-create-service-account-like-nginx"><span class="nav-number">7.2.</span> <span class="nav-text">Scenario 2: Create
-Service Account (Like Nginx)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-3-batch-create-users"><span class="nav-number">7.3.</span> <span class="nav-text">Scenario 3: Batch Create
-Users</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#scenario-4-sudo-permission-stratification"><span class="nav-number">7.4.</span> <span class="nav-text">Scenario 4: sudo
-Permission Stratification</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#summary-and-further-reading"><span class="nav-number">8.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">Core Linux User and Group Concepts</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Relationship-Between-Users-and-Groups"><span class="nav-number">1.1.</span> <span class="nav-text">Relationship Between Users and Groups</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#UID-and-GID-Boundaries"><span class="nav-number">1.2.</span> <span class="nav-text">UID and GID Boundaries</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Core System Files Explained</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-etc-passwd-Public-User-Database"><span class="nav-number">2.1.</span> <span class="nav-text">1. &#x2F;etc&#x2F;passwd (Public User Database)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-etc-shadow-Password-Hashes-and-Policies"><span class="nav-number">2.2.</span> <span class="nav-text">2. &#x2F;etc&#x2F;shadow (Password Hashes and Policies)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-etc-group-Group-Information"><span class="nav-number">2.3.</span> <span class="nav-text">3. &#x2F;etc&#x2F;group (Group Information)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-etc-gshadow-Group-Passwords-and-Admin-Info"><span class="nav-number">2.4.</span> <span class="nav-text">4. &#x2F;etc&#x2F;gshadow (Group Passwords and Admin Info)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-etc-skel-Home-Directory-Template"><span class="nav-number">2.5.</span> <span class="nav-text">5. &#x2F;etc&#x2F;skel (Home Directory Template)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">User Management Commands</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#useradd-Create-User"><span class="nav-number">3.1.</span> <span class="nav-text">useradd: Create User</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Create-Normal-User"><span class="nav-number">3.1.1.</span> <span class="nav-text">1. Create Normal User</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Create-Service-Account-No-Login-Allowed"><span class="nav-number">3.1.2.</span> <span class="nav-text">2. Create Service Account (No Login Allowed)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Create-User-with-Specified-Primary-and-Supplementary-Groups"><span class="nav-number">3.1.3.</span> <span class="nav-text">3. Create User with Specified Primary and Supplementary Groups</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#usermod-Modify-User"><span class="nav-number">3.2.</span> <span class="nav-text">usermod: Modify User</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Add-User-to-sudo-Group"><span class="nav-number">3.2.1.</span> <span class="nav-text">1. Add User to sudo Group</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Modify-User%E2%80%99s-Shell"><span class="nav-number">3.2.2.</span> <span class="nav-text">2. Modify User’s Shell</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Migrate-User-Home-Directory"><span class="nav-number">3.2.3.</span> <span class="nav-text">3. Migrate User Home Directory</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Lock-and-Unlock-User"><span class="nav-number">3.2.4.</span> <span class="nav-text">4. Lock and Unlock User</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#userdel-Delete-User"><span class="nav-number">3.3.</span> <span class="nav-text">userdel: Delete User</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">Group Management Commands</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#groupadd-Create-Group"><span class="nav-number">4.1.</span> <span class="nav-text">groupadd: Create Group</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#groupmod-Modify-Group"><span class="nav-number">4.2.</span> <span class="nav-text">groupmod: Modify Group</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#groupdel-Delete-Group"><span class="nav-number">4.3.</span> <span class="nav-text">groupdel: Delete Group</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#User-Group-Association-Operations"><span class="nav-number">4.4.</span> <span class="nav-text">User-Group Association Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Add-User-to-Group"><span class="nav-number">4.4.1.</span> <span class="nav-text">Add User to Group</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#View-User%E2%80%99s-Groups"><span class="nav-number">4.4.2.</span> <span class="nav-text">View User’s Groups</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Remove-User-from-Group"><span class="nav-number">4.4.3.</span> <span class="nav-text">Remove User from Group</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">Password Management and Security Policies</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#passwd-Set-and-Modify-Passwords"><span class="nav-number">5.1.</span> <span class="nav-text">passwd: Set and Modify Passwords</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#chage-Password-Expiration-Policy"><span class="nav-number">5.2.</span> <span class="nav-text">chage: Password Expiration Policy</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">sudo Permission Configuration</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Why-Use-sudo"><span class="nav-number">6.1.</span> <span class="nav-text">Why Use sudo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#How-sudo-Works"><span class="nav-number">6.2.</span> <span class="nav-text">How sudo Works</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Configure-sudoers"><span class="nav-number">6.3.</span> <span class="nav-text">Configure sudoers</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Give-User-Full-sudo-Permissions"><span class="nav-number">6.3.1.</span> <span class="nav-text">1. Give User Full sudo Permissions</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Give-Group-Full-sudo-Permissions"><span class="nav-number">6.3.2.</span> <span class="nav-text">2. Give Group Full sudo Permissions</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Allow-User-to-Execute-Specific-Command-No-Password"><span class="nav-number">6.3.3.</span> <span class="nav-text">3. Allow User to Execute Specific Command (No Password)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Allow-User-to-Execute-Multiple-Commands"><span class="nav-number">6.3.4.</span> <span class="nav-text">4. Allow User to Execute Multiple Commands</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Method-Add-to-sudo-Group"><span class="nav-number">6.4.</span> <span class="nav-text">Quick Method: Add to sudo Group</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Practical Scenarios</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-1-Create-Shared-Project-Directory"><span class="nav-number">7.1.</span> <span class="nav-text">Scenario 1: Create Shared Project Directory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-2-Create-Service-Account-Like-Nginx"><span class="nav-number">7.2.</span> <span class="nav-text">Scenario 2: Create Service Account (Like Nginx)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-3-Batch-Create-Users"><span class="nav-number">7.3.</span> <span class="nav-text">Scenario 3: Batch Create Users</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scenario-4-sudo-Permission-Stratification"><span class="nav-number">7.4.</span> <span class="nav-text">Scenario 4: sudo Permission Stratification</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
     </div>
 </div>
         </aside>

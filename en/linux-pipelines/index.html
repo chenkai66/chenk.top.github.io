@@ -260,36 +260,12 @@
         
 
         <div class="article-content markdown-body">
-            <p>The real productivity jump on Linux isn't memorizing more
-commands—it's learning how to <strong>compose small tools</strong> into
-clear data flows. The pipe operator <code>|</code> embodies the core
-Unix philosophy: make each small tool do one thing (grep only filters,
-awk only extracts fields, sort only sorts), then chain them into a
-readable, debuggable pipeline. This post starts from the data flow model
-(stdin/stdout/stderr), systematically explains semantic differences
-between pipes and redirection (<code>&gt;</code>, <code>&gt;&gt;</code>,
-<code>2&gt;</code>, <code>2&gt;&amp;1</code>, <code>&lt;</code> each do
-what), then fills in typical patterns for log triage, text filtering,
-statistical aggregation, and batch processing (when to use
-<code>grep/awk/sed/sort/uniq/wc/cut/tr</code>, how to progressively
-narrow scope), and uses practical cases (Nginx log analysis, batch file
-operations, safe deletion) to cover pitfalls like "spaces and newlines"
-(correct usage of <code>find -print0</code> + <code>xargs -0</code>).
-After reading, you should be able to replace many "need to write a
-script" small tasks with one or two readable command lines and more
-easily understand others' one-liners.</p>
+            <p>The real productivity jump on Linux isn’t memorizing more commands—it’s learning how to <strong>compose small tools</strong> into clear data flows. The pipe operator <code>|</code> embodies the core Unix philosophy: make each small tool do one thing (grep only filters, awk only extracts fields, sort only sorts), then chain them into a readable, debuggable pipeline. This post starts from the data flow model (stdin/stdout/stderr), systematically explains semantic differences between pipes and redirection (<code>&gt;</code>, <code>&gt;&gt;</code>, <code>2&gt;</code>, <code>2&gt;&amp;1</code>, <code>&lt;</code> each do what), then fills in typical patterns for log triage, text filtering, statistical aggregation, and batch processing (when to use <code>grep/awk/sed/sort/uniq/wc/cut/tr</code>, how to progressively narrow scope), and uses practical cases (Nginx log analysis, batch file operations, safe deletion) to cover pitfalls like “spaces and newlines” (correct usage of <code>find -print0</code> + <code>xargs -0</code>). After reading, you should be able to replace many “need to write a script” small tasks with one or two readable command lines and more easily understand others’ one-liners.</p>
 <span id="more"></span>
-<h1 id="data-flow-model-stdinstdoutstderr-and-file-descriptors">Data
-Flow Model: stdin/stdout/stderr and File Descriptors</h1>
-<h2 id="three-standard-streams">Three Standard Streams</h2>
+<h1>Data Flow Model: stdin/stdout/stderr and File Descriptors</h1>
+<h2 id="Three-Standard-Streams"><a class="header-anchor" href="#Three-Standard-Streams">¶</a>Three Standard Streams</h2>
 <p>Every Linux process has three standard streams:</p>
 <table>
-<colgroup>
-<col style="width: 14%">
-<col style="width: 19%">
-<col style="width: 27%">
-<col style="width: 38%">
-</colgroup>
 <thead>
 <tr>
 <th>Stream</th>
@@ -309,7 +285,7 @@ Flow Model: stdin/stdout/stderr and File Descriptors</h1>
 <td><strong>stdout</strong></td>
 <td>1</td>
 <td>Output to screen</td>
-<td><code>echo "hello"</code></td>
+<td><code>echo &quot;hello&quot;</code></td>
 </tr>
 <tr>
 <td><strong>stderr</strong></td>
@@ -321,194 +297,170 @@ Flow Model: stdin/stdout/stderr and File Descriptors</h1>
 </table>
 <p><strong>Why separate stdout and stderr?</strong></p>
 <ul>
-<li>Normal output and error output can be handled separately (like
-normal output saved to file, error output displayed on screen)</li>
-<li>Pipe <code>|</code> only passes stdout (doesn't pass stderr), so
-error messages don't pollute data flow</li>
+<li>Normal output and error output can be handled separately (like normal output saved to file, error output displayed on screen)</li>
+<li>Pipe <code>|</code> only passes stdout (doesn’t pass stderr), so error messages don’t pollute data flow</li>
 </ul>
-<p><strong>Example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /nonexistent  <span class="comment"># Error message outputs to stderr (screen)</span></span><br><span class="line"><span class="built_in">ls</span> /nonexistent 2&gt; err.log  <span class="comment"># Error message redirected to err.log</span></span><br><span class="line"><span class="built_in">ls</span> /nonexistent 2&gt;&amp;1  <span class="comment"># stderr redirected to stdout (merged into same stream)</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="file-descriptors-fd">File Descriptors (FD)</h2>
-<p>File descriptors are process's "handles" for opened files,
-represented by integers:</p>
+<p><strong>Example</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /nonexistent  <span class="comment"># Error message outputs to stderr (screen)</span></span><br><span class="line"><span class="built_in">ls</span> /nonexistent 2&gt; err.log  <span class="comment"># Error message redirected to err.log</span></span><br><span class="line"><span class="built_in">ls</span> /nonexistent 2&gt;&amp;1  <span class="comment"># stderr redirected to stdout (merged into same stream)</span></span><br></pre></td></tr></table></figure>
+<h2 id="File-Descriptors-FD"><a class="header-anchor" href="#File-Descriptors-FD">¶</a>File Descriptors (FD)</h2>
+<p>File descriptors are process’s “handles” for opened files, represented by integers:</p>
 <ul>
 <li><code>0</code>: stdin</li>
 <li><code>1</code>: stdout</li>
 <li><code>2</code>: stderr</li>
 <li><code>3+</code>: Files opened by process itself</li>
 </ul>
-<p><strong>View process's open file descriptors</strong>:
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l /proc/$$/fd  <span class="comment"># $$ is current shell&#x27;s PID</span></span><br></pre></td></tr></table></figure></p>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lrwx------ 1 user user 0 /proc/12345/fd/0 -&gt; /dev/pts/0  # stdin</span><br><span class="line">lrwx------ 1 user user 0 /proc/12345/fd/1 -&gt; /dev/pts/0  # stdout</span><br><span class="line">lrwx------ 1 user user 0 /proc/12345/fd/2 -&gt; /dev/pts/0  # stderr</span><br></pre></td></tr></table></figure></p>
+<p><strong>View process’s open file descriptors</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l /proc/$$/fd  <span class="comment"># $$ is current shell&#x27;s PID</span></span><br></pre></td></tr></table></figure>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lrwx------ 1 user user 0 /proc/12345/fd/0 -&gt; /dev/pts/0  # stdin</span><br><span class="line">lrwx------ 1 user user 0 /proc/12345/fd/1 -&gt; /dev/pts/0  # stdout</span><br><span class="line">lrwx------ 1 user user 0 /proc/12345/fd/2 -&gt; /dev/pts/0  # stderr</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="redirection-controlling-data-flow-direction">Redirection:
-Controlling Data Flow Direction</h1>
-<h2 id="output-redirection-stdout">Output Redirection (stdout)</h2>
+<h1>Redirection: Controlling Data Flow Direction</h1>
+<h2 id="Output-Redirection-stdout"><a class="header-anchor" href="#Output-Redirection-stdout">¶</a>Output Redirection (stdout)</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;hello&quot;</span> &gt; file.txt  <span class="comment"># Overwrite (file cleared if exists)</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;world&quot;</span> &gt;&gt; file.txt  <span class="comment"># Append (add to end of file)</span></span><br></pre></td></tr></table></figure>
-<p><strong>Common usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l &gt; filelist.txt  <span class="comment"># Save file list</span></span><br><span class="line"><span class="built_in">date</span> &gt;&gt; log.txt  <span class="comment"># Append timestamp to log</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="error-output-redirection-stderr">Error Output Redirection
-(stderr)</h2>
+<p><strong>Common usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l &gt; filelist.txt  <span class="comment"># Save file list</span></span><br><span class="line"><span class="built_in">date</span> &gt;&gt; log.txt  <span class="comment"># Append timestamp to log</span></span><br></pre></td></tr></table></figure>
+<h2 id="Error-Output-Redirection-stderr"><a class="header-anchor" href="#Error-Output-Redirection-stderr">¶</a>Error Output Redirection (stderr)</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /nonexistent 2&gt; err.log  <span class="comment"># Error output redirected to err.log</span></span><br><span class="line"><span class="built_in">ls</span> /nonexistent 2&gt;&gt; err.log  <span class="comment"># Error output appended to err.log</span></span><br></pre></td></tr></table></figure>
-<h2 id="redirect-both-stdout-and-stderr">Redirect Both stdout and
-stderr</h2>
-<h3 id="method-1-21-traditional">Method 1: <code>2&gt;&amp;1</code>
-(Traditional)</h3>
+<h2 id="Redirect-Both-stdout-and-stderr"><a class="header-anchor" href="#Redirect-Both-stdout-and-stderr">¶</a>Redirect Both stdout and stderr</h2>
+<h3 id="Method-1-2-1-Traditional"><a class="header-anchor" href="#Method-1-2-1-Traditional">¶</a>Method 1: <code>2&gt;&amp;1</code> (Traditional)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">command</span> &gt; output.log 2&gt;&amp;1  <span class="comment"># Both stdout and stderr redirected to output.log</span></span><br></pre></td></tr></table></figure>
 <p><strong>Order matters</strong>:</p>
 <ul>
-<li><code>&gt; output.log</code> first redirects stdout to
-output.log</li>
-<li><code>2&gt;&amp;1</code> then redirects stderr to stdout's location
-(also output.log)</li>
+<li><code>&gt; output.log</code> first redirects stdout to output.log</li>
+<li><code>2&gt;&amp;1</code> then redirects stderr to stdout’s location (also output.log)</li>
 </ul>
-<p><strong>Wrong way</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">command</span> 2&gt;&amp;1 &gt; output.log  <span class="comment"># Wrong! stderr first redirects to stdout (screen), then stdout redirects to file</span></span><br></pre></td></tr></table></figure></p>
-<h3 id="method-2-modern-recommended">Method 2: <code>&amp;&gt;</code>
-(Modern, Recommended)</h3>
+<p><strong>Wrong way</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">command</span> 2&gt;&amp;1 &gt; output.log  <span class="comment"># Wrong! stderr first redirects to stdout (screen), then stdout redirects to file</span></span><br></pre></td></tr></table></figure>
+<h3 id="Method-2-Modern-Recommended"><a class="header-anchor" href="#Method-2-Modern-Recommended">¶</a>Method 2: <code>&amp;&gt;</code> (Modern, Recommended)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">command</span> &amp;&gt; output.log  <span class="comment"># Both stdout and stderr redirected to output.log</span></span><br><span class="line"><span class="built_in">command</span> &amp;&gt;&gt; output.log  <span class="comment"># Append mode</span></span><br></pre></td></tr></table></figure>
-<h2 id="discard-output-devnull">Discard Output (/dev/null)</h2>
-<p><code>/dev/null</code> is a special "black hole" file; data written
-to it is discarded.</p>
+<h2 id="Discard-Output-dev-null"><a class="header-anchor" href="#Discard-Output-dev-null">¶</a>Discard Output (/dev/null)</h2>
+<p><code>/dev/null</code> is a special “black hole” file; data written to it is discarded.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">command</span> &gt; /dev/null  <span class="comment"># Discard stdout</span></span><br><span class="line"><span class="built_in">command</span> 2&gt; /dev/null  <span class="comment"># Discard stderr</span></span><br><span class="line"><span class="built_in">command</span> &amp;&gt; /dev/null  <span class="comment"># Discard both stdout and stderr</span></span><br></pre></td></tr></table></figure>
 <p><strong>Use cases</strong>:</p>
 <ul>
-<li>Don't want to see command output (like scripts in cron jobs)</li>
-<li>Only care if command succeeded (check exit code via
-<code>$?</code>)</li>
+<li>Don’t want to see command output (like scripts in cron jobs)</li>
+<li>Only care if command succeeded (check exit code via <code>$?</code>)</li>
 </ul>
-<h2 id="input-redirection-stdin">Input Redirection (stdin)</h2>
+<h2 id="Input-Redirection-stdin"><a class="header-anchor" href="#Input-Redirection-stdin">¶</a>Input Redirection (stdin)</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sort</span> &lt; input.txt  <span class="comment"># Read input from input.txt</span></span><br></pre></td></tr></table></figure>
-<p><strong>Here-document (multi-line input)</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &lt;&lt;<span class="string">EOF &gt; config.txt</span></span><br><span class="line"><span class="string">line 1</span></span><br><span class="line"><span class="string">line 2</span></span><br><span class="line"><span class="string">line 3</span></span><br><span class="line"><span class="string">EOF</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Here-string (single-line input)</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep <span class="string">&quot;error&quot;</span> &lt;&lt;&lt; <span class="string">&quot;ERROR: something bad&quot;</span></span><br></pre></td></tr></table></figure></p>
+<p><strong>Here-document (multi-line input)</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &lt;&lt;<span class="string">EOF &gt; config.txt</span></span><br><span class="line"><span class="string">line 1</span></span><br><span class="line"><span class="string">line 2</span></span><br><span class="line"><span class="string">line 3</span></span><br><span class="line"><span class="string">EOF</span></span><br></pre></td></tr></table></figure>
+<p><strong>Here-string (single-line input)</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep <span class="string">&quot;error&quot;</span> &lt;&lt;&lt; <span class="string">&quot;ERROR: something bad&quot;</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="pipe-operator-chaining-commands">Pipe Operator: Chaining
-Commands</h1>
-<h2 id="core-concept-of-pipes">Core Concept of Pipes</h2>
-<p><strong>Unix Philosophy</strong>: Each tool does one thing, does it
-well, then combine them via pipes.</p>
-<p><strong>Example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> access.log | grep <span class="string">&quot;404&quot;</span> | <span class="built_in">wc</span> -l</span><br></pre></td></tr></table></figure></p>
-<p>Breakdown: 1. <code>cat access.log</code>: Output log content
-(stdout) 2. <code>grep "404"</code>: Read from stdin, filter lines
-containing "404" (stdout) 3. <code>wc -l</code>: Read from stdin, count
-lines (stdout)</p>
+<h1>Pipe Operator: Chaining Commands</h1>
+<h2 id="Core-Concept-of-Pipes"><a class="header-anchor" href="#Core-Concept-of-Pipes">¶</a>Core Concept of Pipes</h2>
+<p><strong>Unix Philosophy</strong>: Each tool does one thing, does it well, then combine them via pipes.</p>
+<p><strong>Example</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> access.log | grep <span class="string">&quot;404&quot;</span> | <span class="built_in">wc</span> -l</span><br></pre></td></tr></table></figure>
+<p>Breakdown:</p>
+<ol>
+<li><code>cat access.log</code>: Output log content (stdout)</li>
+<li><code>grep &quot;404&quot;</code>: Read from stdin, filter lines containing “404” (stdout)</li>
+<li><code>wc -l</code>: Read from stdin, count lines (stdout)</li>
+</ol>
 <p><strong>Why this design?</strong></p>
 <ul>
-<li>Avoids temporary files (data flows in memory, not written to
-disk)</li>
+<li>Avoids temporary files (data flows in memory, not written to disk)</li>
 <li>Strong readability (each step is clear)</li>
-<li>Easy debugging (can add pipes step by step, see each step's
-output)</li>
+<li>Easy debugging (can add pipes step by step, see each step’s output)</li>
 </ul>
-<h2 id="debugging-pipes-using-tee">Debugging Pipes: Using tee</h2>
-<p><code>tee</code> can output data to both screen and file
-simultaneously (like a "T-junction pipe").</p>
+<h2 id="Debugging-Pipes-Using-tee"><a class="header-anchor" href="#Debugging-Pipes-Using-tee">¶</a>Debugging Pipes: Using tee</h2>
+<p><code>tee</code> can output data to both screen and file simultaneously (like a “T-junction pipe”).</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> access.log | grep <span class="string">&quot;404&quot;</span> | <span class="built_in">tee</span> filtered.log | <span class="built_in">wc</span> -l</span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>tee filtered.log</code>: Saves grep output to filtered.log,
-while passing to next command</li>
+<li><code>tee filtered.log</code>: Saves grep output to filtered.log, while passing to next command</li>
 <li>This lets you see intermediate results, helpful for debugging</li>
 </ul>
 <hr>
-<h1 id="text-processing-toolchain-grepawksedcuttrsortuniq">Text
-Processing Toolchain: grep/awk/sed/cut/tr/sort/uniq</h1>
-<h2 id="grep-filter-lines">grep: Filter Lines</h2>
-<p><code>grep</code> is the most commonly used text filtering tool for
-finding matching lines.</p>
-<p><strong>Basic usage</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep <span class="string">&quot;pattern&quot;</span> file  <span class="comment"># Find lines matching pattern in file</span></span><br><span class="line"><span class="built_in">command</span> | grep <span class="string">&quot;pattern&quot;</span>  <span class="comment"># Find in command output</span></span><br></pre></td></tr></table></figure></p>
+<h1>Text Processing Toolchain: grep/awk/sed/cut/tr/sort/uniq</h1>
+<h2 id="grep-Filter-Lines"><a class="header-anchor" href="#grep-Filter-Lines">¶</a>grep: Filter Lines</h2>
+<p><code>grep</code> is the most commonly used text filtering tool for finding matching lines.</p>
+<p><strong>Basic usage</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep <span class="string">&quot;pattern&quot;</span> file  <span class="comment"># Find lines matching pattern in file</span></span><br><span class="line"><span class="built_in">command</span> | grep <span class="string">&quot;pattern&quot;</span>  <span class="comment"># Find in command output</span></span><br></pre></td></tr></table></figure>
 <p><strong>Common parameters</strong>:</p>
 <ul>
 <li><code>-i</code>: Ignore case</li>
-<li><code>-v</code>: Invert match (only show lines NOT containing
-pattern)</li>
+<li><code>-v</code>: Invert match (only show lines NOT containing pattern)</li>
 <li><code>-n</code>: Show line numbers</li>
 <li><code>-A N</code>: Show N lines after match (After)</li>
 <li><code>-B N</code>: Show N lines before match (Before)</li>
-<li><code>-C N</code>: Show N lines before and after match
-(Context)</li>
-<li><code>-E</code>: Extended regex (supports <code>|</code>,
-<code>+</code>, <code>?</code>, etc.)</li>
+<li><code>-C N</code>: Show N lines before and after match (Context)</li>
+<li><code>-E</code>: Extended regex (supports <code>|</code>, <code>+</code>, <code>?</code>, etc.)</li>
 <li><code>-r</code>: Recursively search directory</li>
 </ul>
 <p><strong>Practical examples</strong>:</p>
-<h3 id="view-errors-in-logs">1. View Errors in Logs</h3>
+<h3 id="1-View-Errors-in-Logs"><a class="header-anchor" href="#1-View-Errors-in-Logs">¶</a>1. View Errors in Logs</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep -i <span class="string">&quot;error&quot;</span> /var/log/syslog  <span class="comment"># Case-insensitive search for error</span></span><br><span class="line">grep -E <span class="string">&quot;error|fail|timeout&quot;</span> /var/log/syslog  <span class="comment"># Search multiple keywords</span></span><br></pre></td></tr></table></figure>
-<h3 id="view-error-context">2. View Error Context</h3>
+<h3 id="2-View-Error-Context"><a class="header-anchor" href="#2-View-Error-Context">¶</a>2. View Error Context</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep -C 3 <span class="string">&quot;OutOfMemoryError&quot;</span> app.log  <span class="comment"># Show 3 lines before and after error</span></span><br></pre></td></tr></table></figure>
-<h3 id="recursively-search-directory">3. Recursively Search
-Directory</h3>
+<h3 id="3-Recursively-Search-Directory"><a class="header-anchor" href="#3-Recursively-Search-Directory">¶</a>3. Recursively Search Directory</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep -r <span class="string">&quot;TODO&quot;</span> /srv/project  <span class="comment"># Recursively find TODO in project directory</span></span><br><span class="line">grep -rn <span class="string">&quot;import numpy&quot;</span> /srv/project  <span class="comment"># Find and show line numbers</span></span><br></pre></td></tr></table></figure>
-<h3 id="count-matches">4. Count Matches</h3>
+<h3 id="4-Count-Matches"><a class="header-anchor" href="#4-Count-Matches">¶</a>4. Count Matches</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep -c <span class="string">&quot;ERROR&quot;</span> app.log  <span class="comment"># Count lines containing ERROR</span></span><br><span class="line">grep <span class="string">&quot;ERROR&quot;</span> app.log | <span class="built_in">wc</span> -l  <span class="comment"># Same (more common)</span></span><br></pre></td></tr></table></figure>
-<h2 id="awk-extract-fields-and-aggregate">awk: Extract Fields and
-Aggregate</h2>
-<p><code>awk</code> is a powerful tool for processing columnar text
-(like logs, CSV, tables).</p>
+<h2 id="awk-Extract-Fields-and-Aggregate"><a class="header-anchor" href="#awk-Extract-Fields-and-Aggregate">¶</a>awk: Extract Fields and Aggregate</h2>
+<p><code>awk</code> is a powerful tool for processing columnar text (like logs, CSV, tables).</p>
 <p><strong>Basic concepts</strong>:</p>
 <ul>
-<li>awk processes text line by line, splitting each line by whitespace
-(or specified delimiter) into fields</li>
-<li><code>$1</code> is first field, <code>$2</code> is second field,
-<code>$0</code> is entire line</li>
+<li>awk processes text line by line, splitting each line by whitespace (or specified delimiter) into fields</li>
+<li><code>$1</code> is first field, <code>$2</code> is second field, <code>$0</code> is entire line</li>
 </ul>
 <p><strong>Common examples</strong>:</p>
-<h3 id="extract-fields">1. Extract Fields</h3>
+<h3 id="1-Extract-Fields"><a class="header-anchor" href="#1-Extract-Fields">¶</a>1. Extract Fields</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Nginx log format: IP - - [time] &quot;GET /path HTTP/1.1&quot; 200 1234</span></span><br><span class="line">awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span> access.log  <span class="comment"># Extract IP address (column 1)</span></span><br><span class="line">awk <span class="string">&#x27;&#123;print $7&#125;&#x27;</span> access.log  <span class="comment"># Extract request path (column 7)</span></span><br><span class="line">awk <span class="string">&#x27;&#123;print $9&#125;&#x27;</span> access.log  <span class="comment"># Extract status code (column 9)</span></span><br></pre></td></tr></table></figure>
-<h3 id="filter-lines-like-grep">2. Filter Lines (Like grep)</h3>
+<h3 id="2-Filter-Lines-Like-grep"><a class="header-anchor" href="#2-Filter-Lines-Like-grep">¶</a>2. Filter Lines (Like grep)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">awk <span class="string">&#x27;/404/ &#123;print $0&#125;&#x27;</span> access.log  <span class="comment"># Only show lines containing 404</span></span><br><span class="line">awk <span class="string">&#x27;$9 &gt;= 400 &#123;print $0&#125;&#x27;</span> access.log  <span class="comment"># Only show lines with status code &gt;= 400</span></span><br></pre></td></tr></table></figure>
-<h3 id="statistics-and-aggregation">3. Statistics and Aggregation</h3>
+<h3 id="3-Statistics-and-Aggregation"><a class="header-anchor" href="#3-Statistics-and-Aggregation">¶</a>3. Statistics and Aggregation</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Count occurrences of each status code</span></span><br><span class="line">awk <span class="string">&#x27;&#123;count[$9]++&#125; END &#123;for (k in count) print k, count[k]&#125;&#x27;</span> access.log</span><br><span class="line"></span><br><span class="line"><span class="comment"># Count requests per IP</span></span><br><span class="line">awk <span class="string">&#x27;&#123;count[$1]++&#125; END &#123;for (k in count) print k, count[k]&#125;&#x27;</span> access.log | <span class="built_in">sort</span> -nr -k2</span><br></pre></td></tr></table></figure>
-<h3 id="custom-delimiter">4. Custom Delimiter</h3>
+<h3 id="4-Custom-Delimiter"><a class="header-anchor" href="#4-Custom-Delimiter">¶</a>4. Custom Delimiter</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Comma-separated CSV file</span></span><br><span class="line">awk -F<span class="string">&#x27;,&#x27;</span> <span class="string">&#x27;&#123;print $2&#125;&#x27;</span> data.csv  <span class="comment"># -F specifies delimiter</span></span><br></pre></td></tr></table></figure>
-<h2 id="sed-text-replacement-and-editing">sed: Text Replacement and
-Editing</h2>
-<p><code>sed</code> is a stream editor for text replacement, deletion,
-insertion, etc.</p>
+<h2 id="sed-Text-Replacement-and-Editing"><a class="header-anchor" href="#sed-Text-Replacement-and-Editing">¶</a>sed: Text Replacement and Editing</h2>
+<p><code>sed</code> is a stream editor for text replacement, deletion, insertion, etc.</p>
 <p><strong>Common examples</strong>:</p>
-<h3 id="replace-text">1. Replace Text</h3>
+<h3 id="1-Replace-Text"><a class="header-anchor" href="#1-Replace-Text">¶</a>1. Replace Text</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sed <span class="string">&#x27;s/foo/bar/&#x27;</span> file.txt  <span class="comment"># Replace first foo with bar on each line</span></span><br><span class="line">sed <span class="string">&#x27;s/foo/bar/g&#x27;</span> file.txt  <span class="comment"># Replace all foo with bar on each line (g=global)</span></span><br><span class="line">sed <span class="string">&#x27;s/foo/bar/gi&#x27;</span> file.txt  <span class="comment"># Replace ignoring case</span></span><br></pre></td></tr></table></figure>
-<h3 id="delete-lines">2. Delete Lines</h3>
+<h3 id="2-Delete-Lines"><a class="header-anchor" href="#2-Delete-Lines">¶</a>2. Delete Lines</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sed <span class="string">&#x27;/pattern/d&#x27;</span> file.txt  <span class="comment"># Delete lines containing pattern</span></span><br><span class="line">sed <span class="string">&#x27;/^$/d&#x27;</span> file.txt  <span class="comment"># Delete empty lines</span></span><br><span class="line">sed <span class="string">&#x27;1,10d&#x27;</span> file.txt  <span class="comment"># Delete first 10 lines</span></span><br></pre></td></tr></table></figure>
-<h3 id="insert-and-append">3. Insert and Append</h3>
+<h3 id="3-Insert-and-Append"><a class="header-anchor" href="#3-Insert-and-Append">¶</a>3. Insert and Append</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sed <span class="string">&#x27;1i\First Line&#x27;</span> file.txt  <span class="comment"># Insert text before first line</span></span><br><span class="line">sed <span class="string">&#x27;$a\Last Line&#x27;</span> file.txt  <span class="comment"># Append text after last line</span></span><br></pre></td></tr></table></figure>
-<h2 id="cuttrsortuniq-simple-efficient-text-tools">cut/tr/sort/uniq:
-Simple Efficient Text Tools</h2>
-<h3 id="cut-extract-fields-simple-cases">cut: Extract Fields (Simple
-Cases)</h3>
+<h2 id="cut-tr-sort-uniq-Simple-Efficient-Text-Tools"><a class="header-anchor" href="#cut-tr-sort-uniq-Simple-Efficient-Text-Tools">¶</a>cut/tr/sort/uniq: Simple Efficient Text Tools</h2>
+<h3 id="cut-Extract-Fields-Simple-Cases"><a class="header-anchor" href="#cut-Extract-Fields-Simple-Cases">¶</a>cut: Extract Fields (Simple Cases)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cut</span> -d<span class="string">&#x27;,&#x27;</span> -f1 data.csv  <span class="comment"># Extract comma-separated first column</span></span><br><span class="line"><span class="built_in">cut</span> -d<span class="string">&#x27;:&#x27;</span> -f1,7 /etc/passwd  <span class="comment"># Extract username and shell (columns 1 and 7)</span></span><br></pre></td></tr></table></figure>
-<h3 id="tr-character-replacementdeletion">tr: Character
-Replacement/Deletion</h3>
+<h3 id="tr-Character-Replacement-Deletion"><a class="header-anchor" href="#tr-Character-Replacement-Deletion">¶</a>tr: Character Replacement/Deletion</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;HELLO&quot;</span> | <span class="built_in">tr</span> <span class="string">&#x27;A-Z&#x27;</span> <span class="string">&#x27;a-z&#x27;</span>  <span class="comment"># Convert to lowercase</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;a b c&quot;</span> | <span class="built_in">tr</span> <span class="string">&#x27; &#x27;</span> <span class="string">&#x27;\n&#x27;</span>  <span class="comment"># Replace spaces with newlines</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;abc123&quot;</span> | <span class="built_in">tr</span> -d <span class="string">&#x27;0-9&#x27;</span>  <span class="comment"># Delete numbers</span></span><br></pre></td></tr></table></figure>
-<h3 id="sort-sorting">sort: Sorting</h3>
+<h3 id="sort-Sorting"><a class="header-anchor" href="#sort-Sorting">¶</a>sort: Sorting</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sort</span> file.txt  <span class="comment"># Sort alphabetically</span></span><br><span class="line"><span class="built_in">sort</span> -n file.txt  <span class="comment"># Sort numerically</span></span><br><span class="line"><span class="built_in">sort</span> -r file.txt  <span class="comment"># Reverse sort</span></span><br><span class="line"><span class="built_in">sort</span> -k2 file.txt  <span class="comment"># Sort by second column</span></span><br><span class="line"><span class="built_in">sort</span> -u file.txt  <span class="comment"># Sort and remove duplicates (equivalent to sort + uniq)</span></span><br></pre></td></tr></table></figure>
-<h3 id="uniq-remove-duplicates-only-adjacent-duplicates">uniq: Remove
-Duplicates (Only Adjacent Duplicates)</h3>
+<h3 id="uniq-Remove-Duplicates-Only-Adjacent-Duplicates"><a class="header-anchor" href="#uniq-Remove-Duplicates-Only-Adjacent-Duplicates">¶</a>uniq: Remove Duplicates (Only Adjacent Duplicates)</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sort</span> file.txt | <span class="built_in">uniq</span>  <span class="comment"># Sort first, then remove duplicates</span></span><br><span class="line"><span class="built_in">sort</span> file.txt | <span class="built_in">uniq</span> -c  <span class="comment"># Count occurrences of each line</span></span><br><span class="line"><span class="built_in">sort</span> file.txt | <span class="built_in">uniq</span> -d  <span class="comment"># Only show duplicate lines</span></span><br></pre></td></tr></table></figure>
-<p><strong>Important</strong>: <code>uniq</code> can only remove
-<strong>adjacent</strong> duplicate lines, so usually need to
-<code>sort</code> first.</p>
+<p><strong>Important</strong>: <code>uniq</code> can only remove <strong>adjacent</strong> duplicate lines, so usually need to <code>sort</code> first.</p>
 <hr>
-<h1 id="practical-case-nginx-log-analysis">Practical Case: Nginx Log
-Analysis</h1>
-<p>Suppose you have an Nginx log file <code>access.log</code>, each line
-formatted like: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">192.168.1.100 - - [28/Jan/2025:12:00:00 +0000] &quot;GET /api/users HTTP/1.1&quot; 200 1234</span><br><span class="line">192.168.1.101 - - [28/Jan/2025:12:00:01 +0000] &quot;POST /api/login HTTP/1.1&quot; 404 567</span><br></pre></td></tr></table></figure></p>
-<h2 id="count-top-visiting-ips">1. Count Top Visiting IPs</h2>
+<h1>Practical Case: Nginx Log Analysis</h1>
+<p>Suppose you have an Nginx log file <code>access.log</code>, each line formatted like:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">192.168.1.100 - - [28/Jan/2025:12:00:00 +0000] &quot;GET /api/users HTTP/1.1&quot; 200 1234</span><br><span class="line">192.168.1.101 - - [28/Jan/2025:12:00:01 +0000] &quot;POST /api/login HTTP/1.1&quot; 404 567</span><br></pre></td></tr></table></figure>
+<h2 id="1-Count-Top-Visiting-IPs"><a class="header-anchor" href="#1-Count-Top-Visiting-IPs">¶</a>1. Count Top Visiting IPs</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk <span class="string">&#x27;&#123;print $1&#125;&#x27;</span> access.log | <span class="built_in">sort</span> | <span class="built_in">uniq</span> -c | <span class="built_in">sort</span> -nr | <span class="built_in">head</span> -10</span><br></pre></td></tr></table></figure>
-<p>Breakdown: 1. <code>awk '&#123;print $1&#125;'</code>: Extract IP address
-(column 1) 2. <code>sort</code>: Sort (make identical IPs adjacent) 3.
-<code>uniq -c</code>: Remove duplicates and count occurrences 4.
-<code>sort -nr</code>: Sort by count in reverse order (-n numeric, -r
-reverse) 5. <code>head -10</code>: Show only top 10</p>
-<h2 id="count-most-visited-urls">2. Count Most Visited URLs</h2>
+<p>Breakdown:</p>
+<ol>
+<li><code>awk '&#123;print $1&#125;'</code>: Extract IP address (column 1)</li>
+<li><code>sort</code>: Sort (make identical IPs adjacent)</li>
+<li><code>uniq -c</code>: Remove duplicates and count occurrences</li>
+<li><code>sort -nr</code>: Sort by count in reverse order (-n numeric, -r reverse)</li>
+<li><code>head -10</code>: Show only top 10</li>
+</ol>
+<h2 id="2-Count-Most-Visited-URLs"><a class="header-anchor" href="#2-Count-Most-Visited-URLs">¶</a>2. Count Most Visited URLs</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk <span class="string">&#x27;&#123;print $7&#125;&#x27;</span> access.log | <span class="built_in">sort</span> | <span class="built_in">uniq</span> -c | <span class="built_in">sort</span> -nr | <span class="built_in">head</span> -10</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>$7</code> is request path (like <code>/api/users</code>)</li>
 </ul>
-<h2 id="count-each-status-codes-occurrences">3. Count Each Status Code's
-Occurrences</h2>
+<h2 id="3-Count-Each-Status-Code’s-Occurrences"><a class="header-anchor" href="#3-Count-Each-Status-Code’s-Occurrences">¶</a>3. Count Each Status Code’s Occurrences</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">awk <span class="string">&#x27;&#123;print $9&#125;&#x27;</span> access.log | <span class="built_in">sort</span> | <span class="built_in">uniq</span> -c | <span class="built_in">sort</span> -nr</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>$9</code> is status code (like 200, 404, 500)</li>
 </ul>
-<p>Example output: <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1234 200</span><br><span class="line"> 567 404</span><br><span class="line"> 123 500</span><br></pre></td></tr></table></figure></p>
-<h2 id="find-errors-in-last-hour">4. Find Errors in Last Hour</h2>
+<p>Example output:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1234 200</span><br><span class="line"> 567 404</span><br><span class="line"> 123 500</span><br></pre></td></tr></table></figure>
+<h2 id="4-Find-Errors-in-Last-Hour"><a class="header-anchor" href="#4-Find-Errors-in-Last-Hour">¶</a>4. Find Errors in Last Hour</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep <span class="string">&quot;28/Jan/2025:12:&quot;</span> access.log | grep -E <span class="string">&quot; (4|5)[0-9]&#123;2&#125; &quot;</span> | <span class="built_in">tail</span> -n 100</span><br></pre></td></tr></table></figure>
 <ul>
 <li>First <code>grep</code> filters time</li>
@@ -516,128 +468,107 @@ Occurrences</h2>
 <li><code>tail -n 100</code> shows only last 100 lines</li>
 </ul>
 <hr>
-<h1 id="xargs-batch-file-processing">xargs: Batch File Processing</h1>
-<p><code>xargs</code> converts previous command's output (usually file
-list) into arguments, passing to next command.</p>
-<h2 id="why-xargs-is-needed">Why xargs Is Needed</h2>
-<p><strong>Problem</strong>: Some commands (like <code>rm</code>,
-<code>cp</code>, <code>mv</code>) don't support reading arguments from
-stdin.</p>
+<h1>xargs: Batch File Processing</h1>
+<p><code>xargs</code> converts previous command’s output (usually file list) into arguments, passing to next command.</p>
+<h2 id="Why-xargs-Is-Needed"><a class="header-anchor" href="#Why-xargs-Is-Needed">¶</a>Why xargs Is Needed</h2>
+<p><strong>Problem</strong>: Some commands (like <code>rm</code>, <code>cp</code>, <code>mv</code>) don’t support reading arguments from stdin.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.tmp&quot;</span>  <span class="comment"># Outputs file list</span></span><br><span class="line">find . -name <span class="string">&quot;*.tmp&quot;</span> | <span class="built_in">rm</span>  <span class="comment"># ❌ Wrong! rm doesn&#x27;t read from stdin</span></span><br></pre></td></tr></table></figure>
-<p><strong>Solution</strong>: Use <code>xargs</code> to convert file
-list to arguments <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.tmp&quot;</span> | xargs <span class="built_in">rm</span>  <span class="comment"># ✅ Correct</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="basic-usage">Basic Usage</h2>
+<p><strong>Solution</strong>: Use <code>xargs</code> to convert file list to arguments</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.tmp&quot;</span> | xargs <span class="built_in">rm</span>  <span class="comment"># ✅ Correct</span></span><br></pre></td></tr></table></figure>
+<h2 id="Basic-Usage"><a class="header-anchor" href="#Basic-Usage">¶</a>Basic Usage</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;file1 file2 file3&quot;</span> | xargs <span class="built_in">rm</span>  <span class="comment"># Delete three files</span></span><br></pre></td></tr></table></figure>
-<h2 id="advanced-usage--i-and-placeholder">Advanced Usage:
-<code>-i</code> and Placeholder <code>&#123;&#125;</code></h2>
+<h2 id="Advanced-Usage-i-and-Placeholder"><a class="header-anchor" href="#Advanced-Usage-i-and-Placeholder">¶</a>Advanced Usage: <code>-i</code> and Placeholder <code>&#123;&#125;</code></h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.log&quot;</span> | xargs -i <span class="built_in">cp</span> &#123;&#125; &#123;&#125;.bak  <span class="comment"># Copy each file with .bak backup</span></span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-i</code>: Enable placeholder <code>&#123;&#125;</code></li>
 <li><code>&#123;&#125;</code>: Represents each input filename</li>
 <li><code>&#123;&#125;.bak</code>: Add <code>.bak</code> to filename</li>
 </ul>
-<h2 id="handle-filenames-with-spaces-important">Handle Filenames with
-Spaces (Important!)</h2>
-<p><strong>Problem</strong>: Filenames with spaces cause
-<code>xargs</code> to treat them as multiple arguments.</p>
-<p><strong>Wrong example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.txt&quot;</span> | xargs <span class="built_in">rm</span>  <span class="comment"># If filename is &quot;my file.txt&quot;, treated as &quot;my&quot; and &quot;file.txt&quot;</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Correct approach</strong>: Use <code>find -print0</code> +
-<code>xargs -0</code> <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.txt&quot;</span> -print0 | xargs -0 <span class="built_in">rm</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="Handle-Filenames-with-Spaces-Important"><a class="header-anchor" href="#Handle-Filenames-with-Spaces-Important">¶</a>Handle Filenames with Spaces (Important!)</h2>
+<p><strong>Problem</strong>: Filenames with spaces cause <code>xargs</code> to treat them as multiple arguments.</p>
+<p><strong>Wrong example</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.txt&quot;</span> | xargs <span class="built_in">rm</span>  <span class="comment"># If filename is &quot;my file.txt&quot;, treated as &quot;my&quot; and &quot;file.txt&quot;</span></span><br></pre></td></tr></table></figure>
+<p><strong>Correct approach</strong>: Use <code>find -print0</code> + <code>xargs -0</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.txt&quot;</span> -print0 | xargs -0 <span class="built_in">rm</span></span><br></pre></td></tr></table></figure>
 <ul>
-<li><code>-print0</code>: Use null character (<code>\0</code>) to
-separate filenames (instead of newline)</li>
+<li><code>-print0</code>: Use null character (<code>\0</code>) to separate filenames (instead of newline)</li>
 <li><code>-0</code>: xargs uses null character as delimiter</li>
 </ul>
-<p><strong>Or use <code>find -exec</code></strong> (simpler):
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.txt&quot;</span> -<span class="built_in">exec</span> <span class="built_in">rm</span> &#123;&#125; +</span><br></pre></td></tr></table></figure></p>
+<p><strong>Or use <code>find -exec</code></strong> (simpler):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.txt&quot;</span> -<span class="built_in">exec</span> <span class="built_in">rm</span> &#123;&#125; +</span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="practical-cases-batch-file-operations">Practical Cases: Batch
-File Operations</h1>
-<h2 id="case-1-batch-rename-files">Case 1: Batch Rename Files</h2>
-<p>Suppose you have files <code>img_001.jpg</code>,
-<code>img_002.jpg</code>, want to rename to <code>photo_001.jpg</code>,
-<code>photo_002.jpg</code>.</p>
+<h1>Practical Cases: Batch File Operations</h1>
+<h2 id="Case-1-Batch-Rename-Files"><a class="header-anchor" href="#Case-1-Batch-Rename-Files">¶</a>Case 1: Batch Rename Files</h2>
+<p>Suppose you have files <code>img_001.jpg</code>, <code>img_002.jpg</code>, want to rename to <code>photo_001.jpg</code>, <code>photo_002.jpg</code>.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> file <span class="keyword">in</span> img_*.jpg; <span class="keyword">do</span></span><br><span class="line">    <span class="built_in">mv</span> <span class="string">&quot;<span class="variable">$file</span>&quot;</span> <span class="string">&quot;<span class="variable">$&#123;file/img/photo&#125;</span>&quot;</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
-<p>Or use <code>rename</code> command (needs installation):
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rename <span class="string">&#x27;s/img/photo/&#x27;</span> img_*.jpg</span><br></pre></td></tr></table></figure></p>
-<h2 id="case-2-batch-modify-file-permissions">Case 2: Batch Modify File
-Permissions</h2>
+<p>Or use <code>rename</code> command (needs installation):</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rename <span class="string">&#x27;s/img/photo/&#x27;</span> img_*.jpg</span><br></pre></td></tr></table></figure>
+<h2 id="Case-2-Batch-Modify-File-Permissions"><a class="header-anchor" href="#Case-2-Batch-Modify-File-Permissions">¶</a>Case 2: Batch Modify File Permissions</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find /var/www/html -<span class="built_in">type</span> f -<span class="built_in">exec</span> <span class="built_in">chmod</span> 644 &#123;&#125; +  <span class="comment"># Files to 644</span></span><br><span class="line">find /var/www/html -<span class="built_in">type</span> d -<span class="built_in">exec</span> <span class="built_in">chmod</span> 755 &#123;&#125; +  <span class="comment"># Directories to 755</span></span><br></pre></td></tr></table></figure>
-<h2 id="case-3-batch-delete-empty-files">Case 3: Batch Delete Empty
-Files</h2>
+<h2 id="Case-3-Batch-Delete-Empty-Files"><a class="header-anchor" href="#Case-3-Batch-Delete-Empty-Files">¶</a>Case 3: Batch Delete Empty Files</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find /tmp -<span class="built_in">type</span> f -empty -delete  <span class="comment"># Delete all empty files</span></span><br></pre></td></tr></table></figure>
-<h2 id="case-4-batch-compress-log-files">Case 4: Batch Compress Log
-Files</h2>
+<h2 id="Case-4-Batch-Compress-Log-Files"><a class="header-anchor" href="#Case-4-Batch-Compress-Log-Files">¶</a>Case 4: Batch Compress Log Files</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find /var/log -name <span class="string">&quot;*.log&quot;</span> -mtime +7 -<span class="built_in">exec</span> gzip &#123;&#125; \;</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-mtime +7</code>: Files modified more than 7 days ago</li>
-<li><code>-exec gzip &#123;&#125; \;</code>: Execute gzip compression on each
-file</li>
+<li><code>-exec gzip &#123;&#125; \;</code>: Execute gzip compression on each file</li>
 </ul>
 <hr>
-<h1 id="advanced-techniques">Advanced Techniques</h1>
-<h2 id="process-substitution">Process Substitution</h2>
+<h1>Advanced Techniques</h1>
+<h2 id="Process-Substitution"><a class="header-anchor" href="#Process-Substitution">¶</a>Process Substitution</h2>
 <p><strong>Syntax</strong>: <code>&lt;(command)</code></p>
-<p><strong>Purpose</strong>: Treat command output as a temporary
-file.</p>
-<p><strong>Example</strong>: Compare two sorted files (without creating
-temp files) <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">diff &lt;(<span class="built_in">sort</span> file1.txt) &lt;(<span class="built_in">sort</span> file2.txt)</span><br></pre></td></tr></table></figure></p>
-<p>Equivalent to: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sort</span> file1.txt &gt; /tmp/sorted1</span><br><span class="line"><span class="built_in">sort</span> file2.txt &gt; /tmp/sorted2</span><br><span class="line">diff /tmp/sorted1 /tmp/sorted2</span><br><span class="line"><span class="built_in">rm</span> /tmp/sorted1 /tmp/sorted2</span><br></pre></td></tr></table></figure></p>
-<h2 id="parallel-processing-xargs--p">Parallel Processing (xargs
--P)</h2>
-<p>If you have multiple CPU cores, can process multiple files in
-parallel.</p>
+<p><strong>Purpose</strong>: Treat command output as a temporary file.</p>
+<p><strong>Example</strong>: Compare two sorted files (without creating temp files)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">diff &lt;(<span class="built_in">sort</span> file1.txt) &lt;(<span class="built_in">sort</span> file2.txt)</span><br></pre></td></tr></table></figure>
+<p>Equivalent to:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sort</span> file1.txt &gt; /tmp/sorted1</span><br><span class="line"><span class="built_in">sort</span> file2.txt &gt; /tmp/sorted2</span><br><span class="line">diff /tmp/sorted1 /tmp/sorted2</span><br><span class="line"><span class="built_in">rm</span> /tmp/sorted1 /tmp/sorted2</span><br></pre></td></tr></table></figure>
+<h2 id="Parallel-Processing-xargs-P"><a class="header-anchor" href="#Parallel-Processing-xargs-P">¶</a>Parallel Processing (xargs -P)</h2>
+<p>If you have multiple CPU cores, can process multiple files in parallel.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.json&quot;</span> -print0 | xargs -0 -P 8 -n 1 jq -c . &gt; /dev/null</span><br></pre></td></tr></table></figure>
 <ul>
 <li><code>-P 8</code>: Run max 8 processes simultaneously</li>
 <li><code>-n 1</code>: Pass 1 argument to command each time</li>
 </ul>
 <hr>
-<h1 id="safety-and-best-practices">Safety and Best Practices</h1>
-<h2 id="never-parse-ls-output">1. Never Parse <code>ls</code>
-Output</h2>
-<p><strong>Wrong example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> | xargs <span class="built_in">rm</span>  <span class="comment"># ❌ Filenames with spaces will error</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Correct approach</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -maxdepth 1 -<span class="built_in">type</span> f -print0 | xargs -0 <span class="built_in">rm</span></span><br></pre></td></tr></table></figure></p>
-<h2 id="preview-before-deletion">2. Preview Before Deletion</h2>
+<h1>Safety and Best Practices</h1>
+<h2 id="1-Never-Parse-ls-Output"><a class="header-anchor" href="#1-Never-Parse-ls-Output">¶</a>1. Never Parse <code>ls</code> Output</h2>
+<p><strong>Wrong example</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> | xargs <span class="built_in">rm</span>  <span class="comment"># ❌ Filenames with spaces will error</span></span><br></pre></td></tr></table></figure>
+<p><strong>Correct approach</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -maxdepth 1 -<span class="built_in">type</span> f -print0 | xargs -0 <span class="built_in">rm</span></span><br></pre></td></tr></table></figure>
+<h2 id="2-Preview-Before-Deletion"><a class="header-anchor" href="#2-Preview-Before-Deletion">¶</a>2. Preview Before Deletion</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find . -name <span class="string">&quot;*.tmp&quot;</span> -<span class="built_in">print</span>  <span class="comment"># First see which files to delete</span></span><br><span class="line">find . -name <span class="string">&quot;*.tmp&quot;</span> -delete  <span class="comment"># Confirm correct then delete</span></span><br></pre></td></tr></table></figure>
-<h2 id="use-set--e-and-set--o-pipefail-in-scripts">3. Use
-<code>set -e</code> and <code>set -o pipefail</code> (In Scripts)</h2>
+<h2 id="3-Use-set-e-and-set-o-pipefail-In-Scripts"><a class="header-anchor" href="#3-Use-set-e-and-set-o-pipefail-In-Scripts">¶</a>3. Use <code>set -e</code> and <code>set -o pipefail</code> (In Scripts)</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">set</span> -e  <span class="comment"># Exit if any command fails</span></span><br><span class="line"><span class="built_in">set</span> -o pipefail  <span class="comment"># Exit if any command in pipeline fails</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Now if any step fails, script immediately exits</span></span><br><span class="line"><span class="built_in">cat</span> file.log | grep <span class="string">&quot;error&quot;</span> | process_errors.sh</span><br></pre></td></tr></table></figure>
-<h2 id="importance-of-quotes">4. Importance of Quotes</h2>
-<p><strong>Wrong example</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">dir</span>=<span class="string">&quot;my documents&quot;</span></span><br><span class="line"><span class="built_in">rm</span> -rf <span class="variable">$dir</span>  <span class="comment"># ❌ Will delete &quot;my&quot; and &quot;documents&quot; two directories</span></span><br></pre></td></tr></table></figure></p>
-<p><strong>Correct approach</strong>: <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rm</span> -rf <span class="string">&quot;<span class="variable">$dir</span>&quot;</span>  <span class="comment"># ✅ Correctly deletes &quot;my documents&quot; directory</span></span><br></pre></td></tr></table></figure></p>
+<h2 id="4-Importance-of-Quotes"><a class="header-anchor" href="#4-Importance-of-Quotes">¶</a>4. Importance of Quotes</h2>
+<p><strong>Wrong example</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">dir</span>=<span class="string">&quot;my documents&quot;</span></span><br><span class="line"><span class="built_in">rm</span> -rf <span class="variable">$dir</span>  <span class="comment"># ❌ Will delete &quot;my&quot; and &quot;documents&quot; two directories</span></span><br></pre></td></tr></table></figure>
+<p><strong>Correct approach</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rm</span> -rf <span class="string">&quot;<span class="variable">$dir</span>&quot;</span>  <span class="comment"># ✅ Correctly deletes &quot;my documents&quot; directory</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1 id="summary-and-further-reading">Summary and Further Reading</h1>
-<p>This article covers the core content of Linux file operations and
-pipes: 1. ✅ Data flow model (stdin/stdout/stderr, file descriptors) 2.
-✅ Redirection (<code>&gt;</code>, <code>&gt;&gt;</code>,
-<code>2&gt;</code>, <code>2&gt;&amp;1</code>, <code>&lt;</code>) 3. ✅
-Pipe operator (<code>|</code> principles and debugging techniques) 4. ✅
-Text processing toolchain (grep/awk/sed/cut/tr/sort/uniq) 5. ✅
-Practical cases (Nginx log analysis, batch file operations) 6. ✅
-Correct xargs usage (handling spaces, parallel processing) 7. ✅ Safety
-and best practices (don't parse ls, preview before delete, correct
-quoting)</p>
+<h1>Summary and Further Reading</h1>
+<p>This article covers the core content of Linux file operations and pipes:</p>
+<ol>
+<li>✅ Data flow model (stdin/stdout/stderr, file descriptors)</li>
+<li>✅ Redirection (<code>&gt;</code>, <code>&gt;&gt;</code>, <code>2&gt;</code>, <code>2&gt;&amp;1</code>, <code>&lt;</code>)</li>
+<li>✅ Pipe operator (<code>|</code> principles and debugging techniques)</li>
+<li>✅ Text processing toolchain (grep/awk/sed/cut/tr/sort/uniq)</li>
+<li>✅ Practical cases (Nginx log analysis, batch file operations)</li>
+<li>✅ Correct xargs usage (handling spaces, parallel processing)</li>
+<li>✅ Safety and best practices (don’t parse ls, preview before delete, correct quoting)</li>
+</ol>
 <p><strong>Further Reading</strong>:</p>
 <ul>
-<li><a class="link" target="_blank" rel="noopener" href="https://github.com/jlevy/the-art-of-command-line">The Art
-of Command Line<i class="fas fa-external-link-alt"></i></a>: Command-line tips encyclopedia</li>
-<li><code>man bash</code>: View detailed Bash manual (redirection,
-pipes, etc.)</li>
+<li><a class="link" target="_blank" rel="noopener" href="https://github.com/jlevy/the-art-of-command-line">The Art of Command Line<i class="fas fa-external-link-alt"></i></a>: Command-line tips encyclopedia</li>
+<li><code>man bash</code>: View detailed Bash manual (redirection, pipes, etc.)</li>
 <li><code>man 1 awk</code>: View detailed awk manual</li>
 </ul>
 <p><strong>Next Steps</strong>:</p>
 <ul>
-<li><strong>《Linux User Management》</strong>: Learn how to manage
-users/groups, <code>/etc/passwd</code>, <code>/etc/shadow</code>, sudo
-configuration</li>
+<li><strong>《Linux User Management》</strong>: Learn how to manage users/groups, <code>/etc/passwd</code>, <code>/etc/shadow</code>, sudo configuration</li>
 </ul>
 <hr>
-<p><strong>By this point, you should have upgraded from "can use pipes"
-to "can write readable debuggable one-liners, can quickly analyze logs,
-can safely batch-process files." Pipes and text processing are core
-Linux capabilities; mastering them makes you much more efficient at ops
-tasks.</strong></p>
+<p><strong>By this point, you should have upgraded from “can use pipes” to “can write readable debuggable one-liners, can quickly analyze logs, can safely batch-process files.” Pipes and text processing are core Linux capabilities; mastering them makes you much more efficient at ops tasks.</strong></p>
 
         </div>
 
@@ -704,10 +635,10 @@ tasks.</strong></p>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/en/linux-package-management/"
+                           href="/en/linux-file-permissions/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux Package Management: apt/dpkg, yum/dnf/rpm, Building from Source</span>
+                                <span class="post-nav-title-item">Linux File Permissions: rwx, chmod/chown, umask, SUID/SGID/Sticky, and Troubleshooting</span>
                                 <span class="post-nav-item">Next posts</span>
                             </span>
                             <span class="right arrow-icon flex-center">
@@ -920,33 +851,7 @@ tasks.</strong></p>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#data-flow-model-stdinstdoutstderr-and-file-descriptors"><span class="nav-number">1.</span> <span class="nav-text">Data
-Flow Model: stdin&#x2F;stdout&#x2F;stderr and File Descriptors</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#three-standard-streams"><span class="nav-number">1.1.</span> <span class="nav-text">Three Standard Streams</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#file-descriptors-fd"><span class="nav-number">1.2.</span> <span class="nav-text">File Descriptors (FD)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#redirection-controlling-data-flow-direction"><span class="nav-number">2.</span> <span class="nav-text">Redirection:
-Controlling Data Flow Direction</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#output-redirection-stdout"><span class="nav-number">2.1.</span> <span class="nav-text">Output Redirection (stdout)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#error-output-redirection-stderr"><span class="nav-number">2.2.</span> <span class="nav-text">Error Output Redirection
-(stderr)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redirect-both-stdout-and-stderr"><span class="nav-number">2.3.</span> <span class="nav-text">Redirect Both stdout and
-stderr</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#method-1-21-traditional"><span class="nav-number">2.3.1.</span> <span class="nav-text">Method 1: 2&gt;&amp;1
-(Traditional)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#method-2-modern-recommended"><span class="nav-number">2.3.2.</span> <span class="nav-text">Method 2: &amp;&gt;
-(Modern, Recommended)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#discard-output-devnull"><span class="nav-number">2.4.</span> <span class="nav-text">Discard Output (&#x2F;dev&#x2F;null)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#input-redirection-stdin"><span class="nav-number">2.5.</span> <span class="nav-text">Input Redirection (stdin)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#pipe-operator-chaining-commands"><span class="nav-number">3.</span> <span class="nav-text">Pipe Operator: Chaining
-Commands</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#core-concept-of-pipes"><span class="nav-number">3.1.</span> <span class="nav-text">Core Concept of Pipes</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#debugging-pipes-using-tee"><span class="nav-number">3.2.</span> <span class="nav-text">Debugging Pipes: Using tee</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#text-processing-toolchain-grepawksedcuttrsortuniq"><span class="nav-number">4.</span> <span class="nav-text">Text
-Processing Toolchain: grep&#x2F;awk&#x2F;sed&#x2F;cut&#x2F;tr&#x2F;sort&#x2F;uniq</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#grep-filter-lines"><span class="nav-number">4.1.</span> <span class="nav-text">grep: Filter Lines</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#view-errors-in-logs"><span class="nav-number">4.1.1.</span> <span class="nav-text">1. View Errors in Logs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#view-error-context"><span class="nav-number">4.1.2.</span> <span class="nav-text">2. View Error Context</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#recursively-search-directory"><span class="nav-number">4.1.3.</span> <span class="nav-text">3. Recursively Search
-Directory</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#count-matches"><span class="nav-number">4.1.4.</span> <span class="nav-text">4. Count Matches</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#awk-extract-fields-and-aggregate"><span class="nav-number">4.2.</span> <span class="nav-text">awk: Extract Fields and
-Aggregate</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#extract-fields"><span class="nav-number">4.2.1.</span> <span class="nav-text">1. Extract Fields</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#filter-lines-like-grep"><span class="nav-number">4.2.2.</span> <span class="nav-text">2. Filter Lines (Like grep)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#statistics-and-aggregation"><span class="nav-number">4.2.3.</span> <span class="nav-text">3. Statistics and Aggregation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#custom-delimiter"><span class="nav-number">4.2.4.</span> <span class="nav-text">4. Custom Delimiter</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sed-text-replacement-and-editing"><span class="nav-number">4.3.</span> <span class="nav-text">sed: Text Replacement and
-Editing</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#replace-text"><span class="nav-number">4.3.1.</span> <span class="nav-text">1. Replace Text</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#delete-lines"><span class="nav-number">4.3.2.</span> <span class="nav-text">2. Delete Lines</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#insert-and-append"><span class="nav-number">4.3.3.</span> <span class="nav-text">3. Insert and Append</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cuttrsortuniq-simple-efficient-text-tools"><span class="nav-number">4.4.</span> <span class="nav-text">cut&#x2F;tr&#x2F;sort&#x2F;uniq:
-Simple Efficient Text Tools</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cut-extract-fields-simple-cases"><span class="nav-number">4.4.1.</span> <span class="nav-text">cut: Extract Fields (Simple
-Cases)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tr-character-replacementdeletion"><span class="nav-number">4.4.2.</span> <span class="nav-text">tr: Character
-Replacement&#x2F;Deletion</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sort-sorting"><span class="nav-number">4.4.3.</span> <span class="nav-text">sort: Sorting</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#uniq-remove-duplicates-only-adjacent-duplicates"><span class="nav-number">4.4.4.</span> <span class="nav-text">uniq: Remove
-Duplicates (Only Adjacent Duplicates)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#practical-case-nginx-log-analysis"><span class="nav-number">5.</span> <span class="nav-text">Practical Case: Nginx Log
-Analysis</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#count-top-visiting-ips"><span class="nav-number">5.1.</span> <span class="nav-text">1. Count Top Visiting IPs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#count-most-visited-urls"><span class="nav-number">5.2.</span> <span class="nav-text">2. Count Most Visited URLs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#count-each-status-codes-occurrences"><span class="nav-number">5.3.</span> <span class="nav-text">3. Count Each Status Code&#39;s
-Occurrences</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#find-errors-in-last-hour"><span class="nav-number">5.4.</span> <span class="nav-text">4. Find Errors in Last Hour</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#xargs-batch-file-processing"><span class="nav-number">6.</span> <span class="nav-text">xargs: Batch File Processing</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#why-xargs-is-needed"><span class="nav-number">6.1.</span> <span class="nav-text">Why xargs Is Needed</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#basic-usage"><span class="nav-number">6.2.</span> <span class="nav-text">Basic Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#advanced-usage--i-and-placeholder"><span class="nav-number">6.3.</span> <span class="nav-text">Advanced Usage:
--i and Placeholder {}</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#handle-filenames-with-spaces-important"><span class="nav-number">6.4.</span> <span class="nav-text">Handle Filenames with
-Spaces (Important!)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#practical-cases-batch-file-operations"><span class="nav-number">7.</span> <span class="nav-text">Practical Cases: Batch
-File Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#case-1-batch-rename-files"><span class="nav-number">7.1.</span> <span class="nav-text">Case 1: Batch Rename Files</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#case-2-batch-modify-file-permissions"><span class="nav-number">7.2.</span> <span class="nav-text">Case 2: Batch Modify File
-Permissions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#case-3-batch-delete-empty-files"><span class="nav-number">7.3.</span> <span class="nav-text">Case 3: Batch Delete Empty
-Files</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#case-4-batch-compress-log-files"><span class="nav-number">7.4.</span> <span class="nav-text">Case 4: Batch Compress Log
-Files</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#advanced-techniques"><span class="nav-number">8.</span> <span class="nav-text">Advanced Techniques</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#process-substitution"><span class="nav-number">8.1.</span> <span class="nav-text">Process Substitution</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#parallel-processing-xargs--p"><span class="nav-number">8.2.</span> <span class="nav-text">Parallel Processing (xargs
--P)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#safety-and-best-practices"><span class="nav-number">9.</span> <span class="nav-text">Safety and Best Practices</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#never-parse-ls-output"><span class="nav-number">9.1.</span> <span class="nav-text">1. Never Parse ls
-Output</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#preview-before-deletion"><span class="nav-number">9.2.</span> <span class="nav-text">2. Preview Before Deletion</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#use-set--e-and-set--o-pipefail-in-scripts"><span class="nav-number">9.3.</span> <span class="nav-text">3. Use
-set -e and set -o pipefail (In Scripts)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#importance-of-quotes"><span class="nav-number">9.4.</span> <span class="nav-text">4. Importance of Quotes</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#summary-and-further-reading"><span class="nav-number">10.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">Data Flow Model: stdin&#x2F;stdout&#x2F;stderr and File Descriptors</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Three-Standard-Streams"><span class="nav-number">1.1.</span> <span class="nav-text">Three Standard Streams</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#File-Descriptors-FD"><span class="nav-number">1.2.</span> <span class="nav-text">File Descriptors (FD)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Redirection: Controlling Data Flow Direction</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Output-Redirection-stdout"><span class="nav-number">2.1.</span> <span class="nav-text">Output Redirection (stdout)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Error-Output-Redirection-stderr"><span class="nav-number">2.2.</span> <span class="nav-text">Error Output Redirection (stderr)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redirect-Both-stdout-and-stderr"><span class="nav-number">2.3.</span> <span class="nav-text">Redirect Both stdout and stderr</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Method-1-2-1-Traditional"><span class="nav-number">2.3.1.</span> <span class="nav-text">Method 1: 2&gt;&amp;1 (Traditional)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Method-2-Modern-Recommended"><span class="nav-number">2.3.2.</span> <span class="nav-text">Method 2: &amp;&gt; (Modern, Recommended)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Discard-Output-dev-null"><span class="nav-number">2.4.</span> <span class="nav-text">Discard Output (&#x2F;dev&#x2F;null)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Input-Redirection-stdin"><span class="nav-number">2.5.</span> <span class="nav-text">Input Redirection (stdin)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">Pipe Operator: Chaining Commands</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Core-Concept-of-Pipes"><span class="nav-number">3.1.</span> <span class="nav-text">Core Concept of Pipes</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Debugging-Pipes-Using-tee"><span class="nav-number">3.2.</span> <span class="nav-text">Debugging Pipes: Using tee</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">Text Processing Toolchain: grep&#x2F;awk&#x2F;sed&#x2F;cut&#x2F;tr&#x2F;sort&#x2F;uniq</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#grep-Filter-Lines"><span class="nav-number">4.1.</span> <span class="nav-text">grep: Filter Lines</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-View-Errors-in-Logs"><span class="nav-number">4.1.1.</span> <span class="nav-text">1. View Errors in Logs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-View-Error-Context"><span class="nav-number">4.1.2.</span> <span class="nav-text">2. View Error Context</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Recursively-Search-Directory"><span class="nav-number">4.1.3.</span> <span class="nav-text">3. Recursively Search Directory</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Count-Matches"><span class="nav-number">4.1.4.</span> <span class="nav-text">4. Count Matches</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#awk-Extract-Fields-and-Aggregate"><span class="nav-number">4.2.</span> <span class="nav-text">awk: Extract Fields and Aggregate</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Extract-Fields"><span class="nav-number">4.2.1.</span> <span class="nav-text">1. Extract Fields</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Filter-Lines-Like-grep"><span class="nav-number">4.2.2.</span> <span class="nav-text">2. Filter Lines (Like grep)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Statistics-and-Aggregation"><span class="nav-number">4.2.3.</span> <span class="nav-text">3. Statistics and Aggregation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Custom-Delimiter"><span class="nav-number">4.2.4.</span> <span class="nav-text">4. Custom Delimiter</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sed-Text-Replacement-and-Editing"><span class="nav-number">4.3.</span> <span class="nav-text">sed: Text Replacement and Editing</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Replace-Text"><span class="nav-number">4.3.1.</span> <span class="nav-text">1. Replace Text</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Delete-Lines"><span class="nav-number">4.3.2.</span> <span class="nav-text">2. Delete Lines</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Insert-and-Append"><span class="nav-number">4.3.3.</span> <span class="nav-text">3. Insert and Append</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cut-tr-sort-uniq-Simple-Efficient-Text-Tools"><span class="nav-number">4.4.</span> <span class="nav-text">cut&#x2F;tr&#x2F;sort&#x2F;uniq: Simple Efficient Text Tools</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cut-Extract-Fields-Simple-Cases"><span class="nav-number">4.4.1.</span> <span class="nav-text">cut: Extract Fields (Simple Cases)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tr-Character-Replacement-Deletion"><span class="nav-number">4.4.2.</span> <span class="nav-text">tr: Character Replacement&#x2F;Deletion</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sort-Sorting"><span class="nav-number">4.4.3.</span> <span class="nav-text">sort: Sorting</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#uniq-Remove-Duplicates-Only-Adjacent-Duplicates"><span class="nav-number">4.4.4.</span> <span class="nav-text">uniq: Remove Duplicates (Only Adjacent Duplicates)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">Practical Case: Nginx Log Analysis</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Count-Top-Visiting-IPs"><span class="nav-number">5.1.</span> <span class="nav-text">1. Count Top Visiting IPs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Count-Most-Visited-URLs"><span class="nav-number">5.2.</span> <span class="nav-text">2. Count Most Visited URLs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Count-Each-Status-Code%E2%80%99s-Occurrences"><span class="nav-number">5.3.</span> <span class="nav-text">3. Count Each Status Code’s Occurrences</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Find-Errors-in-Last-Hour"><span class="nav-number">5.4.</span> <span class="nav-text">4. Find Errors in Last Hour</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">xargs: Batch File Processing</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Why-xargs-Is-Needed"><span class="nav-number">6.1.</span> <span class="nav-text">Why xargs Is Needed</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Basic-Usage"><span class="nav-number">6.2.</span> <span class="nav-text">Basic Usage</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Advanced-Usage-i-and-Placeholder"><span class="nav-number">6.3.</span> <span class="nav-text">Advanced Usage: -i and Placeholder {}</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Handle-Filenames-with-Spaces-Important"><span class="nav-number">6.4.</span> <span class="nav-text">Handle Filenames with Spaces (Important!)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">Practical Cases: Batch File Operations</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Case-1-Batch-Rename-Files"><span class="nav-number">7.1.</span> <span class="nav-text">Case 1: Batch Rename Files</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Case-2-Batch-Modify-File-Permissions"><span class="nav-number">7.2.</span> <span class="nav-text">Case 2: Batch Modify File Permissions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Case-3-Batch-Delete-Empty-Files"><span class="nav-number">7.3.</span> <span class="nav-text">Case 3: Batch Delete Empty Files</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Case-4-Batch-Compress-Log-Files"><span class="nav-number">7.4.</span> <span class="nav-text">Case 4: Batch Compress Log Files</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">Advanced Techniques</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Process-Substitution"><span class="nav-number">8.1.</span> <span class="nav-text">Process Substitution</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Parallel-Processing-xargs-P"><span class="nav-number">8.2.</span> <span class="nav-text">Parallel Processing (xargs -P)</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">9.</span> <span class="nav-text">Safety and Best Practices</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Never-Parse-ls-Output"><span class="nav-number">9.1.</span> <span class="nav-text">1. Never Parse ls Output</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Preview-Before-Deletion"><span class="nav-number">9.2.</span> <span class="nav-text">2. Preview Before Deletion</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Use-set-e-and-set-o-pipefail-In-Scripts"><span class="nav-number">9.3.</span> <span class="nav-text">3. Use set -e and set -o pipefail (In Scripts)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Importance-of-Quotes"><span class="nav-number">9.4.</span> <span class="nav-text">4. Importance of Quotes</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">10.</span> <span class="nav-text">Summary and Further Reading</span></a></li></ol>
     </div>
 </div>
         </aside>

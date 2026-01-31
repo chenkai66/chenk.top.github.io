@@ -254,12 +254,12 @@
     
     
         <span class="article-wordcount article-meta-item">
-            <i class="fas fa-file-word"></i>&nbsp;<span>14k 字</span>
+            <i class="fas fa-file-word"></i>&nbsp;<span>14.1k 字</span>
         </span>
     
     
         <span class="article-min2read article-meta-item">
-            <i class="fas fa-clock"></i>&nbsp;<span>56 分钟</span>
+            <i class="fas fa-clock"></i>&nbsp;<span>57 分钟</span>
         </span>
     
     
@@ -275,205 +275,189 @@
         
 
         <div class="article-content markdown-body">
-            <p>大语言模型（LLM）的能力边界，很大程度上取决于你怎么"问"它。同样的模型，换个提问方式，输出质量可能天差地别。提示词工程（Prompt
-Engineering）就是研究如何与 LLM
-高效沟通的学问——它不仅是技术，更是一门艺术。</p>
-<p>本文从零开始，系统梳理提示词工程的完整知识体系：从基础的清晰性原则，到
-Chain-of-Thought、Self-Consistency 等进阶技巧，再到 DSPy、APE
-等自动化优化框架，最后落地到实战场景。无论你是刚接触 LLM
-的新手，还是想深入了解提示词优化的研究者，都能在这里找到答案。</p>
+            <p>大语言模型（LLM）的能力边界，很大程度上取决于你怎么&quot;问&quot;它。同样的模型，换个提问方式，输出质量可能天差地别。提示词工程（Prompt Engineering）就是研究如何与 LLM 高效沟通的学问——它不仅是技术，更是一门艺术。</p>
+<p>本文从零开始，系统梳理提示词工程的完整知识体系：从基础的清晰性原则，到 Chain-of-Thought、Self-Consistency 等进阶技巧，再到 DSPy、APE 等自动化优化框架，最后落地到实战场景。无论你是刚接触 LLM 的新手，还是想深入了解提示词优化的研究者，都能在这里找到答案。</p>
 <span id="more"></span>
-<h2 id="基础篇理解提示词的本质">基础篇：理解提示词的本质</h2>
-<h3 id="提示词是什么为什么重要">提示词是什么？为什么重要？</h3>
-<p>想象你走进一家米其林餐厅，菜单上只写着"给我做点好吃的"。厨师会怎么办？他不知道你想吃中餐还是西餐，不知道你对海鲜过敏，不知道你喜欢重口味还是清淡。最后端上来的菜，很可能不符合你的期待。</p>
-<p>提示词（Prompt）就是你给 LLM
-的"菜单"。你说得越清楚，模型就越能理解你的需求，生成的内容也就越符合预期。提示词工程，本质上就是<strong>学习如何精确表达需求，让模型的能力最大化发挥</strong>。</p>
-<p>为什么提示词如此重要？因为 LLM 是通过"上下文学习"（In-Context
-Learning）来理解任务的。不同于传统的微调（Fine-tuning）需要更新模型参数，提示词工程只需要调整输入文本，就能引导模型完成各种任务。这意味着：</p>
-<ol type="1">
+<h2 id="基础篇：理解提示词的本质"><a class="header-anchor" href="#基础篇：理解提示词的本质">¶</a>基础篇：理解提示词的本质</h2>
+<h3 id="提示词是什么？为什么重要？"><a class="header-anchor" href="#提示词是什么？为什么重要？">¶</a>提示词是什么？为什么重要？</h3>
+<p>想象你走进一家米其林餐厅，菜单上只写着&quot;给我做点好吃的&quot;。厨师会怎么办？他不知道你想吃中餐还是西餐，不知道你对海鲜过敏，不知道你喜欢重口味还是清淡。最后端上来的菜，很可能不符合你的期待。</p>
+<p>提示词（Prompt）就是你给 LLM 的&quot;菜单&quot;。你说得越清楚，模型就越能理解你的需求，生成的内容也就越符合预期。提示词工程，本质上就是<strong>学习如何精确表达需求，让模型的能力最大化发挥</strong>。</p>
+<p>为什么提示词如此重要？因为 LLM 是通过&quot;上下文学习&quot;（In-Context Learning）来理解任务的。不同于传统的微调（Fine-tuning）需要更新模型参数，提示词工程只需要调整输入文本，就能引导模型完成各种任务。这意味着：</p>
+<ol>
 <li><strong>零成本迁移</strong>：同一个模型，换个提示词就能从写代码切换到写诗，无需重新训练。</li>
 <li><strong>快速迭代</strong>：调整提示词比微调模型快几千倍，适合快速验证想法。</li>
-<li><strong>普适性强</strong>：好的提示词技巧可以跨模型复用（GPT-4、Claude、Gemini
-等）。</li>
+<li><strong>普适性强</strong>：好的提示词技巧可以跨模型复用（GPT-4、Claude、Gemini 等）。</li>
 </ol>
-<p>但提示词工程也有"玄学"的一面。同样的意思，换个表达方式，模型表现可能完全不同。比如在数学推理任务中，加一句"Let's
-think step by step"（让我们一步步思考），准确率能从 17.7% 跳到
-78.7%（Kojima et al., 2022）。这种现象背后的原理，需要我们理解 LLM
-的工作机制。</p>
-<h3 id="llm-工作原理必要的背景知识">LLM 工作原理：必要的背景知识</h3>
-<p>要写好提示词，得先知道 LLM 是怎么"看懂"你的话的。这里不展开复杂的
-Transformer 架构，只讲核心逻辑：</p>
-<p><strong>LLM
-是一个"下一个词预测器"</strong>。给定前面的文本，它会计算所有可能的下一个词的概率分布，然后选择概率最高的那个（或者根据温度参数随机采样）。比如：</p>
+<p>但提示词工程也有&quot;玄学&quot;的一面。同样的意思，换个表达方式，模型表现可能完全不同。比如在数学推理任务中，加一句&quot;Let’s think step by step&quot;（让我们一步步思考），准确率能从 17.7% 跳到 78.7%（Kojima et al., 2022）。这种现象背后的原理，需要我们理解 LLM 的工作机制。</p>
+<h3 id="LLM-工作原理：必要的背景知识"><a class="header-anchor" href="#LLM-工作原理：必要的背景知识">¶</a>LLM 工作原理：必要的背景知识</h3>
+<p>要写好提示词，得先知道 LLM 是怎么&quot;看懂&quot;你的话的。这里不展开复杂的 Transformer 架构，只讲核心逻辑：</p>
+<p><strong>LLM 是一个&quot;下一个词预测器&quot;</strong>。给定前面的文本，它会计算所有可能的下一个词的概率分布，然后选择概率最高的那个（或者根据温度参数随机采样）。比如：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入：天空是</span><br><span class="line">输出：蓝色的（概率 0.4）、灰色的（概率 0.2）、……</span><br></pre></td></tr></table></figure>
-<p>这个过程是<strong>自回归</strong>的：生成第一个词后，把它加到输入里，再预测下一个词，一直重复直到遇到结束符。所以
-LLM 本质上是在"续写"你的提示词。</p>
+<p>这个过程是<strong>自回归</strong>的：生成第一个词后，把它加到输入里，再预测下一个词，一直重复直到遇到结束符。所以 LLM 本质上是在&quot;续写&quot;你的提示词。</p>
 <p>这带来几个关键启示：</p>
-<ol type="1">
-<li><strong>模型没有"理解"</strong>：它只是在模式匹配。你的提示词如果和训练数据中的某个模式相似，模型就能表现得很好；否则可能胡说八道。</li>
-<li><strong>顺序很重要</strong>：LLM
-是从左到右处理文本的，后面的词依赖前面的词。所以提示词的结构（先说什么、后说什么）会显著影响输出。</li>
-<li><strong>上下文窗口有限</strong>：模型只能"看到"最近的 N 个
-Token（GPT-4 是 128k，Claude 3 是 200k）。超出窗口的内容会被遗忘。</li>
+<ol>
+<li><strong>模型没有&quot;理解&quot;</strong>：它只是在模式匹配。你的提示词如果和训练数据中的某个模式相似，模型就能表现得很好；否则可能胡说八道。</li>
+<li><strong>顺序很重要</strong>：LLM 是从左到右处理文本的，后面的词依赖前面的词。所以提示词的结构（先说什么、后说什么）会显著影响输出。</li>
+<li><strong>上下文窗口有限</strong>：模型只能&quot;看到&quot;最近的 N 个 Token（GPT-4 是 128k，Claude 3 是 200k）。超出窗口的内容会被遗忘。</li>
 </ol>
-<p>理解这些后，很多提示词技巧就变得自然了。比如为什么要把最重要的信息放在开头或结尾？因为模型对这些位置的"记忆"更牢固（这叫"首因效应"和"近因效应"）。为什么要给例子？因为例子能让模型"看到"输入输出的模式，从而模仿。</p>
-<h3 id="零样本少样本多样本提示从简单到复杂">零样本、少样本、多样本提示：从简单到复杂</h3>
+<p>理解这些后，很多提示词技巧就变得自然了。比如为什么要把最重要的信息放在开头或结尾？因为模型对这些位置的&quot;记忆&quot;更牢固（这叫&quot;首因效应&quot;和&quot;近因效应&quot;）。为什么要给例子？因为例子能让模型&quot;看到&quot;输入输出的模式，从而模仿。</p>
+<h3 id="零样本、少样本、多样本提示：从简单到复杂"><a class="header-anchor" href="#零样本、少样本、多样本提示：从简单到复杂">¶</a>零样本、少样本、多样本提示：从简单到复杂</h3>
 <p>根据提供的例子数量，提示词可以分为三种类型：</p>
-<h4 id="零样本提示zero-shot-prompting">零样本提示（Zero-Shot
-Prompting）</h4>
+<h4 id="零样本提示（Zero-Shot-Prompting）"><a class="header-anchor" href="#零样本提示（Zero-Shot-Prompting）">¶</a>零样本提示（Zero-Shot Prompting）</h4>
 <p>最简单直接，不给任何例子，只描述任务：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">提示词：</span><br><span class="line">把下面的句子翻译成英文：我今天很开心。</span><br><span class="line"></span><br><span class="line">输出：</span><br><span class="line">I am very happy today.</span><br></pre></td></tr></table></figure>
 <p><strong>优点</strong>：快速、不需要准备例子、适合通用任务。</p>
-<p><strong>缺点</strong>：对复杂任务效果差，容易理解偏差。比如你让模型"总结文章"，它可能不知道你要的是三句话的摘要还是逐段分析。</p>
-<h4 id="少样本提示few-shot-prompting">少样本提示（Few-Shot
-Prompting）</h4>
+<p><strong>缺点</strong>：对复杂任务效果差，容易理解偏差。比如你让模型&quot;总结文章&quot;，它可能不知道你要的是三句话的摘要还是逐段分析。</p>
+<h4 id="少样本提示（Few-Shot-Prompting）"><a class="header-anchor" href="#少样本提示（Few-Shot-Prompting）">¶</a>少样本提示（Few-Shot Prompting）</h4>
 <p>给 1-10 个例子，让模型学习模式：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">提示词：</span><br><span class="line">把下面的句子翻译成英文：</span><br><span class="line"></span><br><span class="line">中文：我今天很开心。</span><br><span class="line">英文：I am very happy today.</span><br><span class="line"></span><br><span class="line">中文：他正在看书。</span><br><span class="line">英文：He is reading a book.</span><br><span class="line"></span><br><span class="line">中文：这道菜真好吃。</span><br><span class="line">英文：</span><br></pre></td></tr></table></figure>
-<p>模型会输出："This dish is delicious."</p>
-<p><strong>为什么有效？</strong> 因为 LLM
-在预训练时见过大量"输入-输出"对的模式。给几个例子后，它能快速识别出你想要的格式和风格，这就是"上下文学习"。</p>
-<p><strong>关键技巧</strong>： -
-例子要<strong>多样化</strong>：覆盖不同情况（肯定句、否定句、疑问句等）。
-- 例子要<strong>高质量</strong>：错误的例子会误导模型。 -
-例子的顺序影响输出：相似的例子放在一起，模型更容易泛化。</p>
-<h4 id="多样本提示many-shot-prompting">多样本提示（Many-Shot
-Prompting）</h4>
-<p>Google 在 2024
-年的研究发现，当上下文窗口足够大时，给成百上千个例子能显著提升性能。比如在机器翻译任务中，Few-Shot（5
-个例子）的 BLEU 分数是 32.5，而 Many-Shot（500 个例子）能达到 39.2。</p>
-<p><strong>为什么更多例子更好？</strong>
-因为覆盖了更多边界情况，让模型学到更细致的规律。但要注意： -
-需要<strong>长上下文模型</strong>（至少 64k Token）。 -
-例子过多会增加推理成本（按 Token 收费）。 - 存在边际效应递减：从 0 到 10
-个例子提升明显，从 100 到 200 提升有限。</p>
-<p><strong>实战建议</strong>：对于简单任务用零样本，复杂任务用 3-5
-个样本，极端困难的任务（如低资源语言翻译）才考虑多样本。</p>
-<h3 id="提示词的四要素角色任务格式约束">提示词的四要素：角色、任务、格式、约束</h3>
+<p>模型会输出：“This dish is delicious.”</p>
+<p><strong>为什么有效？</strong> 因为 LLM 在预训练时见过大量&quot;输入-输出&quot;对的模式。给几个例子后，它能快速识别出你想要的格式和风格，这就是&quot;上下文学习&quot;。</p>
+<p><strong>关键技巧</strong>：</p>
+<ul>
+<li>例子要<strong>多样化</strong>：覆盖不同情况（肯定句、否定句、疑问句等）。</li>
+<li>例子要<strong>高质量</strong>：错误的例子会误导模型。</li>
+<li>例子的顺序影响输出：相似的例子放在一起，模型更容易泛化。</li>
+</ul>
+<h4 id="多样本提示（Many-Shot-Prompting）"><a class="header-anchor" href="#多样本提示（Many-Shot-Prompting）">¶</a>多样本提示（Many-Shot Prompting）</h4>
+<p>Google 在 2024 年的研究发现，当上下文窗口足够大时，给成百上千个例子能显著提升性能。比如在机器翻译任务中，Few-Shot（5 个例子）的 BLEU 分数是 32.5，而 Many-Shot（500 个例子）能达到 39.2。</p>
+<p><strong>为什么更多例子更好？</strong> 因为覆盖了更多边界情况，让模型学到更细致的规律。但要注意：</p>
+<ul>
+<li>需要<strong>长上下文模型</strong>（至少 64k Token）。</li>
+<li>例子过多会增加推理成本（按 Token 收费）。</li>
+<li>存在边际效应递减：从 0 到 10 个例子提升明显，从 100 到 200 提升有限。</li>
+</ul>
+<p><strong>实战建议</strong>：对于简单任务用零样本，复杂任务用 3-5 个样本，极端困难的任务（如低资源语言翻译）才考虑多样本。</p>
+<h3 id="提示词的四要素：角色、任务、格式、约束"><a class="header-anchor" href="#提示词的四要素：角色、任务、格式、约束">¶</a>提示词的四要素：角色、任务、格式、约束</h3>
 <p>一个高质量的提示词，通常包含这四个部分：</p>
-<h4 id="角色role">角色（Role）</h4>
-<p>告诉模型"你是谁"，设定身份和语气。比如：</p>
+<h4 id="角色（Role）"><a class="header-anchor" href="#角色（Role）">¶</a>角色（Role）</h4>
+<p>告诉模型&quot;你是谁&quot;，设定身份和语气。比如：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">你是一名资深的 Python 工程师，擅长编写高性能、可维护的代码。</span><br></pre></td></tr></table></figure>
-<p><strong>为什么有效？</strong>
-因为训练数据中，不同角色的表达风格不同。"专家"的回答通常更专业、更详细；"老师"的回答更循循善诱。设定角色能激活模型中相应的知识分布。</p>
-<p><strong>常见角色</strong>： - 专家/顾问：用于需要专业知识的任务。 -
-老师/导师：用于教学、解释概念。 - 助手/秘书：用于辅助完成任务。 -
-批评家/评审：用于评估、挑错。</p>
-<h4 id="任务task">任务（Task）</h4>
-<p>明确告诉模型"要做什么"。越具体越好：</p>
+<p><strong>为什么有效？</strong> 因为训练数据中，不同角色的表达风格不同。&quot;专家&quot;的回答通常更专业、更详细；&quot;老师&quot;的回答更循循善诱。设定角色能激活模型中相应的知识分布。</p>
+<p><strong>常见角色</strong>：</p>
+<ul>
+<li>专家/顾问：用于需要专业知识的任务。</li>
+<li>老师/导师：用于教学、解释概念。</li>
+<li>助手/秘书：用于辅助完成任务。</li>
+<li>批评家/评审：用于评估、挑错。</li>
+</ul>
+<h4 id="任务（Task）"><a class="header-anchor" href="#任务（Task）">¶</a>任务（Task）</h4>
+<p>明确告诉模型&quot;要做什么&quot;。越具体越好：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">❌ 模糊：帮我处理这段代码。</span><br><span class="line">✅ 清晰：找出这段代码中的所有性能瓶颈，并给出优化建议。</span><br></pre></td></tr></table></figure>
-<p><strong>关键点</strong>： - 用动词开头（分析、生成、总结、转换……）。
-- 指明输入和预期输出。 - 拆解复杂任务为多个子任务。</p>
-<h4 id="格式format">格式（Format）</h4>
+<p><strong>关键点</strong>：</p>
+<ul>
+<li>用动词开头（分析、生成、总结、转换……）。</li>
+<li>指明输入和预期输出。</li>
+<li>拆解复杂任务为多个子任务。</li>
+</ul>
+<h4 id="格式（Format）"><a class="header-anchor" href="#格式（Format）">¶</a>格式（Format）</h4>
 <p>规定输出的结构，避免模型自由发挥：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">请用 JSON 格式输出，包含以下字段：</span><br><span class="line">&#123;</span><br><span class="line">  &quot;summary&quot;: &quot;一句话总结&quot;,</span><br><span class="line">  &quot;key_points&quot;: [&quot;要点1&quot;, &quot;要点2&quot;],</span><br><span class="line">  &quot;sentiment&quot;: &quot;positive/negative/neutral&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><strong>常用格式</strong>： - 列表（Markdown、编号） - 表格 -
-JSON/YAML - 代码块 - 问答对</p>
-<p><strong>技巧</strong>：用"你的输出必须以 XXX
-开头"来强制格式。比如："你的输出必须以 <code>&#123;</code> 开头，以
-<code>&#125;</code> 结尾。"</p>
-<h4 id="约束constraints">约束（Constraints）</h4>
+<p><strong>常用格式</strong>：</p>
+<ul>
+<li>列表（Markdown、编号）</li>
+<li>表格</li>
+<li>JSON/YAML</li>
+<li>代码块</li>
+<li>问答对</li>
+</ul>
+<p><strong>技巧</strong>：用&quot;你的输出必须以 XXX 开头&quot;来强制格式。比如：“你的输出必须以 <code>&#123;</code> 开头，以 <code>&#125;</code> 结尾。”</p>
+<h4 id="约束（Constraints）"><a class="header-anchor" href="#约束（Constraints）">¶</a>约束（Constraints）</h4>
 <p>设定边界条件，防止模型跑偏：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">约束：</span><br><span class="line">1. 回答不超过 200 字。</span><br><span class="line">2. 不要使用专业术语，用小白能懂的语言。</span><br><span class="line">3. 如果无法确定答案，明确说&quot;我不确定&quot;，不要编造。</span><br></pre></td></tr></table></figure>
-<p><strong>常见约束</strong>： - 长度限制（字数、Token 数） -
-风格要求（正式/口语、技术/通俗） -
-内容限制（不允许的话题、必须包含的关键词） -
-真实性要求（不编造、引用来源）</p>
+<p><strong>常见约束</strong>：</p>
+<ul>
+<li>长度限制（字数、Token 数）</li>
+<li>风格要求（正式/口语、技术/通俗）</li>
+<li>内容限制（不允许的话题、必须包含的关键词）</li>
+<li>真实性要求（不编造、引用来源）</li>
+</ul>
 <p><strong>综合示例</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">【角色】你是一名经验丰富的技术博客作者，擅长把复杂概念讲清楚。</span><br><span class="line"></span><br><span class="line">【任务】为&quot;什么是 Docker&quot;写一篇科普文章，面向没有容器技术背景的读者。</span><br><span class="line"></span><br><span class="line">【格式】</span><br><span class="line">分为三部分：</span><br><span class="line">1. 用一个生活类比解释 Docker 是什么</span><br><span class="line">2. 列举 3 个使用 Docker 的实际好处</span><br><span class="line">3. 给出一个简单的入门示例</span><br><span class="line"></span><br><span class="line">【约束】</span><br><span class="line">- 全文不超过 500 字</span><br><span class="line">- 不使用&quot;镜像&quot;&quot;容器编排&quot;等术语，或者在首次出现时解释清楚</span><br><span class="line">- 用 Markdown 格式输出</span><br></pre></td></tr></table></figure>
-<p>这样的提示词，比简单说"介绍一下 Docker"清晰百倍。</p>
-<h3 id="基本技巧清晰性具体性结构化">基本技巧：清晰性、具体性、结构化</h3>
+<p>这样的提示词，比简单说&quot;介绍一下 Docker&quot;清晰百倍。</p>
+<h3 id="基本技巧：清晰性、具体性、结构化"><a class="header-anchor" href="#基本技巧：清晰性、具体性、结构化">¶</a>基本技巧：清晰性、具体性、结构化</h3>
 <p>总结一下基础阶段的核心原则：</p>
-<h4 id="清晰性原则">清晰性原则</h4>
+<h4 id="清晰性原则"><a class="header-anchor" href="#清晰性原则">¶</a>清晰性原则</h4>
 <p><strong>避免歧义</strong>。模型不会反问你，只会按自己的理解执行。比如：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">❌ 模糊：这个方案怎么样？</span><br><span class="line">✅ 清晰：从性能、成本、可维护性三个角度，评估用 Redis 做缓存的方案。</span><br></pre></td></tr></table></figure>
 <p><strong>测试方法</strong>：把提示词给同事看，如果他们也不确定你想要什么，模型肯定也不知道。</p>
-<h4 id="具体性原则">具体性原则</h4>
-<p><strong>细节决定成败</strong>。与其说"写得好一点"，不如说"避免重复的形容词，多用动词，句子平均长度控制在
-20 字以内"。</p>
+<h4 id="具体性原则"><a class="header-anchor" href="#具体性原则">¶</a>具体性原则</h4>
+<p><strong>细节决定成败</strong>。与其说&quot;写得好一点&quot;，不如说&quot;避免重复的形容词，多用动词，句子平均长度控制在 20 字以内&quot;。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">❌ 抽象：让这段话更专业。</span><br><span class="line">✅ 具体：替换口语化表达为学术用语，补充数据支撑，添加文献引用。</span><br></pre></td></tr></table></figure>
-<h4 id="结构化设计">结构化设计</h4>
+<h4 id="结构化设计"><a class="header-anchor" href="#结构化设计">¶</a>结构化设计</h4>
 <p><strong>用分隔符组织信息</strong>。当提示词包含多个部分时，用明显的标记区分：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">## 背景信息</span><br><span class="line">用户是一名大学生，正在准备求职。</span><br><span class="line"></span><br><span class="line">## 输入内容</span><br><span class="line">[简历内容]</span><br><span class="line"></span><br><span class="line">## 任务要求</span><br><span class="line">找出简历中的 3 个主要问题，并给出改进建议。</span><br><span class="line"></span><br><span class="line">## 输出格式</span><br><span class="line">问题1：[描述]</span><br><span class="line">建议：[改进方案]</span><br></pre></td></tr></table></figure>
-<p><strong>常用分隔符</strong>： - Markdown 标题（<code>##</code>） -
-分隔线（<code>---</code>） - XML
-标签（<code>&lt;input&gt;...&lt;/input&gt;</code>） -
-特殊符号（<code>"""</code> 或 <code>###</code>）</p>
-<p><strong>为什么有效？</strong>
-因为结构化的文本在训练数据中很常见（代码、文档、配置文件），模型能更好地理解不同部分的功能。</p>
+<p><strong>常用分隔符</strong>：</p>
+<ul>
+<li>Markdown 标题（<code>##</code>）</li>
+<li>分隔线（<code>---</code>）</li>
+<li>XML 标签（<code>&lt;input&gt;...&lt;/input&gt;</code>）</li>
+<li>特殊符号（<code>&quot;&quot;&quot;</code> 或 <code>###</code>）</li>
+</ul>
+<p><strong>为什么有效？</strong> 因为结构化的文本在训练数据中很常见（代码、文档、配置文件），模型能更好地理解不同部分的功能。</p>
 <hr>
-<h2 id="进阶篇让模型思考的艺术">进阶篇：让模型"思考"的艺术</h2>
-<p>基础技巧解决的是"怎么说清楚需求"，但对于复杂任务（数学推理、多步规划），光说清楚还不够——你得教模型<strong>怎么思考</strong>。</p>
-<h3 id="chain-of-thoughtcot把推理过程写出来">Chain-of-Thought（CoT）：把推理过程写出来</h3>
-<h4 id="原理与动机">原理与动机</h4>
-<p>人类解决问题时，通常会把复杂任务拆解为多个步骤。比如计算"23 ×
-17"，你会这样想：</p>
+<h2 id="进阶篇：让模型-思考-的艺术"><a class="header-anchor" href="#进阶篇：让模型-思考-的艺术">¶</a>进阶篇：让模型&quot;思考&quot;的艺术</h2>
+<p>基础技巧解决的是&quot;怎么说清楚需求&quot;，但对于复杂任务（数学推理、多步规划），光说清楚还不够——你得教模型<strong>怎么思考</strong>。</p>
+<h3 id="Chain-of-Thought（CoT）：把推理过程写出来"><a class="header-anchor" href="#Chain-of-Thought（CoT）：把推理过程写出来">¶</a>Chain-of-Thought（CoT）：把推理过程写出来</h3>
+<h4 id="原理与动机"><a class="header-anchor" href="#原理与动机">¶</a>原理与动机</h4>
+<p>人类解决问题时，通常会把复杂任务拆解为多个步骤。比如计算&quot;23 × 17&quot;，你会这样想：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">23 × 17</span><br><span class="line">= 23 × (10 + 7)</span><br><span class="line">= 23 × 10 + 23 × 7</span><br><span class="line">= 230 + 161</span><br><span class="line">= 391</span><br></pre></td></tr></table></figure>
-<p>而不是直接蹦出答案"391"。这种"中间推理步骤"就是思维链（Chain-of-Thought）。</p>
-<p>LLM
-默认是直接输出答案的，但研究发现，<strong>让模型生成推理步骤，能显著提升复杂任务的准确率</strong>。Wei
-et al. 在 2022 年的论文中发现，在
-GSM8K（小学数学题）数据集上，标准提示词的准确率是 17.9%，加上 CoT
-后提升到 40.7%，增长了 127%。</p>
+<p>而不是直接蹦出答案&quot;391&quot;。这种&quot;中间推理步骤&quot;就是思维链（Chain-of-Thought）。</p>
+<p>LLM 默认是直接输出答案的，但研究发现，<strong>让模型生成推理步骤，能显著提升复杂任务的准确率</strong>。Wei et al. 在 2022 年的论文中发现，在 GSM8K（小学数学题）数据集上，标准提示词的准确率是 17.9%，加上 CoT 后提升到 40.7%，增长了 127%。</p>
 <p><strong>为什么 CoT 有效？</strong></p>
-<ol type="1">
+<ol>
 <li><strong>激活相关知识</strong>：生成中间步骤时，模型会调用更多相关的参数和模式。</li>
-<li><strong>降低推理难度</strong>：把"一步到位"变成"多次简单跳跃"，每一步都更容易正确。</li>
+<li><strong>降低推理难度</strong>：把&quot;一步到位&quot;变成&quot;多次简单跳跃&quot;，每一步都更容易正确。</li>
 <li><strong>可调试性</strong>：看到推理过程，你能知道模型在哪里出错，从而调整提示词。</li>
 </ol>
-<h4 id="zero-shot-cot-vs-few-shot-cot">Zero-Shot CoT vs Few-Shot
-CoT</h4>
+<h4 id="Zero-Shot-CoT-vs-Few-Shot-CoT"><a class="header-anchor" href="#Zero-Shot-CoT-vs-Few-Shot-CoT">¶</a>Zero-Shot CoT vs Few-Shot CoT</h4>
 <p><strong>Zero-Shot CoT</strong>：只加一句话引导，不给例子。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">提示词：</span><br><span class="line">罗杰有 5 个网球。他又买了 2 罐网球，每罐 3 个。他现在有多少个网球？</span><br><span class="line"></span><br><span class="line">让我们一步步思考。</span><br><span class="line"></span><br><span class="line">输出：</span><br><span class="line">1. 罗杰最初有 5 个网球。</span><br><span class="line">2. 他买了 2 罐，每罐 3 个，所以买了 2 × 3 = 6 个。</span><br><span class="line">3. 总共有 5 + 6 = 11 个网球。</span><br><span class="line"></span><br><span class="line">答案：11 个。</span><br></pre></td></tr></table></figure>
-<p>关键是那句"让我们一步步思考"（Let's think step by step）。Kojima et
-al. (2022) 发现这句话能触发模型的推理模式，准确率从 17.7% 跳到
-78.7%。</p>
-<p><strong>为什么一句话就有效？</strong>
-因为训练数据中，很多教学内容、论坛回答都包含"Let's
-think..."这样的引导语，后面通常跟着详细的推理过程。模型学会了这种模式。</p>
+<p>关键是那句&quot;让我们一步步思考&quot;（Let’s think step by step）。Kojima et al. (2022) 发现这句话能触发模型的推理模式，准确率从 17.7% 跳到 78.7%。</p>
+<p><strong>为什么一句话就有效？</strong> 因为训练数据中，很多教学内容、论坛回答都包含&quot;Let’s think…&quot;这样的引导语，后面通常跟着详细的推理过程。模型学会了这种模式。</p>
 <p><strong>Few-Shot CoT</strong>：给几个带推理过程的例子。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">提示词：</span><br><span class="line">问题：咖啡馆有 23 个苹果。他们用了 20 个做午餐，又买了 6 个。他们现在有多少个苹果？</span><br><span class="line">推理：咖啡馆最初有 23 个苹果。他们用了 20 个，剩下 23 - 20 = 3 个。又买了 6 个，所以现在有 3 + 6 = 9 个。</span><br><span class="line">答案：9 个。</span><br><span class="line"></span><br><span class="line">问题：莉亚有 32 块巧克力，她的姐姐有 42 块。如果她们吃了 35 块，她们总共还剩多少块？</span><br><span class="line">推理：莉亚有 32 块，姐姐有 42 块，总共 32 + 42 = 74 块。吃了 35 块，剩下 74 - 35 = 39 块。</span><br><span class="line">答案：39 块。</span><br><span class="line"></span><br><span class="line">问题：罗杰有 5 个网球。他又买了 2 罐网球，每罐 3 个。他现在有多少个网球？</span><br></pre></td></tr></table></figure>
 <p>模型会输出类似的推理过程。</p>
-<p><strong>对比</strong>： - Zero-Shot CoT
-更简单，但依赖模型本身的推理能力（对小模型效果差）。 - Few-Shot CoT
-更稳定，但需要准备高质量的例子（推理步骤要正确且清晰）。</p>
-<p><strong>实战建议</strong>： - 对 GPT-4、Claude 3 Opus
-等大模型，Zero-Shot CoT 通常够用。 -
-对特定领域任务（医学诊断、法律分析），Few-Shot CoT
-能提供更专业的推理模式。 -
-例子中的推理步骤<strong>不要太长</strong>（3-5
-步即可），否则模型可能学会啰嗦而不是深刻。</p>
-<h4 id="代码实现示例">代码实现示例</h4>
+<p><strong>对比</strong>：</p>
+<ul>
+<li>Zero-Shot CoT 更简单，但依赖模型本身的推理能力（对小模型效果差）。</li>
+<li>Few-Shot CoT 更稳定，但需要准备高质量的例子（推理步骤要正确且清晰）。</li>
+</ul>
+<p><strong>实战建议</strong>：</p>
+<ul>
+<li>对 GPT-4、Claude 3 Opus 等大模型，Zero-Shot CoT 通常够用。</li>
+<li>对特定领域任务（医学诊断、法律分析），Few-Shot CoT 能提供更专业的推理模式。</li>
+<li>例子中的推理步骤<strong>不要太长</strong>（3-5 步即可），否则模型可能学会啰嗦而不是深刻。</li>
+</ul>
+<h4 id="代码实现示例"><a class="header-anchor" href="#代码实现示例">¶</a>代码实现示例</h4>
 <p>用 OpenAI API 实现 Zero-Shot CoT：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> openai</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">solve_with_cot</span>(<span class="params">problem</span>):</span><br><span class="line">    prompt = <span class="string">f&quot;&quot;&quot;<span class="subst">&#123;problem&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">让我们一步步思考。&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    response = openai.ChatCompletion.create(</span><br><span class="line">        model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">        messages=[</span><br><span class="line">            &#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;</span><br><span class="line">        ],</span><br><span class="line">        temperature=<span class="number">0</span>  <span class="comment"># 降低随机性，提高推理稳定性</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> response.choices[<span class="number">0</span>].message.content</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">problem = <span class="string">&quot;一个停车场有 3 层，每层能停 15 辆车。如果现在已经停了 38 辆车，还能停多少辆？&quot;</span></span><br><span class="line">result = solve_with_cot(problem)</span><br><span class="line"><span class="built_in">print</span>(result)</span><br></pre></td></tr></table></figure>
 <p>输出：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. 停车场总共有 3 × 15 = 45 个车位。</span><br><span class="line">2. 已经停了 38 辆车。</span><br><span class="line">3. 还能停 45 - 38 = 7 辆车。</span><br><span class="line"></span><br><span class="line">答案：7 辆。</span><br></pre></td></tr></table></figure>
-<p><strong>优化技巧</strong>： - 设置 <code>temperature=0</code>
-让推理更确定性。 - 如果任务需要创造性（写故事、头脑风暴），提高
-<code>temperature</code> 到 0.7-0.9。 -
-用正则表达式提取最终答案（比如匹配"答案："后的数字）。</p>
-<h3 id="self-consistency用投票提升准确率">Self-Consistency：用投票提升准确率</h3>
-<p>CoT
-解决了"怎么推理"的问题，但还有一个隐患：<strong>同一个问题，模型每次生成的推理路径可能不同，结果也可能不同</strong>。哪个结果更可靠？</p>
+<p><strong>优化技巧</strong>：</p>
+<ul>
+<li>设置 <code>temperature=0</code> 让推理更确定性。</li>
+<li>如果任务需要创造性（写故事、头脑风暴），提高 <code>temperature</code> 到 0.7-0.9。</li>
+<li>用正则表达式提取最终答案（比如匹配&quot;答案：&quot;后的数字）。</li>
+</ul>
+<h3 id="Self-Consistency：用投票提升准确率"><a class="header-anchor" href="#Self-Consistency：用投票提升准确率">¶</a>Self-Consistency：用投票提升准确率</h3>
+<p>CoT 解决了&quot;怎么推理&quot;的问题，但还有一个隐患：<strong>同一个问题，模型每次生成的推理路径可能不同，结果也可能不同</strong>。哪个结果更可靠？</p>
 <p>Self-Consistency（自洽性）的思路很简单：<strong>多次运行，投票选出最常见的答案</strong>。</p>
-<h4 id="sample-and-marginalize-机制">Sample-and-Marginalize 机制</h4>
-<p>传统的解码方式是贪心解码（Greedy
-Decoding）：每次选概率最高的词。Self-Consistency
-改用采样（Sampling）：每次从概率分布中随机选一个词（根据温度参数），生成多条不同的推理路径。</p>
+<h4 id="Sample-and-Marginalize-机制"><a class="header-anchor" href="#Sample-and-Marginalize-机制">¶</a>Sample-and-Marginalize 机制</h4>
+<p>传统的解码方式是贪心解码（Greedy Decoding）：每次选概率最高的词。Self-Consistency 改用采样（Sampling）：每次从概率分布中随机选一个词（根据温度参数），生成多条不同的推理路径。</p>
 <p>具体步骤：</p>
-<ol type="1">
+<ol>
 <li>用 CoT 提示词，采样生成 N 条推理路径（比如 N=40）。</li>
 <li>从每条路径中提取最终答案。</li>
 <li>统计答案频次，选择出现次数最多的作为最终答案。</li>
 </ol>
 <p>数学上，这相当于对所有可能的推理路径做边缘化（Marginalization）：</p>
-<p><span class="math display">\[
-P(\text{答案} | \text{问题}) = \sum_{\text{推理路径}} P(\text{答案},
-\text{推理路径} | \text{问题})
-\]</span></p>
+<p>$$<br>
+P(\text{答案} | \text{问题}) = \sum_{\text{推理路径}} P(\text{答案}, \text{推理路径} | \text{问题})<br>
+$$</p>
 <p><strong>直观解释</strong>：如果一个答案通过多种不同的推理方式都能得到，说明它更可能正确。</p>
-<h4 id="性能提升数据">性能提升数据</h4>
-<p>Wang et al. (2022) 在多个推理数据集上测试了
-Self-Consistency，结果显著：</p>
+<h4 id="性能提升数据"><a class="header-anchor" href="#性能提升数据">¶</a>性能提升数据</h4>
+<p>Wang et al. (2022) 在多个推理数据集上测试了 Self-Consistency，结果显著：</p>
 <table>
 <thead>
 <tr>
@@ -510,42 +494,53 @@ Self-Consistency，结果显著：</p>
 </tr>
 </tbody>
 </table>
-<p><strong>为什么不是 100% 采样次数越多越好？</strong> 因为： -
-增加采样次数会线性增加 API 调用成本。 - 边际收益递减：从 1 次到 10
-次提升明显，从 30 次到 40 次提升有限。 - 研究发现 10-40
-次是性价比最高的区间。</p>
-<h4 id="实现方法">实现方法</h4>
+<p><strong>为什么不是 100% 采样次数越多越好？</strong> 因为：</p>
+<ul>
+<li>增加采样次数会线性增加 API 调用成本。</li>
+<li>边际收益递减：从 1 次到 10 次提升明显，从 30 次到 40 次提升有限。</li>
+<li>研究发现 10-40 次是性价比最高的区间。</li>
+</ul>
+<h4 id="实现方法"><a class="header-anchor" href="#实现方法">¶</a>实现方法</h4>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> Counter</span><br><span class="line"><span class="keyword">import</span> openai</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">self_consistency_solve</span>(<span class="params">problem, num_samples=<span class="number">10</span></span>):</span><br><span class="line">    prompt = <span class="string">f&quot;&quot;&quot;<span class="subst">&#123;problem&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">让我们一步步思考。&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    answers = []</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(num_samples):</span><br><span class="line">        response = openai.ChatCompletion.create(</span><br><span class="line">            model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">            messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">            temperature=<span class="number">0.7</span>,  <span class="comment"># 提高随机性以获得多样化的推理路径</span></span><br><span class="line">            max_tokens=<span class="number">500</span></span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        text = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">        <span class="comment"># 提取答案（假设答案在&quot;答案：&quot;后面）</span></span><br><span class="line">        <span class="keyword">if</span> <span class="string">&quot;答案：&quot;</span> <span class="keyword">in</span> text:</span><br><span class="line">            answer = text.split(<span class="string">&quot;答案：&quot;</span>)[<span class="number">1</span>].strip().split()[<span class="number">0</span>]</span><br><span class="line">            answers.append(answer)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 投票</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> answers:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">    </span><br><span class="line">    most_common = Counter(answers).most_common(<span class="number">1</span>)[<span class="number">0</span>]</span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&quot;final_answer&quot;</span>: most_common[<span class="number">0</span>],</span><br><span class="line">        <span class="string">&quot;confidence&quot;</span>: most_common[<span class="number">1</span>] / <span class="built_in">len</span>(answers),</span><br><span class="line">        <span class="string">&quot;all_answers&quot;</span>: <span class="built_in">dict</span>(Counter(answers))</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">problem = <span class="string">&quot;一个数的 3 倍加 5 等于 26，这个数是多少？&quot;</span></span><br><span class="line">result = self_consistency_solve(problem, num_samples=<span class="number">10</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;最终答案：<span class="subst">&#123;result[<span class="string">&#x27;final_answer&#x27;</span>]&#125;</span>&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;置信度：<span class="subst">&#123;result[<span class="string">&#x27;confidence&#x27;</span>]:<span class="number">.1</span>%&#125;</span>&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;所有答案分布：<span class="subst">&#123;result[<span class="string">&#x27;all_answers&#x27;</span>]&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
 <p>输出示例：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">最终答案：7</span><br><span class="line">置信度：90.0%</span><br><span class="line">所有答案分布：&#123;&#x27;7&#x27;: 9, &#x27;8&#x27;: 1&#125;</span><br></pre></td></tr></table></figure>
-<p><strong>优化建议</strong>： - 对简单任务用 5-10 次采样，复杂任务用
-20-40 次。 - 如果答案格式多样（"7"、"7 个"、"七"），需要标准化后再投票。
-- 记录置信度：如果最高票答案只占
-30%，说明模型很不确定，可能需要改进提示词。</p>
-<h3 id="tree-of-thoughtstot树形搜索推理">Tree of
-Thoughts（ToT）：树形搜索推理</h3>
-<p>CoT
-是线性的推理链，但很多问题需要<strong>探索多个可能性，然后回溯</strong>。比如走迷宫、下棋、规划旅行路线。Tree
-of Thoughts（Yao et al., 2023）就是为此设计的。</p>
-<h4 id="树形推理结构">树形推理结构</h4>
-<p>把推理过程建模为一棵树： - <strong>根节点</strong>：初始问题。 -
-<strong>中间节点</strong>：中间思考步骤（Thought）。 -
-<strong>叶节点</strong>：最终答案。</p>
-<p>模型在每个节点会生成多个可能的下一步（子节点），然后评估每个子节点的"好坏"，选择最有希望的继续扩展。如果发现走进死胡同，可以回溯到上一个节点尝试其他路径。</p>
-<p><strong>示例任务</strong>：用数字 2, 8, 8, 14 通过加减乘除得到
-24。</p>
+<p><strong>优化建议</strong>：</p>
+<ul>
+<li>对简单任务用 5-10 次采样，复杂任务用 20-40 次。</li>
+<li>如果答案格式多样（“7”、“7 个”、“七”），需要标准化后再投票。</li>
+<li>记录置信度：如果最高票答案只占 30%，说明模型很不确定，可能需要改进提示词。</li>
+</ul>
+<h3 id="Tree-of-Thoughts（ToT）：树形搜索推理"><a class="header-anchor" href="#Tree-of-Thoughts（ToT）：树形搜索推理">¶</a>Tree of Thoughts（ToT）：树形搜索推理</h3>
+<p>CoT 是线性的推理链，但很多问题需要<strong>探索多个可能性，然后回溯</strong>。比如走迷宫、下棋、规划旅行路线。Tree of Thoughts（Yao et al., 2023）就是为此设计的。</p>
+<h4 id="树形推理结构"><a class="header-anchor" href="#树形推理结构">¶</a>树形推理结构</h4>
+<p>把推理过程建模为一棵树：</p>
+<ul>
+<li><strong>根节点</strong>：初始问题。</li>
+<li><strong>中间节点</strong>：中间思考步骤（Thought）。</li>
+<li><strong>叶节点</strong>：最终答案。</li>
+</ul>
+<p>模型在每个节点会生成多个可能的下一步（子节点），然后评估每个子节点的&quot;好坏&quot;，选择最有希望的继续扩展。如果发现走进死胡同，可以回溯到上一个节点尝试其他路径。</p>
+<p><strong>示例任务</strong>：用数字 2, 8, 8, 14 通过加减乘除得到 24。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">根节点：&#123;2, 8, 8, 14&#125;</span><br><span class="line">  ├─ 子节点1：2 + 8 = 10 → &#123;10, 8, 14&#125;</span><br><span class="line">  │   ├─ 子子节点1.1：10 × 8 = 80 → &#123;80, 14&#125;（评估：无法得到 24，剪枝）</span><br><span class="line">  │   └─ 子子节点1.2：10 - 8 = 2 → &#123;2, 14&#125;（评估：无法得到 24，剪枝）</span><br><span class="line">  ├─ 子节点2：8 ÷ 2 = 4 → &#123;4, 8, 14&#125;</span><br><span class="line">  │   └─ 子子节点2.1：4 × 8 = 32 → &#123;32, 14&#125;</span><br><span class="line">  │       └─ 子子子节点：32 - 14 = 18（评估：错误）</span><br><span class="line">  └─ 子节点3：14 - 8 = 6 → &#123;6, 2, 8&#125;</span><br><span class="line">      └─ 子子节点3.1：6 × 2 = 12 → &#123;12, 8&#125;</span><br><span class="line">          └─ 子子子节点：12 + 8 = 20（评估：错误）</span><br><span class="line">      └─ 子子节点3.2：6 × 8 = 48 → &#123;48, 2&#125;</span><br><span class="line">          └─ 子子子节点：48 ÷ 2 = 24（成功！）</span><br></pre></td></tr></table></figure>
-<h4 id="四个模块">四个模块</h4>
+<h4 id="四个模块"><a class="header-anchor" href="#四个模块">¶</a>四个模块</h4>
 <p>ToT 框架包含四个核心模块：</p>
-<ol type="1">
-<li><p><strong>Prompter（提示生成器）</strong>：生成候选的下一步思考。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">当前状态：&#123;6, 2, 8&#125;</span><br><span class="line">提示：请生成 3 个可能的下一步操作。</span><br><span class="line">输出：</span><br><span class="line">- 6 × 2 = 12</span><br><span class="line">- 6 × 8 = 48</span><br><span class="line">- 2 + 8 = 10</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>Checker（评估器）</strong>：评估每个候选步骤的质量。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">候选步骤：6 × 8 = 48 → &#123;48, 2&#125;</span><br><span class="line">提示：这个状态离目标 24 有多近？评分 1-10。</span><br><span class="line">输出：8 分。因为 48 ÷ 2 = 24，很接近。</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>Memory（记忆）</strong>：记录已探索的路径和评估结果，避免重复搜索。</p></li>
-<li><p><strong>Controller（控制器）</strong>：决定搜索策略（广度优先、深度优先、最佳优先）。</p></li>
+<ol>
+<li>
+<p><strong>Prompter（提示生成器）</strong>：生成候选的下一步思考。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">当前状态：&#123;6, 2, 8&#125;</span><br><span class="line">提示：请生成 3 个可能的下一步操作。</span><br><span class="line">输出：</span><br><span class="line">- 6 × 2 = 12</span><br><span class="line">- 6 × 8 = 48</span><br><span class="line">- 2 + 8 = 10</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>Checker（评估器）</strong>：评估每个候选步骤的质量。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">候选步骤：6 × 8 = 48 → &#123;48, 2&#125;</span><br><span class="line">提示：这个状态离目标 24 有多近？评分 1-10。</span><br><span class="line">输出：8 分。因为 48 ÷ 2 = 24，很接近。</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>Memory（记忆）</strong>：记录已探索的路径和评估结果，避免重复搜索。</p>
+</li>
+<li>
+<p><strong>Controller（控制器）</strong>：决定搜索策略（广度优先、深度优先、最佳优先）。</p>
+</li>
 </ol>
-<h4 id="与-cot-对比">与 CoT 对比</h4>
+<h4 id="与-CoT-对比"><a class="header-anchor" href="#与-CoT-对比">¶</a>与 CoT 对比</h4>
 <table>
 <thead>
 <tr>
@@ -582,321 +577,404 @@ of Thoughts（Yao et al., 2023）就是为此设计的。</p>
 </tr>
 </tbody>
 </table>
-<p><strong>什么时候用 ToT？</strong> -
-任务有多个可能的解法（数学题、编程题）。 -
-需要规划多步操作（写小说大纲、设计系统架构）。 -
-单次推理容易出错，需要对比多个方案。</p>
+<p><strong>什么时候用 ToT？</strong></p>
+<ul>
+<li>任务有多个可能的解法（数学题、编程题）。</li>
+<li>需要规划多步操作（写小说大纲、设计系统架构）。</li>
+<li>单次推理容易出错，需要对比多个方案。</li>
+</ul>
 <p><strong>实现示例</strong>（简化版）：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">TreeOfThoughts</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, model=<span class="string">&quot;gpt-4&quot;</span></span>):</span><br><span class="line">        self.model = model</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">generate_thoughts</span>(<span class="params">self, state, num_thoughts=<span class="number">3</span></span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;生成候选的下一步思考&quot;&quot;&quot;</span></span><br><span class="line">        prompt = <span class="string">f&quot;&quot;&quot;当前状态：<span class="subst">&#123;state&#125;</span></span></span><br><span class="line"><span class="string">请生成 <span class="subst">&#123;num_thoughts&#125;</span> 个可能的下一步操作。&quot;&quot;&quot;</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 调用 LLM 生成</span></span><br><span class="line">        response = openai.ChatCompletion.create(</span><br><span class="line">            model=self.model,</span><br><span class="line">            messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">            n=num_thoughts,</span><br><span class="line">            temperature=<span class="number">0.8</span></span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        thoughts = [choice.message.content <span class="keyword">for</span> choice <span class="keyword">in</span> response.choices]</span><br><span class="line">        <span class="keyword">return</span> thoughts</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">evaluate_thought</span>(<span class="params">self, thought, goal</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;评估思考步骤的质量&quot;&quot;&quot;</span></span><br><span class="line">        prompt = <span class="string">f&quot;&quot;&quot;目标：<span class="subst">&#123;goal&#125;</span></span></span><br><span class="line"><span class="string">当前步骤：<span class="subst">&#123;thought&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">这个步骤离目标有多近？评分 1-10，并简要说明理由。&quot;&quot;&quot;</span></span><br><span class="line">        </span><br><span class="line">        response = openai.ChatCompletion.create(</span><br><span class="line">            model=self.model,</span><br><span class="line">            messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">            temperature=<span class="number">0</span></span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 解析评分（假设输出格式是&quot;评分：8 分。理由：...&quot;）</span></span><br><span class="line">        text = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">        score = <span class="built_in">int</span>(text.split(<span class="string">&quot;：&quot;</span>)[<span class="number">1</span>].split()[<span class="number">0</span>])</span><br><span class="line">        <span class="keyword">return</span> score</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">search</span>(<span class="params">self, problem, goal, max_depth=<span class="number">5</span>, beam_width=<span class="number">3</span></span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;最佳优先搜索&quot;&quot;&quot;</span></span><br><span class="line">        <span class="keyword">import</span> heapq</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 优先队列：(-评分, 深度, 当前状态, 路径)</span></span><br><span class="line">        queue = [(<span class="number">0</span>, <span class="number">0</span>, problem, [])]</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">while</span> queue:</span><br><span class="line">            neg_score, depth, state, path = heapq.heappop(queue)</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span> depth &gt;= max_depth:</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            </span><br><span class="line">            <span class="comment"># 生成候选思考</span></span><br><span class="line">            thoughts = self.generate_thoughts(state, num_thoughts=beam_width)</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">for</span> thought <span class="keyword">in</span> thoughts:</span><br><span class="line">                score = self.evaluate_thought(thought, goal)</span><br><span class="line">                new_path = path + [thought]</span><br><span class="line">                </span><br><span class="line">                <span class="comment"># 检查是否达到目标</span></span><br><span class="line">                <span class="keyword">if</span> score &gt;= <span class="number">9</span>:</span><br><span class="line">                    <span class="keyword">return</span> new_path</span><br><span class="line">                </span><br><span class="line">                <span class="comment"># 加入队列</span></span><br><span class="line">                heapq.heappush(queue, (-score, depth + <span class="number">1</span>, thought, new_path))</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">tot = TreeOfThoughts()</span><br><span class="line">result = tot.search(</span><br><span class="line">    problem=<span class="string">&quot;用数字 2, 8, 8, 14 通过加减乘除得到 24&quot;</span>,</span><br><span class="line">    goal=<span class="string">&quot;等式结果为 24&quot;</span>,</span><br><span class="line">    max_depth=<span class="number">4</span>,</span><br><span class="line">    beam_width=<span class="number">3</span></span><br><span class="line">)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;推理路径：&quot;</span>, result)</span><br></pre></td></tr></table></figure>
-<p><strong>注意</strong>：ToT 的 API 调用次数是 CoT
-的几十倍，成本很高。只在确实需要多路径探索时使用。</p>
-<h3 id="graph-of-thoughtsgot更灵活的-dag-结构">Graph of
-Thoughts（GoT）：更灵活的 DAG 结构</h3>
-<p>Tree of Thoughts
-的限制是"树"结构——每个节点只有一个父节点。但有些推理过程需要<strong>合并多个思路</strong>（比如综合多个论据得出结论），这时候需要有向无环图（DAG）。</p>
-<p>Graph of Thoughts（Besta et al., 2023）允许： -
-<strong>聚合</strong>（Aggregation）：多个节点合并为一个。 -
-<strong>循环优化</strong>（Refinement）：迭代改进某个思考。</p>
-<h4 id="dag-结构示例">DAG 结构示例</h4>
+<p><strong>注意</strong>：ToT 的 API 调用次数是 CoT 的几十倍，成本很高。只在确实需要多路径探索时使用。</p>
+<h3 id="Graph-of-Thoughts（GoT）：更灵活的-DAG-结构"><a class="header-anchor" href="#Graph-of-Thoughts（GoT）：更灵活的-DAG-结构">¶</a>Graph of Thoughts（GoT）：更灵活的 DAG 结构</h3>
+<p>Tree of Thoughts 的限制是&quot;树&quot;结构——每个节点只有一个父节点。但有些推理过程需要<strong>合并多个思路</strong>（比如综合多个论据得出结论），这时候需要有向无环图（DAG）。</p>
+<p>Graph of Thoughts（Besta et al., 2023）允许：</p>
+<ul>
+<li><strong>聚合</strong>（Aggregation）：多个节点合并为一个。</li>
+<li><strong>循环优化</strong>（Refinement）：迭代改进某个思考。</li>
+</ul>
+<h4 id="DAG-结构示例"><a class="header-anchor" href="#DAG-结构示例">¶</a>DAG 结构示例</h4>
 <p><strong>任务</strong>：写一篇技术文章。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">节点1：头脑风暴主题（并行生成 3 个主题想法）</span><br><span class="line">  ├─ 主题A：深度学习优化器</span><br><span class="line">  ├─ 主题B：提示词工程技巧</span><br><span class="line">  └─ 主题C：开源项目评测</span><br><span class="line"></span><br><span class="line">节点2：评估每个主题（打分）</span><br><span class="line">  ├─ 主题A：7 分（技术性强，但受众窄）</span><br><span class="line">  ├─ 主题B：9 分（热门且实用）</span><br><span class="line">  └─ 主题C：6 分（太泛）</span><br><span class="line"></span><br><span class="line">节点3：选择最佳主题 → 主题B</span><br><span class="line"></span><br><span class="line">节点4：生成大纲（并行生成 2 个版本）</span><br><span class="line">  ├─ 大纲V1：基础 → 进阶 → 实战</span><br><span class="line">  └─ 大纲V2：原理 → 案例 → 工具</span><br><span class="line"></span><br><span class="line">节点5：聚合两个大纲的优点 → 合并大纲</span><br><span class="line"></span><br><span class="line">节点6：撰写文章初稿</span><br><span class="line"></span><br><span class="line">节点7：迭代改进（循环 3 次）</span><br><span class="line">  ├─ 修正语法错误</span><br><span class="line">  ├─ 补充例子</span><br><span class="line">  └─ 优化逻辑</span><br><span class="line"></span><br><span class="line">节点8：最终文章</span><br></pre></td></tr></table></figure>
-<p>这里节点 5 就是"聚合"操作，节点 7 是"循环"操作。</p>
-<h4 id="三种操作类型">三种操作类型</h4>
-<ol type="1">
-<li><p><strong>Generation（生成）</strong>：创建新节点。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入：无（或父节点）</span><br><span class="line">输出：新想法/内容</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>Aggregation（聚合）</strong>：合并多个节点。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：节点A, 节点B, 节点C</span><br><span class="line">提示：综合以上三个论点，给出一个统一的结论。</span><br><span class="line">输出：综合结论</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>Refinement（优化）</strong>：迭代改进。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：当前版本</span><br><span class="line">提示：找出问题并改进。</span><br><span class="line">输出：改进版本</span><br></pre></td></tr></table></figure></p></li>
+<p>这里节点 5 就是&quot;聚合&quot;操作，节点 7 是&quot;循环&quot;操作。</p>
+<h4 id="三种操作类型"><a class="header-anchor" href="#三种操作类型">¶</a>三种操作类型</h4>
+<ol>
+<li>
+<p><strong>Generation（生成）</strong>：创建新节点。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">输入：无（或父节点）</span><br><span class="line">输出：新想法/内容</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>Aggregation（聚合）</strong>：合并多个节点。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：节点A, 节点B, 节点C</span><br><span class="line">提示：综合以上三个论点，给出一个统一的结论。</span><br><span class="line">输出：综合结论</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>Refinement（优化）</strong>：迭代改进。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">输入：当前版本</span><br><span class="line">提示：找出问题并改进。</span><br><span class="line">输出：改进版本</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
-<h4 id="优势分析">优势分析</h4>
-<p><strong>vs Tree of Thoughts</strong>： - ToT 只能"分叉"，GoT
-还能"合并"和"循环"。 - GoT 更适合创意任务（写作、设计、头脑风暴）。</p>
-<p><strong>实际效果</strong>：Besta et al. 在排序任务中发现，GoT 能减少
-62% 的 API 调用次数（相比
-ToT），同时保持相同的准确率。原因是聚合操作避免了重复探索相似路径。</p>
+<h4 id="优势分析"><a class="header-anchor" href="#优势分析">¶</a>优势分析</h4>
+<p><strong>vs Tree of Thoughts</strong>：</p>
+<ul>
+<li>ToT 只能&quot;分叉&quot;，GoT 还能&quot;合并&quot;和&quot;循环&quot;。</li>
+<li>GoT 更适合创意任务（写作、设计、头脑风暴）。</li>
+</ul>
+<p><strong>实际效果</strong>：Besta et al. 在排序任务中发现，GoT 能减少 62% 的 API 调用次数（相比 ToT），同时保持相同的准确率。原因是聚合操作避免了重复探索相似路径。</p>
 <p><strong>实现框架</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">GraphOfThoughts</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self</span>):</span><br><span class="line">        self.nodes = &#123;&#125;  <span class="comment"># &#123;node_id: content&#125;</span></span><br><span class="line">        self.edges = []  <span class="comment"># [(parent_id, child_id, operation)]</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">generate</span>(<span class="params">self, parent_ids, prompt</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;生成新节点&quot;&quot;&quot;</span></span><br><span class="line">        <span class="comment"># 获取父节点内容</span></span><br><span class="line">        parent_contents = [self.nodes[pid] <span class="keyword">for</span> pid <span class="keyword">in</span> parent_ids]</span><br><span class="line">        </span><br><span class="line">        full_prompt = <span class="string">f&quot;&quot;&quot;<span class="subst">&#123;prompt&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">参考内容：</span></span><br><span class="line"><span class="string"><span class="subst">&#123;parent_contents&#125;</span>&quot;&quot;&quot;</span></span><br><span class="line">        </span><br><span class="line">        response = openai.ChatCompletion.create(</span><br><span class="line">            model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">            messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: full_prompt&#125;]</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        node_id = <span class="built_in">len</span>(self.nodes)</span><br><span class="line">        self.nodes[node_id] = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> pid <span class="keyword">in</span> parent_ids:</span><br><span class="line">            self.edges.append((pid, node_id, <span class="string">&quot;generate&quot;</span>))</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> node_id</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">aggregate</span>(<span class="params">self, node_ids, prompt</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;聚合多个节点&quot;&quot;&quot;</span></span><br><span class="line">        contents = [self.nodes[nid] <span class="keyword">for</span> nid <span class="keyword">in</span> node_ids]</span><br><span class="line">        </span><br><span class="line">        full_prompt = <span class="string">f&quot;&quot;&quot;<span class="subst">&#123;prompt&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">需要聚合的内容：</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span> + <span class="string">&quot;\n\n&quot;</span>.join([<span class="string">f&quot;内容<span class="subst">&#123;i+<span class="number">1</span>&#125;</span>：<span class="subst">&#123;c&#125;</span>&quot;</span> <span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="built_in">enumerate</span>(contents)])</span><br><span class="line">        </span><br><span class="line">        response = openai.ChatCompletion.create(</span><br><span class="line">            model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">            messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: full_prompt&#125;]</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        node_id = <span class="built_in">len</span>(self.nodes)</span><br><span class="line">        self.nodes[node_id] = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> nid <span class="keyword">in</span> node_ids:</span><br><span class="line">            self.edges.append((nid, node_id, <span class="string">&quot;aggregate&quot;</span>))</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> node_id</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">refine</span>(<span class="params">self, node_id, prompt, iterations=<span class="number">3</span></span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;迭代优化节点&quot;&quot;&quot;</span></span><br><span class="line">        current_id = node_id</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(iterations):</span><br><span class="line">            content = self.nodes[current_id]</span><br><span class="line">            </span><br><span class="line">            full_prompt = <span class="string">f&quot;&quot;&quot;<span class="subst">&#123;prompt&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">当前版本：</span></span><br><span class="line"><span class="string"><span class="subst">&#123;content&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">请改进。&quot;&quot;&quot;</span></span><br><span class="line">            </span><br><span class="line">            response = openai.ChatCompletion.create(</span><br><span class="line">                model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">                messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: full_prompt&#125;]</span><br><span class="line">            )</span><br><span class="line">            </span><br><span class="line">            new_id = <span class="built_in">len</span>(self.nodes)</span><br><span class="line">            self.nodes[new_id] = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">            self.edges.append((current_id, new_id, <span class="string">&quot;refine&quot;</span>))</span><br><span class="line">            </span><br><span class="line">            current_id = new_id</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> current_id</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用示例</span></span><br><span class="line">got = GraphOfThoughts()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成三个初始想法</span></span><br><span class="line">idea1 = got.generate([], <span class="string">&quot;头脑风暴：提示词工程的主题&quot;</span>)</span><br><span class="line">idea2 = got.generate([], <span class="string">&quot;头脑风暴：提示词工程的主题&quot;</span>)</span><br><span class="line">idea3 = got.generate([], <span class="string">&quot;头脑风暴：提示词工程的主题&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 聚合为最佳主题</span></span><br><span class="line">best_topic = got.aggregate([idea1, idea2, idea3], <span class="string">&quot;综合三个主题，选择最有价值的&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成大纲</span></span><br><span class="line">outline = got.generate([best_topic], <span class="string">&quot;为这个主题生成详细大纲&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 迭代优化大纲</span></span><br><span class="line">final_outline = got.refine(outline, <span class="string">&quot;改进这个大纲，增加深度和实用性&quot;</span>, iterations=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(got.nodes[final_outline])</span><br></pre></td></tr></table></figure>
-<h3 id="react推理与行动的统一">ReAct：推理与行动的统一</h3>
-<p>前面的技巧都是"纯推理"——模型只在脑子里想。但很多任务需要<strong>与外部世界交互</strong>（查数据库、调
-API、运行代码）。ReAct（Reason + Act）框架让模型能够"边思考边行动"。</p>
-<h4 id="reasoning-acting-循环">Reasoning + Acting 循环</h4>
+<h3 id="ReAct：推理与行动的统一"><a class="header-anchor" href="#ReAct：推理与行动的统一">¶</a>ReAct：推理与行动的统一</h3>
+<p>前面的技巧都是&quot;纯推理&quot;——模型只在脑子里想。但很多任务需要<strong>与外部世界交互</strong>（查数据库、调 API、运行代码）。ReAct（Reason + Act）框架让模型能够&quot;边思考边行动&quot;。</p>
+<h4 id="Reasoning-Acting-循环"><a class="header-anchor" href="#Reasoning-Acting-循环">¶</a>Reasoning + Acting 循环</h4>
 <p>ReAct 的核心是一个四步循环：</p>
-<ol type="1">
+<ol>
 <li><strong>Think（思考）</strong>：分析当前状态，决定下一步做什么。</li>
 <li><strong>Act（行动）</strong>：调用工具执行操作（搜索、计算、查询）。</li>
 <li><strong>Observe（观察）</strong>：获取行动的结果。</li>
 <li><strong>Reflect（反思）</strong>：根据结果调整策略。</li>
 </ol>
-<p><strong>示例任务</strong>：回答"2023
-年诺贝尔物理学奖得主的出生地在哪个国家？"</p>
+<p><strong>示例任务</strong>：回答&quot;2023 年诺贝尔物理学奖得主的出生地在哪个国家？&quot;</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Thought 1：我需要先知道 2023 年诺贝尔物理学奖得主是谁。</span><br><span class="line">Action 1：Search[&quot;2023 Nobel Prize in Physics winner&quot;]</span><br><span class="line">Observation 1：Anne L&#x27;Huillier, Pierre Agostini, and Ferenc Krausz.</span><br><span class="line">Thought 2：现在我需要找到 Anne L&#x27;Huillier 的出生地（假设查第一个得主）。</span><br><span class="line">Action 2：Search[&quot;Anne L&#x27;Huillier birthplace&quot;]</span><br><span class="line">Observation 2：Paris, France.</span><br><span class="line">Thought 3：巴黎在法国。</span><br><span class="line">Answer：法国。</span><br></pre></td></tr></table></figure>
-<h4 id="think-act-observe-reflect-详解">Think-Act-Observe-Reflect
-详解</h4>
+<h4 id="Think-Act-Observe-Reflect-详解"><a class="header-anchor" href="#Think-Act-Observe-Reflect-详解">¶</a>Think-Act-Observe-Reflect 详解</h4>
 <p><strong>Think（思考）</strong>：模型生成自然语言的推理。</p>
-<p><strong>Act（行动）</strong>：调用预定义的工具。常见工具： -
-<code>Search[query]</code>：网络搜索。 -
-<code>Lookup[keyword]</code>：在文档中查找关键词。 -
-<code>Calculate[expression]</code>：计算数学表达式。 -
-<code>Execute[code]</code>：运行代码。</p>
+<p><strong>Act（行动）</strong>：调用预定义的工具。常见工具：</p>
+<ul>
+<li><code>Search[query]</code>：网络搜索。</li>
+<li><code>Lookup[keyword]</code>：在文档中查找关键词。</li>
+<li><code>Calculate[expression]</code>：计算数学表达式。</li>
+<li><code>Execute[code]</code>：运行代码。</li>
+</ul>
 <p><strong>Observe（观察）</strong>：工具返回结果，追加到上下文。</p>
 <p><strong>Reflect（反思）</strong>：如果结果不符合预期，生成新的思考。</p>
 <p><strong>完整示例</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">问题：一个长方形的长是 12 米，宽是长的一半，面积是多少平方米？</span><br><span class="line"></span><br><span class="line">Thought 1：需要先算出宽。</span><br><span class="line">Action 1：Calculate[12 / 2]</span><br><span class="line">Observation 1：6</span><br><span class="line">Thought 2：宽是 6 米。现在算面积。</span><br><span class="line">Action 2：Calculate[12 * 6]</span><br><span class="line">Observation 2：72</span><br><span class="line">Thought 3：面积是 72 平方米。</span><br><span class="line">Answer：72 平方米。</span><br></pre></td></tr></table></figure>
-<h4 id="应用场景">应用场景</h4>
-<p>ReAct 特别适合： -
-<strong>需要实时信息的任务</strong>：天气查询、新闻摘要、股票价格。 -
-<strong>多步计算</strong>：科学计算、财务分析。 -
-<strong>代码生成与执行</strong>：写代码 → 运行 → 调试 → 修正。 -
-<strong>数据库查询</strong>：把自然语言转为 SQL → 执行 → 解释结果。</p>
+<h4 id="应用场景-v2"><a class="header-anchor" href="#应用场景-v2">¶</a>应用场景</h4>
+<p>ReAct 特别适合：</p>
+<ul>
+<li><strong>需要实时信息的任务</strong>：天气查询、新闻摘要、股票价格。</li>
+<li><strong>多步计算</strong>：科学计算、财务分析。</li>
+<li><strong>代码生成与执行</strong>：写代码 → 运行 → 调试 → 修正。</li>
+<li><strong>数据库查询</strong>：把自然语言转为 SQL → 执行 → 解释结果。</li>
+</ul>
 <p><strong>实现示例</strong>（结合 LangChain）：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> langchain.agents <span class="keyword">import</span> initialize_agent, Tool</span><br><span class="line"><span class="keyword">from</span> langchain.llms <span class="keyword">import</span> OpenAI</span><br><span class="line"><span class="keyword">from</span> langchain.tools <span class="keyword">import</span> DuckDuckGoSearchRun</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义工具</span></span><br><span class="line">search = DuckDuckGoSearchRun()</span><br><span class="line"></span><br><span class="line">tools = [</span><br><span class="line">    Tool(</span><br><span class="line">        name=<span class="string">&quot;Search&quot;</span>,</span><br><span class="line">        func=search.run,</span><br><span class="line">        description=<span class="string">&quot;用于搜索实时信息。输入应该是一个搜索查询。&quot;</span></span><br><span class="line">    ),</span><br><span class="line">    Tool(</span><br><span class="line">        name=<span class="string">&quot;Calculate&quot;</span>,</span><br><span class="line">        func=<span class="keyword">lambda</span> x: <span class="built_in">eval</span>(x),</span><br><span class="line">        description=<span class="string">&quot;用于数学计算。输入应该是一个数学表达式。&quot;</span></span><br><span class="line">    )</span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 初始化 ReAct Agent</span></span><br><span class="line">llm = OpenAI(temperature=<span class="number">0</span>)</span><br><span class="line">agent = initialize_agent(</span><br><span class="line">    tools, </span><br><span class="line">    llm, </span><br><span class="line">    agent=<span class="string">&quot;zero-shot-react-description&quot;</span>,</span><br><span class="line">    verbose=<span class="literal">True</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">result = agent.run(<span class="string">&quot;2024 年 1 月 1 日的北京温度是多少摄氏度？&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(result)</span><br></pre></td></tr></table></figure>
 <p>输出过程（简化）：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Thought: 我需要搜索北京 2024 年 1 月 1 日的天气信息。</span><br><span class="line">Action: Search[&quot;北京 2024年1月1日 温度&quot;]</span><br><span class="line">Observation: 北京 2024 年 1 月 1 日最高温度 5°C，最低温度 -3°C。</span><br><span class="line">Thought: 我得到了温度范围。</span><br><span class="line">Final Answer: 2024 年 1 月 1 日北京的温度在 -3°C 到 5°C 之间。</span><br></pre></td></tr></table></figure>
-<p><strong>注意事项</strong>： -
-工具描述要清晰，模型才知道什么时候用哪个工具。 -
-限制工具调用次数，防止死循环（比如最多 10 次 Act）。 -
-对于安全敏感的工具（如执行代码），需要沙盒环境。</p>
+<p><strong>注意事项</strong>：</p>
+<ul>
+<li>工具描述要清晰，模型才知道什么时候用哪个工具。</li>
+<li>限制工具调用次数，防止死循环（比如最多 10 次 Act）。</li>
+<li>对于安全敏感的工具（如执行代码），需要沙盒环境。</li>
+</ul>
 <hr>
-<h2 id="高级优化篇自动化与工程化">高级优化篇：自动化与工程化</h2>
+<h2 id="高级优化篇：自动化与工程化"><a class="header-anchor" href="#高级优化篇：自动化与工程化">¶</a>高级优化篇：自动化与工程化</h2>
 <p>手写提示词有两个问题：<strong>费时间</strong>和<strong>不稳定</strong>。当任务变复杂时，手动调整提示词就像在黑暗中摸索。高级优化技术的目标是<strong>让提示词生成和优化自动化</strong>。</p>
-<h3 id="in-context-learning-深入少样本到多样本">In-Context Learning
-深入：少样本到多样本</h3>
-<h4 id="few-shot-icl-原理">Few-Shot ICL 原理</h4>
-<p>In-Context Learning（ICL）是 LLM
-的核心能力：给几个例子，模型就能学会任务，无需更新参数。但为什么会有效？</p>
-<p><strong>理论解释</strong>（Min et al., 2022）： 1.
-<strong>模式识别</strong>：例子展示了输入输出的映射关系。 2.
-<strong>格式学习</strong>：例子规定了输出的格式和风格。 3.
-<strong>任务定位</strong>：例子帮模型从海量预训练知识中定位到相关的"子空间"。</p>
-<p><strong>关键发现</strong>： -
-例子的<strong>标签可以随机</strong>！即使输入和输出不对应，只要格式对，模型性能下降不多。
--
-例子的<strong>分布</strong>比具体内容更重要。覆盖多样化的输入空间比只给相似例子效果好。</p>
-<h4 id="many-shot-icl-最新进展">Many-Shot ICL 最新进展</h4>
-<p>Google 在 Gemini 1.5 论文中发现，当上下文窗口达到 100 万 Token
-时，可以放数百甚至上千个例子，性能持续提升。</p>
-<p><strong>数据</strong>（在机器翻译任务中）： - 0-shot：BLEU 25.3 -
-5-shot：BLEU 32.5 - 50-shot：BLEU 37.8 - 500-shot：BLEU 39.2</p>
-<p><strong>为什么更多例子更好？</strong> -
-覆盖更多边界情况（罕见词汇、复杂句式）。 -
-隐式学习到任务的"规则"而非死记例子。</p>
-<p><strong>成本问题</strong>：500 个例子可能占 50k
-Token，输入成本是普通提示词的 100 倍。解决方法： -
-<strong>例子压缩</strong>：去掉冗余内容，只保留关键信息。 -
-<strong>例子检索</strong>：动态选择与当前输入最相关的例子，而非每次都用全部。</p>
-<h4 id="reinforced-icl-与-unsupervised-icl">Reinforced ICL 与
-Unsupervised ICL</h4>
-<p><strong>Reinforced ICL</strong>：用强化学习选择最优例子。</p>
-<p>流程： 1. 从候选池中选 K 个例子。 2. 用这 K
-个例子测试模型性能（在验证集上）。 3.
-把性能作为奖励，训练一个选择策略（比如用 Q-Learning）。</p>
-<p><strong>效果</strong>：在某些任务中，选对例子比随机选择性能提升
-10-20%。</p>
-<p><strong>Unsupervised ICL</strong>：没有标注数据时，怎么选例子？</p>
-<p>方法： - <strong>Self-generated
-examples</strong>：让模型自己生成例子。 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">提示：请生成 5 个&quot;情感分类&quot;任务的例子，包含输入文本和标签（正面/负面）。</span><br></pre></td></tr></table></figure> -
-<strong>Retrieval-based</strong>：从大规模语料中检索与任务相关的文本片段作为例子。</p>
-<h3 id="automatic-prompt-engineeringape让-llm-写提示词">Automatic Prompt
-Engineering（APE）：让 LLM 写提示词</h3>
-<p>手动写提示词费时费力，能不能让 LLM 自己优化提示词？APE（Zhou et al.,
-2022）的答案是"能"。</p>
-<h4 id="自动化提示词生成">自动化提示词生成</h4>
-<p><strong>核心思路</strong>：把提示词优化当成搜索问题——在"提示词空间"中搜索性能最好的那个。</p>
-<p><strong>步骤</strong>：</p>
-<ol type="1">
-<li><p><strong>生成候选提示词</strong>：让 LLM
-根据任务描述生成多个提示词。 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">输入：任务是情感分类，输入是电影评论，输出是正面/负面标签。</span><br><span class="line"></span><br><span class="line">输出：</span><br><span class="line">候选1：判断以下评论是正面还是负面：[评论]</span><br><span class="line">候选2：这条评论表达的是积极情绪还是消极情绪？[评论]</span><br><span class="line">候选3：作为一名情感分析专家，请分析这条评论的情感倾向：[评论]</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>评估候选提示词</strong>：在少量测试样本上测试每个候选的性能。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">候选1 准确率：75%</span><br><span class="line">候选2 准确率：68%</span><br><span class="line">候选3 准确率：82%</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>选择最优提示词</strong>：根据评估结果选择表现最好的。</p></li>
-<li><p><strong>迭代优化</strong>：把最优提示词作为基础，生成变体，重复步骤
-2-3。</p></li>
+<h3 id="In-Context-Learning-深入：少样本到多样本"><a class="header-anchor" href="#In-Context-Learning-深入：少样本到多样本">¶</a>In-Context Learning 深入：少样本到多样本</h3>
+<h4 id="Few-Shot-ICL-原理"><a class="header-anchor" href="#Few-Shot-ICL-原理">¶</a>Few-Shot ICL 原理</h4>
+<p>In-Context Learning（ICL）是 LLM 的核心能力：给几个例子，模型就能学会任务，无需更新参数。但为什么会有效？</p>
+<p><strong>理论解释</strong>（Min et al., 2022）：</p>
+<ol>
+<li><strong>模式识别</strong>：例子展示了输入输出的映射关系。</li>
+<li><strong>格式学习</strong>：例子规定了输出的格式和风格。</li>
+<li><strong>任务定位</strong>：例子帮模型从海量预训练知识中定位到相关的&quot;子空间&quot;。</li>
 </ol>
-<h4 id="评估与筛选">评估与筛选</h4>
-<p><strong>评估指标</strong>： - 准确率（分类任务） -
-BLEU/ROUGE（生成任务） - 人工评分（创意任务）</p>
-<p><strong>筛选策略</strong>： - <strong>Top-K
-选择</strong>：保留得分最高的 K 个候选。 -
-<strong>多样性采样</strong>：在保证性能的前提下，选择风格多样的候选（避免局部最优）。</p>
+<p><strong>关键发现</strong>：</p>
+<ul>
+<li>例子的<strong>标签可以随机</strong>！即使输入和输出不对应，只要格式对，模型性能下降不多。</li>
+<li>例子的<strong>分布</strong>比具体内容更重要。覆盖多样化的输入空间比只给相似例子效果好。</li>
+</ul>
+<h4 id="Many-Shot-ICL-最新进展"><a class="header-anchor" href="#Many-Shot-ICL-最新进展">¶</a>Many-Shot ICL 最新进展</h4>
+<p>Google 在 Gemini 1.5 论文中发现，当上下文窗口达到 100 万 Token 时，可以放数百甚至上千个例子，性能持续提升。</p>
+<p><strong>数据</strong>（在机器翻译任务中）：</p>
+<ul>
+<li>0-shot：BLEU 25.3</li>
+<li>5-shot：BLEU 32.5</li>
+<li>50-shot：BLEU 37.8</li>
+<li>500-shot：BLEU 39.2</li>
+</ul>
+<p><strong>为什么更多例子更好？</strong></p>
+<ul>
+<li>覆盖更多边界情况（罕见词汇、复杂句式）。</li>
+<li>隐式学习到任务的&quot;规则&quot;而非死记例子。</li>
+</ul>
+<p><strong>成本问题</strong>：500 个例子可能占 50k Token，输入成本是普通提示词的 100 倍。解决方法：</p>
+<ul>
+<li><strong>例子压缩</strong>：去掉冗余内容，只保留关键信息。</li>
+<li><strong>例子检索</strong>：动态选择与当前输入最相关的例子，而非每次都用全部。</li>
+</ul>
+<h4 id="Reinforced-ICL-与-Unsupervised-ICL"><a class="header-anchor" href="#Reinforced-ICL-与-Unsupervised-ICL">¶</a>Reinforced ICL 与 Unsupervised ICL</h4>
+<p><strong>Reinforced ICL</strong>：用强化学习选择最优例子。</p>
+<p>流程：</p>
+<ol>
+<li>从候选池中选 K 个例子。</li>
+<li>用这 K 个例子测试模型性能（在验证集上）。</li>
+<li>把性能作为奖励，训练一个选择策略（比如用 Q-Learning）。</li>
+</ol>
+<p><strong>效果</strong>：在某些任务中，选对例子比随机选择性能提升 10-20%。</p>
+<p><strong>Unsupervised ICL</strong>：没有标注数据时，怎么选例子？</p>
+<p>方法：</p>
+<ul>
+<li><strong>Self-generated examples</strong>：让模型自己生成例子。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">提示：请生成 5 个&quot;情感分类&quot;任务的例子，包含输入文本和标签（正面/负面）。</span><br></pre></td></tr></table></figure>
+</li>
+<li><strong>Retrieval-based</strong>：从大规模语料中检索与任务相关的文本片段作为例子。</li>
+</ul>
+<h3 id="Automatic-Prompt-Engineering（APE）：让-LLM-写提示词"><a class="header-anchor" href="#Automatic-Prompt-Engineering（APE）：让-LLM-写提示词">¶</a>Automatic Prompt Engineering（APE）：让 LLM 写提示词</h3>
+<p>手动写提示词费时费力，能不能让 LLM 自己优化提示词？APE（Zhou et al., 2022）的答案是&quot;能&quot;。</p>
+<h4 id="自动化提示词生成"><a class="header-anchor" href="#自动化提示词生成">¶</a>自动化提示词生成</h4>
+<p><strong>核心思路</strong>：把提示词优化当成搜索问题——在&quot;提示词空间&quot;中搜索性能最好的那个。</p>
+<p><strong>步骤</strong>：</p>
+<ol>
+<li>
+<p><strong>生成候选提示词</strong>：让 LLM 根据任务描述生成多个提示词。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">输入：任务是情感分类，输入是电影评论，输出是正面/负面标签。</span><br><span class="line"></span><br><span class="line">输出：</span><br><span class="line">候选1：判断以下评论是正面还是负面：[评论]</span><br><span class="line">候选2：这条评论表达的是积极情绪还是消极情绪？[评论]</span><br><span class="line">候选3：作为一名情感分析专家，请分析这条评论的情感倾向：[评论]</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>评估候选提示词</strong>：在少量测试样本上测试每个候选的性能。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">候选1 准确率：75%</span><br><span class="line">候选2 准确率：68%</span><br><span class="line">候选3 准确率：82%</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>选择最优提示词</strong>：根据评估结果选择表现最好的。</p>
+</li>
+<li>
+<p><strong>迭代优化</strong>：把最优提示词作为基础，生成变体，重复步骤 2-3。</p>
+</li>
+</ol>
+<h4 id="评估与筛选"><a class="header-anchor" href="#评估与筛选">¶</a>评估与筛选</h4>
+<p><strong>评估指标</strong>：</p>
+<ul>
+<li>准确率（分类任务）</li>
+<li>BLEU/ROUGE（生成任务）</li>
+<li>人工评分（创意任务）</li>
+</ul>
+<p><strong>筛选策略</strong>：</p>
+<ul>
+<li><strong>Top-K 选择</strong>：保留得分最高的 K 个候选。</li>
+<li><strong>多样性采样</strong>：在保证性能的前提下，选择风格多样的候选（避免局部最优）。</li>
+</ul>
 <p><strong>实现示例</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">generate_prompt_candidates</span>(<span class="params">task_description, num_candidates=<span class="number">5</span></span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;生成候选提示词&quot;&quot;&quot;</span></span><br><span class="line">    prompt = <span class="string">f&quot;&quot;&quot;任务描述：<span class="subst">&#123;task_description&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">请生成 <span class="subst">&#123;num_candidates&#125;</span> 个不同的提示词，用于引导语言模型完成这个任务。</span></span><br><span class="line"><span class="string">每个提示词应该清晰、具体，并包含任务的关键信息。</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">输出格式（每行一个候选）：</span></span><br><span class="line"><span class="string">候选1：...</span></span><br><span class="line"><span class="string">候选2：...</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    response = openai.ChatCompletion.create(</span><br><span class="line">        model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">        messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">        temperature=<span class="number">0.8</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    text = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">    candidates = [line.split(<span class="string">&quot;：&quot;</span>, <span class="number">1</span>)[<span class="number">1</span>].strip() </span><br><span class="line">                  <span class="keyword">for</span> line <span class="keyword">in</span> text.split(<span class="string">&quot;\n&quot;</span>) <span class="keyword">if</span> line.startswith(<span class="string">&quot;候选&quot;</span>)]</span><br><span class="line">    <span class="keyword">return</span> candidates</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">evaluate_prompt</span>(<span class="params">prompt_template, test_samples</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;评估提示词性能&quot;&quot;&quot;</span></span><br><span class="line">    correct = <span class="number">0</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> sample <span class="keyword">in</span> test_samples:</span><br><span class="line">        prompt = prompt_template.replace(<span class="string">&quot;[INPUT]&quot;</span>, sample[<span class="string">&quot;input&quot;</span>])</span><br><span class="line">        </span><br><span class="line">        response = openai.ChatCompletion.create(</span><br><span class="line">            model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">            messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">            temperature=<span class="number">0</span></span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        output = response.choices[<span class="number">0</span>].message.content.strip()</span><br><span class="line">        <span class="keyword">if</span> output.lower() == sample[<span class="string">&quot;label&quot;</span>].lower():</span><br><span class="line">            correct += <span class="number">1</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> correct / <span class="built_in">len</span>(test_samples)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">auto_prompt_engineering</span>(<span class="params">task_description, test_samples, iterations=<span class="number">3</span></span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;APE 主流程&quot;&quot;&quot;</span></span><br><span class="line">    best_prompt = <span class="literal">None</span></span><br><span class="line">    best_score = <span class="number">0</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> iteration <span class="keyword">in</span> <span class="built_in">range</span>(iterations):</span><br><span class="line">        <span class="comment"># 生成候选</span></span><br><span class="line">        candidates = generate_prompt_candidates(task_description, num_candidates=<span class="number">5</span>)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 评估每个候选</span></span><br><span class="line">        <span class="keyword">for</span> candidate <span class="keyword">in</span> candidates:</span><br><span class="line">            score = evaluate_prompt(candidate, test_samples)</span><br><span class="line">            <span class="built_in">print</span>(<span class="string">f&quot;候选提示词：<span class="subst">&#123;candidate[:<span class="number">50</span>]&#125;</span>... | 准确率：<span class="subst">&#123;score:<span class="number">.2</span>%&#125;</span>&quot;</span>)</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span> score &gt; best_score:</span><br><span class="line">                best_score = score</span><br><span class="line">                best_prompt = candidate</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 用最优提示词生成下一轮候选</span></span><br><span class="line">        task_description = <span class="string">f&quot;<span class="subst">&#123;task_description&#125;</span>\n\n参考提示词：<span class="subst">&#123;best_prompt&#125;</span>&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> best_prompt, best_score</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">task = <span class="string">&quot;判断电影评论的情感（正面/负面）&quot;</span></span><br><span class="line">test_data = [</span><br><span class="line">    &#123;<span class="string">&quot;input&quot;</span>: <span class="string">&quot;这部电影太棒了！&quot;</span>, <span class="string">&quot;label&quot;</span>: <span class="string">&quot;正面&quot;</span>&#125;,</span><br><span class="line">    &#123;<span class="string">&quot;input&quot;</span>: <span class="string">&quot;浪费时间。&quot;</span>, <span class="string">&quot;label&quot;</span>: <span class="string">&quot;负面&quot;</span>&#125;,</span><br><span class="line">    <span class="comment"># ... 更多测试样本</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line">best_prompt, score = auto_prompt_engineering(task, test_data)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;\n最优提示词：<span class="subst">&#123;best_prompt&#125;</span>&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;准确率：<span class="subst">&#123;score:<span class="number">.2</span>%&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
-<p><strong>优势</strong>： - 节省人力：不需要手动尝试几十个版本。 -
-发现反直觉的提示词：有时最优提示词的表达方式人类不会想到。</p>
-<p><strong>劣势</strong>： - 需要测试样本（冷启动问题）。 -
-计算成本高（生成 + 评估需要大量 API 调用）。</p>
-<h3 id="dspy-框架把提示词当代码">DSPy 框架：把提示词当代码</h3>
-<p>手写提示词就像写汇编语言——费力且易错。DSPy（Khattab et al.,
-2023）提出"把提示词当代码"，用高层抽象自动生成和优化提示词。</p>
-<h4 id="treat-prompts-as-code-理念">Treat Prompts As Code 理念</h4>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>节省人力：不需要手动尝试几十个版本。</li>
+<li>发现反直觉的提示词：有时最优提示词的表达方式人类不会想到。</li>
+</ul>
+<p><strong>劣势</strong>：</p>
+<ul>
+<li>需要测试样本（冷启动问题）。</li>
+<li>计算成本高（生成 + 评估需要大量 API 调用）。</li>
+</ul>
+<h3 id="DSPy-框架：把提示词当代码"><a class="header-anchor" href="#DSPy-框架：把提示词当代码">¶</a>DSPy 框架：把提示词当代码</h3>
+<p>手写提示词就像写汇编语言——费力且易错。DSPy（Khattab et al., 2023）提出&quot;把提示词当代码&quot;，用高层抽象自动生成和优化提示词。</p>
+<h4 id="Treat-Prompts-As-Code-理念"><a class="header-anchor" href="#Treat-Prompts-As-Code-理念">¶</a>Treat Prompts As Code 理念</h4>
 <p><strong>传统方式</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">prompt = <span class="string">&quot;&quot;&quot;你是一名数据分析师。请根据以下数据回答问题。</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">数据：&#123;data&#125;</span></span><br><span class="line"><span class="string">问题：&#123;question&#125;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">答案：&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">response = llm(prompt.<span class="built_in">format</span>(data=data, question=question))</span><br></pre></td></tr></table></figure>
 <p><strong>DSPy 方式</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> dspy</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">QA</span>(dspy.Signature):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;根据数据回答问题&quot;&quot;&quot;</span></span><br><span class="line">    data = dspy.InputField()</span><br><span class="line">    question = dspy.InputField()</span><br><span class="line">    answer = dspy.OutputField()</span><br><span class="line"></span><br><span class="line">qa = dspy.Predict(QA)</span><br><span class="line">response = qa(data=data, question=question)</span><br></pre></td></tr></table></figure>
-<p>区别在于： - DSPy
-用<strong>类型化的签名</strong>（Signature）定义输入输出，而非手写字符串。
-- DSPy 会自动生成最优的提示词格式。 - DSPy
-支持<strong>编译优化</strong>（Compilation）：根据训练数据调整提示词。</p>
-<h4 id="optimizers-类型">Optimizers 类型</h4>
+<p>区别在于：</p>
+<ul>
+<li>DSPy 用<strong>类型化的签名</strong>（Signature）定义输入输出，而非手写字符串。</li>
+<li>DSPy 会自动生成最优的提示词格式。</li>
+<li>DSPy 支持<strong>编译优化</strong>（Compilation）：根据训练数据调整提示词。</li>
+</ul>
+<h4 id="Optimizers-类型"><a class="header-anchor" href="#Optimizers-类型">¶</a>Optimizers 类型</h4>
 <p>DSPy 提供多种优化器，自动改进提示词：</p>
-<ol type="1">
-<li><p><strong>BootstrapFewShot</strong>：自动选择最佳的 Few-Shot 例子。
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> dspy.teleprompt <span class="keyword">import</span> BootstrapFewShot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义评估指标</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">accuracy</span>(<span class="params">example, prediction</span>):</span><br><span class="line">    <span class="keyword">return</span> example.answer == prediction.answer</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编译（优化）</span></span><br><span class="line">optimizer = BootstrapFewShot(metric=accuracy, max_bootstrapped_demos=<span class="number">5</span>)</span><br><span class="line">optimized_qa = optimizer.<span class="built_in">compile</span>(qa, trainset=train_data)</span><br></pre></td></tr></table></figure></p></li>
-<li><p><strong>MIPRO</strong>（Multi-Prompt Instruction
-Optimization）：搜索最优的指令文本。</p></li>
-<li><p><strong>Ensemble</strong>：组合多个提示词的输出，投票得到最终答案。</p></li>
+<ol>
+<li>
+<p><strong>BootstrapFewShot</strong>：自动选择最佳的 Few-Shot 例子。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> dspy.teleprompt <span class="keyword">import</span> BootstrapFewShot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义评估指标</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">accuracy</span>(<span class="params">example, prediction</span>):</span><br><span class="line">    <span class="keyword">return</span> example.answer == prediction.answer</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编译（优化）</span></span><br><span class="line">optimizer = BootstrapFewShot(metric=accuracy, max_bootstrapped_demos=<span class="number">5</span>)</span><br><span class="line">optimized_qa = optimizer.<span class="built_in">compile</span>(qa, trainset=train_data)</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>MIPRO</strong>（Multi-Prompt Instruction Optimization）：搜索最优的指令文本。</p>
+</li>
+<li>
+<p><strong>Ensemble</strong>：组合多个提示词的输出，投票得到最终答案。</p>
+</li>
 </ol>
-<h4 id="实战案例">实战案例</h4>
+<h4 id="实战案例-v8"><a class="header-anchor" href="#实战案例-v8">¶</a>实战案例</h4>
 <p><strong>任务</strong>：从新闻文章中提取关键信息（时间、地点、人物）。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> dspy</span><br><span class="line"></span><br><span class="line"><span class="comment"># 配置 LLM</span></span><br><span class="line">lm = dspy.OpenAI(model=<span class="string">&quot;gpt-4&quot;</span>)</span><br><span class="line">dspy.settings.configure(lm=lm)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义签名</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">ExtractInfo</span>(dspy.Signature):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;从新闻文章中提取关键信息&quot;&quot;&quot;</span></span><br><span class="line">    article = dspy.InputField(desc=<span class="string">&quot;新闻文章全文&quot;</span>)</span><br><span class="line">    time = dspy.OutputField(desc=<span class="string">&quot;事件发生时间&quot;</span>)</span><br><span class="line">    location = dspy.OutputField(desc=<span class="string">&quot;事件发生地点&quot;</span>)</span><br><span class="line">    person = dspy.OutputField(desc=<span class="string">&quot;相关人物&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建模块</span></span><br><span class="line">extractor = dspy.ChainOfThought(ExtractInfo)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试（未优化）</span></span><br><span class="line">article = <span class="string">&quot;2024年3月15日，特斯拉CEO埃隆·马斯克在加州宣布了新款电动卡车的量产计划。&quot;</span></span><br><span class="line">result = extractor(article=article)</span><br><span class="line"><span class="built_in">print</span>(result)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 准备训练数据</span></span><br><span class="line">train_data = [</span><br><span class="line">    dspy.Example(</span><br><span class="line">        article=<span class="string">&quot;2023年12月，OpenAI在旧金山发布了GPT-4 Turbo。&quot;</span>,</span><br><span class="line">        time=<span class="string">&quot;2023年12月&quot;</span>,</span><br><span class="line">        location=<span class="string">&quot;旧金山&quot;</span>,</span><br><span class="line">        person=<span class="string">&quot;OpenAI&quot;</span></span><br><span class="line">    ),</span><br><span class="line">    <span class="comment"># ... 更多例子</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 优化</span></span><br><span class="line"><span class="keyword">from</span> dspy.teleprompt <span class="keyword">import</span> BootstrapFewShot</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">validate</span>(<span class="params">example, prediction</span>):</span><br><span class="line">    <span class="keyword">return</span> (example.time == prediction.time <span class="keyword">and</span> </span><br><span class="line">            example.location == prediction.location <span class="keyword">and</span></span><br><span class="line">            example.person == prediction.person)</span><br><span class="line"></span><br><span class="line">optimizer = BootstrapFewShot(metric=validate, max_bootstrapped_demos=<span class="number">3</span>)</span><br><span class="line">optimized_extractor = optimizer.<span class="built_in">compile</span>(extractor, trainset=train_data)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试（优化后）</span></span><br><span class="line">result = optimized_extractor(article=article)</span><br><span class="line"><span class="built_in">print</span>(result)</span><br></pre></td></tr></table></figure>
-<p><strong>优化效果</strong>： - 未优化：准确率
-60%（经常漏提关键信息）。 - 优化后：准确率 85%（DSPy 自动添加了 CoT
-推理步骤和最佳例子）。</p>
-<p><strong>为什么 DSPy 好用？</strong> -
-<strong>抽象层次高</strong>：关注"做什么"而非"怎么说"。 -
-<strong>自动优化</strong>：省去手动调整提示词的痛苦。 -
-<strong>可组合</strong>：多个模块可以串联（比如"检索 → 总结 →
-问答"）。</p>
-<h3 id="提示词压缩用更少的-token-做更多事">提示词压缩：用更少的 Token
-做更多事</h3>
-<p>LLM 按 Token
-收费，长提示词意味着高成本。提示词压缩技术通过去除冗余信息，在保持性能的前提下减少
-Token 数。</p>
-<h4 id="llmlingua-系列">LLMLingua 系列</h4>
-<p><strong>LLMLingua</strong>（Jiang et al.,
-2023）的思路：用一个小模型判断哪些 Token 对任务重要，删除不重要的。</p>
+<p><strong>优化效果</strong>：</p>
+<ul>
+<li>未优化：准确率 60%（经常漏提关键信息）。</li>
+<li>优化后：准确率 85%（DSPy 自动添加了 CoT 推理步骤和最佳例子）。</li>
+</ul>
+<p><strong>为什么 DSPy 好用？</strong></p>
+<ul>
+<li><strong>抽象层次高</strong>：关注&quot;做什么&quot;而非&quot;怎么说&quot;。</li>
+<li><strong>自动优化</strong>：省去手动调整提示词的痛苦。</li>
+<li><strong>可组合</strong>：多个模块可以串联（比如&quot;检索 → 总结 → 问答&quot;）。</li>
+</ul>
+<h3 id="提示词压缩：用更少的-Token-做更多事"><a class="header-anchor" href="#提示词压缩：用更少的-Token-做更多事">¶</a>提示词压缩：用更少的 Token 做更多事</h3>
+<p>LLM 按 Token 收费，长提示词意味着高成本。提示词压缩技术通过去除冗余信息，在保持性能的前提下减少 Token 数。</p>
+<h4 id="LLMLingua-系列"><a class="header-anchor" href="#LLMLingua-系列">¶</a>LLMLingua 系列</h4>
+<p><strong>LLMLingua</strong>（Jiang et al., 2023）的思路：用一个小模型判断哪些 Token 对任务重要，删除不重要的。</p>
 <p><strong>步骤</strong>：</p>
-<ol type="1">
-<li><p><strong>重要性打分</strong>：用小型语言模型（如 GPT-2）计算每个
-Token 的困惑度（Perplexity）。困惑度低 = 信息量大 = 重要。</p></li>
-<li><p><strong>动态删除</strong>：保留困惑度最低的 K%
-Token，删除其余。</p></li>
-<li><p><strong>重组提示词</strong>：把保留的 Token
-拼接成新的提示词。</p></li>
+<ol>
+<li>
+<p><strong>重要性打分</strong>：用小型语言模型（如 GPT-2）计算每个 Token 的困惑度（Perplexity）。困惑度低 = 信息量大 = 重要。</p>
+</li>
+<li>
+<p><strong>动态删除</strong>：保留困惑度最低的 K% Token，删除其余。</p>
+</li>
+<li>
+<p><strong>重组提示词</strong>：把保留的 Token 拼接成新的提示词。</p>
+</li>
 </ol>
 <p><strong>示例</strong>：</p>
 <p>原始提示词（100 Token）：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">请根据以下背景信息回答问题。背景信息非常详细，包含了很多上下文细节，你需要仔细阅读。</span><br><span class="line"></span><br><span class="line">背景：在遥远的未来，人类已经殖民了火星。火星上的第一座城市叫做&quot;新希望&quot;，建立于2157年。这座城市有300万居民，主要经济来源是采矿和科研。</span><br><span class="line"></span><br><span class="line">问题：火星第一座城市叫什么？</span><br></pre></td></tr></table></figure>
 <p>压缩后（40 Token，压缩率 60%）：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">背景信息回答问题。</span><br><span class="line"></span><br><span class="line">背景：未来人类殖民火星第一座城市&quot;新希望&quot;建立2157年300万居民采矿科研。</span><br><span class="line"></span><br><span class="line">问题：火星第一座城市？</span><br></pre></td></tr></table></figure>
-<p><strong>效果</strong>：虽然可读性下降，但 LLM
-依然能理解（因为关键词都在）。在问答任务中，压缩 50% 后准确率只下降
-2%。</p>
-<h4 id="token-去除策略">Token 去除策略</h4>
+<p><strong>效果</strong>：虽然可读性下降，但 LLM 依然能理解（因为关键词都在）。在问答任务中，压缩 50% 后准确率只下降 2%。</p>
+<h4 id="Token-去除策略"><a class="header-anchor" href="#Token-去除策略">¶</a>Token 去除策略</h4>
 <p>几种常见策略：</p>
-<ol type="1">
-<li><p><strong>去除停用词</strong>：删除"的""是""在"等高频但低信息量的词。</p></li>
-<li><p><strong>保留关键名词和动词</strong>：用 NER（命名实体识别）和
-POS（词性标注）识别重要词汇。</p></li>
-<li><p><strong>句子级压缩</strong>：删除对任务无关的整句话（比如寒暄、解释性文字）。</p></li>
-<li><p><strong>动态压缩</strong>：根据上下文窗口使用率调整压缩率（窗口快满了就压缩多一点）。</p></li>
+<ol>
+<li>
+<p><strong>去除停用词</strong>：删除&quot;的&quot;“是”&quot;在&quot;等高频但低信息量的词。</p>
+</li>
+<li>
+<p><strong>保留关键名词和动词</strong>：用 NER（命名实体识别）和 POS（词性标注）识别重要词汇。</p>
+</li>
+<li>
+<p><strong>句子级压缩</strong>：删除对任务无关的整句话（比如寒暄、解释性文字）。</p>
+</li>
+<li>
+<p><strong>动态压缩</strong>：根据上下文窗口使用率调整压缩率（窗口快满了就压缩多一点）。</p>
+</li>
 </ol>
-<h4 id="x-压缩率">20x 压缩率</h4>
-<p><strong>LongLLMLingua</strong>（最新版本）能达到 20
-倍压缩率，同时保持 90% 以上的性能。</p>
-<p><strong>关键技术</strong>： -
-<strong>问题感知压缩</strong>（Question-Aware）：根据问题保留相关内容，删除无关内容。
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">问题：巴黎在哪个国家？</span><br><span class="line"></span><br><span class="line">原文：巴黎是法国的首都，也是该国最大的城市。它位于法国北部，塞纳河畔。巴黎有&quot;光之城&quot;的美称，是全球最受欢迎的旅游目的地之一。每年有数百万游客来此参观埃菲尔铁塔、卢浮宫等景点。</span><br><span class="line"></span><br><span class="line">压缩后：巴黎法国首都</span><br></pre></td></tr></table></figure></p>
+<h4 id="20x-压缩率"><a class="header-anchor" href="#20x-压缩率">¶</a>20x 压缩率</h4>
+<p><strong>LongLLMLingua</strong>（最新版本）能达到 20 倍压缩率，同时保持 90% 以上的性能。</p>
+<p><strong>关键技术</strong>：</p>
 <ul>
-<li><strong>迭代压缩</strong>：多轮压缩，每轮用不同策略（第一轮删句子，第二轮删词）。</li>
+<li>
+<p><strong>问题感知压缩</strong>（Question-Aware）：根据问题保留相关内容，删除无关内容。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">问题：巴黎在哪个国家？</span><br><span class="line"></span><br><span class="line">原文：巴黎是法国的首都，也是该国最大的城市。它位于法国北部，塞纳河畔。巴黎有&quot;光之城&quot;的美称，是全球最受欢迎的旅游目的地之一。每年有数百万游客来此参观埃菲尔铁塔、卢浮宫等景点。</span><br><span class="line"></span><br><span class="line">压缩后：巴黎法国首都</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p><strong>迭代压缩</strong>：多轮压缩，每轮用不同策略（第一轮删句子，第二轮删词）。</p>
+</li>
 </ul>
 <p><strong>实现示例</strong>：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> transformers <span class="keyword">import</span> AutoTokenizer, AutoModelForCausalLM</span><br><span class="line"><span class="keyword">import</span> torch</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PromptCompressor</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, model_name=<span class="string">&quot;gpt2&quot;</span></span>):</span><br><span class="line">        self.tokenizer = AutoTokenizer.from_pretrained(model_name)</span><br><span class="line">        self.model = AutoModelForCausalLM.from_pretrained(model_name)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">calculate_perplexity</span>(<span class="params">self, text</span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;计算每个 Token 的困惑度&quot;&quot;&quot;</span></span><br><span class="line">        inputs = self.tokenizer(text, return_tensors=<span class="string">&quot;pt&quot;</span>)</span><br><span class="line">        <span class="keyword">with</span> torch.no_grad():</span><br><span class="line">            outputs = self.model(**inputs, labels=inputs[<span class="string">&quot;input_ids&quot;</span>])</span><br><span class="line">            loss = outputs.loss</span><br><span class="line">        <span class="keyword">return</span> torch.exp(loss).item()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">compress</span>(<span class="params">self, text, compression_rate=<span class="number">0.5</span></span>):</span><br><span class="line">        <span class="string">&quot;&quot;&quot;压缩文本&quot;&quot;&quot;</span></span><br><span class="line">        tokens = self.tokenizer.tokenize(text)</span><br><span class="line">        token_ids = self.tokenizer.convert_tokens_to_ids(tokens)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 计算每个 Token 的重要性（简化版：用 Token 频率的倒数）</span></span><br><span class="line">        <span class="keyword">from</span> collections <span class="keyword">import</span> Counter</span><br><span class="line">        freq = Counter(tokens)</span><br><span class="line">        importance = &#123;token: <span class="number">1</span> / freq[token] <span class="keyword">for</span> token <span class="keyword">in</span> tokens&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 排序并保留重要的 Token</span></span><br><span class="line">        sorted_tokens = <span class="built_in">sorted</span>(</span><br><span class="line">            <span class="built_in">enumerate</span>(tokens), </span><br><span class="line">            key=<span class="keyword">lambda</span> x: importance[x[<span class="number">1</span>]], </span><br><span class="line">            reverse=<span class="literal">True</span></span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        num_keep = <span class="built_in">int</span>(<span class="built_in">len</span>(tokens) * compression_rate)</span><br><span class="line">        keep_indices = <span class="built_in">sorted</span>([idx <span class="keyword">for</span> idx, _ <span class="keyword">in</span> sorted_tokens[:num_keep]])</span><br><span class="line">        </span><br><span class="line">        compressed_tokens = [tokens[i] <span class="keyword">for</span> i <span class="keyword">in</span> keep_indices]</span><br><span class="line">        compressed_text = self.tokenizer.convert_tokens_to_string(compressed_tokens)</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> compressed_text</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">compressor = PromptCompressor()</span><br><span class="line">original = <span class="string">&quot;请详细解释一下什么是机器学习，包括它的定义、应用场景以及与深度学习的区别。&quot;</span></span><br><span class="line">compressed = compressor.compress(original, compression_rate=<span class="number">0.4</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;原始（<span class="subst">&#123;<span class="built_in">len</span>(original)&#125;</span> 字符）：<span class="subst">&#123;original&#125;</span>&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;压缩后（<span class="subst">&#123;<span class="built_in">len</span>(compressed)&#125;</span> 字符）：<span class="subst">&#123;compressed&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
-<p><strong>注意事项</strong>： -
-过度压缩会导致语义丢失。建议在验证集上测试不同压缩率的效果。 -
-对于需要精确表达的任务（法律、医疗），慎用压缩。 -
-压缩本身也有计算成本（运行小模型打分），权衡是否值得。</p>
+<p><strong>注意事项</strong>：</p>
+<ul>
+<li>过度压缩会导致语义丢失。建议在验证集上测试不同压缩率的效果。</li>
+<li>对于需要精确表达的任务（法律、医疗），慎用压缩。</li>
+<li>压缩本身也有计算成本（运行小模型打分），权衡是否值得。</li>
+</ul>
 <hr>
-<h2 id="实战篇从理论到应用">实战篇：从理论到应用</h2>
-<p>前面讲了一大堆技巧，但"知道"和"会用"是两回事。这部分聚焦实战：不同任务怎么设计提示词？怎么迭代优化？常见错误如何避免？</p>
-<h3 id="不同任务的提示词模板">不同任务的提示词模板</h3>
-<h4 id="文本生成">文本生成</h4>
+<h2 id="实战篇：从理论到应用"><a class="header-anchor" href="#实战篇：从理论到应用">¶</a>实战篇：从理论到应用</h2>
+<p>前面讲了一大堆技巧，但&quot;知道&quot;和&quot;会用&quot;是两回事。这部分聚焦实战：不同任务怎么设计提示词？怎么迭代优化？常见错误如何避免？</p>
+<h3 id="不同任务的提示词模板"><a class="header-anchor" href="#不同任务的提示词模板">¶</a>不同任务的提示词模板</h3>
+<h4 id="文本生成"><a class="header-anchor" href="#文本生成">¶</a>文本生成</h4>
 <p><strong>任务</strong>：写一篇技术博客。</p>
 <p><strong>提示词结构</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">【角色】你是一名有 10 年经验的技术作家，擅长把复杂概念讲清楚。</span><br><span class="line"></span><br><span class="line">【任务】为&quot;什么是 Kubernetes&quot;写一篇 1000 字的科普文章。</span><br><span class="line"></span><br><span class="line">【目标读者】刚学编程的大学生，没有容器技术背景。</span><br><span class="line"></span><br><span class="line">【要求】</span><br><span class="line">1. 开头用一个生活类比引入</span><br><span class="line">2. 解释 Kubernetes 解决的核心问题</span><br><span class="line">3. 给出一个简单的使用场景</span><br><span class="line">4. 结尾给出学习路径建议</span><br><span class="line"></span><br><span class="line">【风格】</span><br><span class="line">- 用&quot;你&quot;而非&quot;您&quot;</span><br><span class="line">- 多用短句</span><br><span class="line">- 避免行话（或在首次出现时解释）</span><br><span class="line"></span><br><span class="line">【输出格式】</span><br><span class="line">标题</span><br><span class="line">正文（分 4 个小节，每节 2-3 段）</span><br></pre></td></tr></table></figure>
-<p><strong>技巧</strong>： - 明确字数限制（防止输出太长或太短）。 -
-规定结构（小节数量），保证逻辑完整。 -
-提供负面例子（"不要这样写：……"）。</p>
-<h4 id="问答系统">问答系统</h4>
+<p><strong>技巧</strong>：</p>
+<ul>
+<li>明确字数限制（防止输出太长或太短）。</li>
+<li>规定结构（小节数量），保证逻辑完整。</li>
+<li>提供负面例子（“不要这样写：……”）。</li>
+</ul>
+<h4 id="问答系统"><a class="header-anchor" href="#问答系统">¶</a>问答系统</h4>
 <p><strong>任务</strong>：基于知识库回答用户问题。</p>
 <p><strong>提示词结构</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">【背景知识】</span><br><span class="line">&#123;从数据库检索到的相关文档&#125;</span><br><span class="line"></span><br><span class="line">【问题】</span><br><span class="line">&#123;用户的提问&#125;</span><br><span class="line"></span><br><span class="line">【回答要求】</span><br><span class="line">1. 只使用背景知识中的信息，不要编造</span><br><span class="line">2. 如果背景知识不足以回答问题，明确说&quot;根据现有信息无法确定&quot;</span><br><span class="line">3. 用简洁的语言回答（不超过 100 字）</span><br><span class="line">4. 如果可能，引用具体的段落或数据</span><br><span class="line"></span><br><span class="line">【输出格式】</span><br><span class="line">答案：...</span><br><span class="line">来源：[引用的段落编号]</span><br></pre></td></tr></table></figure>
-<p><strong>技巧</strong>： -
-用"背景知识"框住信息来源，减少幻觉（Hallucination）。 -
-强制引用来源，提高可信度。 - 设置"我不知道"的退出机制。</p>
+<p><strong>技巧</strong>：</p>
+<ul>
+<li>用&quot;背景知识&quot;框住信息来源，减少幻觉（Hallucination）。</li>
+<li>强制引用来源，提高可信度。</li>
+<li>设置&quot;我不知道&quot;的退出机制。</li>
+</ul>
 <p><strong>进阶：RAG（Retrieval-Augmented Generation）</strong></p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">rag_qa</span>(<span class="params">question, knowledge_base</span>):</span><br><span class="line">    <span class="comment"># 1. 检索相关文档</span></span><br><span class="line">    <span class="keyword">from</span> sentence_transformers <span class="keyword">import</span> SentenceTransformer, util</span><br><span class="line">    </span><br><span class="line">    retriever = SentenceTransformer(<span class="string">&#x27;paraphrase-multilingual-mpnet-base-v2&#x27;</span>)</span><br><span class="line">    question_emb = retriever.encode(question)</span><br><span class="line">    doc_embs = retriever.encode(knowledge_base)</span><br><span class="line">    </span><br><span class="line">    scores = util.cos_sim(question_emb, doc_embs)[<span class="number">0</span>]</span><br><span class="line">    top_k = scores.topk(<span class="number">3</span>)</span><br><span class="line">    </span><br><span class="line">    relevant_docs = [knowledge_base[idx] <span class="keyword">for</span> idx <span class="keyword">in</span> top_k.indices]</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 2. 构建提示词</span></span><br><span class="line">    prompt = <span class="string">f&quot;&quot;&quot;【背景知识】</span></span><br><span class="line"><span class="string"><span class="subst">&#123;<span class="built_in">chr</span>(<span class="number">10</span>).join([<span class="string">f&#x27;文档<span class="subst">&#123;i+<span class="number">1</span>&#125;</span>：<span class="subst">&#123;doc&#125;</span>&#x27;</span> <span class="keyword">for</span> i, doc <span class="keyword">in</span> <span class="built_in">enumerate</span>(relevant_docs)])&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">【问题】</span></span><br><span class="line"><span class="string"><span class="subst">&#123;question&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">【回答要求】</span></span><br><span class="line"><span class="string">只使用背景知识中的信息，不要编造。如果背景知识不足以回答问题，明确说&quot;根据现有信息无法确定&quot;。</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">答案：&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 3. 调用 LLM</span></span><br><span class="line">    response = openai.ChatCompletion.create(</span><br><span class="line">        model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">        messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">        temperature=<span class="number">0</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> response.choices[<span class="number">0</span>].message.content</span><br></pre></td></tr></table></figure>
-<h4 id="代码生成">代码生成</h4>
+<h4 id="代码生成"><a class="header-anchor" href="#代码生成">¶</a>代码生成</h4>
 <p><strong>任务</strong>：生成可运行的 Python 函数。</p>
 <p><strong>提示词结构</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">【任务】</span><br><span class="line">写一个 Python 函数，实现二分查找。</span><br><span class="line"></span><br><span class="line">【函数签名】</span><br><span class="line">def binary_search(arr: List[int], target: int) -&gt; int:</span><br><span class="line">    &quot;&quot;&quot;</span><br><span class="line">    在有序数组中查找目标值。</span><br><span class="line">    </span><br><span class="line">    参数：</span><br><span class="line">        arr: 有序整数数组</span><br><span class="line">        target: 要查找的目标值</span><br><span class="line">    </span><br><span class="line">    返回：</span><br><span class="line">        目标值的索引，如果不存在返回 -1</span><br><span class="line">    &quot;&quot;&quot;</span><br><span class="line"></span><br><span class="line">【要求】</span><br><span class="line">1. 使用迭代而非递归</span><br><span class="line">2. 时间复杂度 O(log n)</span><br><span class="line">3. 添加详细注释</span><br><span class="line">4. 包含错误处理（空数组等）</span><br><span class="line"></span><br><span class="line">【输出格式】</span><br><span class="line">只输出代码，不要有额外的解释文字。</span><br><span class="line">代码要用 Python 的 ```python ``` 包裹。</span><br><span class="line"></span><br><span class="line">【测试用例】</span><br><span class="line">assert binary_search([1, 3, 5, 7, 9], 5) == 2</span><br><span class="line">assert binary_search([1, 3, 5, 7, 9], 4) == -1</span><br><span class="line">assert binary_search([], 1) == -1</span><br></pre></td></tr></table></figure>
-<p><strong>技巧</strong>： - 给出函数签名和类型标注（约束输出格式）。 -
-提供测试用例（让模型自我验证）。 - 明确算法要求（防止用暴力解法）。</p>
+<p><strong>技巧</strong>：</p>
+<ul>
+<li>给出函数签名和类型标注（约束输出格式）。</li>
+<li>提供测试用例（让模型自我验证）。</li>
+<li>明确算法要求（防止用暴力解法）。</li>
+</ul>
 <p><strong>进阶：ReAct 迭代生成</strong></p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">generate_and_test</span>(<span class="params">task, test_cases, max_iterations=<span class="number">3</span></span>):</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(max_iterations):</span><br><span class="line">        <span class="comment"># 生成代码</span></span><br><span class="line">        prompt = <span class="string">f&quot;&quot;&quot;<span class="subst">&#123;task&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">已尝试 <span class="subst">&#123;i&#125;</span> 次。请生成代码。&quot;&quot;&quot;</span></span><br><span class="line">        </span><br><span class="line">        code = llm_generate(prompt)</span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 运行测试</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="built_in">exec</span>(code)</span><br><span class="line">            <span class="comment"># 执行测试用例</span></span><br><span class="line">            all_passed = <span class="literal">True</span></span><br><span class="line">            <span class="keyword">for</span> test <span class="keyword">in</span> test_cases:</span><br><span class="line">                <span class="keyword">if</span> <span class="keyword">not</span> <span class="built_in">eval</span>(test):</span><br><span class="line">                    all_passed = <span class="literal">False</span></span><br><span class="line">                    <span class="keyword">break</span></span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span> all_passed:</span><br><span class="line">                <span class="keyword">return</span> code</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                task += <span class="string">&quot;\n\n【上次生成的代码未通过测试，请修正】&quot;</span></span><br><span class="line">        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">            task += <span class="string">f&quot;\n\n【上次代码运行出错：<span class="subst">&#123;<span class="built_in">str</span>(e)&#125;</span>，请修正】&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">None</span></span><br></pre></td></tr></table></figure>
-<h4 id="数据分析">数据分析</h4>
+<h4 id="数据分析"><a class="header-anchor" href="#数据分析">¶</a>数据分析</h4>
 <p><strong>任务</strong>：从数据中提取洞察。</p>
 <p><strong>提示词结构</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">【数据】</span><br><span class="line">&#123;CSV 或 JSON 格式的数据&#125;</span><br><span class="line"></span><br><span class="line">【任务】</span><br><span class="line">分析这份销售数据，找出：</span><br><span class="line">1. 销量最高的 3 个产品</span><br><span class="line">2. 销量增长最快的品类</span><br><span class="line">3. 销量下降的原因（如果有）</span><br><span class="line"></span><br><span class="line">【输出格式】</span><br><span class="line">## 关键发现</span><br><span class="line">- 发现1：...</span><br><span class="line">- 发现2：...</span><br><span class="line"></span><br><span class="line">## 数据支撑</span><br><span class="line">- 产品 A 销量：XXX（占比 XX%）</span><br><span class="line">- ...</span><br><span class="line"></span><br><span class="line">## 建议</span><br><span class="line">- 建议1：...</span><br><span class="line">- 建议2：...</span><br><span class="line"></span><br><span class="line">【要求】</span><br><span class="line">- 所有结论必须有数据支撑</span><br><span class="line">- 用百分比和具体数字，不要用&quot;很多&quot;&quot;较少&quot;等模糊表达</span><br><span class="line">- 如果数据不足以得出某个结论，说明需要哪些额外数据</span><br></pre></td></tr></table></figure>
-<p><strong>技巧</strong>： - 结构化输出（用 Markdown 标题分节）。 -
-要求量化（数字比形容词更有说服力）。 -
-区分"发现"和"建议"（分析和行动）。</p>
-<h3 id="提示词迭代优化流程">提示词迭代优化流程</h3>
+<p><strong>技巧</strong>：</p>
+<ul>
+<li>结构化输出（用 Markdown 标题分节）。</li>
+<li>要求量化（数字比形容词更有说服力）。</li>
+<li>区分&quot;发现&quot;和&quot;建议&quot;（分析和行动）。</li>
+</ul>
+<h3 id="提示词迭代优化流程"><a class="header-anchor" href="#提示词迭代优化流程">¶</a>提示词迭代优化流程</h3>
 <p>提示词很少一次写对。推荐一个系统化的迭代流程：</p>
-<h4 id="第一步基线测试">第一步：基线测试</h4>
+<h4 id="第一步：基线测试"><a class="header-anchor" href="#第一步：基线测试">¶</a>第一步：基线测试</h4>
 <p>用最简单的提示词测试任务可行性。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">任务：把英文翻译成中文。</span><br><span class="line"></span><br><span class="line">输入：Hello, world!</span><br></pre></td></tr></table></figure>
 <p>记录输出质量。如果完全不行，可能任务超出模型能力。</p>
-<h4 id="第二步添加细节">第二步：添加细节</h4>
+<h4 id="第二步：添加细节"><a class="header-anchor" href="#第二步：添加细节">¶</a>第二步：添加细节</h4>
 <p>根据基线输出的问题，逐步添加约束。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">【问题】输出太口语化。</span><br><span class="line">【改进】添加约束&quot;使用书面语，避免口语化表达&quot;。</span><br><span class="line"></span><br><span class="line">【问题】漏翻了专业术语。</span><br><span class="line">【改进】添加&quot;遇到专业术语，音译或保留原文（如 &#x27;API&#x27; 翻译为 &#x27;API&#x27;）&quot;。</span><br></pre></td></tr></table></figure>
 <p>每次只改一个点，测试效果。</p>
-<h4 id="第三步添加例子">第三步：添加例子</h4>
+<h4 id="第三步：添加例子"><a class="header-anchor" href="#第三步：添加例子">¶</a>第三步：添加例子</h4>
 <p>如果模型还是理解偏差，给 Few-Shot 例子。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">示例1：</span><br><span class="line">输入：The API returns a JSON response.</span><br><span class="line">输出：该 API 返回 JSON 格式的响应。</span><br><span class="line"></span><br><span class="line">示例2：</span><br><span class="line">输入：Machine learning models require large datasets.</span><br><span class="line">输出：机器学习模型需要大规模数据集。</span><br><span class="line"></span><br><span class="line">（现在翻译）</span><br><span class="line">输入：Deep learning is a subset of machine learning.</span><br></pre></td></tr></table></figure>
-<h4 id="第四步结构化">第四步：结构化</h4>
+<h4 id="第四步：结构化"><a class="header-anchor" href="#第四步：结构化">¶</a>第四步：结构化</h4>
 <p>用分隔符和标题组织复杂提示词。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">## 背景</span><br><span class="line">你是一名专业的技术文档翻译员。</span><br><span class="line"></span><br><span class="line">## 任务</span><br><span class="line">把下面的英文文档翻译成中文。</span><br><span class="line"></span><br><span class="line">## 输入</span><br><span class="line">&#123;文档内容&#125;</span><br><span class="line"></span><br><span class="line">## 要求</span><br><span class="line">- 使用书面语</span><br><span class="line">- 保留专业术语的英文原文</span><br><span class="line">- 保持 Markdown 格式</span><br><span class="line"></span><br><span class="line">## 输出</span><br><span class="line">&#123;翻译后的内容&#125;</span><br></pre></td></tr></table></figure>
-<h4 id="第五步量化评估">第五步：量化评估</h4>
+<h4 id="第五步：量化评估"><a class="header-anchor" href="#第五步：量化评估">¶</a>第五步：量化评估</h4>
 <p>在测试集上跑批量测试，记录指标（准确率、BLEU、人工评分）。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">batch_evaluate</span>(<span class="params">prompts, test_set</span>):</span><br><span class="line">    results = &#123;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> prompt_name, prompt_template <span class="keyword">in</span> prompts.items():</span><br><span class="line">        scores = []</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span> sample <span class="keyword">in</span> test_set:</span><br><span class="line">            output = llm_generate(prompt_template.<span class="built_in">format</span>(**sample))</span><br><span class="line">            score = calculate_metric(output, sample[<span class="string">&quot;reference&quot;</span>])</span><br><span class="line">            scores.append(score)</span><br><span class="line">        </span><br><span class="line">        results[prompt_name] = &#123;</span><br><span class="line">            <span class="string">&quot;mean&quot;</span>: np.mean(scores),</span><br><span class="line">            <span class="string">&quot;std&quot;</span>: np.std(scores),</span><br><span class="line">            <span class="string">&quot;scores&quot;</span>: scores</span><br><span class="line">        &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> results</span><br></pre></td></tr></table></figure>
-<h4 id="第六步ab-测试">第六步：A/B 测试</h4>
+<h4 id="第六步：A-B-测试"><a class="header-anchor" href="#第六步：A-B-测试">¶</a>第六步：A/B 测试</h4>
 <p>如果有多个候选提示词，用 A/B 测试选最优。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 统计显著性检验</span></span><br><span class="line"><span class="keyword">from</span> scipy <span class="keyword">import</span> stats</span><br><span class="line"></span><br><span class="line">scores_A = [<span class="number">0.8</span>, <span class="number">0.85</span>, <span class="number">0.9</span>, ...]</span><br><span class="line">scores_B = [<span class="number">0.82</span>, <span class="number">0.88</span>, <span class="number">0.91</span>, ...]</span><br><span class="line"></span><br><span class="line">t_stat, p_value = stats.ttest_ind(scores_A, scores_B)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> p_value &lt; <span class="number">0.05</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;提示词 B 显著优于 A&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;两者无显著差异&quot;</span>)</span><br></pre></td></tr></table></figure>
-<h3 id="常见错误与调试技巧">常见错误与调试技巧</h3>
-<h4 id="错误-1提示词过于模糊">错误 1：提示词过于模糊</h4>
+<h3 id="常见错误与调试技巧-v4"><a class="header-anchor" href="#常见错误与调试技巧-v4">¶</a>常见错误与调试技巧</h3>
+<h4 id="错误-1：提示词过于模糊"><a class="header-anchor" href="#错误-1：提示词过于模糊">¶</a>错误 1：提示词过于模糊</h4>
 <p><strong>症状</strong>：每次输出都不同，质量不稳定。</p>
 <p><strong>例子</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">❌ 模糊提示词：帮我写点东西。</span><br></pre></td></tr></table></figure>
-<p><strong>调试</strong>： - 问自己：如果让同事帮忙，你会怎么说？ -
-添加具体要求（字数、格式、风格）。</p>
+<p><strong>调试</strong>：</p>
+<ul>
+<li>问自己：如果让同事帮忙，你会怎么说？</li>
+<li>添加具体要求（字数、格式、风格）。</li>
+</ul>
 <p><strong>改进</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">✅ 清晰提示词：写一篇 500 字的科普文章，介绍&quot;什么是量子计算&quot;，面向高中生读者，用类比的方式解释，不涉及复杂公式。</span><br></pre></td></tr></table></figure>
-<h4 id="错误-2指令冲突">错误 2：指令冲突</h4>
+<h4 id="错误-2：指令冲突"><a class="header-anchor" href="#错误-2：指令冲突">¶</a>错误 2：指令冲突</h4>
 <p><strong>症状</strong>：模型输出不符合任何一个要求。</p>
 <p><strong>例子</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">❌ 冲突指令：</span><br><span class="line">- 回答要简洁（不超过 50 字）</span><br><span class="line">- 回答要详细（包含背景、原因、影响）</span><br></pre></td></tr></table></figure>
-<p><strong>调试</strong>： - 检查要求之间是否矛盾。 -
-用"优先级"明确哪个要求更重要。</p>
+<p><strong>调试</strong>：</p>
+<ul>
+<li>检查要求之间是否矛盾。</li>
+<li>用&quot;优先级&quot;明确哪个要求更重要。</li>
+</ul>
 <p><strong>改进</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">✅ 明确优先级：</span><br><span class="line">- 优先保证简洁（不超过 100 字）</span><br><span class="line">- 在简洁的前提下，尽量包含背景和原因</span><br></pre></td></tr></table></figure>
-<h4 id="错误-3过度依赖隐含知识">错误 3：过度依赖隐含知识</h4>
+<h4 id="错误-3：过度依赖隐含知识"><a class="header-anchor" href="#错误-3：过度依赖隐含知识">¶</a>错误 3：过度依赖隐含知识</h4>
 <p><strong>症状</strong>：模型在你熟悉的领域表现好，在陌生领域表现差。</p>
 <p><strong>例子</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">❌ 隐含假设：优化这段代码。</span><br><span class="line">（模型不知道你关心的是速度还是可读性）</span><br></pre></td></tr></table></figure>
-<p><strong>调试</strong>： - 把所有假设写明。 -
-假装模型是个新人，需要手把手教。</p>
+<p><strong>调试</strong>：</p>
+<ul>
+<li>把所有假设写明。</li>
+<li>假装模型是个新人，需要手把手教。</li>
+</ul>
 <p><strong>改进</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">✅ 显式说明：优化这段代码的运行速度。重点关注循环和数据结构。可读性是次要的。</span><br></pre></td></tr></table></figure>
-<h4 id="错误-4忽略负面例子">错误 4：忽略负面例子</h4>
+<h4 id="错误-4：忽略负面例子"><a class="header-anchor" href="#错误-4：忽略负面例子">¶</a>错误 4：忽略负面例子</h4>
 <p><strong>症状</strong>：模型总是犯同样的错误。</p>
 <p><strong>例子</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">❌ 只给正例：</span><br><span class="line">好的回答：...</span><br><span class="line">好的回答：...</span><br></pre></td></tr></table></figure>
-<p><strong>调试</strong>： - 添加"不要这样做"的例子。</p>
+<p><strong>调试</strong>：</p>
+<ul>
+<li>添加&quot;不要这样做&quot;的例子。</li>
+</ul>
 <p><strong>改进</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">✅ 正例 + 反例：</span><br><span class="line">好的回答：简洁且有数据支撑。</span><br><span class="line">不好的回答：用了很多形容词但没有具体信息（避免这种）。</span><br></pre></td></tr></table></figure>
-<h4 id="错误-5温度参数设置不当">错误 5：温度参数设置不当</h4>
+<h4 id="错误-5：温度参数设置不当"><a class="header-anchor" href="#错误-5：温度参数设置不当">¶</a>错误 5：温度参数设置不当</h4>
 <p><strong>症状</strong>：输出太保守（每次都一样）或太发散（完全不可控）。</p>
 <p><strong>调试技巧</strong>：</p>
 <table>
@@ -925,83 +1003,70 @@ POS（词性标注）识别重要词汇。</p></li>
 </tr>
 </tbody>
 </table>
-<p><strong>实验</strong>：在验证集上测试不同温度，画出"温度-质量"曲线。</p>
+<p><strong>实验</strong>：在验证集上测试不同温度，画出&quot;温度-质量&quot;曲线。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">temperatures = [<span class="number">0</span>, <span class="number">0.2</span>, <span class="number">0.5</span>, <span class="number">0.7</span>, <span class="number">1.0</span>]</span><br><span class="line"><span class="keyword">for</span> temp <span class="keyword">in</span> temperatures:</span><br><span class="line">    score = evaluate(prompt, test_set, temperature=temp)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;Temperature <span class="subst">&#123;temp&#125;</span>: <span class="subst">&#123;score:<span class="number">.2</span>%&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
-<h3 id="评估方法">评估方法</h3>
-<h4 id="自动评估">自动评估</h4>
+<h3 id="评估方法"><a class="header-anchor" href="#评估方法">¶</a>评估方法</h3>
+<h4 id="自动评估"><a class="header-anchor" href="#自动评估">¶</a>自动评估</h4>
 <p><strong>分类任务</strong>：准确率、F1 分数、混淆矩阵。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn.metrics <span class="keyword">import</span> classification_report</span><br><span class="line"></span><br><span class="line">y_true = [<span class="string">&quot;正面&quot;</span>, <span class="string">&quot;负面&quot;</span>, <span class="string">&quot;正面&quot;</span>, ...]</span><br><span class="line">y_pred = [<span class="string">&quot;正面&quot;</span>, <span class="string">&quot;正面&quot;</span>, <span class="string">&quot;正面&quot;</span>, ...]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(classification_report(y_true, y_pred))</span><br></pre></td></tr></table></figure>
 <p><strong>生成任务</strong>：BLEU（机器翻译）、ROUGE（摘要）、BERTScore（语义相似度）。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> rouge_score <span class="keyword">import</span> rouge_scorer</span><br><span class="line"></span><br><span class="line">scorer = rouge_scorer.RougeScorer([<span class="string">&#x27;rouge1&#x27;</span>, <span class="string">&#x27;rougeL&#x27;</span>], use_stemmer=<span class="literal">True</span>)</span><br><span class="line">scores = scorer.score(reference, generated)</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br></pre></td></tr></table></figure>
-<h4 id="人工评估">人工评估</h4>
+<h4 id="人工评估"><a class="header-anchor" href="#人工评估">¶</a>人工评估</h4>
 <p>当自动指标不可靠时（创意写作、对话系统），需要人工评分。</p>
-<p><strong>评分维度</strong>： - 准确性：内容是否正确？ -
-流畅性：语言是否自然？ - 相关性：是否回答了问题？ -
-创新性：是否有新颖见解？</p>
+<p><strong>评分维度</strong>：</p>
+<ul>
+<li>准确性：内容是否正确？</li>
+<li>流畅性：语言是否自然？</li>
+<li>相关性：是否回答了问题？</li>
+<li>创新性：是否有新颖见解？</li>
+</ul>
 <p><strong>评分量表</strong>（1-5 分）：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1 分：完全不可用</span><br><span class="line">2 分：有严重问题</span><br><span class="line">3 分：基本可用，有明显不足</span><br><span class="line">4 分：良好，有小瑕疵</span><br><span class="line">5 分：优秀，无明显问题</span><br></pre></td></tr></table></figure>
-<p><strong>评估流程</strong>： 1. 随机抽样（如 100 个样本）。 2.
-多个评估者独立打分（至少 2 人）。 3. 计算评估者间一致性（Cohen's
-Kappa）。 4. 讨论分歧案例，达成共识。</p>
-<h4 id="llm-as-a-judge">LLM-as-a-Judge</h4>
+<p><strong>评估流程</strong>：</p>
+<ol>
+<li>随机抽样（如 100 个样本）。</li>
+<li>多个评估者独立打分（至少 2 人）。</li>
+<li>计算评估者间一致性（Cohen’s Kappa）。</li>
+<li>讨论分歧案例，达成共识。</li>
+</ol>
+<h4 id="LLM-as-a-Judge"><a class="header-anchor" href="#LLM-as-a-Judge">¶</a>LLM-as-a-Judge</h4>
 <p>用另一个 LLM 评估输出质量（成本低于人工评估）。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">llm_judge</span>(<span class="params">question, answer</span>):</span><br><span class="line">    prompt = <span class="string">f&quot;&quot;&quot;【任务】评估以下回答的质量。</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">【问题】</span></span><br><span class="line"><span class="string"><span class="subst">&#123;question&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">【回答】</span></span><br><span class="line"><span class="string"><span class="subst">&#123;answer&#125;</span></span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">【评分标准】</span></span><br><span class="line"><span class="string">- 准确性（是否正确回答问题）</span></span><br><span class="line"><span class="string">- 完整性（是否覆盖关键点）</span></span><br><span class="line"><span class="string">- 清晰性（是否易于理解）</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">【输出格式】</span></span><br><span class="line"><span class="string">评分：X/10</span></span><br><span class="line"><span class="string">理由：...</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    response = openai.ChatCompletion.create(</span><br><span class="line">        model=<span class="string">&quot;gpt-4&quot;</span>,</span><br><span class="line">        messages=[&#123;<span class="string">&quot;role&quot;</span>: <span class="string">&quot;user&quot;</span>, <span class="string">&quot;content&quot;</span>: prompt&#125;],</span><br><span class="line">        temperature=<span class="number">0</span></span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    text = response.choices[<span class="number">0</span>].message.content</span><br><span class="line">    score = <span class="built_in">int</span>(text.split(<span class="string">&quot;/&quot;</span>)[<span class="number">0</span>].split(<span class="string">&quot;：&quot;</span>)[<span class="number">1</span>])</span><br><span class="line">    <span class="keyword">return</span> score</span><br></pre></td></tr></table></figure>
-<p><strong>注意</strong>：LLM
-评估有偏见（倾向给自己生成的内容高分）。用不同的模型交叉验证。</p>
+<p><strong>注意</strong>：LLM 评估有偏见（倾向给自己生成的内容高分）。用不同的模型交叉验证。</p>
 <hr>
-<h2 id="总结与展望">总结与展望</h2>
-<p>提示词工程是 LLM 时代的核心技能。从最基本的清晰性原则，到
-Chain-of-Thought、Self-Consistency 等进阶技巧，再到 DSPy、APE
-等自动化框架，我们看到了这个领域的快速演进。</p>
+<h2 id="总结与展望"><a class="header-anchor" href="#总结与展望">¶</a>总结与展望</h2>
+<p>提示词工程是 LLM 时代的核心技能。从最基本的清晰性原则，到 Chain-of-Thought、Self-Consistency 等进阶技巧，再到 DSPy、APE 等自动化框架，我们看到了这个领域的快速演进。</p>
 <p><strong>核心要点回顾</strong>：</p>
-<ol type="1">
+<ol>
 <li><strong>基础很重要</strong>：清晰、具体、结构化的提示词是一切优化的前提。</li>
-<li><strong>让模型思考</strong>：复杂任务需要 CoT、ToT
-等技术引导推理过程。</li>
-<li><strong>投票提升稳定性</strong>：Self-Consistency
-通过多次采样和投票减少随机性。</li>
-<li><strong>工具增强能力</strong>：ReAct
-让模型能调用外部工具，突破纯语言的限制。</li>
-<li><strong>自动化是趋势</strong>：手写提示词费时费力，APE、DSPy
-等框架能自动优化。</li>
-<li><strong>压缩降低成本</strong>：LLMLingua
-等技术在保持性能的前提下大幅减少 Token 数。</li>
+<li><strong>让模型思考</strong>：复杂任务需要 CoT、ToT 等技术引导推理过程。</li>
+<li><strong>投票提升稳定性</strong>：Self-Consistency 通过多次采样和投票减少随机性。</li>
+<li><strong>工具增强能力</strong>：ReAct 让模型能调用外部工具，突破纯语言的限制。</li>
+<li><strong>自动化是趋势</strong>：手写提示词费时费力，APE、DSPy 等框架能自动优化。</li>
+<li><strong>压缩降低成本</strong>：LLMLingua 等技术在保持性能的前提下大幅减少 Token 数。</li>
 </ol>
 <p><strong>未来方向</strong>：</p>
 <ul>
 <li><strong>多模态提示词</strong>：结合文本、图像、音频的提示词（CLIP、GPT-4V）。</li>
 <li><strong>个性化提示词</strong>：根据用户历史自动调整提示词风格。</li>
-<li><strong>提示词安全</strong>：防止提示词注入攻击（Prompt
-Injection）。</li>
+<li><strong>提示词安全</strong>：防止提示词注入攻击（Prompt Injection）。</li>
 <li><strong>可解释性</strong>：理解为什么某个提示词有效，而非黑盒优化。</li>
 </ul>
 <p>提示词工程还在快速发展。今天的最佳实践，可能明天就被新技术取代。但核心思想不变：<strong>清晰地表达需求，引导模型的推理过程，迭代优化直到满意</strong>。</p>
-<p>掌握这些技巧，你就能最大化发挥 LLM
-的能力——无论是写代码、分析数据，还是创作内容。提示词工程不仅是技术，更是一种与
-AI 高效协作的思维方式。</p>
+<p>掌握这些技巧，你就能最大化发挥 LLM 的能力——无论是写代码、分析数据，还是创作内容。提示词工程不仅是技术，更是一种与 AI 高效协作的思维方式。</p>
 <hr>
 <p><strong>参考文献</strong></p>
-<ol type="1">
-<li>Wei et al. (2022). <em>Chain-of-Thought Prompting Elicits Reasoning
-in Large Language Models</em>. NeurIPS.</li>
-<li>Wang et al. (2022). <em>Self-Consistency Improves Chain of Thought
-Reasoning in Language Models</em>. ICLR.</li>
-<li>Yao et al. (2023). <em>Tree of Thoughts: Deliberate Problem Solving
-with Large Language Models</em>. NeurIPS.</li>
-<li>Besta et al. (2023). <em>Graph of Thoughts: Solving Elaborate
-Problems with Large Language Models</em>. AAAI.</li>
-<li>Kojima et al. (2022). <em>Large Language Models are Zero-Shot
-Reasoners</em>. NeurIPS.</li>
-<li>Zhou et al. (2022). <em>Large Language Models Are Human-Level Prompt
-Engineers</em>. ICLR.</li>
-<li>Khattab et al. (2023). <em>DSPy: Compiling Declarative Language
-Model Calls into Self-Improving Pipelines</em>. arXiv.</li>
-<li>Jiang et al. (2023). <em>LLMLingua: Compressing Prompts for
-Accelerated Inference of Large Language Models</em>. EMNLP.</li>
-<li>Min et al. (2022). <em>Rethinking the Role of Demonstrations: What
-Makes In-Context Learning Work?</em>. EMNLP.</li>
-<li>Yao et al. (2022). <em>ReAct: Synergizing Reasoning and Acting in
-Language Models</em>. ICLR.</li>
+<ol>
+<li>Wei et al. (2022). <em>Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</em>. NeurIPS.</li>
+<li>Wang et al. (2022). <em>Self-Consistency Improves Chain of Thought Reasoning in Language Models</em>. ICLR.</li>
+<li>Yao et al. (2023). <em>Tree of Thoughts: Deliberate Problem Solving with Large Language Models</em>. NeurIPS.</li>
+<li>Besta et al. (2023). <em>Graph of Thoughts: Solving Elaborate Problems with Large Language Models</em>. AAAI.</li>
+<li>Kojima et al. (2022). <em>Large Language Models are Zero-Shot Reasoners</em>. NeurIPS.</li>
+<li>Zhou et al. (2022). <em>Large Language Models Are Human-Level Prompt Engineers</em>. ICLR.</li>
+<li>Khattab et al. (2023). <em>DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines</em>. arXiv.</li>
+<li>Jiang et al. (2023). <em>LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models</em>. EMNLP.</li>
+<li>Min et al. (2022). <em>Rethinking the Role of Demonstrations: What Makes In-Context Learning Work?</em>. EMNLP.</li>
+<li>Yao et al. (2022). <em>ReAct: Synergizing Reasoning and Acting in Language Models</em>. ICLR.</li>
 </ol>
 
         </div>
@@ -1057,13 +1122,13 @@ Language Models</em>. ICLR.</li>
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/cloud-computing-security-privacy/"
+                           href="/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84Lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7%E3%80%81%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">云计算（六）云安全与隐私保护</span>
+                                <span class="post-nav-title-item">深入解析非线性优化中的Lipschitz连续性、强凸性与加速梯度下降算法</span>
                                 <span class="post-nav-item">上一篇</span>
                             </span>
                         </a>
@@ -1073,10 +1138,10 @@ Language Models</em>. ICLR.</li>
                     <div class="article-next">
                         <a class="next"
                            rel="next"
-                           href="/%E5%AD%A6%E4%B9%A0%E7%8E%87%EF%BC%9A%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E8%AE%AD%E7%BB%83%E7%9A%84%E7%BB%88%E6%9E%81%E6%8C%87%E5%8D%97%EF%BC%882026%EF%BC%89/"
+                           href="/%E6%A0%B8%E5%87%BD%E6%95%B0%E7%AE%80%E8%BF%B0/"
                         >
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">学习率：从入门到大模型训练的终极指南</span>
+                                <span class="post-nav-title-item">核函数简述</span>
                                 <span class="post-nav-item">下一篇</span>
                             </span>
                             <span class="right arrow-icon flex-center">
@@ -1289,18 +1354,7 @@ Language Models</em>. ICLR.</li>
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E7%AF%87%E7%90%86%E8%A7%A3%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%9A%84%E6%9C%AC%E8%B4%A8"><span class="nav-number">1.</span> <span class="nav-text">基础篇：理解提示词的本质</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%98%AF%E4%BB%80%E4%B9%88%E4%B8%BA%E4%BB%80%E4%B9%88%E9%87%8D%E8%A6%81"><span class="nav-number">1.1.</span> <span class="nav-text">提示词是什么？为什么重要？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#llm-%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E5%BF%85%E8%A6%81%E7%9A%84%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86"><span class="nav-number">1.2.</span> <span class="nav-text">LLM 工作原理：必要的背景知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%B6%E6%A0%B7%E6%9C%AC%E5%B0%91%E6%A0%B7%E6%9C%AC%E5%A4%9A%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BA%E4%BB%8E%E7%AE%80%E5%8D%95%E5%88%B0%E5%A4%8D%E6%9D%82"><span class="nav-number">1.3.</span> <span class="nav-text">零样本、少样本、多样本提示：从简单到复杂</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9B%B6%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BAzero-shot-prompting"><span class="nav-number">1.3.1.</span> <span class="nav-text">零样本提示（Zero-Shot
-Prompting）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%91%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BAfew-shot-prompting"><span class="nav-number">1.3.2.</span> <span class="nav-text">少样本提示（Few-Shot
-Prompting）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%9A%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BAmany-shot-prompting"><span class="nav-number">1.3.3.</span> <span class="nav-text">多样本提示（Many-Shot
-Prompting）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%9A%84%E5%9B%9B%E8%A6%81%E7%B4%A0%E8%A7%92%E8%89%B2%E4%BB%BB%E5%8A%A1%E6%A0%BC%E5%BC%8F%E7%BA%A6%E6%9D%9F"><span class="nav-number">1.4.</span> <span class="nav-text">提示词的四要素：角色、任务、格式、约束</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A7%92%E8%89%B2role"><span class="nav-number">1.4.1.</span> <span class="nav-text">角色（Role）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1task"><span class="nav-number">1.4.2.</span> <span class="nav-text">任务（Task）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8Fformat"><span class="nav-number">1.4.3.</span> <span class="nav-text">格式（Format）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BA%A6%E6%9D%9Fconstraints"><span class="nav-number">1.4.4.</span> <span class="nav-text">约束（Constraints）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%8A%80%E5%B7%A7%E6%B8%85%E6%99%B0%E6%80%A7%E5%85%B7%E4%BD%93%E6%80%A7%E7%BB%93%E6%9E%84%E5%8C%96"><span class="nav-number">1.5.</span> <span class="nav-text">基本技巧：清晰性、具体性、结构化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B8%85%E6%99%B0%E6%80%A7%E5%8E%9F%E5%88%99"><span class="nav-number">1.5.1.</span> <span class="nav-text">清晰性原则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E6%80%A7%E5%8E%9F%E5%88%99"><span class="nav-number">1.5.2.</span> <span class="nav-text">具体性原则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E5%8C%96%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.5.3.</span> <span class="nav-text">结构化设计</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%AF%87%E8%AE%A9%E6%A8%A1%E5%9E%8B%E6%80%9D%E8%80%83%E7%9A%84%E8%89%BA%E6%9C%AF"><span class="nav-number">2.</span> <span class="nav-text">进阶篇：让模型&quot;思考&quot;的艺术</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#chain-of-thoughtcot%E6%8A%8A%E6%8E%A8%E7%90%86%E8%BF%87%E7%A8%8B%E5%86%99%E5%87%BA%E6%9D%A5"><span class="nav-number">2.1.</span> <span class="nav-text">Chain-of-Thought（CoT）：把推理过程写出来</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E4%B8%8E%E5%8A%A8%E6%9C%BA"><span class="nav-number">2.1.1.</span> <span class="nav-text">原理与动机</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#zero-shot-cot-vs-few-shot-cot"><span class="nav-number">2.1.2.</span> <span class="nav-text">Zero-Shot CoT vs Few-Shot
-CoT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0%E7%A4%BA%E4%BE%8B"><span class="nav-number">2.1.3.</span> <span class="nav-text">代码实现示例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#self-consistency%E7%94%A8%E6%8A%95%E7%A5%A8%E6%8F%90%E5%8D%87%E5%87%86%E7%A1%AE%E7%8E%87"><span class="nav-number">2.2.</span> <span class="nav-text">Self-Consistency：用投票提升准确率</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#sample-and-marginalize-%E6%9C%BA%E5%88%B6"><span class="nav-number">2.2.1.</span> <span class="nav-text">Sample-and-Marginalize 机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87%E6%95%B0%E6%8D%AE"><span class="nav-number">2.2.2.</span> <span class="nav-text">性能提升数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95"><span class="nav-number">2.2.3.</span> <span class="nav-text">实现方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tree-of-thoughtstot%E6%A0%91%E5%BD%A2%E6%90%9C%E7%B4%A2%E6%8E%A8%E7%90%86"><span class="nav-number">2.3.</span> <span class="nav-text">Tree of
-Thoughts（ToT）：树形搜索推理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%91%E5%BD%A2%E6%8E%A8%E7%90%86%E7%BB%93%E6%9E%84"><span class="nav-number">2.3.1.</span> <span class="nav-text">树形推理结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9B%9B%E4%B8%AA%E6%A8%A1%E5%9D%97"><span class="nav-number">2.3.2.</span> <span class="nav-text">四个模块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E-cot-%E5%AF%B9%E6%AF%94"><span class="nav-number">2.3.3.</span> <span class="nav-text">与 CoT 对比</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#graph-of-thoughtsgot%E6%9B%B4%E7%81%B5%E6%B4%BB%E7%9A%84-dag-%E7%BB%93%E6%9E%84"><span class="nav-number">2.4.</span> <span class="nav-text">Graph of
-Thoughts（GoT）：更灵活的 DAG 结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#dag-%E7%BB%93%E6%9E%84%E7%A4%BA%E4%BE%8B"><span class="nav-number">2.4.1.</span> <span class="nav-text">DAG 结构示例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E6%93%8D%E4%BD%9C%E7%B1%BB%E5%9E%8B"><span class="nav-number">2.4.2.</span> <span class="nav-text">三种操作类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF%E5%88%86%E6%9E%90"><span class="nav-number">2.4.3.</span> <span class="nav-text">优势分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#react%E6%8E%A8%E7%90%86%E4%B8%8E%E8%A1%8C%E5%8A%A8%E7%9A%84%E7%BB%9F%E4%B8%80"><span class="nav-number">2.5.</span> <span class="nav-text">ReAct：推理与行动的统一</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#reasoning-acting-%E5%BE%AA%E7%8E%AF"><span class="nav-number">2.5.1.</span> <span class="nav-text">Reasoning + Acting 循环</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#think-act-observe-reflect-%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.5.2.</span> <span class="nav-text">Think-Act-Observe-Reflect
-详解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">2.5.3.</span> <span class="nav-text">应用场景</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E4%BC%98%E5%8C%96%E7%AF%87%E8%87%AA%E5%8A%A8%E5%8C%96%E4%B8%8E%E5%B7%A5%E7%A8%8B%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">高级优化篇：自动化与工程化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#in-context-learning-%E6%B7%B1%E5%85%A5%E5%B0%91%E6%A0%B7%E6%9C%AC%E5%88%B0%E5%A4%9A%E6%A0%B7%E6%9C%AC"><span class="nav-number">3.1.</span> <span class="nav-text">In-Context Learning
-深入：少样本到多样本</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#few-shot-icl-%E5%8E%9F%E7%90%86"><span class="nav-number">3.1.1.</span> <span class="nav-text">Few-Shot ICL 原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#many-shot-icl-%E6%9C%80%E6%96%B0%E8%BF%9B%E5%B1%95"><span class="nav-number">3.1.2.</span> <span class="nav-text">Many-Shot ICL 最新进展</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#reinforced-icl-%E4%B8%8E-unsupervised-icl"><span class="nav-number">3.1.3.</span> <span class="nav-text">Reinforced ICL 与
-Unsupervised ICL</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#automatic-prompt-engineeringape%E8%AE%A9-llm-%E5%86%99%E6%8F%90%E7%A4%BA%E8%AF%8D"><span class="nav-number">3.2.</span> <span class="nav-text">Automatic Prompt
-Engineering（APE）：让 LLM 写提示词</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%94%9F%E6%88%90"><span class="nav-number">3.2.1.</span> <span class="nav-text">自动化提示词生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%84%E4%BC%B0%E4%B8%8E%E7%AD%9B%E9%80%89"><span class="nav-number">3.2.2.</span> <span class="nav-text">评估与筛选</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dspy-%E6%A1%86%E6%9E%B6%E6%8A%8A%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%BD%93%E4%BB%A3%E7%A0%81"><span class="nav-number">3.3.</span> <span class="nav-text">DSPy 框架：把提示词当代码</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#treat-prompts-as-code-%E7%90%86%E5%BF%B5"><span class="nav-number">3.3.1.</span> <span class="nav-text">Treat Prompts As Code 理念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#optimizers-%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.3.2.</span> <span class="nav-text">Optimizers 类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B"><span class="nav-number">3.3.3.</span> <span class="nav-text">实战案例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%8E%8B%E7%BC%A9%E7%94%A8%E6%9B%B4%E5%B0%91%E7%9A%84-token-%E5%81%9A%E6%9B%B4%E5%A4%9A%E4%BA%8B"><span class="nav-number">3.4.</span> <span class="nav-text">提示词压缩：用更少的 Token
-做更多事</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#llmlingua-%E7%B3%BB%E5%88%97"><span class="nav-number">3.4.1.</span> <span class="nav-text">LLMLingua 系列</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#token-%E5%8E%BB%E9%99%A4%E7%AD%96%E7%95%A5"><span class="nav-number">3.4.2.</span> <span class="nav-text">Token 去除策略</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#x-%E5%8E%8B%E7%BC%A9%E7%8E%87"><span class="nav-number">3.4.3.</span> <span class="nav-text">20x 压缩率</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E7%AF%87%E4%BB%8E%E7%90%86%E8%AE%BA%E5%88%B0%E5%BA%94%E7%94%A8"><span class="nav-number">4.</span> <span class="nav-text">实战篇：从理论到应用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%90%8C%E4%BB%BB%E5%8A%A1%E7%9A%84%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF"><span class="nav-number">4.1.</span> <span class="nav-text">不同任务的提示词模板</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E6%9C%AC%E7%94%9F%E6%88%90"><span class="nav-number">4.1.1.</span> <span class="nav-text">文本生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E7%AD%94%E7%B3%BB%E7%BB%9F"><span class="nav-number">4.1.2.</span> <span class="nav-text">问答系统</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90"><span class="nav-number">4.1.3.</span> <span class="nav-text">代码生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90"><span class="nav-number">4.1.4.</span> <span class="nav-text">数据分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E8%BF%AD%E4%BB%A3%E4%BC%98%E5%8C%96%E6%B5%81%E7%A8%8B"><span class="nav-number">4.2.</span> <span class="nav-text">提示词迭代优化流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%E5%9F%BA%E7%BA%BF%E6%B5%8B%E8%AF%95"><span class="nav-number">4.2.1.</span> <span class="nav-text">第一步：基线测试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%B7%BB%E5%8A%A0%E7%BB%86%E8%8A%82"><span class="nav-number">4.2.2.</span> <span class="nav-text">第二步：添加细节</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%E6%B7%BB%E5%8A%A0%E4%BE%8B%E5%AD%90"><span class="nav-number">4.2.3.</span> <span class="nav-text">第三步：添加例子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%E7%BB%93%E6%9E%84%E5%8C%96"><span class="nav-number">4.2.4.</span> <span class="nav-text">第四步：结构化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%E9%87%8F%E5%8C%96%E8%AF%84%E4%BC%B0"><span class="nav-number">4.2.5.</span> <span class="nav-text">第五步：量化评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%85%AD%E6%AD%A5ab-%E6%B5%8B%E8%AF%95"><span class="nav-number">4.2.6.</span> <span class="nav-text">第六步：A&#x2F;B 测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7"><span class="nav-number">4.3.</span> <span class="nav-text">常见错误与调试技巧</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-1%E6%8F%90%E7%A4%BA%E8%AF%8D%E8%BF%87%E4%BA%8E%E6%A8%A1%E7%B3%8A"><span class="nav-number">4.3.1.</span> <span class="nav-text">错误 1：提示词过于模糊</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-2%E6%8C%87%E4%BB%A4%E5%86%B2%E7%AA%81"><span class="nav-number">4.3.2.</span> <span class="nav-text">错误 2：指令冲突</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-3%E8%BF%87%E5%BA%A6%E4%BE%9D%E8%B5%96%E9%9A%90%E5%90%AB%E7%9F%A5%E8%AF%86"><span class="nav-number">4.3.3.</span> <span class="nav-text">错误 3：过度依赖隐含知识</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-4%E5%BF%BD%E7%95%A5%E8%B4%9F%E9%9D%A2%E4%BE%8B%E5%AD%90"><span class="nav-number">4.3.4.</span> <span class="nav-text">错误 4：忽略负面例子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-5%E6%B8%A9%E5%BA%A6%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE%E4%B8%8D%E5%BD%93"><span class="nav-number">4.3.5.</span> <span class="nav-text">错误 5：温度参数设置不当</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%84%E4%BC%B0%E6%96%B9%E6%B3%95"><span class="nav-number">4.4.</span> <span class="nav-text">评估方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E8%AF%84%E4%BC%B0"><span class="nav-number">4.4.1.</span> <span class="nav-text">自动评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%BA%E5%B7%A5%E8%AF%84%E4%BC%B0"><span class="nav-number">4.4.2.</span> <span class="nav-text">人工评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#llm-as-a-judge"><span class="nav-number">4.4.3.</span> <span class="nav-text">LLM-as-a-Judge</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="nav-number">5.</span> <span class="nav-text">总结与展望</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E7%AF%87%EF%BC%9A%E7%90%86%E8%A7%A3%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%9A%84%E6%9C%AC%E8%B4%A8"><span class="nav-number">1.</span> <span class="nav-text">基础篇：理解提示词的本质</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%87%8D%E8%A6%81%EF%BC%9F"><span class="nav-number">1.1.</span> <span class="nav-text">提示词是什么？为什么重要？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LLM-%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%EF%BC%9A%E5%BF%85%E8%A6%81%E7%9A%84%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86"><span class="nav-number">1.2.</span> <span class="nav-text">LLM 工作原理：必要的背景知识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%B6%E6%A0%B7%E6%9C%AC%E3%80%81%E5%B0%91%E6%A0%B7%E6%9C%AC%E3%80%81%E5%A4%9A%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BA%EF%BC%9A%E4%BB%8E%E7%AE%80%E5%8D%95%E5%88%B0%E5%A4%8D%E6%9D%82"><span class="nav-number">1.3.</span> <span class="nav-text">零样本、少样本、多样本提示：从简单到复杂</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%9B%B6%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BA%EF%BC%88Zero-Shot-Prompting%EF%BC%89"><span class="nav-number">1.3.1.</span> <span class="nav-text">零样本提示（Zero-Shot Prompting）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%91%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BA%EF%BC%88Few-Shot-Prompting%EF%BC%89"><span class="nav-number">1.3.2.</span> <span class="nav-text">少样本提示（Few-Shot Prompting）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%9A%E6%A0%B7%E6%9C%AC%E6%8F%90%E7%A4%BA%EF%BC%88Many-Shot-Prompting%EF%BC%89"><span class="nav-number">1.3.3.</span> <span class="nav-text">多样本提示（Many-Shot Prompting）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%9A%84%E5%9B%9B%E8%A6%81%E7%B4%A0%EF%BC%9A%E8%A7%92%E8%89%B2%E3%80%81%E4%BB%BB%E5%8A%A1%E3%80%81%E6%A0%BC%E5%BC%8F%E3%80%81%E7%BA%A6%E6%9D%9F"><span class="nav-number">1.4.</span> <span class="nav-text">提示词的四要素：角色、任务、格式、约束</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A7%92%E8%89%B2%EF%BC%88Role%EF%BC%89"><span class="nav-number">1.4.1.</span> <span class="nav-text">角色（Role）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%BB%E5%8A%A1%EF%BC%88Task%EF%BC%89"><span class="nav-number">1.4.2.</span> <span class="nav-text">任务（Task）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%BC%E5%BC%8F%EF%BC%88Format%EF%BC%89"><span class="nav-number">1.4.3.</span> <span class="nav-text">格式（Format）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BA%A6%E6%9D%9F%EF%BC%88Constraints%EF%BC%89"><span class="nav-number">1.4.4.</span> <span class="nav-text">约束（Constraints）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%8A%80%E5%B7%A7%EF%BC%9A%E6%B8%85%E6%99%B0%E6%80%A7%E3%80%81%E5%85%B7%E4%BD%93%E6%80%A7%E3%80%81%E7%BB%93%E6%9E%84%E5%8C%96"><span class="nav-number">1.5.</span> <span class="nav-text">基本技巧：清晰性、具体性、结构化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B8%85%E6%99%B0%E6%80%A7%E5%8E%9F%E5%88%99"><span class="nav-number">1.5.1.</span> <span class="nav-text">清晰性原则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E6%80%A7%E5%8E%9F%E5%88%99"><span class="nav-number">1.5.2.</span> <span class="nav-text">具体性原则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E5%8C%96%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.5.3.</span> <span class="nav-text">结构化设计</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%AF%87%EF%BC%9A%E8%AE%A9%E6%A8%A1%E5%9E%8B-%E6%80%9D%E8%80%83-%E7%9A%84%E8%89%BA%E6%9C%AF"><span class="nav-number">2.</span> <span class="nav-text">进阶篇：让模型&quot;思考&quot;的艺术</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Chain-of-Thought%EF%BC%88CoT%EF%BC%89%EF%BC%9A%E6%8A%8A%E6%8E%A8%E7%90%86%E8%BF%87%E7%A8%8B%E5%86%99%E5%87%BA%E6%9D%A5"><span class="nav-number">2.1.</span> <span class="nav-text">Chain-of-Thought（CoT）：把推理过程写出来</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E4%B8%8E%E5%8A%A8%E6%9C%BA"><span class="nav-number">2.1.1.</span> <span class="nav-text">原理与动机</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Zero-Shot-CoT-vs-Few-Shot-CoT"><span class="nav-number">2.1.2.</span> <span class="nav-text">Zero-Shot CoT vs Few-Shot CoT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0%E7%A4%BA%E4%BE%8B"><span class="nav-number">2.1.3.</span> <span class="nav-text">代码实现示例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Self-Consistency%EF%BC%9A%E7%94%A8%E6%8A%95%E7%A5%A8%E6%8F%90%E5%8D%87%E5%87%86%E7%A1%AE%E7%8E%87"><span class="nav-number">2.2.</span> <span class="nav-text">Self-Consistency：用投票提升准确率</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Sample-and-Marginalize-%E6%9C%BA%E5%88%B6"><span class="nav-number">2.2.1.</span> <span class="nav-text">Sample-and-Marginalize 机制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87%E6%95%B0%E6%8D%AE"><span class="nav-number">2.2.2.</span> <span class="nav-text">性能提升数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95"><span class="nav-number">2.2.3.</span> <span class="nav-text">实现方法</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Tree-of-Thoughts%EF%BC%88ToT%EF%BC%89%EF%BC%9A%E6%A0%91%E5%BD%A2%E6%90%9C%E7%B4%A2%E6%8E%A8%E7%90%86"><span class="nav-number">2.3.</span> <span class="nav-text">Tree of Thoughts（ToT）：树形搜索推理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%91%E5%BD%A2%E6%8E%A8%E7%90%86%E7%BB%93%E6%9E%84"><span class="nav-number">2.3.1.</span> <span class="nav-text">树形推理结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9B%9B%E4%B8%AA%E6%A8%A1%E5%9D%97"><span class="nav-number">2.3.2.</span> <span class="nav-text">四个模块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E-CoT-%E5%AF%B9%E6%AF%94"><span class="nav-number">2.3.3.</span> <span class="nav-text">与 CoT 对比</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Graph-of-Thoughts%EF%BC%88GoT%EF%BC%89%EF%BC%9A%E6%9B%B4%E7%81%B5%E6%B4%BB%E7%9A%84-DAG-%E7%BB%93%E6%9E%84"><span class="nav-number">2.4.</span> <span class="nav-text">Graph of Thoughts（GoT）：更灵活的 DAG 结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#DAG-%E7%BB%93%E6%9E%84%E7%A4%BA%E4%BE%8B"><span class="nav-number">2.4.1.</span> <span class="nav-text">DAG 结构示例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E6%93%8D%E4%BD%9C%E7%B1%BB%E5%9E%8B"><span class="nav-number">2.4.2.</span> <span class="nav-text">三种操作类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF%E5%88%86%E6%9E%90"><span class="nav-number">2.4.3.</span> <span class="nav-text">优势分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ReAct%EF%BC%9A%E6%8E%A8%E7%90%86%E4%B8%8E%E8%A1%8C%E5%8A%A8%E7%9A%84%E7%BB%9F%E4%B8%80"><span class="nav-number">2.5.</span> <span class="nav-text">ReAct：推理与行动的统一</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Reasoning-Acting-%E5%BE%AA%E7%8E%AF"><span class="nav-number">2.5.1.</span> <span class="nav-text">Reasoning + Acting 循环</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Think-Act-Observe-Reflect-%E8%AF%A6%E8%A7%A3"><span class="nav-number">2.5.2.</span> <span class="nav-text">Think-Act-Observe-Reflect 详解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF-v2"><span class="nav-number">2.5.3.</span> <span class="nav-text">应用场景</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E4%BC%98%E5%8C%96%E7%AF%87%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%8C%96%E4%B8%8E%E5%B7%A5%E7%A8%8B%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">高级优化篇：自动化与工程化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#In-Context-Learning-%E6%B7%B1%E5%85%A5%EF%BC%9A%E5%B0%91%E6%A0%B7%E6%9C%AC%E5%88%B0%E5%A4%9A%E6%A0%B7%E6%9C%AC"><span class="nav-number">3.1.</span> <span class="nav-text">In-Context Learning 深入：少样本到多样本</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Few-Shot-ICL-%E5%8E%9F%E7%90%86"><span class="nav-number">3.1.1.</span> <span class="nav-text">Few-Shot ICL 原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Many-Shot-ICL-%E6%9C%80%E6%96%B0%E8%BF%9B%E5%B1%95"><span class="nav-number">3.1.2.</span> <span class="nav-text">Many-Shot ICL 最新进展</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Reinforced-ICL-%E4%B8%8E-Unsupervised-ICL"><span class="nav-number">3.1.3.</span> <span class="nav-text">Reinforced ICL 与 Unsupervised ICL</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Automatic-Prompt-Engineering%EF%BC%88APE%EF%BC%89%EF%BC%9A%E8%AE%A9-LLM-%E5%86%99%E6%8F%90%E7%A4%BA%E8%AF%8D"><span class="nav-number">3.2.</span> <span class="nav-text">Automatic Prompt Engineering（APE）：让 LLM 写提示词</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8F%90%E7%A4%BA%E8%AF%8D%E7%94%9F%E6%88%90"><span class="nav-number">3.2.1.</span> <span class="nav-text">自动化提示词生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%84%E4%BC%B0%E4%B8%8E%E7%AD%9B%E9%80%89"><span class="nav-number">3.2.2.</span> <span class="nav-text">评估与筛选</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DSPy-%E6%A1%86%E6%9E%B6%EF%BC%9A%E6%8A%8A%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%BD%93%E4%BB%A3%E7%A0%81"><span class="nav-number">3.3.</span> <span class="nav-text">DSPy 框架：把提示词当代码</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Treat-Prompts-As-Code-%E7%90%86%E5%BF%B5"><span class="nav-number">3.3.1.</span> <span class="nav-text">Treat Prompts As Code 理念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Optimizers-%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.3.2.</span> <span class="nav-text">Optimizers 类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B-v8"><span class="nav-number">3.3.3.</span> <span class="nav-text">实战案例</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%8E%8B%E7%BC%A9%EF%BC%9A%E7%94%A8%E6%9B%B4%E5%B0%91%E7%9A%84-Token-%E5%81%9A%E6%9B%B4%E5%A4%9A%E4%BA%8B"><span class="nav-number">3.4.</span> <span class="nav-text">提示词压缩：用更少的 Token 做更多事</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#LLMLingua-%E7%B3%BB%E5%88%97"><span class="nav-number">3.4.1.</span> <span class="nav-text">LLMLingua 系列</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Token-%E5%8E%BB%E9%99%A4%E7%AD%96%E7%95%A5"><span class="nav-number">3.4.2.</span> <span class="nav-text">Token 去除策略</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#20x-%E5%8E%8B%E7%BC%A9%E7%8E%87"><span class="nav-number">3.4.3.</span> <span class="nav-text">20x 压缩率</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E7%AF%87%EF%BC%9A%E4%BB%8E%E7%90%86%E8%AE%BA%E5%88%B0%E5%BA%94%E7%94%A8"><span class="nav-number">4.</span> <span class="nav-text">实战篇：从理论到应用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%90%8C%E4%BB%BB%E5%8A%A1%E7%9A%84%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF"><span class="nav-number">4.1.</span> <span class="nav-text">不同任务的提示词模板</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E6%9C%AC%E7%94%9F%E6%88%90"><span class="nav-number">4.1.1.</span> <span class="nav-text">文本生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%97%AE%E7%AD%94%E7%B3%BB%E7%BB%9F"><span class="nav-number">4.1.2.</span> <span class="nav-text">问答系统</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90"><span class="nav-number">4.1.3.</span> <span class="nav-text">代码生成</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90"><span class="nav-number">4.1.4.</span> <span class="nav-text">数据分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E7%A4%BA%E8%AF%8D%E8%BF%AD%E4%BB%A3%E4%BC%98%E5%8C%96%E6%B5%81%E7%A8%8B"><span class="nav-number">4.2.</span> <span class="nav-text">提示词迭代优化流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E5%9F%BA%E7%BA%BF%E6%B5%8B%E8%AF%95"><span class="nav-number">4.2.1.</span> <span class="nav-text">第一步：基线测试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E6%B7%BB%E5%8A%A0%E7%BB%86%E8%8A%82"><span class="nav-number">4.2.2.</span> <span class="nav-text">第二步：添加细节</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%B7%BB%E5%8A%A0%E4%BE%8B%E5%AD%90"><span class="nav-number">4.2.3.</span> <span class="nav-text">第三步：添加例子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E7%BB%93%E6%9E%84%E5%8C%96"><span class="nav-number">4.2.4.</span> <span class="nav-text">第四步：结构化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E9%87%8F%E5%8C%96%E8%AF%84%E4%BC%B0"><span class="nav-number">4.2.5.</span> <span class="nav-text">第五步：量化评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%85%AD%E6%AD%A5%EF%BC%9AA-B-%E6%B5%8B%E8%AF%95"><span class="nav-number">4.2.6.</span> <span class="nav-text">第六步：A&#x2F;B 测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E4%B8%8E%E8%B0%83%E8%AF%95%E6%8A%80%E5%B7%A7-v4"><span class="nav-number">4.3.</span> <span class="nav-text">常见错误与调试技巧</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-1%EF%BC%9A%E6%8F%90%E7%A4%BA%E8%AF%8D%E8%BF%87%E4%BA%8E%E6%A8%A1%E7%B3%8A"><span class="nav-number">4.3.1.</span> <span class="nav-text">错误 1：提示词过于模糊</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-2%EF%BC%9A%E6%8C%87%E4%BB%A4%E5%86%B2%E7%AA%81"><span class="nav-number">4.3.2.</span> <span class="nav-text">错误 2：指令冲突</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-3%EF%BC%9A%E8%BF%87%E5%BA%A6%E4%BE%9D%E8%B5%96%E9%9A%90%E5%90%AB%E7%9F%A5%E8%AF%86"><span class="nav-number">4.3.3.</span> <span class="nav-text">错误 3：过度依赖隐含知识</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-4%EF%BC%9A%E5%BF%BD%E7%95%A5%E8%B4%9F%E9%9D%A2%E4%BE%8B%E5%AD%90"><span class="nav-number">4.3.4.</span> <span class="nav-text">错误 4：忽略负面例子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-5%EF%BC%9A%E6%B8%A9%E5%BA%A6%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE%E4%B8%8D%E5%BD%93"><span class="nav-number">4.3.5.</span> <span class="nav-text">错误 5：温度参数设置不当</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%84%E4%BC%B0%E6%96%B9%E6%B3%95"><span class="nav-number">4.4.</span> <span class="nav-text">评估方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E8%AF%84%E4%BC%B0"><span class="nav-number">4.4.1.</span> <span class="nav-text">自动评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%BA%E5%B7%A5%E8%AF%84%E4%BC%B0"><span class="nav-number">4.4.2.</span> <span class="nav-text">人工评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#LLM-as-a-Judge"><span class="nav-number">4.4.3.</span> <span class="nav-text">LLM-as-a-Judge</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="nav-number">5.</span> <span class="nav-text">总结与展望</span></a></li></ol>
     </div>
 </div>
         </aside>
