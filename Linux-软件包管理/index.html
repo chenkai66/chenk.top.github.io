@@ -215,8 +215,8 @@
     
     <span class="article-date article-meta-item">
         <i class="fas fa-edit"></i>&nbsp;
-        <span class="pc">2025-01-10 00:00:00</span>
-        <span class="mobile">2025-01-10 00:00</span>
+        <span class="pc">2023-01-02 00:00:00</span>
+        <span class="mobile">2023-01-02 00:00</span>
     </span>
     
     
@@ -260,24 +260,34 @@
         
 
         <div class="article-content markdown-body">
-            <p>软件包管理看起来只是&quot;装/卸/更新&quot;，但真正决定你是否少踩坑的，是两件事：第一，包里到底包含了什么（可执行文件、配置、依赖库、服务脚本），以及它们分别落在系统的哪些位置；第二，发行版的工具链差异（Debian/Ubuntu 的 <code>dpkg/apt</code> vs RHEL/CentOS 的 <code>rpm/yum/dnf</code>）会如何影响依赖解析、版本选择与回滚策略。本文先把软件包与依赖的基本概念讲清楚，再给出一套可复现的常用操作清单（包括高级用法：依赖冲突排查、版本锁定、降级、清理无用包），并补上国内环境最常见的配置（例如替换阿里云源、清华源、验证源是否生效）。最后把&quot;装包&quot;延伸到更贴近生产的两条路径：源码编译（以 Nginx 为例，讲清楚 configure/make/make install 分别干了什么）与二进制免安装配置（以 Java 为例），让你在遇到版本/依赖/网络限制时有可选的落地方案。</p>
+            <p>软件包管理看起来只是"装/卸/更新"，但真正决定你是否少踩坑的，是两件事：第一，包里到底包含了什么（可执行文件、配置、依赖库、服务脚本），以及它们分别落在系统的哪些位置；第二，发行版的工具链差异（Debian/Ubuntu
+的 <code>dpkg/apt</code> vs RHEL/CentOS 的
+<code>rpm/yum/dnf</code>）会如何影响依赖解析、版本选择与回滚策略。本文先把软件包与依赖的基本概念讲清楚，再给出一套可复现的常用操作清单（包括高级用法：依赖冲突排查、版本锁定、降级、清理无用包），并补上国内环境最常见的配置（例如替换阿里云源、清华源、验证源是否生效）。最后把"装包"延伸到更贴近生产的两条路径：源码编译（以
+Nginx 为例，讲清楚 configure/make/make install
+分别干了什么）与二进制免安装配置（以 Java
+为例），让你在遇到版本/依赖/网络限制时有可选的落地方案。</p>
 <span id="more"></span>
-<h1>软件包的基本概念：包里有什么、为什么需要包管理器</h1>
-<h2 id="软件包的组成"><a class="header-anchor" href="#软件包的组成">¶</a>软件包的组成</h2>
+<h1 id="软件包的基本概念包里有什么为什么需要包管理器">软件包的基本概念：包里有什么、为什么需要包管理器</h1>
+<h2 id="软件包的组成">软件包的组成</h2>
 <p>软件包是将程序、库文件、配置文件以及文档等打包在一起的文件，方便安装、升级和卸载。一个标准的软件包通常包括以下内容：</p>
-<h3 id="二进制可执行文件（Binary-Executables）"><a class="header-anchor" href="#二进制可执行文件（Binary-Executables）">¶</a>二进制可执行文件（Binary Executables）</h3>
+<h3 id="二进制可执行文件binary-executables">二进制可执行文件（Binary
+Executables）</h3>
 <p>经过编译的程序源代码，生成的可执行二进制文件。例如：</p>
 <ul>
 <li><code>/usr/bin/vim</code>：文本编辑器</li>
 <li><code>/usr/sbin/nginx</code>：Web 服务器</li>
 <li><code>/usr/bin/gcc</code>：编译器</li>
 </ul>
-<h3 id="配置文件（Configuration-Files）"><a class="header-anchor" href="#配置文件（Configuration-Files）">¶</a>配置文件（Configuration Files）</h3>
-<p>存放应用程序的默认配置，通常位于 <code>/etc/</code> 目录下。例如：</p>
+<h3 id="配置文件configuration-files">配置文件（Configuration
+Files）</h3>
+<p>存放应用程序的默认配置，通常位于 <code>/etc/</code>
+目录下。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/etc/nginx/nginx.conf  <span class="comment"># Nginx 的配置文件</span></span><br><span class="line">/etc/mysql/my.cnf      <span class="comment"># MySQL 的配置文件</span></span><br><span class="line">/etc/ssh/sshd_config   <span class="comment"># SSH 服务端配置</span></span><br></pre></td></tr></table></figure>
 <p><strong>重要特性</strong>：包管理器在升级时通常会<strong>保留你修改过的配置文件</strong>（不会覆盖），避免配置丢失。</p>
-<h3 id="共享库（Shared-Libraries）"><a class="header-anchor" href="#共享库（Shared-Libraries）">¶</a>共享库（Shared Libraries）</h3>
-<p>共享库是可执行文件运行时依赖的动态链接库（类似 Windows 的 <code>.dll</code>），通常存放在 <code>/usr/lib/</code> 或 <code>/lib/</code> 目录下。例如：</p>
+<h3 id="共享库shared-libraries">共享库（Shared Libraries）</h3>
+<p>共享库是可执行文件运行时依赖的动态链接库（类似 Windows 的
+<code>.dll</code>），通常存放在 <code>/usr/lib/</code> 或
+<code>/lib/</code> 目录下。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/libssl.so             <span class="comment"># OpenSSL 加密库</span></span><br><span class="line">/lib/x86_64-linux-gnu/libc.so.6  <span class="comment"># GNU C 标准库</span></span><br></pre></td></tr></table></figure>
 <p><strong>为什么需要共享库？</strong></p>
 <ul>
@@ -285,20 +295,23 @@
 <li>节省内存（同一个库只加载一次）</li>
 <li>方便升级（升级库后，所有依赖这个库的程序都受益）</li>
 </ul>
-<h3 id="数据文件（Data-Files）"><a class="header-anchor" href="#数据文件（Data-Files）">¶</a>数据文件（Data Files）</h3>
+<h3 id="数据文件data-files">数据文件（Data Files）</h3>
 <p>应用程序所需的数据，如数据库文件、默认资源等。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/mysql/   <span class="comment"># MySQL 数据库存放目录</span></span><br><span class="line">/var/www/html/    <span class="comment"># Web 服务器默认站点目录</span></span><br></pre></td></tr></table></figure>
-<h3 id="文档（Documentation）"><a class="header-anchor" href="#文档（Documentation）">¶</a>文档（Documentation）</h3>
-<p>软件的说明文档、手册页（man pages）、版权声明等，通常存放在 <code>/usr/share/doc/</code> 目录。例如：</p>
+<h3 id="文档documentation">文档（Documentation）</h3>
+<p>软件的说明文档、手册页（man pages）、版权声明等，通常存放在
+<code>/usr/share/doc/</code> 目录。例如：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">/usr/share/man/man1/vim.1.gz  <span class="comment"># vim 的 man 手册</span></span><br></pre></td></tr></table></figure>
-<h3 id="服务单元文件（Service-Units，如果是服务）"><a class="header-anchor" href="#服务单元文件（Service-Units，如果是服务）">¶</a>服务单元文件（Service Units，如果是服务）</h3>
+<h3 id="服务单元文件service-units如果是服务">服务单元文件（Service
+Units，如果是服务）</h3>
 <p>如果是后台服务，还会包含 systemd unit 文件：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/lib/systemd/system/nginx.service</span><br><span class="line">/etc/systemd/system/mysql.service</span><br></pre></td></tr></table></figure>
-<h2 id="为什么需要包管理器"><a class="header-anchor" href="#为什么需要包管理器">¶</a>为什么需要包管理器</h2>
+<h2 id="为什么需要包管理器">为什么需要包管理器</h2>
 <p>如果没有包管理器，你需要：</p>
-<ol>
+<ol type="1">
 <li><strong>手动下载软件</strong>（从官网或第三方网站找下载链接）</li>
-<li><strong>手动解决依赖</strong>（A 依赖 B，B 依赖 C，你得一个一个装）</li>
+<li><strong>手动解决依赖</strong>（A 依赖 B，B 依赖
+C，你得一个一个装）</li>
 <li><strong>手动放置文件</strong>（可执行文件放哪、配置文件放哪、库文件放哪）</li>
 <li><strong>手动卸载</strong>（卸载时要记得删除所有文件，包括配置和依赖）</li>
 <li><strong>手动更新</strong>（每个软件都要去官网查有没有新版本）</li>
@@ -308,14 +321,22 @@
 <li><strong>自动解决依赖</strong>：A 依赖 B，装 A 时自动装 B</li>
 <li><strong>统一安装位置</strong>：所有软件都按规范放置，不会乱</li>
 <li><strong>一键卸载</strong>：卸载时自动删除所有相关文件</li>
-<li><strong>一键更新</strong>：<code>apt upgrade</code> 或 <code>dnf upgrade</code> 更新所有软件</li>
+<li><strong>一键更新</strong>：<code>apt upgrade</code> 或
+<code>dnf upgrade</code> 更新所有软件</li>
 <li><strong>版本管理</strong>：可以查看、锁定、降级软件版本</li>
 <li><strong>安全性</strong>：软件包都经过签名验证，减少恶意软件风险</li>
 </ul>
 <hr>
-<h1>Linux 主流包管理器对比</h1>
+<h1 id="linux-主流包管理器对比">Linux 主流包管理器对比</h1>
 <p>不同的 Linux 发行版使用不同的包管理器：</p>
 <table>
+<colgroup>
+<col style="width: 22%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 35%">
+</colgroup>
 <thead>
 <tr>
 <th><strong>发行版</strong></th>
@@ -363,11 +384,18 @@
 </tr>
 </tbody>
 </table>
-<p><strong>本文主要讲 Debian/Ubuntu 的 apt/dpkg 和 RHEL/CentOS 的 yum/dnf/rpm，因为它们是最常用的。</strong></p>
+<p><strong>本文主要讲 Debian/Ubuntu 的 apt/dpkg 和 RHEL/CentOS 的
+yum/dnf/rpm，因为它们是最常用的。</strong></p>
 <hr>
-<h1>Debian/Ubuntu 包管理：apt + dpkg</h1>
-<h2 id="apt-vs-apt-get-vs-dpkg"><a class="header-anchor" href="#apt-vs-apt-get-vs-dpkg">¶</a>apt vs apt-get vs dpkg</h2>
-<table>
+<h1 id="debianubuntu-包管理apt-dpkg">Debian/Ubuntu 包管理：apt +
+dpkg</h1>
+<h2 id="apt-vs-apt-get-vs-dpkg">apt vs apt-get vs dpkg</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 17%">
+<col style="width: 72%">
+<col style="width: 10%">
+</colgroup>
 <thead>
 <tr>
 <th>工具</th>
@@ -388,62 +416,71 @@
 </tr>
 <tr>
 <td><strong>dpkg</strong></td>
-<td>底层工具，直接操作 .deb 包，<strong>不会自动处理依赖</strong>（需要手动解决）</td>
+<td>底层工具，直接操作 .deb
+包，<strong>不会自动处理依赖</strong>（需要手动解决）</td>
 <td>⭐⭐</td>
 </tr>
 </tbody>
 </table>
-<p><strong>推荐</strong>：日常使用 <code>apt</code>，脚本中使用 <code>apt-get</code>（输出格式更稳定）。</p>
-<h2 id="常用操作"><a class="header-anchor" href="#常用操作">¶</a>常用操作</h2>
-<h3 id="更新软件源信息"><a class="header-anchor" href="#更新软件源信息">¶</a>更新软件源信息</h3>
+<p><strong>推荐</strong>：日常使用 <code>apt</code>，脚本中使用
+<code>apt-get</code>（输出格式更稳定）。</p>
+<h2 id="常用操作">常用操作</h2>
+<h3 id="更新软件源信息">更新软件源信息</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update  <span class="comment"># 从软件源下载最新的包列表</span></span><br></pre></td></tr></table></figure>
 <p>这个命令只是更新本地的包列表缓存，不会升级任何软件。</p>
-<h3 id="搜索软件包"><a class="header-anchor" href="#搜索软件包">¶</a>搜索软件包</h3>
+<h3 id="搜索软件包">搜索软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt search nginx  <span class="comment"># 搜索包含 nginx 的包</span></span><br><span class="line">apt-cache search nginx  <span class="comment"># 同上（老命令）</span></span><br></pre></td></tr></table></figure>
-<h3 id="查看包信息"><a class="header-anchor" href="#查看包信息">¶</a>查看包信息</h3>
+<h3 id="查看包信息">查看包信息</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt show nginx  <span class="comment"># 查看 nginx 的详细信息（版本、依赖、描述）</span></span><br><span class="line">apt-cache policy nginx  <span class="comment"># 查看 nginx 的版本和安装状态</span></span><br></pre></td></tr></table></figure>
-<h3 id="安装软件包"><a class="header-anchor" href="#安装软件包">¶</a>安装软件包</h3>
+<h3 id="安装软件包">安装软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install nginx  <span class="comment"># 安装 nginx</span></span><br><span class="line">sudo apt install nginx=1.18.0-0ubuntu1  <span class="comment"># 安装指定版本</span></span><br><span class="line">sudo apt install nginx -y  <span class="comment"># 自动回答 yes（不询问确认）</span></span><br></pre></td></tr></table></figure>
-<h3 id="卸载软件包"><a class="header-anchor" href="#卸载软件包">¶</a>卸载软件包</h3>
+<h3 id="卸载软件包">卸载软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt remove nginx  <span class="comment"># 卸载 nginx（保留配置文件）</span></span><br><span class="line">sudo apt purge nginx   <span class="comment"># 彻底卸载 nginx（删除配置文件）</span></span><br><span class="line">sudo apt autoremove    <span class="comment"># 删除不再需要的依赖包（清理垃圾）</span></span><br></pre></td></tr></table></figure>
 <p><strong>区别</strong>：</p>
 <ul>
-<li><code>remove</code>：只删除程序文件，保留 <code>/etc/</code> 下的配置文件（方便以后重新安装时恢复配置）</li>
+<li><code>remove</code>：只删除程序文件，保留 <code>/etc/</code>
+下的配置文件（方便以后重新安装时恢复配置）</li>
 <li><code>purge</code>：连配置文件一起删（彻底卸载）</li>
 </ul>
-<h3 id="升级软件包"><a class="header-anchor" href="#升级软件包">¶</a>升级软件包</h3>
+<h3 id="升级软件包">升级软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt upgrade  <span class="comment"># 升级所有可升级的包（不删除已安装的包）</span></span><br><span class="line">sudo apt full-upgrade  <span class="comment"># 升级所有包（必要时可以删除旧包）</span></span><br><span class="line">sudo apt dist-upgrade  <span class="comment"># 同 full-upgrade（老命令）</span></span><br></pre></td></tr></table></figure>
 <p><strong>区别</strong>：</p>
 <ul>
 <li><code>upgrade</code>：保守升级，不删除已安装的包</li>
 <li><code>full-upgrade</code>：激进升级，必要时可以删除或安装包（如依赖关系变化）</li>
 </ul>
-<h3 id="查看已安装的包"><a class="header-anchor" href="#查看已安装的包">¶</a>查看已安装的包</h3>
+<h3 id="查看已安装的包">查看已安装的包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dpkg -l  <span class="comment"># 列出所有已安装的包</span></span><br><span class="line">dpkg -l | grep nginx  <span class="comment"># 查看 nginx 是否已安装</span></span><br><span class="line">apt list --installed  <span class="comment"># 同上（apt 命令）</span></span><br></pre></td></tr></table></figure>
-<h3 id="查看包安装的文件"><a class="header-anchor" href="#查看包安装的文件">¶</a>查看包安装的文件</h3>
+<h3 id="查看包安装的文件">查看包安装的文件</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dpkg -L nginx  <span class="comment"># 查看 nginx 安装了哪些文件</span></span><br></pre></td></tr></table></figure>
 <p>输出示例：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/usr/sbin/nginx</span><br><span class="line">/etc/nginx/nginx.conf</span><br><span class="line">/usr/share/doc/nginx/README</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
-<h3 id="查看文件属于哪个包"><a class="header-anchor" href="#查看文件属于哪个包">¶</a>查看文件属于哪个包</h3>
+<h3 id="查看文件属于哪个包">查看文件属于哪个包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dpkg -S /usr/sbin/nginx  <span class="comment"># 查看 /usr/sbin/nginx 属于哪个包</span></span><br></pre></td></tr></table></figure>
 <p>输出：<code>nginx-core: /usr/sbin/nginx</code></p>
-<h3 id="手动安装-deb-包"><a class="header-anchor" href="#手动安装-deb-包">¶</a>手动安装 .deb 包</h3>
+<h3 id="手动安装-.deb-包">手动安装 .deb 包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dpkg -i package.deb  <span class="comment"># 安装 .deb 包（不会自动解决依赖）</span></span><br><span class="line">sudo apt install -f  <span class="comment"># 修复依赖（如果上面报错）</span></span><br></pre></td></tr></table></figure>
 <p><strong>更好的方式</strong>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install ./package.deb  <span class="comment"># apt 会自动解决依赖</span></span><br></pre></td></tr></table></figure>
-<h2 id="高级用法-v2"><a class="header-anchor" href="#高级用法-v2">¶</a>高级用法</h2>
-<h3 id="锁定包版本（防止升级）"><a class="header-anchor" href="#锁定包版本（防止升级）">¶</a>锁定包版本（防止升级）</h3>
+<h2 id="高级用法">高级用法</h2>
+<h3 id="锁定包版本防止升级">锁定包版本（防止升级）</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-mark hold nginx  <span class="comment"># 锁定 nginx，prevent upgrade</span></span><br><span class="line">apt-mark showhold  <span class="comment"># 查看被锁定的包</span></span><br><span class="line">sudo apt-mark unhold nginx  <span class="comment"># 解锁</span></span><br></pre></td></tr></table></figure>
-<h3 id="降级包版本"><a class="header-anchor" href="#降级包版本">¶</a>降级包版本</h3>
+<h3 id="降级包版本">降级包版本</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 查看可用版本</span></span><br><span class="line">apt-cache policy nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 安装指定版本</span></span><br><span class="line">sudo apt install nginx=1.18.0-0ubuntu1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 锁定版本（防止被升级）</span></span><br><span class="line">sudo apt-mark hold nginx</span><br></pre></td></tr></table></figure>
-<h3 id="清理缓存（释放磁盘空间）"><a class="header-anchor" href="#清理缓存（释放磁盘空间）">¶</a>清理缓存（释放磁盘空间）</h3>
+<h3 id="清理缓存释放磁盘空间">清理缓存（释放磁盘空间）</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo apt clean  <span class="comment"># 删除所有下载的 .deb 包缓存（在 /var/cache/apt/archives/）</span></span><br><span class="line">sudo apt autoclean  <span class="comment"># 只删除过时的包缓存</span></span><br><span class="line">sudo apt autoremove  <span class="comment"># 删除不再需要的依赖包</span></span><br></pre></td></tr></table></figure>
 <p><strong>组合使用</strong>（清理磁盘空间）：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt autoremove &amp;&amp; sudo apt autoclean</span><br></pre></td></tr></table></figure>
 <hr>
-<h1>RHEL/CentOS 包管理：yum/dnf + rpm</h1>
-<h2 id="yum-vs-dnf-vs-rpm"><a class="header-anchor" href="#yum-vs-dnf-vs-rpm">¶</a>yum vs dnf vs rpm</h2>
+<h1 id="rhelcentos-包管理yumdnf-rpm">RHEL/CentOS 包管理：yum/dnf +
+rpm</h1>
+<h2 id="yum-vs-dnf-vs-rpm">yum vs dnf vs rpm</h2>
 <table>
+<colgroup>
+<col style="width: 13%">
+<col style="width: 75%">
+<col style="width: 10%">
+</colgroup>
 <thead>
 <tr>
 <th>工具</th>
@@ -454,7 +491,8 @@
 <tbody>
 <tr>
 <td><strong>dnf</strong></td>
-<td>新一代高层工具（CentOS 8+、Fedora），自动处理依赖，速度更快，推荐使用</td>
+<td>新一代高层工具（CentOS
+8+、Fedora），自动处理依赖，速度更快，推荐使用</td>
 <td>⭐⭐⭐⭐⭐</td>
 </tr>
 <tr>
@@ -464,59 +502,61 @@
 </tr>
 <tr>
 <td><strong>rpm</strong></td>
-<td>底层工具，直接操作 .rpm 包，<strong>不会自动处理依赖</strong>（需要手动解决）</td>
+<td>底层工具，直接操作 .rpm
+包，<strong>不会自动处理依赖</strong>（需要手动解决）</td>
 <td>⭐⭐</td>
 </tr>
 </tbody>
 </table>
-<p><strong>推荐</strong>：CentOS 8+ 和 Fedora 用 <code>dnf</code>，CentOS 7 用 <code>yum</code>。</p>
-<h2 id="常用操作（以-dnf-为例，yum-命令几乎一样）"><a class="header-anchor" href="#常用操作（以-dnf-为例，yum-命令几乎一样）">¶</a>常用操作（以 dnf 为例，yum 命令几乎一样）</h2>
-<h3 id="更新软件源信息-v2"><a class="header-anchor" href="#更新软件源信息-v2">¶</a>更新软件源信息</h3>
+<p><strong>推荐</strong>：CentOS 8+ 和 Fedora 用
+<code>dnf</code>，CentOS 7 用 <code>yum</code>。</p>
+<h2 id="常用操作以-dnf-为例yum-命令几乎一样">常用操作（以 dnf 为例，yum
+命令几乎一样）</h2>
+<h3 id="更新软件源信息-1">更新软件源信息</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf makecache  <span class="comment"># 从软件源下载最新的包列表</span></span><br><span class="line">sudo dnf check-update  <span class="comment"># 检查有哪些包可以升级</span></span><br></pre></td></tr></table></figure>
-<h3 id="搜索软件包-v2"><a class="header-anchor" href="#搜索软件包-v2">¶</a>搜索软件包</h3>
+<h3 id="搜索软件包-1">搜索软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf search nginx  <span class="comment"># 搜索包含 nginx 的包</span></span><br></pre></td></tr></table></figure>
-<h3 id="查看包信息-v2"><a class="header-anchor" href="#查看包信息-v2">¶</a>查看包信息</h3>
+<h3 id="查看包信息-1">查看包信息</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf info nginx  <span class="comment"># 查看 nginx 的详细信息（版本、依赖、描述）</span></span><br></pre></td></tr></table></figure>
-<h3 id="安装软件包-v2"><a class="header-anchor" href="#安装软件包-v2">¶</a>安装软件包</h3>
+<h3 id="安装软件包-1">安装软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf install nginx  <span class="comment"># 安装 nginx</span></span><br><span class="line">sudo dnf install nginx-1.20.1  <span class="comment"># 安装指定版本</span></span><br><span class="line">sudo dnf install nginx -y  <span class="comment"># 自动回答 yes</span></span><br></pre></td></tr></table></figure>
-<h3 id="卸载软件包-v2"><a class="header-anchor" href="#卸载软件包-v2">¶</a>卸载软件包</h3>
+<h3 id="卸载软件包-1">卸载软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf remove nginx  <span class="comment"># 卸载 nginx</span></span><br><span class="line">sudo dnf autoremove  <span class="comment"># 删除不再需要的依赖包</span></span><br></pre></td></tr></table></figure>
-<h3 id="升级软件包-v2"><a class="header-anchor" href="#升级软件包-v2">¶</a>升级软件包</h3>
+<h3 id="升级软件包-1">升级软件包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf upgrade  <span class="comment"># 升级所有可升级的包</span></span><br><span class="line">sudo dnf upgrade nginx  <span class="comment"># 只升级 nginx</span></span><br></pre></td></tr></table></figure>
-<h3 id="查看已安装的包-v2"><a class="header-anchor" href="#查看已安装的包-v2">¶</a>查看已安装的包</h3>
+<h3 id="查看已安装的包-1">查看已安装的包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa  <span class="comment"># 列出所有已安装的包</span></span><br><span class="line">rpm -qa | grep nginx  <span class="comment"># 查看 nginx 是否已安装</span></span><br><span class="line">dnf list installed  <span class="comment"># 同上（dnf 命令）</span></span><br></pre></td></tr></table></figure>
-<h3 id="查看包安装的文件-v2"><a class="header-anchor" href="#查看包安装的文件-v2">¶</a>查看包安装的文件</h3>
+<h3 id="查看包安装的文件-1">查看包安装的文件</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -ql nginx  <span class="comment"># 查看 nginx 安装了哪些文件</span></span><br></pre></td></tr></table></figure>
-<h3 id="查看文件属于哪个包-v2"><a class="header-anchor" href="#查看文件属于哪个包-v2">¶</a>查看文件属于哪个包</h3>
+<h3 id="查看文件属于哪个包-1">查看文件属于哪个包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -qf /usr/sbin/nginx  <span class="comment"># 查看 /usr/sbin/nginx 属于哪个包</span></span><br></pre></td></tr></table></figure>
-<h3 id="手动安装-rpm-包"><a class="header-anchor" href="#手动安装-rpm-包">¶</a>手动安装 .rpm 包</h3>
+<h3 id="手动安装-.rpm-包">手动安装 .rpm 包</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo rpm -ivh package.rpm  <span class="comment"># 安装 .rpm 包（不会自动解决依赖）</span></span><br><span class="line">sudo dnf install package.rpm  <span class="comment"># 更好的方式（会自动解决依赖）</span></span><br></pre></td></tr></table></figure>
-<h2 id="rpm-的常用操作"><a class="header-anchor" href="#rpm-的常用操作">¶</a>rpm 的常用操作</h2>
-<h3 id="查询包信息"><a class="header-anchor" href="#查询包信息">¶</a>查询包信息</h3>
+<h2 id="rpm-的常用操作">rpm 的常用操作</h2>
+<h3 id="查询包信息">查询包信息</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa  <span class="comment"># 列出所有已安装的包</span></span><br><span class="line">rpm -qa | grep nginx  <span class="comment"># 查看 nginx 是否已安装</span></span><br><span class="line">rpm -qi nginx  <span class="comment"># 查看包的详细信息</span></span><br><span class="line">rpm -ql nginx  <span class="comment"># 查看包安装了哪些文件</span></span><br><span class="line">rpm -qf /usr/sbin/nginx  <span class="comment"># 查看文件属于哪个包</span></span><br><span class="line">rpm -qc nginx  <span class="comment"># 查看包的配置文件</span></span><br><span class="line">rpm -qd nginx  <span class="comment"># 查看包的文档文件</span></span><br></pre></td></tr></table></figure>
-<h3 id="验证包完整性"><a class="header-anchor" href="#验证包完整性">¶</a>验证包完整性</h3>
+<h3 id="验证包完整性">验证包完整性</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -V nginx  <span class="comment"># 验证包的文件是否被修改</span></span><br></pre></td></tr></table></figure>
-<p>输出示例：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">S.5....T.  c /etc/nginx/nginx.conf</span><br></pre></td></tr></table></figure>
+<p>输出示例： <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">S.5....T.  c /etc/nginx/nginx.conf</span><br></pre></td></tr></table></figure></p>
 <ul>
 <li><code>S</code>：文件大小改变</li>
 <li><code>5</code>：MD5 校验和改变</li>
 <li><code>T</code>：修改时间改变</li>
 <li><code>c</code>：配置文件</li>
 </ul>
-<h2 id="高级用法-v3"><a class="header-anchor" href="#高级用法-v3">¶</a>高级用法</h2>
-<h3 id="锁定包版本（防止升级）-v2"><a class="header-anchor" href="#锁定包版本（防止升级）-v2">¶</a>锁定包版本（防止升级）</h3>
+<h2 id="高级用法-1">高级用法</h2>
+<h3 id="锁定包版本防止升级-1">锁定包版本（防止升级）</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf install <span class="string">&#x27;dnf-command(versionlock)&#x27;</span>  <span class="comment"># 安装 versionlock 插件</span></span><br><span class="line">sudo dnf versionlock add nginx  <span class="comment"># 锁定 nginx</span></span><br><span class="line">dnf versionlock list  <span class="comment"># 查看被锁定的包</span></span><br><span class="line">sudo dnf versionlock delete nginx  <span class="comment"># 解锁</span></span><br></pre></td></tr></table></figure>
-<h3 id="降级包版本-v2"><a class="header-anchor" href="#降级包版本-v2">¶</a>降级包版本</h3>
+<h3 id="降级包版本-1">降级包版本</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 查看可用版本</span></span><br><span class="line">dnf list --showduplicates nginx</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 降级到指定版本</span></span><br><span class="line">sudo dnf downgrade nginx-1.18.0</span><br></pre></td></tr></table></figure>
-<h3 id="清理缓存"><a class="header-anchor" href="#清理缓存">¶</a>清理缓存</h3>
+<h3 id="清理缓存">清理缓存</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf clean all  <span class="comment"># 删除所有缓存</span></span><br><span class="line">sudo dnf autoremove  <span class="comment"># 删除不再需要的依赖包</span></span><br></pre></td></tr></table></figure>
 <hr>
-<h1>配置国内镜像源（加速下载）</h1>
-<h2 id="Debian-Ubuntu-配置阿里云源"><a class="header-anchor" href="#Debian-Ubuntu-配置阿里云源">¶</a>Debian/Ubuntu 配置阿里云源</h2>
-<h3 id="1-备份原始源"><a class="header-anchor" href="#1-备份原始源">¶</a>1. 备份原始源</h3>
+<h1 id="配置国内镜像源加速下载">配置国内镜像源（加速下载）</h1>
+<h2 id="debianubuntu-配置阿里云源">Debian/Ubuntu 配置阿里云源</h2>
+<h3 id="备份原始源">1. 备份原始源</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/apt/sources.list /etc/apt/sources.list.bak</span><br></pre></td></tr></table></figure>
-<h3 id="2-替换为阿里云源"><a class="header-anchor" href="#2-替换为阿里云源">¶</a>2. 替换为阿里云源</h3>
+<h3 id="替换为阿里云源">2. 替换为阿里云源</h3>
 <p><strong>方法 1：自动替换</strong>（推荐）</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*archive.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br><span class="line">sudo sed -i <span class="string">&#x27;s|http://.*security.ubuntu.com|http://mirrors.aliyun.com|g&#x27;</span> /etc/apt/sources.list</span><br></pre></td></tr></table></figure>
 <p><strong>方法 2：手动编辑</strong></p>
@@ -529,54 +569,60 @@
 <li>Ubuntu 20.04: <code>focal</code></li>
 <li>Ubuntu 18.04: <code>bionic</code></li>
 </ul>
-<h3 id="3-更新软件源"><a class="header-anchor" href="#3-更新软件源">¶</a>3. 更新软件源</h3>
+<h3 id="更新软件源">3. 更新软件源</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update &amp;&amp; sudo apt upgrade -y</span><br></pre></td></tr></table></figure>
-<h3 id="4-验证是否生效"><a class="header-anchor" href="#4-验证是否生效">¶</a>4. 验证是否生效</h3>
+<h3 id="验证是否生效">4. 验证是否生效</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /etc/apt/sources.list | grep mirrors.aliyun.com</span><br></pre></td></tr></table></figure>
 <p>如果看到 <code>mirrors.aliyun.com</code>，说明配置成功。</p>
-<h2 id="CentOS-RHEL-配置阿里云源"><a class="header-anchor" href="#CentOS-RHEL-配置阿里云源">¶</a>CentOS/RHEL 配置阿里云源</h2>
-<h3 id="1-备份原始源-v2"><a class="header-anchor" href="#1-备份原始源-v2">¶</a>1. 备份原始源</h3>
+<h2 id="centosrhel-配置阿里云源">CentOS/RHEL 配置阿里云源</h2>
+<h3 id="备份原始源-1">1. 备份原始源</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak</span><br></pre></td></tr></table></figure>
-<h3 id="2-下载阿里云源配置"><a class="header-anchor" href="#2-下载阿里云源配置">¶</a>2. 下载阿里云源配置</h3>
+<h3 id="下载阿里云源配置">2. 下载阿里云源配置</h3>
 <p><strong>CentOS 7</strong>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo</span><br></pre></td></tr></table></figure>
 <p><strong>CentOS 8</strong>：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo</span><br></pre></td></tr></table></figure>
-<h3 id="3-清理并更新缓存"><a class="header-anchor" href="#3-清理并更新缓存">¶</a>3. 清理并更新缓存</h3>
+<h3 id="清理并更新缓存">3. 清理并更新缓存</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf clean all</span><br><span class="line">sudo dnf makecache</span><br></pre></td></tr></table></figure>
-<h3 id="4-验证是否生效-v2"><a class="header-anchor" href="#4-验证是否生效-v2">¶</a>4. 验证是否生效</h3>
+<h3 id="验证是否生效-1">4. 验证是否生效</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dnf repolist</span><br></pre></td></tr></table></figure>
 <p>如果看到 <code>mirrors.aliyun.com</code>，说明配置成功。</p>
-<h2 id="其他国内镜像源"><a class="header-anchor" href="#其他国内镜像源">¶</a>其他国内镜像源</h2>
+<h2 id="其他国内镜像源">其他国内镜像源</h2>
 <ul>
-<li><strong>清华大学源</strong>：<a class="link" target="_blank" rel="noopener" href="https://mirrors.tuna.tsinghua.edu.cn/">https://mirrors.tuna.tsinghua.edu.cn/<i class="fas fa-external-link-alt"></i></a></li>
-<li><strong>中科大源</strong>：<a class="link" target="_blank" rel="noopener" href="https://mirrors.ustc.edu.cn/">https://mirrors.ustc.edu.cn/<i class="fas fa-external-link-alt"></i></a></li>
-<li><strong>网易源</strong>：<a class="link" target="_blank" rel="noopener" href="http://mirrors.163.com/">http://mirrors.163.com/<i class="fas fa-external-link-alt"></i></a></li>
+<li><strong>清华大学源</strong>：https://mirrors.tuna.tsinghua.edu.cn/</li>
+<li><strong>中科大源</strong>：https://mirrors.ustc.edu.cn/</li>
+<li><strong>网易源</strong>：http://mirrors.163.com/</li>
 </ul>
 <p><strong>配置方法类似，只需把 URL 换成对应的镜像站即可。</strong></p>
 <hr>
-<h1>源码编译安装：从 configure 到 make install</h1>
+<h1 id="源码编译安装从-configure-到-make-install">源码编译安装：从
+configure 到 make install</h1>
 <p>有时候软件源里的版本太旧、或者你需要自定义编译选项（如开启某个模块、优化性能），就需要从源码编译安装。</p>
-<h2 id="编译安装的三步曲"><a class="header-anchor" href="#编译安装的三步曲">¶</a>编译安装的三步曲</h2>
-<ol>
-<li><strong><code>./configure</code></strong>：检查系统环境、生成 Makefile</li>
+<h2 id="编译安装的三步曲">编译安装的三步曲</h2>
+<ol type="1">
+<li><strong><code>./configure</code></strong>：检查系统环境、生成
+Makefile</li>
 <li><strong><code>make</code></strong>：根据 Makefile 编译源代码</li>
 <li><strong><code>make install</code></strong>：把编译好的文件安装到系统</li>
 </ol>
-<h2 id="实战：编译安装-Nginx（Tengine）"><a class="header-anchor" href="#实战：编译安装-Nginx（Tengine）">¶</a>实战：编译安装 Nginx（Tengine）</h2>
-<p><strong>Tengine</strong> 是淘宝开发的 Nginx 分支，增强了性能和功能。</p>
-<h3 id="1-安装编译依赖"><a class="header-anchor" href="#1-安装编译依赖">¶</a>1. 安装编译依赖</h3>
+<h2 id="实战编译安装-nginxtengine">实战：编译安装 Nginx（Tengine）</h2>
+<p><strong>Tengine</strong> 是淘宝开发的 Nginx
+分支，增强了性能和功能。</p>
+<h3 id="安装编译依赖">1. 安装编译依赖</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf install gcc make pcre-devel openssl-devel zlib-devel  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<h3 id="2-下载源码"><a class="header-anchor" href="#2-下载源码">¶</a>2. 下载源码</h3>
+<h3 id="下载源码">2. 下载源码</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget http://tengine.taobao.org/download/tengine-2.3.3.tar.gz</span><br><span class="line">tar -zxvf tengine-2.3.3.tar.gz</span><br><span class="line"><span class="built_in">cd</span> tengine-2.3.3</span><br></pre></td></tr></table></figure>
-<h3 id="3-配置编译参数（-configure）"><a class="header-anchor" href="#3-配置编译参数（-configure）">¶</a>3. 配置编译参数（<code>./configure</code>）</h3>
+<h3 id="配置编译参数.configure">3.
+配置编译参数（<code>./configure</code>）</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">./configure \</span><br><span class="line">  --prefix=/usr/local/nginx \</span><br><span class="line">  --with-http_ssl_module \</span><br><span class="line">  --with-http_v2_module \</span><br><span class="line">  --with-http_realip_module \</span><br><span class="line">  --with-http_gzip_static_module</span><br></pre></td></tr></table></figure>
 <p><strong>常用参数</strong>：</p>
 <ul>
-<li><code>--prefix=PATH</code>：安装路径（默认 <code>/usr/local/nginx</code>）</li>
+<li><code>--prefix=PATH</code>：安装路径（默认
+<code>/usr/local/nginx</code>）</li>
 <li><code>--with-http_ssl_module</code>：启用 HTTPS 支持</li>
 <li><code>--with-http_v2_module</code>：启用 HTTP/2 支持</li>
-<li><code>--with-http_realip_module</code>：获取真实客户端 IP（适用于反向代理）</li>
+<li><code>--with-http_realip_module</code>：获取真实客户端
+IP（适用于反向代理）</li>
 </ul>
 <p><strong><code>./configure</code> 干了什么？</strong></p>
 <ul>
@@ -584,7 +630,7 @@
 <li>根据你的参数生成 <code>Makefile</code>（编译配置文件）</li>
 <li>如果缺少依赖，会报错并提示安装</li>
 </ul>
-<h3 id="4-编译（make）"><a class="header-anchor" href="#4-编译（make）">¶</a>4. 编译（<code>make</code>）</h3>
+<h3 id="编译make">4. 编译（<code>make</code>）</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make -j$(<span class="built_in">nproc</span>)  <span class="comment"># 使用所有 CPU 核心并行编译（加速）</span></span><br></pre></td></tr></table></figure>
 <p><strong><code>make</code> 干了什么？</strong></p>
 <ul>
@@ -592,91 +638,106 @@
 <li>生成可执行文件（如 <code>objs/nginx</code>）</li>
 <li>如果编译失败，检查是否缺少依赖或参数错误</li>
 </ul>
-<h3 id="5-安装（make-install）"><a class="header-anchor" href="#5-安装（make-install）">¶</a>5. 安装（<code>make install</code>）</h3>
+<h3 id="安装make-install">5. 安装（<code>make install</code>）</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo make install</span><br></pre></td></tr></table></figure>
 <p><strong><code>make install</code> 干了什么？</strong></p>
 <ul>
-<li>把编译好的文件复制到 <code>--prefix</code> 指定的目录（如 <code>/usr/local/nginx</code>）</li>
+<li>把编译好的文件复制到 <code>--prefix</code> 指定的目录（如
+<code>/usr/local/nginx</code>）</li>
 <li>创建必要的目录结构（<code>conf/</code>、<code>logs/</code>、<code>html/</code>、<code>sbin/</code>）</li>
 <li>不会创建 systemd service 文件（需要手动创建）</li>
 </ul>
-<h3 id="6-启动-Nginx"><a class="header-anchor" href="#6-启动-Nginx">¶</a>6. 启动 Nginx</h3>
+<h3 id="启动-nginx">6. 启动 Nginx</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx  <span class="comment"># 启动</span></span><br><span class="line">/usr/local/nginx/sbin/nginx -s stop  <span class="comment"># 停止</span></span><br><span class="line">/usr/local/nginx/sbin/nginx -s reload  <span class="comment"># 重新加载配置</span></span><br></pre></td></tr></table></figure>
-<h3 id="7-创建-systemd-service（可选）"><a class="header-anchor" href="#7-创建-systemd-service（可选）">¶</a>7. 创建 systemd service（可选）</h3>
+<h3 id="创建-systemd-service可选">7. 创建 systemd service（可选）</h3>
 <p>创建 <code>/etc/systemd/system/nginx.service</code>：</p>
 <figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[Unit]</span></span><br><span class="line"><span class="attr">Description</span>=Nginx HTTP Server</span><br><span class="line"><span class="attr">After</span>=network.target</span><br><span class="line"></span><br><span class="line"><span class="section">[Service]</span></span><br><span class="line"><span class="attr">Type</span>=forking</span><br><span class="line"><span class="attr">ExecStart</span>=/usr/local/nginx/sbin/nginx</span><br><span class="line"><span class="attr">ExecReload</span>=/usr/local/nginx/sbin/nginx -s reload</span><br><span class="line"><span class="attr">ExecStop</span>=/usr/local/nginx/sbin/nginx -s stop</span><br><span class="line"><span class="attr">PrivateTmp</span>=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="section">[Install]</span></span><br><span class="line"><span class="attr">WantedBy</span>=multi-user.target</span><br></pre></td></tr></table></figure>
 <p>然后启用：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl <span class="built_in">enable</span> nginx</span><br><span class="line">sudo systemctl start nginx</span><br></pre></td></tr></table></figure>
 <hr>
-<h1>二进制免安装配置：以 Java 为例</h1>
-<p>有些软件（如 Java、Go、Node.js）提供预编译的二进制包，解压即用，不需要安装。</p>
-<h2 id="实战：配置-Java-环境"><a class="header-anchor" href="#实战：配置-Java-环境">¶</a>实战：配置 Java 环境</h2>
-<h3 id="1-下载-JDK"><a class="header-anchor" href="#1-下载-JDK">¶</a>1. 下载 JDK</h3>
-<p>从 Oracle 官网或开源镜像下载 JDK（如 <code>jdk-17_linux-x64_bin.tar.gz</code>）。</p>
-<h3 id="2-解压到-opt"><a class="header-anchor" href="#2-解压到-opt">¶</a>2. 解压到 <code>/opt</code></h3>
+<h1 id="二进制免安装配置以-java-为例">二进制免安装配置：以 Java
+为例</h1>
+<p>有些软件（如
+Java、Go、Node.js）提供预编译的二进制包，解压即用，不需要安装。</p>
+<h2 id="实战配置-java-环境">实战：配置 Java 环境</h2>
+<h3 id="下载-jdk">1. 下载 JDK</h3>
+<p>从 Oracle 官网或开源镜像下载 JDK（如
+<code>jdk-17_linux-x64_bin.tar.gz</code>）。</p>
+<h3 id="解压到-opt">2. 解压到 <code>/opt</code></h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo tar -zxvf jdk-17_linux-x64_bin.tar.gz -C /opt</span><br><span class="line">sudo <span class="built_in">mv</span> /opt/jdk-17* /opt/jdk-17  <span class="comment"># 重命名为简短路径</span></span><br></pre></td></tr></table></figure>
-<h3 id="3-配置环境变量"><a class="header-anchor" href="#3-配置环境变量">¶</a>3. 配置环境变量</h3>
-<p>编辑 <code>~/.bashrc</code>（或 <code>/etc/profile</code> 对所有用户生效）：</p>
+<h3 id="配置环境变量">3. 配置环境变量</h3>
+<p>编辑 <code>~/.bashrc</code>（或 <code>/etc/profile</code>
+对所有用户生效）：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/opt/jdk-17</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$JAVA_HOME</span>/bin:<span class="variable">$PATH</span></span><br></pre></td></tr></table></figure>
-<h3 id="4-使配置生效"><a class="header-anchor" href="#4-使配置生效">¶</a>4. 使配置生效</h3>
+<h3 id="使配置生效">4. 使配置生效</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
-<h3 id="5-验证"><a class="header-anchor" href="#5-验证">¶</a>5. 验证</h3>
+<h3 id="验证">5. 验证</h3>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java -version</span><br><span class="line">javac -version</span><br></pre></td></tr></table></figure>
 <p>如果显示版本号，说明配置成功。</p>
 <hr>
-<h1>包管理最佳实践</h1>
-<h2 id="1-定期更新系统"><a class="header-anchor" href="#1-定期更新系统">¶</a>1. 定期更新系统</h2>
+<h1 id="包管理最佳实践">包管理最佳实践</h1>
+<h2 id="定期更新系统">1. 定期更新系统</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update &amp;&amp; sudo apt upgrade -y  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf upgrade -y  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
 <p><strong>频率</strong>：建议每周或每月更新一次，及时修复安全漏洞。</p>
-<h2 id="2-清理无用包和缓存"><a class="header-anchor" href="#2-清理无用包和缓存">¶</a>2. 清理无用包和缓存</h2>
+<h2 id="清理无用包和缓存">2. 清理无用包和缓存</h2>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt autoremove &amp;&amp; sudo apt autoclean  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf autoremove &amp;&amp; sudo dnf clean all  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<p><strong>磁盘空间不足时的排查</strong>：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看哪个目录占用最大</span></span><br><span class="line"><span class="built_in">du</span> -sh /* 2&gt;/dev/null | <span class="built_in">sort</span> -hr | <span class="built_in">head</span> -10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看包缓存占用</span></span><br><span class="line"><span class="built_in">du</span> -sh /var/cache/apt/archives  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line"><span class="built_in">du</span> -sh /var/cache/dnf  <span class="comment"># CentOS/RHEL</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 清理后再检查</span></span><br><span class="line">sudo apt clean &amp;&amp; <span class="built_in">du</span> -sh /var/cache/apt/archives</span><br></pre></td></tr></table></figure>
-<h2 id="3-锁定关键软件版本"><a class="header-anchor" href="#3-锁定关键软件版本">¶</a>3. 锁定关键软件版本</h2>
+<p><strong>磁盘空间不足时的排查</strong>： <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看哪个目录占用最大</span></span><br><span class="line"><span class="built_in">du</span> -sh /* 2&gt;/dev/null | <span class="built_in">sort</span> -hr | <span class="built_in">head</span> -10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看包缓存占用</span></span><br><span class="line"><span class="built_in">du</span> -sh /var/cache/apt/archives  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line"><span class="built_in">du</span> -sh /var/cache/dnf  <span class="comment"># CentOS/RHEL</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 清理后再检查</span></span><br><span class="line">sudo apt clean &amp;&amp; <span class="built_in">du</span> -sh /var/cache/apt/archives</span><br></pre></td></tr></table></figure></p>
+<h2 id="锁定关键软件版本">3. 锁定关键软件版本</h2>
 <p>如果某个软件升级后可能导致兼容性问题（如数据库、内核），建议锁定版本：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-mark hold mysql-server  <span class="comment"># Debian/Ubuntu</span></span><br><span class="line">sudo dnf versionlock add mysql-server  <span class="comment"># CentOS/RHEL</span></span><br></pre></td></tr></table></figure>
-<h2 id="4-不要混用包管理器和编译安装"><a class="header-anchor" href="#4-不要混用包管理器和编译安装">¶</a>4. 不要混用包管理器和编译安装</h2>
-<p><strong>问题</strong>：如果你用 apt 装了 nginx，又用源码编译装了 nginx，会导致冲突（两个 nginx 可能监听同一个端口、配置文件位置不同）。</p>
+<h2 id="不要混用包管理器和编译安装">4. 不要混用包管理器和编译安装</h2>
+<p><strong>问题</strong>：如果你用 apt 装了 nginx，又用源码编译装了
+nginx，会导致冲突（两个 nginx
+可能监听同一个端口、配置文件位置不同）。</p>
 <p><strong>建议</strong>：</p>
 <ul>
 <li>优先用包管理器（apt/dnf）安装（方便更新和卸载）</li>
 <li>只有在包管理器的版本太旧或缺少功能时，才编译安装</li>
-<li>如果编译安装，建议装到 <code>/opt</code> 或 <code>/usr/local</code>（不要和包管理器的路径冲突）</li>
+<li>如果编译安装，建议装到 <code>/opt</code> 或
+<code>/usr/local</code>（不要和包管理器的路径冲突）</li>
 </ul>
-<h2 id="5-备份重要配置"><a class="header-anchor" href="#5-备份重要配置">¶</a>5. 备份重要配置</h2>
+<h2 id="备份重要配置">5. 备份重要配置</h2>
 <p>修改配置文件前先备份：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">cp</span> /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak</span><br></pre></td></tr></table></figure>
-<h2 id="6-使用虚拟环境（Python-Node-js）"><a class="header-anchor" href="#6-使用虚拟环境（Python-Node-js）">¶</a>6. 使用虚拟环境（Python/Node.js）</h2>
-<p>Python 和 Node.js 有自己的包管理器（pip/npm），建议使用虚拟环境隔离项目依赖：</p>
+<h2 id="使用虚拟环境pythonnode.js">6.
+使用虚拟环境（Python/Node.js）</h2>
+<p>Python 和 Node.js
+有自己的包管理器（pip/npm），建议使用虚拟环境隔离项目依赖：</p>
 <ul>
 <li><strong>Python</strong>：<code>python3 -m venv venv</code></li>
-<li><strong>Node.js</strong>：<code>nvm</code> 或 <code>n</code> 管理 Node.js 版本</li>
+<li><strong>Node.js</strong>：<code>nvm</code> 或 <code>n</code> 管理
+Node.js 版本</li>
 </ul>
 <hr>
-<h1>总结与扩展阅读</h1>
+<h1 id="总结与扩展阅读">总结与扩展阅读</h1>
 <p>这篇文章涵盖了 Linux 软件包管理的核心内容：</p>
-<ol>
+<ol type="1">
 <li>✅ 软件包的基本概念（包里有什么、为什么需要包管理器）</li>
 <li>✅ Debian/Ubuntu 包管理（apt/dpkg 常用操作和高级用法）</li>
 <li>✅ RHEL/CentOS 包管理（yum/dnf/rpm 常用操作和高级用法）</li>
 <li>✅ 配置国内镜像源（阿里云源、清华源）</li>
-<li>✅ 源码编译安装（以 Nginx 为例，讲清楚 configure/make/make install）</li>
+<li>✅ 源码编译安装（以 Nginx 为例，讲清楚 configure/make/make
+install）</li>
 <li>✅ 二进制免安装配置（以 Java 为例）</li>
 <li>✅ 包管理最佳实践（清理、锁定版本、避免冲突）</li>
 </ol>
 <p><strong>扩展阅读</strong>：</p>
 <ul>
-<li>Debian 包管理手册：<a class="link" target="_blank" rel="noopener" href="https://www.debian.org/doc/manuals/debian-reference/ch02">https://www.debian.org/doc/manuals/debian-reference/ch02<i class="fas fa-external-link-alt"></i></a></li>
-<li>RPM 包管理手册：<a class="link" target="_blank" rel="noopener" href="https://rpm-packaging-guide.github.io/">https://rpm-packaging-guide.github.io/<i class="fas fa-external-link-alt"></i></a></li>
-<li>DNF 官方文档：<a class="link" target="_blank" rel="noopener" href="https://dnf.readthedocs.io/">https://dnf.readthedocs.io/<i class="fas fa-external-link-alt"></i></a></li>
+<li>Debian
+包管理手册：https://www.debian.org/doc/manuals/debian-reference/ch02</li>
+<li>RPM 包管理手册：https://rpm-packaging-guide.github.io/</li>
+<li>DNF 官方文档：https://dnf.readthedocs.io/</li>
 </ul>
 <p><strong>下一步</strong>：</p>
 <ul>
-<li><strong>《Linux 进程与资源管理》</strong>：学习如何监控和限制进程的 CPU/内存使用</li>
+<li><strong>《Linux 进程与资源管理》</strong>：学习如何监控和限制进程的
+CPU/内存使用</li>
 <li><strong>《Linux 用户管理》</strong>：学习如何管理用户/组/权限</li>
 </ul>
 <hr>
-<p><strong>到这里，你应该已经从&quot;会装包&quot;升级到&quot;能配置源、能编译安装、能排查依赖冲突&quot;。包管理是 Linux 日常运维的基础技能，掌握了它，你就能更好地管理服务器。</strong></p>
+<p><strong>到这里，你应该已经从"会装包"升级到"能配置源、能编译安装、能排查依赖冲突"。包管理是
+Linux
+日常运维的基础技能，掌握了它，你就能更好地管理服务器。</strong></p>
 
         </div>
 
@@ -692,7 +753,7 @@
     <ul>
         <li>本文标题：Linux 软件包管理</li>
         <li>本文作者：Chen Kai</li>
-        <li>创建时间：2025-01-10 00:00:00</li>
+        <li>创建时间：2023-01-02 00:00:00</li>
         <li>
             本文链接：https://www.chenk.top/Linux-%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/
         </li>
@@ -727,13 +788,13 @@
                     <div class="article-prev">
                         <a class="prev"
                            rel="prev"
-                           href="/Linux-%E8%BF%9B%E7%A8%8B%E4%B8%8E%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86/"
+                           href="/Mixture-of-Subspaces-in-Low-Rank-Adaptation-MoSLoRA/"
                         >
                             <span class="left arrow-icon flex-center">
                               <i class="fas fa-chevron-left"></i>
                             </span>
                             <span class="title flex-center">
-                                <span class="post-nav-title-item">Linux 进程与资源管理</span>
+                                <span class="post-nav-title-item">Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)</span>
                                 <span class="post-nav-item">上一篇</span>
                             </span>
                         </a>
@@ -959,7 +1020,17 @@
         <aside class="page-aside">
             <div class="post-toc-wrap">
     <div class="post-toc">
-        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">软件包的基本概念：包里有什么、为什么需要包管理器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%9A%84%E7%BB%84%E6%88%90"><span class="nav-number">1.1.</span> <span class="nav-text">软件包的组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%96%87%E4%BB%B6%EF%BC%88Binary-Executables%EF%BC%89"><span class="nav-number">1.1.1.</span> <span class="nav-text">二进制可执行文件（Binary Executables）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%EF%BC%88Configuration-Files%EF%BC%89"><span class="nav-number">1.1.2.</span> <span class="nav-text">配置文件（Configuration Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%BA%93%EF%BC%88Shared-Libraries%EF%BC%89"><span class="nav-number">1.1.3.</span> <span class="nav-text">共享库（Shared Libraries）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%96%87%E4%BB%B6%EF%BC%88Data-Files%EF%BC%89"><span class="nav-number">1.1.4.</span> <span class="nav-text">数据文件（Data Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E6%A1%A3%EF%BC%88Documentation%EF%BC%89"><span class="nav-number">1.1.5.</span> <span class="nav-text">文档（Documentation）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%8D%95%E5%85%83%E6%96%87%E4%BB%B6%EF%BC%88Service-Units%EF%BC%8C%E5%A6%82%E6%9E%9C%E6%98%AF%E6%9C%8D%E5%8A%A1%EF%BC%89"><span class="nav-number">1.1.6.</span> <span class="nav-text">服务单元文件（Service Units，如果是服务）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%8C%85%E7%AE%A1%E7%90%86%E5%99%A8"><span class="nav-number">1.2.</span> <span class="nav-text">为什么需要包管理器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Linux 主流包管理器对比</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">Debian&#x2F;Ubuntu 包管理：apt + dpkg</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#apt-vs-apt-get-vs-dpkg"><span class="nav-number">3.1.</span> <span class="nav-text">apt vs apt-get vs dpkg</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C"><span class="nav-number">3.2.</span> <span class="nav-text">常用操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E6%BA%90%E4%BF%A1%E6%81%AF"><span class="nav-number">3.2.1.</span> <span class="nav-text">更新软件源信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.2.</span> <span class="nav-text">搜索软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E4%BF%A1%E6%81%AF"><span class="nav-number">3.2.3.</span> <span class="nav-text">查看包信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.4.</span> <span class="nav-text">安装软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%B8%E8%BD%BD%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.5.</span> <span class="nav-text">卸载软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.6.</span> <span class="nav-text">升级软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%B7%B2%E5%AE%89%E8%A3%85%E7%9A%84%E5%8C%85"><span class="nav-number">3.2.7.</span> <span class="nav-text">查看已安装的包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E5%AE%89%E8%A3%85%E7%9A%84%E6%96%87%E4%BB%B6"><span class="nav-number">3.2.8.</span> <span class="nav-text">查看包安装的文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%96%87%E4%BB%B6%E5%B1%9E%E4%BA%8E%E5%93%AA%E4%B8%AA%E5%8C%85"><span class="nav-number">3.2.9.</span> <span class="nav-text">查看文件属于哪个包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E5%AE%89%E8%A3%85-deb-%E5%8C%85"><span class="nav-number">3.2.10.</span> <span class="nav-text">手动安装 .deb 包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95-v2"><span class="nav-number">3.3.</span> <span class="nav-text">高级用法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E5%AE%9A%E5%8C%85%E7%89%88%E6%9C%AC%EF%BC%88%E9%98%B2%E6%AD%A2%E5%8D%87%E7%BA%A7%EF%BC%89"><span class="nav-number">3.3.1.</span> <span class="nav-text">锁定包版本（防止升级）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%8D%E7%BA%A7%E5%8C%85%E7%89%88%E6%9C%AC"><span class="nav-number">3.3.2.</span> <span class="nav-text">降级包版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E7%BC%93%E5%AD%98%EF%BC%88%E9%87%8A%E6%94%BE%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4%EF%BC%89"><span class="nav-number">3.3.3.</span> <span class="nav-text">清理缓存（释放磁盘空间）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">RHEL&#x2F;CentOS 包管理：yum&#x2F;dnf + rpm</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#yum-vs-dnf-vs-rpm"><span class="nav-number">4.1.</span> <span class="nav-text">yum vs dnf vs rpm</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C%EF%BC%88%E4%BB%A5-dnf-%E4%B8%BA%E4%BE%8B%EF%BC%8Cyum-%E5%91%BD%E4%BB%A4%E5%87%A0%E4%B9%8E%E4%B8%80%E6%A0%B7%EF%BC%89"><span class="nav-number">4.2.</span> <span class="nav-text">常用操作（以 dnf 为例，yum 命令几乎一样）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E6%BA%90%E4%BF%A1%E6%81%AF-v2"><span class="nav-number">4.2.1.</span> <span class="nav-text">更新软件源信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E8%BD%AF%E4%BB%B6%E5%8C%85-v2"><span class="nav-number">4.2.2.</span> <span class="nav-text">搜索软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E4%BF%A1%E6%81%AF-v2"><span class="nav-number">4.2.3.</span> <span class="nav-text">查看包信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E8%BD%AF%E4%BB%B6%E5%8C%85-v2"><span class="nav-number">4.2.4.</span> <span class="nav-text">安装软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%B8%E8%BD%BD%E8%BD%AF%E4%BB%B6%E5%8C%85-v2"><span class="nav-number">4.2.5.</span> <span class="nav-text">卸载软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7%E8%BD%AF%E4%BB%B6%E5%8C%85-v2"><span class="nav-number">4.2.6.</span> <span class="nav-text">升级软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%B7%B2%E5%AE%89%E8%A3%85%E7%9A%84%E5%8C%85-v2"><span class="nav-number">4.2.7.</span> <span class="nav-text">查看已安装的包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E5%AE%89%E8%A3%85%E7%9A%84%E6%96%87%E4%BB%B6-v2"><span class="nav-number">4.2.8.</span> <span class="nav-text">查看包安装的文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%96%87%E4%BB%B6%E5%B1%9E%E4%BA%8E%E5%93%AA%E4%B8%AA%E5%8C%85-v2"><span class="nav-number">4.2.9.</span> <span class="nav-text">查看文件属于哪个包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E5%AE%89%E8%A3%85-rpm-%E5%8C%85"><span class="nav-number">4.2.10.</span> <span class="nav-text">手动安装 .rpm 包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#rpm-%E7%9A%84%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C"><span class="nav-number">4.3.</span> <span class="nav-text">rpm 的常用操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E5%8C%85%E4%BF%A1%E6%81%AF"><span class="nav-number">4.3.1.</span> <span class="nav-text">查询包信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E5%8C%85%E5%AE%8C%E6%95%B4%E6%80%A7"><span class="nav-number">4.3.2.</span> <span class="nav-text">验证包完整性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95-v3"><span class="nav-number">4.4.</span> <span class="nav-text">高级用法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E5%AE%9A%E5%8C%85%E7%89%88%E6%9C%AC%EF%BC%88%E9%98%B2%E6%AD%A2%E5%8D%87%E7%BA%A7%EF%BC%89-v2"><span class="nav-number">4.4.1.</span> <span class="nav-text">锁定包版本（防止升级）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%8D%E7%BA%A7%E5%8C%85%E7%89%88%E6%9C%AC-v2"><span class="nav-number">4.4.2.</span> <span class="nav-text">降级包版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E7%BC%93%E5%AD%98"><span class="nav-number">4.4.3.</span> <span class="nav-text">清理缓存</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">配置国内镜像源（加速下载）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Debian-Ubuntu-%E9%85%8D%E7%BD%AE%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">5.1.</span> <span class="nav-text">Debian&#x2F;Ubuntu 配置阿里云源</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%A4%87%E4%BB%BD%E5%8E%9F%E5%A7%8B%E6%BA%90"><span class="nav-number">5.1.1.</span> <span class="nav-text">1. 备份原始源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%9B%BF%E6%8D%A2%E4%B8%BA%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">5.1.2.</span> <span class="nav-text">2. 替换为阿里云源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E6%BA%90"><span class="nav-number">5.1.3.</span> <span class="nav-text">3. 更新软件源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E9%AA%8C%E8%AF%81%E6%98%AF%E5%90%A6%E7%94%9F%E6%95%88"><span class="nav-number">5.1.4.</span> <span class="nav-text">4. 验证是否生效</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CentOS-RHEL-%E9%85%8D%E7%BD%AE%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">5.2.</span> <span class="nav-text">CentOS&#x2F;RHEL 配置阿里云源</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%A4%87%E4%BB%BD%E5%8E%9F%E5%A7%8B%E6%BA%90-v2"><span class="nav-number">5.2.1.</span> <span class="nav-text">1. 备份原始源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%8B%E8%BD%BD%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90%E9%85%8D%E7%BD%AE"><span class="nav-number">5.2.2.</span> <span class="nav-text">2. 下载阿里云源配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%B8%85%E7%90%86%E5%B9%B6%E6%9B%B4%E6%96%B0%E7%BC%93%E5%AD%98"><span class="nav-number">5.2.3.</span> <span class="nav-text">3. 清理并更新缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E9%AA%8C%E8%AF%81%E6%98%AF%E5%90%A6%E7%94%9F%E6%95%88-v2"><span class="nav-number">5.2.4.</span> <span class="nav-text">4. 验证是否生效</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E5%9B%BD%E5%86%85%E9%95%9C%E5%83%8F%E6%BA%90"><span class="nav-number">5.3.</span> <span class="nav-text">其他国内镜像源</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">6.</span> <span class="nav-text">源码编译安装：从 configure 到 make install</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85%E7%9A%84%E4%B8%89%E6%AD%A5%E6%9B%B2"><span class="nav-number">6.1.</span> <span class="nav-text">编译安装的三步曲</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%EF%BC%9A%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-Nginx%EF%BC%88Tengine%EF%BC%89"><span class="nav-number">6.2.</span> <span class="nav-text">实战：编译安装 Nginx（Tengine）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%AE%89%E8%A3%85%E7%BC%96%E8%AF%91%E4%BE%9D%E8%B5%96"><span class="nav-number">6.2.1.</span> <span class="nav-text">1. 安装编译依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%8B%E8%BD%BD%E6%BA%90%E7%A0%81"><span class="nav-number">6.2.2.</span> <span class="nav-text">2. 下载源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E9%85%8D%E7%BD%AE%E7%BC%96%E8%AF%91%E5%8F%82%E6%95%B0%EF%BC%88-configure%EF%BC%89"><span class="nav-number">6.2.3.</span> <span class="nav-text">3. 配置编译参数（.&#x2F;configure）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BC%96%E8%AF%91%EF%BC%88make%EF%BC%89"><span class="nav-number">6.2.4.</span> <span class="nav-text">4. 编译（make）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%AE%89%E8%A3%85%EF%BC%88make-install%EF%BC%89"><span class="nav-number">6.2.5.</span> <span class="nav-text">5. 安装（make install）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%90%AF%E5%8A%A8-Nginx"><span class="nav-number">6.2.6.</span> <span class="nav-text">6. 启动 Nginx</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E5%88%9B%E5%BB%BA-systemd-service%EF%BC%88%E5%8F%AF%E9%80%89%EF%BC%89"><span class="nav-number">6.2.7.</span> <span class="nav-text">7. 创建 systemd service（可选）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">7.</span> <span class="nav-text">二进制免安装配置：以 Java 为例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%EF%BC%9A%E9%85%8D%E7%BD%AE-Java-%E7%8E%AF%E5%A2%83"><span class="nav-number">7.1.</span> <span class="nav-text">实战：配置 Java 环境</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%8B%E8%BD%BD-JDK"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. 下载 JDK</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E8%A7%A3%E5%8E%8B%E5%88%B0-opt"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. 解压到 &#x2F;opt</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F"><span class="nav-number">7.1.3.</span> <span class="nav-text">3. 配置环境变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E4%BD%BF%E9%85%8D%E7%BD%AE%E7%94%9F%E6%95%88"><span class="nav-number">7.1.4.</span> <span class="nav-text">4. 使配置生效</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E9%AA%8C%E8%AF%81"><span class="nav-number">7.1.5.</span> <span class="nav-text">5. 验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">8.</span> <span class="nav-text">包管理最佳实践</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%AE%9A%E6%9C%9F%E6%9B%B4%E6%96%B0%E7%B3%BB%E7%BB%9F"><span class="nav-number">8.1.</span> <span class="nav-text">1. 定期更新系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%B8%85%E7%90%86%E6%97%A0%E7%94%A8%E5%8C%85%E5%92%8C%E7%BC%93%E5%AD%98"><span class="nav-number">8.2.</span> <span class="nav-text">2. 清理无用包和缓存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E9%94%81%E5%AE%9A%E5%85%B3%E9%94%AE%E8%BD%AF%E4%BB%B6%E7%89%88%E6%9C%AC"><span class="nav-number">8.3.</span> <span class="nav-text">3. 锁定关键软件版本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%B8%8D%E8%A6%81%E6%B7%B7%E7%94%A8%E5%8C%85%E7%AE%A1%E7%90%86%E5%99%A8%E5%92%8C%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85"><span class="nav-number">8.4.</span> <span class="nav-text">4. 不要混用包管理器和编译安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%A4%87%E4%BB%BD%E9%87%8D%E8%A6%81%E9%85%8D%E7%BD%AE"><span class="nav-number">8.5.</span> <span class="nav-text">5. 备份重要配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E4%BD%BF%E7%94%A8%E8%99%9A%E6%8B%9F%E7%8E%AF%E5%A2%83%EF%BC%88Python-Node-js%EF%BC%89"><span class="nav-number">8.6.</span> <span class="nav-text">6. 使用虚拟环境（Python&#x2F;Node.js）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">9.</span> <span class="nav-text">总结与扩展阅读</span></a></li></ol>
+        <ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E5%8C%85%E9%87%8C%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%8C%85%E7%AE%A1%E7%90%86%E5%99%A8"><span class="nav-number">1.</span> <span class="nav-text">软件包的基本概念：包里有什么、为什么需要包管理器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%9A%84%E7%BB%84%E6%88%90"><span class="nav-number">1.1.</span> <span class="nav-text">软件包的组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%96%87%E4%BB%B6binary-executables"><span class="nav-number">1.1.1.</span> <span class="nav-text">二进制可执行文件（Binary
+Executables）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6configuration-files"><span class="nav-number">1.1.2.</span> <span class="nav-text">配置文件（Configuration
+Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%BA%93shared-libraries"><span class="nav-number">1.1.3.</span> <span class="nav-text">共享库（Shared Libraries）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%96%87%E4%BB%B6data-files"><span class="nav-number">1.1.4.</span> <span class="nav-text">数据文件（Data Files）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E6%A1%A3documentation"><span class="nav-number">1.1.5.</span> <span class="nav-text">文档（Documentation）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%8D%95%E5%85%83%E6%96%87%E4%BB%B6service-units%E5%A6%82%E6%9E%9C%E6%98%AF%E6%9C%8D%E5%8A%A1"><span class="nav-number">1.1.6.</span> <span class="nav-text">服务单元文件（Service
+Units，如果是服务）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%8C%85%E7%AE%A1%E7%90%86%E5%99%A8"><span class="nav-number">1.2.</span> <span class="nav-text">为什么需要包管理器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#linux-%E4%B8%BB%E6%B5%81%E5%8C%85%E7%AE%A1%E7%90%86%E5%99%A8%E5%AF%B9%E6%AF%94"><span class="nav-number">2.</span> <span class="nav-text">Linux 主流包管理器对比</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#debianubuntu-%E5%8C%85%E7%AE%A1%E7%90%86apt-dpkg"><span class="nav-number">3.</span> <span class="nav-text">Debian&#x2F;Ubuntu 包管理：apt +
+dpkg</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#apt-vs-apt-get-vs-dpkg"><span class="nav-number">3.1.</span> <span class="nav-text">apt vs apt-get vs dpkg</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C"><span class="nav-number">3.2.</span> <span class="nav-text">常用操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E6%BA%90%E4%BF%A1%E6%81%AF"><span class="nav-number">3.2.1.</span> <span class="nav-text">更新软件源信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.2.</span> <span class="nav-text">搜索软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E4%BF%A1%E6%81%AF"><span class="nav-number">3.2.3.</span> <span class="nav-text">查看包信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.4.</span> <span class="nav-text">安装软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%B8%E8%BD%BD%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.5.</span> <span class="nav-text">卸载软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7%E8%BD%AF%E4%BB%B6%E5%8C%85"><span class="nav-number">3.2.6.</span> <span class="nav-text">升级软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%B7%B2%E5%AE%89%E8%A3%85%E7%9A%84%E5%8C%85"><span class="nav-number">3.2.7.</span> <span class="nav-text">查看已安装的包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E5%AE%89%E8%A3%85%E7%9A%84%E6%96%87%E4%BB%B6"><span class="nav-number">3.2.8.</span> <span class="nav-text">查看包安装的文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%96%87%E4%BB%B6%E5%B1%9E%E4%BA%8E%E5%93%AA%E4%B8%AA%E5%8C%85"><span class="nav-number">3.2.9.</span> <span class="nav-text">查看文件属于哪个包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E5%AE%89%E8%A3%85-.deb-%E5%8C%85"><span class="nav-number">3.2.10.</span> <span class="nav-text">手动安装 .deb 包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95"><span class="nav-number">3.3.</span> <span class="nav-text">高级用法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E5%AE%9A%E5%8C%85%E7%89%88%E6%9C%AC%E9%98%B2%E6%AD%A2%E5%8D%87%E7%BA%A7"><span class="nav-number">3.3.1.</span> <span class="nav-text">锁定包版本（防止升级）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%8D%E7%BA%A7%E5%8C%85%E7%89%88%E6%9C%AC"><span class="nav-number">3.3.2.</span> <span class="nav-text">降级包版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E7%BC%93%E5%AD%98%E9%87%8A%E6%94%BE%E7%A3%81%E7%9B%98%E7%A9%BA%E9%97%B4"><span class="nav-number">3.3.3.</span> <span class="nav-text">清理缓存（释放磁盘空间）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#rhelcentos-%E5%8C%85%E7%AE%A1%E7%90%86yumdnf-rpm"><span class="nav-number">4.</span> <span class="nav-text">RHEL&#x2F;CentOS 包管理：yum&#x2F;dnf +
+rpm</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#yum-vs-dnf-vs-rpm"><span class="nav-number">4.1.</span> <span class="nav-text">yum vs dnf vs rpm</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C%E4%BB%A5-dnf-%E4%B8%BA%E4%BE%8Byum-%E5%91%BD%E4%BB%A4%E5%87%A0%E4%B9%8E%E4%B8%80%E6%A0%B7"><span class="nav-number">4.2.</span> <span class="nav-text">常用操作（以 dnf 为例，yum
+命令几乎一样）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E6%BA%90%E4%BF%A1%E6%81%AF-1"><span class="nav-number">4.2.1.</span> <span class="nav-text">更新软件源信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%90%9C%E7%B4%A2%E8%BD%AF%E4%BB%B6%E5%8C%85-1"><span class="nav-number">4.2.2.</span> <span class="nav-text">搜索软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E4%BF%A1%E6%81%AF-1"><span class="nav-number">4.2.3.</span> <span class="nav-text">查看包信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E8%BD%AF%E4%BB%B6%E5%8C%85-1"><span class="nav-number">4.2.4.</span> <span class="nav-text">安装软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%B8%E8%BD%BD%E8%BD%AF%E4%BB%B6%E5%8C%85-1"><span class="nav-number">4.2.5.</span> <span class="nav-text">卸载软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%87%E7%BA%A7%E8%BD%AF%E4%BB%B6%E5%8C%85-1"><span class="nav-number">4.2.6.</span> <span class="nav-text">升级软件包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%B7%B2%E5%AE%89%E8%A3%85%E7%9A%84%E5%8C%85-1"><span class="nav-number">4.2.7.</span> <span class="nav-text">查看已安装的包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E5%8C%85%E5%AE%89%E8%A3%85%E7%9A%84%E6%96%87%E4%BB%B6-1"><span class="nav-number">4.2.8.</span> <span class="nav-text">查看包安装的文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%96%87%E4%BB%B6%E5%B1%9E%E4%BA%8E%E5%93%AA%E4%B8%AA%E5%8C%85-1"><span class="nav-number">4.2.9.</span> <span class="nav-text">查看文件属于哪个包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E5%AE%89%E8%A3%85-.rpm-%E5%8C%85"><span class="nav-number">4.2.10.</span> <span class="nav-text">手动安装 .rpm 包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#rpm-%E7%9A%84%E5%B8%B8%E7%94%A8%E6%93%8D%E4%BD%9C"><span class="nav-number">4.3.</span> <span class="nav-text">rpm 的常用操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2%E5%8C%85%E4%BF%A1%E6%81%AF"><span class="nav-number">4.3.1.</span> <span class="nav-text">查询包信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E5%8C%85%E5%AE%8C%E6%95%B4%E6%80%A7"><span class="nav-number">4.3.2.</span> <span class="nav-text">验证包完整性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E7%BA%A7%E7%94%A8%E6%B3%95-1"><span class="nav-number">4.4.</span> <span class="nav-text">高级用法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E5%AE%9A%E5%8C%85%E7%89%88%E6%9C%AC%E9%98%B2%E6%AD%A2%E5%8D%87%E7%BA%A7-1"><span class="nav-number">4.4.1.</span> <span class="nav-text">锁定包版本（防止升级）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%8D%E7%BA%A7%E5%8C%85%E7%89%88%E6%9C%AC-1"><span class="nav-number">4.4.2.</span> <span class="nav-text">降级包版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E7%BC%93%E5%AD%98"><span class="nav-number">4.4.3.</span> <span class="nav-text">清理缓存</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E5%9B%BD%E5%86%85%E9%95%9C%E5%83%8F%E6%BA%90%E5%8A%A0%E9%80%9F%E4%B8%8B%E8%BD%BD"><span class="nav-number">5.</span> <span class="nav-text">配置国内镜像源（加速下载）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#debianubuntu-%E9%85%8D%E7%BD%AE%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">5.1.</span> <span class="nav-text">Debian&#x2F;Ubuntu 配置阿里云源</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%87%E4%BB%BD%E5%8E%9F%E5%A7%8B%E6%BA%90"><span class="nav-number">5.1.1.</span> <span class="nav-text">1. 备份原始源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%BF%E6%8D%A2%E4%B8%BA%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">5.1.2.</span> <span class="nav-text">2. 替换为阿里云源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E8%BD%AF%E4%BB%B6%E6%BA%90"><span class="nav-number">5.1.3.</span> <span class="nav-text">3. 更新软件源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E6%98%AF%E5%90%A6%E7%94%9F%E6%95%88"><span class="nav-number">5.1.4.</span> <span class="nav-text">4. 验证是否生效</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#centosrhel-%E9%85%8D%E7%BD%AE%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90"><span class="nav-number">5.2.</span> <span class="nav-text">CentOS&#x2F;RHEL 配置阿里云源</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%87%E4%BB%BD%E5%8E%9F%E5%A7%8B%E6%BA%90-1"><span class="nav-number">5.2.1.</span> <span class="nav-text">1. 备份原始源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD%E9%98%BF%E9%87%8C%E4%BA%91%E6%BA%90%E9%85%8D%E7%BD%AE"><span class="nav-number">5.2.2.</span> <span class="nav-text">2. 下载阿里云源配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E5%B9%B6%E6%9B%B4%E6%96%B0%E7%BC%93%E5%AD%98"><span class="nav-number">5.2.3.</span> <span class="nav-text">3. 清理并更新缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E6%98%AF%E5%90%A6%E7%94%9F%E6%95%88-1"><span class="nav-number">5.2.4.</span> <span class="nav-text">4. 验证是否生效</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E5%9B%BD%E5%86%85%E9%95%9C%E5%83%8F%E6%BA%90"><span class="nav-number">5.3.</span> <span class="nav-text">其他国内镜像源</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85%E4%BB%8E-configure-%E5%88%B0-make-install"><span class="nav-number">6.</span> <span class="nav-text">源码编译安装：从
+configure 到 make install</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85%E7%9A%84%E4%B8%89%E6%AD%A5%E6%9B%B2"><span class="nav-number">6.1.</span> <span class="nav-text">编译安装的三步曲</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85-nginxtengine"><span class="nav-number">6.2.</span> <span class="nav-text">实战：编译安装 Nginx（Tengine）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85%E7%BC%96%E8%AF%91%E4%BE%9D%E8%B5%96"><span class="nav-number">6.2.1.</span> <span class="nav-text">1. 安装编译依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD%E6%BA%90%E7%A0%81"><span class="nav-number">6.2.2.</span> <span class="nav-text">2. 下载源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E7%BC%96%E8%AF%91%E5%8F%82%E6%95%B0.configure"><span class="nav-number">6.2.3.</span> <span class="nav-text">3.
+配置编译参数（.&#x2F;configure）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91make"><span class="nav-number">6.2.4.</span> <span class="nav-text">4. 编译（make）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E8%A3%85make-install"><span class="nav-number">6.2.5.</span> <span class="nav-text">5. 安装（make install）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8-nginx"><span class="nav-number">6.2.6.</span> <span class="nav-text">6. 启动 Nginx</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-systemd-service%E5%8F%AF%E9%80%89"><span class="nav-number">6.2.7.</span> <span class="nav-text">7. 创建 systemd service（可选）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%85%8D%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E4%BB%A5-java-%E4%B8%BA%E4%BE%8B"><span class="nav-number">7.</span> <span class="nav-text">二进制免安装配置：以 Java
+为例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E9%85%8D%E7%BD%AE-java-%E7%8E%AF%E5%A2%83"><span class="nav-number">7.1.</span> <span class="nav-text">实战：配置 Java 环境</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD-jdk"><span class="nav-number">7.1.1.</span> <span class="nav-text">1. 下载 JDK</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E5%8E%8B%E5%88%B0-opt"><span class="nav-number">7.1.2.</span> <span class="nav-text">2. 解压到 &#x2F;opt</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F"><span class="nav-number">7.1.3.</span> <span class="nav-text">3. 配置环境变量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E9%85%8D%E7%BD%AE%E7%94%9F%E6%95%88"><span class="nav-number">7.1.4.</span> <span class="nav-text">4. 使配置生效</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81"><span class="nav-number">7.1.5.</span> <span class="nav-text">5. 验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8C%85%E7%AE%A1%E7%90%86%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="nav-number">8.</span> <span class="nav-text">包管理最佳实践</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E6%9C%9F%E6%9B%B4%E6%96%B0%E7%B3%BB%E7%BB%9F"><span class="nav-number">8.1.</span> <span class="nav-text">1. 定期更新系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B8%85%E7%90%86%E6%97%A0%E7%94%A8%E5%8C%85%E5%92%8C%E7%BC%93%E5%AD%98"><span class="nav-number">8.2.</span> <span class="nav-text">2. 清理无用包和缓存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81%E5%AE%9A%E5%85%B3%E9%94%AE%E8%BD%AF%E4%BB%B6%E7%89%88%E6%9C%AC"><span class="nav-number">8.3.</span> <span class="nav-text">3. 锁定关键软件版本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8D%E8%A6%81%E6%B7%B7%E7%94%A8%E5%8C%85%E7%AE%A1%E7%90%86%E5%99%A8%E5%92%8C%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85"><span class="nav-number">8.4.</span> <span class="nav-text">4. 不要混用包管理器和编译安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%87%E4%BB%BD%E9%87%8D%E8%A6%81%E9%85%8D%E7%BD%AE"><span class="nav-number">8.5.</span> <span class="nav-text">5. 备份重要配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E8%99%9A%E6%8B%9F%E7%8E%AF%E5%A2%83pythonnode.js"><span class="nav-number">8.6.</span> <span class="nav-text">6.
+使用虚拟环境（Python&#x2F;Node.js）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93%E4%B8%8E%E6%89%A9%E5%B1%95%E9%98%85%E8%AF%BB"><span class="nav-number">9.</span> <span class="nav-text">总结与扩展阅读</span></a></li></ol>
     </div>
 </div>
         </aside>

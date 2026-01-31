@@ -305,14 +305,20 @@ mjx-container[display="true"] + br {
                 
 
                 <h3 class="home-article-title">
-                    <a href="/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8%EF%BC%88VAE%EF%BC%89%E8%AF%A6%E8%A7%A3/">
-                        变分自编码器（VAE）详解
+                    <a href="/Prefix-Tuning-Optimizing-Continuous-Prompts-for-Generation/">
+                        Prefix Tuning —— Optimizing Continuous Prompts for Generation
                     </a>
                 </h3>
 
                 <div class="home-article-content markdown-body">
                     
-                        <p>在生成模型里，<strong>变分自编码器（Variational Autoencoder, VAE）</strong> 是一条很实用的路线：它既能把数据压缩到潜在空间再重建出来，也能在潜在空间里采样生成新样本。VAE把自编码器的表示学习和概率模型的潜变量建模合到了一起；训练上最关键的一点是 <strong>重参数化技巧</strong>，它把“采样”变成可微的计算图，从而可以端到端反向传播。本文按“先直觉、再公式、再代码”的顺序把 VAE 讲清楚。</p>
+                        <p>把大模型用到具体生成任务时，最“贵”的一步往往不是推理，而是为每个任务保存一份完整的微调权重。Prefix-Tuning
+的思路很克制：不改动语言模型本体参数，只学习一小段连续向量作为“前缀”，把它注入到
+Transformer
+的注意力计算里，让模型在生成时被这段前缀“引导”到任务所需的分布。本文会把这篇工作的关键点讲清楚：前缀到底加在什么位置（输入
+token 还是各层的 <span class="math inline"><mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="4.882ex" height="2.262ex" role="img" focusable="false" viewbox="0 -750 2158 1000"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D43E" d="M285 628Q285 635 228 637Q205 637 198 638T191 647Q191 649 193 661Q199 681 203 682Q205 683 214 683H219Q260 681 355 681Q389 681 418 681T463 682T483 682Q500 682 500 674Q500 669 497 660Q496 658 496 654T495 648T493 644T490 641T486 639T479 638T470 637T456 637Q416 636 405 634T387 623L306 305Q307 305 490 449T678 597Q692 611 692 620Q692 635 667 637Q651 637 651 648Q651 650 654 662T659 677Q662 682 676 682Q680 682 711 681T791 680Q814 680 839 681T869 682Q889 682 889 672Q889 650 881 642Q878 637 862 637Q787 632 726 586Q710 576 656 534T556 455L509 418L518 396Q527 374 546 329T581 244Q656 67 661 61Q663 59 666 57Q680 47 717 46H738Q744 38 744 37T741 19Q737 6 731 0H720Q680 3 625 3Q503 3 488 0H478Q472 6 472 9T474 27Q478 40 480 43T491 46H494Q544 46 544 71Q544 75 517 141T485 216L427 354L359 301L291 248L268 155Q245 63 245 58Q245 51 253 49T303 46H334Q340 37 340 35Q340 19 333 5Q328 0 317 0Q314 0 280 1T180 2Q118 2 85 2T49 1Q31 1 31 11Q31 13 34 25Q38 41 42 43T65 46Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Z"/></g><g data-mml-node="TeXAtom" data-mjx-texclass="ORD" transform="translate(889,0)"><g data-mml-node="mo"><path data-c="2F" d="M423 750Q432 750 438 744T444 730Q444 725 271 248T92 -240Q85 -250 75 -250Q68 -250 62 -245T56 -231Q56 -221 230 257T407 740Q411 750 423 750Z"/></g></g><g data-mml-node="mi" transform="translate(1389,0)"><path data-c="1D449" d="M52 648Q52 670 65 683H76Q118 680 181 680Q299 680 320 683H330Q336 677 336 674T334 656Q329 641 325 637H304Q282 635 274 635Q245 630 242 620Q242 618 271 369T301 118L374 235Q447 352 520 471T595 594Q599 601 599 609Q599 633 555 637Q537 637 537 648Q537 649 539 661Q542 675 545 679T558 683Q560 683 570 683T604 682T668 681Q737 681 755 683H762Q769 676 769 672Q769 655 760 640Q757 637 743 637Q730 636 719 635T698 630T682 623T670 615T660 608T652 599T645 592L452 282Q272 -9 266 -16Q263 -18 259 -21L241 -22H234Q216 -22 216 -15Q213 -9 177 305Q139 623 138 626Q133 637 76 637H59Q52 642 52 648Z"/></g></g></g></svg></mjx-container></span>）、为什么要做重参数化来稳定训练、它与
+Adapter/Prompt Tuning
+的边界在哪里，以及它在不同任务上带来的效果与代价是什么，方便你判断何时值得用它替代全量微调。</p>
                     
                 </div>
 
@@ -323,14 +329,14 @@ mjx-container[display="true"] + br {
     
 
     <div class="home-article-meta-info">
-        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Thu Aug 01 2024 00:00:00 GMT+0800">2024-08-01</span></span>
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Mon Feb 26 2024 00:00:00 GMT+0800">2024-02-26</span></span>
         
             <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
                 <ul>
                     
                         <li>
                             
-                            <a href="/categories/Algorithm/">Algorithm</a>&nbsp;
+                            <a href="/categories/Paper/">Paper</a>&nbsp;
                         </li>
                     
                     
@@ -344,7 +350,7 @@ mjx-container[display="true"] + br {
                     
                         <li>
                             
-                            <a href="/tags/ML-Basic/">ML Basic</a>&nbsp;
+                            <a href="/tags/PEFT/">PEFT</a>&nbsp;
                         </li>
                     
                 </ul>
@@ -352,7 +358,7 @@ mjx-container[display="true"] + br {
         
     </div>
 
-    <a href="/%E5%8F%98%E5%88%86%E8%87%AA%E7%BC%96%E7%A0%81%E5%99%A8%EF%BC%88VAE%EF%BC%89%E8%AF%A6%E8%A7%A3/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
+    <a href="/Prefix-Tuning-Optimizing-Continuous-Prompts-for-Generation/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
 </div>
 
             </li>
@@ -380,7 +386,7 @@ mjx-container[display="true"] + br {
     
 
     <div class="home-article-meta-info">
-        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Thu Aug 01 2024 00:00:00 GMT+0800">2024-08-01</span></span>
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Sun Feb 25 2024 00:00:00 GMT+0800">2024-02-25</span></span>
         
             <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
                 <ul>
@@ -410,6 +416,320 @@ mjx-container[display="true"] + br {
     </div>
 
     <a href="/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E2%80%94%E2%80%94-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0ADAM/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
+</div>
+
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                <h3 class="home-article-title">
+                    <a href="/cloud-computing-multi-cloud-hybrid/">
+                        云计算（八）多云管理与混合云架构
+                    </a>
+                </h3>
+
+                <div class="home-article-content markdown-body">
+                    
+                        <p>随着企业数字化转型的深入，单一云服务商已无法满足所有业务需求。多云和混合云架构正成为企业云战略的主流选择。本文深入探讨多云战略设计、云迁移策略、跨云网络互联、数据一致性、管理平台选型、成本优化、灾难恢复等核心议题，并结合实战案例，为企业构建稳健的多云架构提供系统性指导。</p>
+                    
+                </div>
+
+                <div class="home-article-meta-info-container">
+    
+    
+    
+    
+
+    <div class="home-article-meta-info">
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Thu Feb 22 2024 00:00:00 GMT+0800">2024-02-22</span></span>
+        
+            <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                        </li>
+                    
+                    
+                </ul>
+            </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fas fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">云计算</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E5%A4%9A%E4%BA%91/">多云</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%B7%B7%E5%90%88%E4%BA%91/">混合云</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E4%BA%91%E8%BF%81%E7%A7%BB/">云迁移</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97/">边缘计算</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/cloud-computing-multi-cloud-hybrid/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
+</div>
+
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                <h3 class="home-article-title">
+                    <a href="/cloud-computing-operations-devops/">
+                        云计算（七）运维与DevOps实践
+                    </a>
+                </h3>
+
+                <div class="home-article-content markdown-body">
+                    
+                        <p>云计算的本质是将基础设施抽象化，但抽象不等于消失。当应用部署到云端，运维工作并没有减少，而是发生了根本性的转变：从物理机房的硬件维护，转向了云资源的编排、监控、优化和自动化。DevOps
+理念的引入，让开发与运维的边界逐渐模糊，形成了"你构建它，你运行它"的文化。</p>
+<p>这篇文章将深入探讨云运维的核心流程、基础设施即代码实践、监控与日志体系、自动化运维、成本优化，以及
+SRE
+最佳实践。通过实战案例和工具链介绍，帮助读者构建完整的云运维知识体系。</p>
+                    
+                </div>
+
+                <div class="home-article-meta-info-container">
+    
+    
+    
+    
+
+    <div class="home-article-meta-info">
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Mon Jan 29 2024 00:00:00 GMT+0800">2024-01-29</span></span>
+        
+            <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                        </li>
+                    
+                    
+                </ul>
+            </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fas fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">云计算</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/DevOps/">DevOps</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E8%BF%90%E7%BB%B4/">运维</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E7%9B%91%E6%8E%A7/">监控</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/">自动化</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/cloud-computing-operations-devops/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
+</div>
+
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                <h3 class="home-article-title">
+                    <a href="/cloud-computing-security-privacy/">
+                        云计算（六）云安全与隐私保护
+                    </a>
+                </h3>
+
+                <div class="home-article-content markdown-body">
+                    
+                        <p>随着企业加速数字化转型，越来越多的关键业务和数据迁移到云端。然而，云计算的便利性也带来了前所未有的安全挑战。数据泄露、身份盗用、DDoS攻击等安全事件频发，使得云安全与隐私保护成为企业上云必须面对的核心议题。</p>
+<p>本文将从威胁模型分析入手，深入探讨身份与访问管理（IAM）、数据加密、密钥管理、DDoS防护、安全审计、合规要求、事件响应、零信任架构等关键安全领域，并通过实际案例和最佳实践，为企业构建全面的云安全防护体系提供指导。</p>
+                    
+                </div>
+
+                <div class="home-article-meta-info-container">
+    
+    
+    
+    
+
+    <div class="home-article-meta-info">
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Mon Jan 08 2024 00:00:00 GMT+0800">2024-01-08</span></span>
+        
+            <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                        </li>
+                    
+                    
+                </ul>
+            </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fas fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">云计算</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E4%BA%91%E5%AE%89%E5%85%A8/">云安全</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/IAM/">IAM</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%95%B0%E6%8D%AE%E5%8A%A0%E5%AF%86/">数据加密</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E5%90%88%E8%A7%84/">合规</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/cloud-computing-security-privacy/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
+</div>
+
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                <h3 class="home-article-title">
+                    <a href="/cloud-computing-networking-sdn/">
+                        云计算（五）网络架构与SDN技术
+                    </a>
+                </h3>
+
+                <div class="home-article-content markdown-body">
+                    
+                        <p>云计算的网络层是整个基础设施的神经系统，它连接着计算、存储和应用服务，决定了系统的性能、安全性和可扩展性。从传统的物理网络到软件定义网络（SDN），从简单的负载均衡到智能的CDN分发，云网络技术正在经历着深刻的变革。</p>
+<p>理解云网络架构，不仅需要掌握VPC、子网、路由表等基础概念，更要深入理解SDN如何将网络控制平面与数据平面分离，实现网络的灵活编程和自动化管理。本文将从云网络的基础架构出发，系统介绍负载均衡、CDN、SDN、NFV等核心技术，并通过实战案例展示如何构建高性能、高可用的云网络架构。</p>
+                    
+                </div>
+
+                <div class="home-article-meta-info-container">
+    
+    
+    
+    
+
+    <div class="home-article-meta-info">
+        <span><i class="fas fa-history"></i>&nbsp;<span class="home-article-date" data-date="Tue Dec 12 2023 00:00:00 GMT+0800">2023-12-12</span></span>
+        
+            <span class="home-article-category"><i class="fas fa-folder"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/categories/Cloud-Computing/">Cloud Computing</a>&nbsp;
+                        </li>
+                    
+                    
+                </ul>
+            </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fas fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/">云计算</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E4%BA%91%E7%BD%91%E7%BB%9C/">云网络</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/SDN/">SDN</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/">负载均衡</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/VPC/">VPC</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/cloud-computing-networking-sdn/">阅读全文&nbsp;<i class="fas fa-angle-right"></i></a>
 </div>
 
             </li>
