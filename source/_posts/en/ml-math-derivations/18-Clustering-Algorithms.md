@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "How do you find groups in unlabeled data? This article derives K-means (Lloyd + K-means++), hierarchical, DBSCAN, spectral, and GMM clustering from their mathematical foundations, with seven figures that show why each algorithm encodes a different prior."
 disableNunjucks: true
+series_order: 18
 ---
 ## What This Article Covers
 

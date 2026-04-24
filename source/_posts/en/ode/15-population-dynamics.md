@@ -21,6 +21,7 @@ lang: en
 mathjax: true
 description: "Mathematical ecology from single-species to spatial: Malthus, logistic, Allee, Lotka-Volterra predator-prey and competition, age-structured Leslie matrices, metapopulations, and Fisher-KPP traveling waves."
 disableNunjucks: true
+series_order: 15
 ---
 
 **Why do lynx and snowshoe hare populations cycle with eerie regularity over a 10-year period?** Why does introducing a single new species sometimes collapse an entire ecosystem? Why do similar competitors sometimes coexist and sometimes drive each other extinct? The answers are not in the species; they are in the *equations* relating the species. This chapter walks through the canonical models of mathematical ecology: from the single-population logistic and Allee models to multi-species competition, predator-prey oscillations, age structure, and spatial spread.
@@ -277,10 +278,5 @@ Mathematical ecology is small in number of equations but vast in number of behav
 
 **Series Navigation**
 
-| | |
-|---|---|
-| **Previous** | [Chapter 14: Epidemic Models](/en/ode-chapter-14-epidemiology/) |
-| **Current** | Chapter 15: Population Dynamics |
-| **Next** | [Chapter 16: Control Theory](/en/ode-chapter-16-control-theory/) |
 
 *This is Part 15 of the 18-part series on Ordinary Differential Equations.*

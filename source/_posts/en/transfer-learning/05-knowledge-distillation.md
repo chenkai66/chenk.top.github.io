@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "Compress large teacher models into small student models without losing much accuracy. Covers dark knowledge, temperature scaling, response-based / feature-based / relation-based distillation, self-distillation, and a complete multi-strategy implementation."
 disableNunjucks: true
+series_order: 5
 ---
 
 You have a 340M-parameter BERT model that hits 95% accuracy. The product team wants it on a phone that can barely fit 10M parameters. Training a 10M model from scratch lands at 85%. Knowledge distillation closes most of the gap: train the small model on the *output distribution* of the large one, not just on the labels, and you can reach 92%.

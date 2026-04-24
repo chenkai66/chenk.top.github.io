@@ -13,6 +13,7 @@ lang: zh-CN
 mathjax: false
 description: "深入剖析网卡的 PHY/MAC/DMA 流水线、TCP 三次握手、网络拓扑、电源 80 PLUS 效率曲线、数据中心 PUE、组件功耗层次以及 UPS 体系结构。"
 disableNunjucks: true
+series_order: 5
 ---
 
 主板上明明是千兆网卡，为什么有时只跑出 100 Mbps 的速度？崭新的 650 W 金牌电源，为什么显卡一吃满就重启？机房旁边的房间为什么常年比别处暖几度？这些日常现象的背后，是两套大多数人从不深究的系统：**承载数据的网络 I/O 流水线**，以及**让芯片活下去的电源与冷却链路**。

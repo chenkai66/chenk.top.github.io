@@ -13,8 +13,6 @@ description: "Self-attention, multi-head attention, and positional encoding for 
 disableNunjucks: true
 ---
 
-> **Series**: Time Series Forecasting -- Part 4 of 8
-> [<-- Previous: GRU](/en/time-series-gru/) | [Next: Transformer -->](/en/time-series-transformer/)
 
 ## What you will learn
 
@@ -357,8 +355,3 @@ The price is $O(n^2)$ memory and the need to inject position explicitly. For mos
 
 **Series navigation**
 
-| | |
-|---|---|
-| **Previous** | [GRU](/en/time-series-gru/) |
-| **Current** | Part 4: Attention mechanisms |
-| **Next** | [Transformer](/en/time-series-transformer/) |

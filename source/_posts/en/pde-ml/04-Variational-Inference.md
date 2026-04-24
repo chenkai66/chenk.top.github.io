@@ -13,9 +13,8 @@ lang: en
 mathjax: true
 description: "Variational inference and Langevin MCMC are two faces of the same Fokker-Planck PDE. We derive the equivalence, build SVGD as an interacting-particle approximation, and quantify convergence under log-Sobolev inequalities."
 disableNunjucks: true
+series_order: 4
 ---
-> **Series**: PDE and Machine Learning -- Part 4 of 4
-> [<-- Previous: Variational Principles](/en/PDE-and-Machine-Learning-3-Variational-Principles/)
 
 ## Seven Dimensions of This Article
 

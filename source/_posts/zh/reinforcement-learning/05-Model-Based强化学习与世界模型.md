@@ -20,6 +20,7 @@ lang: zh-CN
 mathjax: true
 description: "从 Dyna、MBPO 到 World Models、Dreamer 和 MuZero——学一个环境模型，让智能体在想象中规划，把样本效率提高 10-100 倍。"
 disableNunjucks: true
+series_order: 5
 ---
 
 到目前为止介绍过的所有算法——DQN、REINFORCE、A2C、PPO、SAC——本质上都是 **Model-Free** 的：智能体把环境当成黑盒，扔动作、收奖励、更新策略，从来不去理解环境到底是怎么运作的。这条路走得通，但极其奢侈：DQN 在 Atari Pong 上要 **1000 万帧**才能精通，OpenAI Five 在 Dota 2 上自我对弈了相当于 **45000 年**的游戏时间，AlphaStar 也是按"年"来烧 StarCraft 的样本。

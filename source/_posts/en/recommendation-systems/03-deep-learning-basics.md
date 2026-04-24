@@ -14,6 +14,7 @@ mathjax: true
 permalink: en/recommendation-systems-3-deep-learning-basics/
 description: "From MLPs to embeddings to NeuMF, YouTube DNN, and Wide & Deep -- a progressive walkthrough of the deep learning building blocks that power every modern recommender, with verified architectures and runnable PyTorch code."
 disableNunjucks: true
+series_order: 3
 ---
 
 In June 2016, Google published a one-page paper that quietly redrew the map of recommendation systems. The paper described **Wide & Deep Learning**, the model then powering app recommendations inside Google Play -- a billion-user product. Within a year, every major tech company had a deep model in production. By 2019, the industry standard had shifted: matrix factorization was a baseline, not a system.

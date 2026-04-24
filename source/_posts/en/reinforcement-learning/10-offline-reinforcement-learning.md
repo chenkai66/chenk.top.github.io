@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "Master offline RL: learn policies from fixed datasets without environment interaction. Covers distributional shift, Conservative Q-Learning (CQL), BCQ, Implicit Q-Learning (IQL), Decision Transformer, with a complete CQL implementation."
 disableNunjucks: true
+series_order: 10
 ---
 
 Every algorithm we have studied so far has the same loop at its core: act, observe, update. That loop is what makes RL work, but it is also what stops RL from being deployed. A self-driving stack cannot rehearse intersections by crashing into them. A clinical decision-support model cannot run a randomized policy on actual patients. A factory robot cannot try ten thousand grasp variants on a production line.

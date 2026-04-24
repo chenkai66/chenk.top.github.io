@@ -15,6 +15,7 @@ mathjax: true
 description: "A deep, intuition-first walkthrough of graph neural networks for recommendation: GCN, GAT, GraphSAGE, PinSage, LightGCN, NGCF, social signals, scalable sampling, and cold start. Diagrams plus working PyTorch."
 permalink: "en/recommendation-systems-7-graph-neural-networks/"
 disableNunjucks: true
+series_order: 7
 ---
 When Netflix decides what to recommend next, it does not look at your watch history in isolation. Behind the scenes there is a web of relationships: movies that share actors, users with overlapping taste, ratings that ripple through the catalogue. The "graph" view is not a metaphor — every interaction matrix *is* a graph, and treating it as one unlocks ideas that flat user/item embeddings cannot express.
 

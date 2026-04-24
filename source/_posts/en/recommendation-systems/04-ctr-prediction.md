@@ -14,6 +14,7 @@ mathjax: true
 permalink: en/recommendation-systems-4-ctr-prediction/
 description: "A practical guide to CTR prediction models -- from Logistic Regression and Factorization Machines to DeepFM, xDeepFM, DCN, AutoInt, and FiBiNet -- with intuitive explanations and PyTorch implementations."
 disableNunjucks: true
+series_order: 4
 ---
 
 Every time you scroll through a social-media feed, click a product recommendation, or watch a suggested video, a CTR (click-through rate) model decided what to show you. These models answer one deceptively small question:

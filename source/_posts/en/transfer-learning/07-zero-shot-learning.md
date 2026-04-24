@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "A first-principles tour of zero-shot learning: attribute prototypes (DAP), compatibility functions, DeViSE, generative ZSL with f-CLSWGAN, the GZSL bias problem and calibration, and CLIP-style vision-language pretraining, with PyTorch building blocks."
 disableNunjucks: true
+series_order: 7
 ---
 
 You have never seen a zebra. I tell you it looks like a horse painted with black and white stripes, and the next time one walks into the zoo you recognise it instantly. No labelled examples, no fine-tuning — only a *semantic bridge* between what you know (horses, stripes) and what you don't (this new species).

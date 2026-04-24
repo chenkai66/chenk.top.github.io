@@ -16,6 +16,7 @@ lang: en
 mathjax: true
 description: "Fill a huge matrix with random numbers, compute its eigenvalues, and watch stunning regularity emerge from chaos. Learn the Wigner semicircle law, Marchenko-Pastur distribution, and Tracy-Widom limit -- with applications to MIMO, finance, and PCA in ML."
 disableNunjucks: true
+series_order: 14
 ---
 
 A million i.i.d. coin flips, arranged into a thousand-by-thousand symmetric matrix, somehow produce eigenvalues that fill a perfect semicircle. A noisy sample covariance matrix that should be the identity instead spreads its eigenvalues across an interval whose width you can predict before seeing a single number. The largest eigenvalue of a Wigner matrix has a tail distribution that turns up everywhere -- in growing crystals, in the longest increasing subsequence of a random permutation, in the energy levels of heavy nuclei. **Random matrix theory** (RMT) is the study of why these regularities appear, and how to use them.

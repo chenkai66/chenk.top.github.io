@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "Step from ODEs into partial differential equations. Classify PDEs into parabolic, hyperbolic, and elliptic types. Solve the heat, wave, and Laplace equations using separation of variables and finite differences."
 disableNunjucks: true
+series_order: 13
 ---
 
 **Once a quantity depends on more than one variable, the ODE world splinters into a vastly richer one: partial differential equations.** Heat in a metal rod is a function of position *and* time; a vibrating string moves in space *and* time; a steady electrostatic potential lives in three spatial dimensions. ODE techniques become tools, not solutions -- separation of variables turns one PDE into a *family* of ODEs, the eigenvalues of those ODEs become the spectrum of the operator, and superposition stitches everything back together.
@@ -277,10 +278,5 @@ The PDE world is enormous -- nonlinear conservation laws, fluid mechanics, gener
 
 **Series Navigation**
 
-| | |
-|---|---|
-| **Previous** | [Chapter 12: Boundary Value Problems](/en/ode-chapter-12-boundary-value-problems/) |
-| **Current** | Chapter 13: Introduction to Partial Differential Equations |
-| **Next** | [Chapter 14: Epidemic Models and Epidemiology](/en/ode-chapter-14-epidemiology/) |
 
 *This is Part 13 of the 18-part series on Ordinary Differential Equations.*

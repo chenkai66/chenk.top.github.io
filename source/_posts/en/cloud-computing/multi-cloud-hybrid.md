@@ -1,6 +1,6 @@
 ---
 title: "Multi-Cloud and Hybrid Architecture"
-date: 2024-06-11 09:00:00
+date: 2024-07-06 09:00:00
 tags:
   - Cloud Computing
   - Multi-Cloud
@@ -16,6 +16,7 @@ lang: en
 mathjax: false
 description: "Series finale. Multi-cloud vs hybrid cloud strategy, the 6R migration framework, hybrid networking, cross-cloud data sync and conflict resolution, vendor lock-in mitigation, disaster recovery RPO/RTO planning, FinOps cost optimization, and the trends shaping the next decade."
 disableNunjucks: true
+series_order: 8
 ---
 The first article in this series asked "what is the cloud, and why does it matter?" Eight articles later, the question has matured into something more practical: **which clouds, in what combination, and how do you operate the result without losing your mind?** Multi-cloud and hybrid architectures are how serious organizations answer that question. They distribute workloads across providers and on-premises infrastructure for resilience, cost optimization, and strategic flexibility -- but they introduce a new class of problems that single-cloud architectures never face.
 

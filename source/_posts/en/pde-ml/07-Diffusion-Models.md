@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "Diffusion models are PDE solvers in disguise. We derive the heat equation, Fokker-Planck, score matching, DDPM, and DDIM from a unified PDE perspective and visualise every step."
 disableNunjucks: true
+series_order: 7
 ---
 
 ## What This Article Covers

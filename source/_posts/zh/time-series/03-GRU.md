@@ -1,6 +1,6 @@
 ---
 title: "时间序列模型（三）：GRU -- 轻量门控与效率权衡"
-date: 2024-11-03 09:00:00
+date: 2024-11-25 09:00:00
 tags:
   - 时间序列
   - 深度学习
@@ -14,9 +14,8 @@ lang: zh-CN
 mathjax: true
 description: "GRU 把 LSTM 精炼为两个门，参数减少 25%，训练快 10--15%。本文用公式、基准测试和决策矩阵告诉你 GRU 何时优于 LSTM。"
 disableNunjucks: true
+series_order: 3
 ---
-> **系列**：时间序列模型 -- 第 3 部分，共 8 部分
-> [<-- 上一篇：LSTM](/zh/时间序列模型-二-LSTM/) | [下一篇：Attention 机制 -->](/zh/时间序列模型-四-Attention机制/)
 
 ## 本章要点
 

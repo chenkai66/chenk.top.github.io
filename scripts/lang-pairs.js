@@ -80,3 +80,28 @@ hexo.extend.helper.register('translation_url', function(page) {
   var path = match.path || '';
   return '/' + path.replace(/^\/+/, '');
 });
+
+/* series_neighbors(page) → { prev, next } in same language + same series, by series_order */
+hexo.extend.helper.register('series_neighbors', function(page) {
+  var lang = page.lang;
+  var key = getSeriesKey(page) || inferSeriesKeyFromPath(page);
+  var order = getSeriesOrder(page);
+  if (!key || order == null) return { prev: null, next: null };
+  var posts = hexo.locals.get('posts');
+  if (!posts) return { prev: null, next: null };
+  var inSeries = [];
+  posts.each(function(p) {
+    if (p.lang !== lang) return;
+    var pKey = getSeriesKey(p) || inferSeriesKeyFromPath(p);
+    if (pKey !== key) return;
+    var pOrder = getSeriesOrder(p);
+    if (pOrder == null) return;
+    inSeries.push({ post: p, order: pOrder });
+  });
+  inSeries.sort(function(a, b){ return a.order - b.order; });
+  var idx = inSeries.findIndex(function(x){ return x.order === order; });
+  return {
+    prev: idx > 0 ? inSeries[idx - 1].post : null,
+    next: idx >= 0 && idx < inSeries.length - 1 ? inSeries[idx + 1].post : null
+  };
+});

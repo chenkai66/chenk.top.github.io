@@ -17,6 +17,7 @@ series:
 lang: zh-CN
 mathjax: true
 disableNunjucks: true
+series_order: 9
 ---
 
 ## 一、为什么 SVD 配得上"皇冠"二字

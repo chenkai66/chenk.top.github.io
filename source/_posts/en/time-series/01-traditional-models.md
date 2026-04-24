@@ -11,9 +11,9 @@ lang: en
 mathjax: true
 description: "ARIMA, SARIMA, VAR, GARCH, Prophet, exponential smoothing and the Kalman filter, derived from a single state-space view. With Box-Jenkins workflow, ACF/PACF identification, and runnable Python."
 disableNunjucks: true
+series_order: 1
 ---
 
-> **Series**: Time Series Forecasting -- Part 1 of 8
 > [Next: LSTM Deep Dive -->](/en/time-series-lstm/)
 
 ## What You Will Learn
@@ -376,8 +376,3 @@ That is the launchpad for the next seven articles. We start with **LSTM** as the
 ---
 
 **Series Navigation**
-
-| | |
-|---|---|
-| **Current** | Part 1: Traditional Statistical Models |
-| **Next** | [LSTM Deep Dive](/en/time-series-lstm/) |

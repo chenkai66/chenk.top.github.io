@@ -20,6 +20,7 @@ lang: en
 mathjax: true
 description: "Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation."
 disableNunjucks: true
+series_order: 2
 ---
 
 BERT changed NLP overnight. A model pre-trained on Wikipedia and BookCorpus could be fine-tuned on a few thousand labelled examples and beat task-specific architectures that researchers had spent years hand-crafting. The same pattern repeated in vision (ImageNet pre-training, then SimCLR, MAE), in speech (wav2vec 2.0), and in code (Codex). Today, "pre-train once, fine-tune everywhere" is the default recipe of modern deep learning.

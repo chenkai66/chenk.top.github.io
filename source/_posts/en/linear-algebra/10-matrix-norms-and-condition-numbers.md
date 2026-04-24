@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 disableNunjucks: true
+series_order: 10
 ---
 
 ## The Question That Haunts Engineers

@@ -12,8 +12,6 @@ mathjax: true
 description: "Transformers for time series, end to end: encoder-decoder anatomy, temporal positional encoding, the O(n^2) attention bottleneck, decoder-only forecasting, and patching. With variants (Autoformer, FEDformer, Informer, PatchTST) and a real implementation."
 disableNunjucks: true
 ---
-> **Series**: Time Series Forecasting -- Part 5 of 8
-> [<-- Previous: Attention Mechanisms](/en/time-series-attention-mechanism/) | [Next: TCN -->](/en/time-series-temporal-convolutional-networks/)
 
 ## What You Will Learn
 

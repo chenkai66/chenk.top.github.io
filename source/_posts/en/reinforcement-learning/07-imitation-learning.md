@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "A practical, theory-grounded tour of imitation learning: behavioral cloning and its quadratic compounding error, DAgger and the no-regret reduction, MaxEnt inverse RL for recovering reward functions, and adversarial methods (GAIL, AIRL). Includes runnable PyTorch code, a method-selection ladder, and seven publication-quality figures."
 disableNunjucks: true
+series_order: 7
 ---
 
 Every algorithm in the previous chapters assumed access to a reward function. In practice, _designing_ that reward is often the hardest part of an RL project. Try writing one paragraph that captures "drive like a careful human", "fold a shirt the way a tailor would", or "summarise this document the way an expert editor would". You can _show_ those behaviours far more easily than you can _specify_ them.

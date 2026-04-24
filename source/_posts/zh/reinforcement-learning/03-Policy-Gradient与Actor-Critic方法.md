@@ -16,6 +16,7 @@ lang: zh-CN
 mathjax: true
 description: "从REINFORCE到SAC——策略梯度方法如何直接优化策略，自然处理连续动作，驱动PPO、TD3和SAC等现代算法。"
 disableNunjucks: true
+series_order: 3
 ---
 
 DQN 证明了深度强化学习能玩转 Atari，但它有一个硬上限：**只能处理离散动作空间**。让它去控制一只七自由度机械臂的关节角度，立刻就垮了——你得在每一步动作之前先解一个内层优化问题。

@@ -16,6 +16,7 @@ lang: en
 mathjax: true
 description: "Machine learning speaks linear algebra as its native language. From PCA to SVMs, from matrix factorization in recommender systems to gradient descent optimization -- see how vectors, matrices, and decompositions power every core ML algorithm."
 disableNunjucks: true
+series_order: 15
 ---
 
 Ask any senior ML engineer "what math do you actually use day to day?" and the answer is almost always **linear algebra**. Calculus shows up in derivations; probability shows up in modeling; but the runtime of a real ML system is dominated by matrix-vector multiplies, decompositions, and projections. PyTorch's `Linear`, scikit-learn's `PCA`, Spark MLlib's `ALS`, and a Transformer's attention head are all the same primitive in different costumes.

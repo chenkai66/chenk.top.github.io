@@ -1,6 +1,6 @@
 ---
 title: "Cloud Storage Systems and Distributed Architecture"
-date: 2024-07-01 09:00:00
+date: 2024-06-16 09:00:00
 tags:
   - Cloud Computing
   - Distributed Storage
@@ -16,6 +16,7 @@ lang: en
 mathjax: false
 description: "From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation."
 disableNunjucks: true
+series_order: 4
 ---
 
 When Netflix stores petabytes of video, when Instagram serves billions of photos, when a quant fund replays a year of market data in minutes -- behind every one of these workloads is a *distributed storage system*. Storage looks deceptively simple from a developer's window (`PUT key`, `GET key`), but the moment you cross the boundary of a single machine, you inherit a stack of problems that has driven decades of research: how to survive disk failures, how to scale linearly, how to provide a consistency model that does not surprise the application, and how to do all of this while paying cents per gigabyte rather than dollars.

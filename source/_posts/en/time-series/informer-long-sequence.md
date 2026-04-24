@@ -14,8 +14,6 @@ description: "Informer reduces Transformer complexity from O(L^2) to O(L log L) 
 disableNunjucks: true
 ---
 
-> **Series**: Time Series Forecasting -- Part 8 of 8
-> [<-- Previous: N-BEATS](/en/time-series-n-beats/)
 
 The Transformer is wonderful at sequence modeling -- right up to the moment your sequence gets long. Vanilla self-attention costs $\mathcal{O}(L^2)$ in both compute and memory, so a one-week hourly window (168 steps) is fine, a one-month window (720 steps) is painful, and a three-month window (2160 steps) is essentially impossible on a single GPU. That is exactly the regime real-world long-horizon forecasting lives in: weather, energy, finance, IoT.
 

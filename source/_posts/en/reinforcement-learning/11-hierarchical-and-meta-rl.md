@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations."
 disableNunjucks: true
+series_order: 11
 ---
 
 Standard RL treats every problem as a flat sequence of atomic decisions: observe state, pick an action, receive a reward, repeat. That works when the horizon is short and rewards are dense, but it breaks down on the kind of tasks humans solve effortlessly. "Make breakfast" is not one decision; it is a tree of subtasks --- *brew coffee*, *fry eggs*, *toast bread*, *plate it up* --- each of which is itself a small policy. **Hierarchical RL (HRL)** lets agents reason and act at multiple timescales by treating macro-actions as first-class citizens.

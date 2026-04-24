@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 description: "A practical deep dive into trustworthy recommendation: the seven biases (popularity, position, selection, exposure, conformity, demographic, confirmation), causal inference (RCTs, IPS, doubly robust estimators), debiasing in production (MACR, DICE, FairCo), and explainability (LIME, SHAP, counterfactuals)."
 disableNunjucks: true
+series_order: 13
 ---
 
 > A user opens Spotify and the same fifty songs keep appearing. They open Amazon and the top results are always the items they have already considered. They open YouTube and every recommendation is one click away from a rabbit hole they cannot remember asking for. Each of these symptoms has a name, a cause, and a fix. This article is about all three.

@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 disableNunjucks: true
+series_order: 12
 ---
 
 ## The "Less Is More" Miracle

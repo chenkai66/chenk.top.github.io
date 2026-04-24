@@ -1,6 +1,6 @@
 ---
 title: "云原生与容器技术"
-date: 2024-09-07 09:00:00
+date: 2024-06-11 09:00:00
 tags:
   - 云原生
   - Docker
@@ -16,6 +16,7 @@ lang: zh-CN
 mathjax: false
 description: "从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。"
 disableNunjucks: true
+series_order: 3
 ---
 从单体架构到云原生，是过去十年软件工程最重要的范式转变。容器和 Kubernetes 这个标题广为人知，但更值得讲的是：**为什么是这套技术栈赢了？每一层究竟在做什么？哪些接缝决定了你的平台是丝滑还是迷宫？**
 

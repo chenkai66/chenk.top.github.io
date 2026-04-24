@@ -13,8 +13,6 @@ description: "N-BEATS combines deep learning expressiveness with classical decom
 disableNunjucks: true
 ---
 
-> **Series**: Time Series Forecasting -- Part 7 of 8
-> [<-- Previous: TCN](/en/time-series-temporal-convolutional-networks/) | [Next: Informer -->](/en/time-series-informer-long-sequence/)
 
 The 2018 M4 forecasting competition served 100,000 series across six frequencies as a single benchmark. The leaderboard was dominated by hand-tuned ensembles built from decades of statistical-forecasting craft. Then a **pure neural network** with no statistical preprocessing, no feature engineering, and no recurrence won outright. That network was **N-BEATS** by Oreshkin et al. -- a stack of fully-connected blocks with two residual paths. Its interpretable variant additionally split the forecast into a polynomial trend and a Fourier seasonality, so the very thing classical statisticians wanted (a readable decomposition) came for free.
 

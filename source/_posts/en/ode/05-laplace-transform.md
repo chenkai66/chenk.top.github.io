@@ -17,6 +17,7 @@ lang: en
 mathjax: true
 description: "When elementary functions fail, power series step in. Learn the Frobenius method and meet the special functions of physics: Bessel, Legendre, Hermite, and Airy functions -- with Python visualizations."
 disableNunjucks: true
+series_order: 5
 ---
 **Some ODEs have no solutions in terms of familiar functions.** The Bessel equation, the Legendre equation, the Airy equation -- all arise naturally in physics (heat conduction in cylinders, gravitational fields of planets, quantum tunneling). Their solutions *define* entirely new functions. This chapter shows you how to find them using power series, why the Frobenius extension is forced upon us at singular points, and why the same handful of "special functions" keeps appearing across physics and engineering.
 
@@ -408,8 +409,3 @@ The figures in this article were produced by `scripts/figures/ode/05-power-serie
 
 **Series Navigation**
 
-| | |
-|---|---|
-| **Previous** | [Chapter 4: The Laplace Transform](/en/ode-chapter-04-constant-coefficients/) |
-| **Current** | Chapter 5: Power Series and Special Functions |
-| **Next** | [Chapter 6: Linear Systems and Phase Plane](/en/ode-chapter-06-power-series/) |

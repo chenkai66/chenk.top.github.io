@@ -13,6 +13,7 @@ lang: zh-CN
 mathjax: false
 description: "对比 HDD 与 SSD 工作原理、SATA vs NVMe 接口速度、SLC/MLC/TLC/QLC 寿命、SSD 优化（4K 对齐、TRIM）与 RAID 阵列配置。"
 disableNunjucks: true
+series_order: 3
 ---
 
 为什么仅仅换一块 SSD 就能让一台五年前的笔记本"复活"？为什么 TLC 颗粒标称只有 1 000 次擦写，实际却能轻松撑过十年？为什么标称 3 500 MB/s 的新 SSD 用了几周后会突然掉到 50 MB/s？这是**计算机基础深度解析系列**的第三篇，我们从第一性原理出发回答这些问题：旋转磁盘片与 NAND 电荷阱在物理层面究竟差在哪里、接口（SATA、PCIe Gen 3/4/5）的带宽如何与协议（AHCI vs NVMe）的并行度相互作用、RAID 各级别如何在容量、性能、容错之间取舍、文件系统如何把字节组织成文件、以及如何在生产环境里把这一切跑得既快又安全。

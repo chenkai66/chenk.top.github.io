@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "See ODEs in action across physics and engineering. Walk through the nonlinear pendulum, RLC circuit and resonance, Kepler orbits and conservation laws, multi-DOF structural vibration with tuned mass dampers, and fluid flow from Poiseuille to vortex shedding -- all with full Python simulations."
 disableNunjucks: true
+series_order: 17
 ---
 
 **Differential equations are not a pure mathematical game -- they are the language for understanding the physical world.** From celestial motion to circuit response, from a swinging pendulum to vortex shedding behind a bridge cable, every dynamical system "speaks" ODE.

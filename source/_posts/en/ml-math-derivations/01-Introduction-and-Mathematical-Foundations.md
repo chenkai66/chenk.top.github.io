@@ -16,6 +16,7 @@ lang: en
 mathjax: true
 description: "Why can machines learn from data at all? This first chapter builds the mathematical theory of learning from first principles -- problem formalization, loss surrogates, PAC learning, VC dimension, the bias-variance decomposition and the No Free Lunch theorem."
 disableNunjucks: true
+series_order: 1
 ---
 
 ## What this chapter does

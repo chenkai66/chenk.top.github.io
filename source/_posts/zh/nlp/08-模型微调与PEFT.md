@@ -1,6 +1,6 @@
 ---
 title: "自然语言处理（八）：模型微调与PEFT"
-date: 2024-06-08 09:00:00
+date: 2025-09-12 09:00:00
 tags:
   - NLP
   - PEFT
@@ -16,6 +16,7 @@ lang: zh-CN
 mathjax: true
 description: "深入参数高效微调：LoRA 为什么用低秩更新就够、QLoRA 把 7B 模型塞进 6GB 显存的内存账本、Adapter 与 Prefix-Tuning 的取舍，以及生产环境怎么选。"
 disableNunjucks: true
+series_order: 8
 ---
 
 2020 年微调一个 70 亿参数的语言模型还得排预算：八张 A100、几天时间，再加一个会调梯度检查点的工程师。2024 年，研究生在笔记本上就能跑。中间这段距离，几乎完全由 Hu 等人 2022 年的 LoRA 论文，以及 Dettmers 等人 2023 年的 QLoRA 论文铺平。

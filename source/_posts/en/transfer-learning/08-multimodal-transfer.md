@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "Derive contrastive learning (InfoNCE), CLIP's vision-language pretraining, BLIP's Q-Former bridge to LLMs, cross-modal alignment, and multimodal fusion strategies. Includes a from-scratch CLIP implementation in PyTorch."
 disableNunjucks: true
+series_order: 8
 ---
 
 How can a model classify an image of a Burmese cat correctly without ever having seen a label "Burmese cat"? Traditional supervised learning needs millions of labeled examples per class. CLIP, released by OpenAI in 2021, sidesteps that constraint entirely: it learns to put images and natural-language descriptions into the same vector space, and then "classification" reduces to picking which sentence — out of any candidate sentences you write down — sits closest to the image.

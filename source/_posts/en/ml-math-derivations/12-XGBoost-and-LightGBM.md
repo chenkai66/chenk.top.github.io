@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "Derive XGBoost's second-order Taylor expansion, regularised objective and split-gain formula, then explore LightGBM's histogram algorithm, GOSS sampling and EFB bundling for industrial-scale gradient boosting."
 disableNunjucks: true
+series_order: 12
 ---
 
 XGBoost and LightGBM are the two libraries that quietly win most tabular-data battles --- on Kaggle leaderboards, in fraud-detection pipelines, in ad ranking, in churn models. They share the same backbone (gradient-boosted trees, Part 11) but make very different engineering bets:

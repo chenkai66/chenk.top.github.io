@@ -1,6 +1,6 @@
 ---
 title: "自然语言处理（十）：RAG与知识增强系统"
-date: 2024-06-10 09:00:00
+date: 2025-09-20 09:00:00
 tags:
   - NLP
   - RAG
@@ -15,6 +15,7 @@ lang: zh-CN
 mathjax: true
 description: "从第一性原理构建生产级 RAG 系统：retrieve-then-generate 概率分解、向量索引（FAISS / Milvus / Chroma / Weaviate / Pinecone）、稠密+稀疏混合检索与 RRF 融合、Cross-encoder 重排、切块策略、查询改写、HyDE，以及 Self-RAG / Corrective-RAG。"
 disableNunjucks: true
+series_order: 10
 ---
 
 被冻结知识的语言模型是个自信的撒谎者：它读不到昨天的故障报告、读不到公司 wiki、读不到今早刚合入的 patch notes，于是当你提问，它会给出一个语法完美但事实错误的答案。**检索增强生成（RAG）** 通过把"记忆"和"推理"分开来打破这个困局：让 LLM 保持小且稳定，把易变的知识放到一个可以随时更新的外部存储里，生成之前先把相关证据检索出来作为上下文。

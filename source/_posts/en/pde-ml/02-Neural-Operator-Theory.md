@@ -10,6 +10,7 @@ categories: Scientific Computing
 lang: en
 mathjax: true
 disableNunjucks: true
+series_order: 2
 ---
 
 A classical PDE solver — finite difference, finite element, spectral — is a function: feed it one initial condition and one set of coefficients, get back one solution. A PINN is the same kind of object dressed in neural-network clothes: each new initial condition demands a fresh round of training. Switch the inflow velocity on a wing or move a single sensor reading in a forecast and you reset the clock.

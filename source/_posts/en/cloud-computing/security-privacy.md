@@ -17,6 +17,7 @@ lang: en
 mathjax: false
 description: "A working engineer's guide to cloud security: shared responsibility, IAM that actually scales, encryption at rest / in transit / in use, zero trust, compliance frameworks, and incident response that you can rehearse."
 disableNunjucks: true
+series_order: 6
 ---
 
 In 2019 Capital One lost a hundred million customer records. The exploit chain was small: a misconfigured WAF allowed server-side request forgery against the EC2 metadata endpoint, that endpoint handed back IAM credentials, and the IAM role those credentials belonged to had wildcard `s3:*` on every bucket in the account. One misconfiguration, one over-broad role, one rule the security team had not written. The bill, before legal: more than 80 million dollars.

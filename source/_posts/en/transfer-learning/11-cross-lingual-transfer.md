@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "Derive cross-lingual transfer from bilingual word-embedding alignment to multilingual pretraining (mBERT, XLM-R). Covers zero-shot transfer, translate-train vs translate-test, pivot strategies, subword anchors, the high/low-resource gap, and cross-lingual prompts."
 disableNunjucks: true
+series_order: 11
 ---
 
 English has the labels. The world has 7,000+ languages. Cross-lingual transfer is what lets a sentiment classifier trained only on English IMDB reviews score Spanish tweets, what makes a question-answering model fine-tuned on SQuAD answer Hindi questions, and what allows a model that has never seen a single labeled Swahili sentence to do passable Swahili NER.

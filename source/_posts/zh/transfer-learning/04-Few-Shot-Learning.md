@@ -18,6 +18,7 @@ lang: zh-CN
 mathjax: true
 description: "从极少样本中学会新概念：N-way K-shot 评测协议、度量学习（Siamese、Prototypical、Matching、Relation 网络）、元学习（MAML、Reptile）、Episode 训练范式，以及一份可直接运行的 Prototypical 网络实现。"
 disableNunjucks: true
+series_order: 4
 ---
 
 给一个孩子看一张穿山甲的照片，他这辈子都能认出穿山甲。给深度学习模型看一张，它给你的回答和瞎猜没什么两样。**小样本学习（Few-Shot Learning）** 要做的，就是把这条鸿沟填上——让分类器在每类只有 1 到 10 个标注样本的情况下也能工作。

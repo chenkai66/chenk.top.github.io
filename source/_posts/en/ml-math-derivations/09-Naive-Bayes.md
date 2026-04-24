@@ -17,6 +17,7 @@ lang: en
 mathjax: true
 description: "Rigorous derivation of Naive Bayes from Bayes theorem through conditional independence, parameter estimation, Laplace smoothing, three model variants, and why it works despite violated assumptions."
 disableNunjucks: true
+series_order: 9
 ---
 
 > **Hook:** A spam filter that trains in milliseconds, scales to a million features, has *no hyperparameters worth tuning*, and still beats much fancier models on short-text problems. Naive Bayes pulls this off by making one outrageous assumption — every feature is independent given the class — and refusing to apologise for it. The assumption is wrong on essentially every real dataset, yet the classifier works. Understanding *why* is a tour through generative modelling, MAP estimation, Dirichlet priors, and the bias–variance tradeoff. This article walks the entire path.

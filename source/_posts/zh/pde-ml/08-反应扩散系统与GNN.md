@@ -17,6 +17,7 @@ lang: zh-CN
 mathjax: true
 description: "深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE+ML 系列收尾。"
 disableNunjucks: true
+series_order: 8
 ---
 
 ## 本文你会学到

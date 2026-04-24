@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 disableNunjucks: true
+series_order: 7
 ---
 
 ## Why Orthogonality Matters

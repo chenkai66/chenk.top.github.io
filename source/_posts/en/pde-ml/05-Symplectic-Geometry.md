@@ -17,6 +17,7 @@ lang: en
 mathjax: true
 description: "Standard neural networks violate conservation laws. This article derives Hamiltonian mechanics, symplectic integrators, HNNs, LNNs, and SympNets from the geometry of phase space."
 disableNunjucks: true
+series_order: 5
 ---
 
 ## What this article covers

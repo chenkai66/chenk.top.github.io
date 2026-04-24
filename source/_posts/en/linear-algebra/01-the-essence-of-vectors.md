@@ -15,6 +15,7 @@ series:
 lang: en
 mathjax: true
 disableNunjucks: true
+series_order: 1
 ---
 ## Why Vectors, and Why Care?
 

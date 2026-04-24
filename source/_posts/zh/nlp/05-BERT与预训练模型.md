@@ -1,6 +1,6 @@
 ---
 title: "自然语言处理（五）：BERT与预训练模型"
-date: 2024-06-05 09:00:00
+date: 2025-08-31 09:00:00
 tags:
   - NLP
   - BERT
@@ -15,6 +15,7 @@ lang: zh-CN
 mathjax: true
 description: "BERT 如何让双向预训练成为 NLP 的默认范式：从架构到 80/10/10 掩码规则，到微调技巧，再到 RoBERTa/ALBERT/ELECTRA 全家桶，并附完整 HuggingFace 代码。"
 disableNunjucks: true
+series_order: 5
 ---
 
 2018 年 10 月，Google 发布 BERT，一口气在 11 个 NLP 基准上刷新了纪录。配方却出奇地简单：拿一个 Transformer 编码器，让它根据左右两侧的上下文去预测被随机遮盖的词；预训练完成之后，再把同一个模型针对各种下游任务做一次轻量的微调。在 BERT 之前，每个任务都要从头训练一个模型；在 BERT 之后，"先预训练，再微调"成了整个领域的默认思路。

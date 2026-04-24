@@ -20,6 +20,7 @@ lang: en
 mathjax: true
 description: "How do RL agents discover rewards when the environment gives almost no feedback? From count-based methods to ICM, RND, and NGU -- the science of curiosity-driven exploration."
 disableNunjucks: true
+series_order: 4
 ---
 
 Drop a fresh agent into Montezuma's Revenge. To score a single point it must walk to the right, jump a skull, climb a rope, leap to a platform, and grab a key -- roughly **a hundred precise actions in a row**. Until that key is collected, every reward signal is exactly zero.

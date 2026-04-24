@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "Derive LoRA's low-rank adaptation, the Adapter bottleneck, Prefix-Tuning, Prompt-Tuning, BitFit and QLoRA. Includes a from-scratch LoRA implementation with weight merging and a method-selection guide."
 disableNunjucks: true
+series_order: 9
 ---
 
 How do you fine-tune a 175B-parameter model on a single GPU? Update only 0.1% of the parameters. Parameter-Efficient Fine-Tuning (PEFT) makes this possible -- and on most benchmarks it matches full fine-tuning. This post derives the math behind LoRA, Adapter, Prefix-Tuning, Prompt-Tuning, BitFit and QLoRA, and gives you a single picture for choosing among them.

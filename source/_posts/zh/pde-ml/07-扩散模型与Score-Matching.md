@@ -17,6 +17,7 @@ lang: zh-CN
 mathjax: true
 description: "从 PDE 视角统一理解扩散模型：热方程、Fokker-Planck、score matching、DDPM/DDIM、Latent Diffusion，配可视化。"
 disableNunjucks: true
+series_order: 7
 ---
 
 ## 本文你会学到

@@ -1,6 +1,6 @@
 ---
 title: "时间序列模型（四）：Attention 机制 -- 直接的长程依赖"
-date: 2024-11-04 09:00:00
+date: 2024-11-30 09:00:00
 tags:
   - 时间序列
   - 深度学习
@@ -14,10 +14,9 @@ lang: zh-CN
 mathjax: true
 description: "自注意力、多头注意力和位置编码在时间序列中的应用。逐步推导数学公式，附 PyTorch 实现和注意力可视化。"
 disableNunjucks: true
+series_order: 4
 ---
 
-> **系列**：时间序列模型 -- 第 4 部分，共 8 部分
-> [<-- 上一篇：GRU](/zh/时间序列模型-三-GRU/) | [下一篇：Transformer -->](/zh/时间序列模型-五-Transformer架构/)
 
 ## 本章要点
 
@@ -362,8 +361,3 @@ class LSTMAttention(nn.Module):
 
 **系列导航**
 
-| | |
-|---|---|
-| **上一篇** | [GRU](/zh/时间序列模型-三-GRU/) |
-| **当前** | 第四部分：Attention 机制 |
-| **下一篇** | [Transformer 架构](/zh/时间序列模型-五-Transformer架构/) |

@@ -15,6 +15,7 @@ mathjax: true
 description: "Learn how knowledge graphs supercharge recommendation systems by adding semantic understanding. Covers RippleNet, KGCN, KGAT, CKE, and path-based reasoning -- with intuitive explanations, real-world analogies, and working Python code."
 permalink: "en/recommendation-systems-8-knowledge-graph/"
 disableNunjucks: true
+series_order: 8
 ---
 
 When you search for *The Dark Knight* on a streaming platform, the system does not merely log that you watched it. It knows Christian Bale played Batman, Christopher Nolan directed it, it belongs to the Batman trilogy, and it shares cinematic DNA with other cerebral action films. This rich semantic web is a **knowledge graph (KG)** -- a structured network of entities (movies, actors, directors, genres) connected by typed relations (`acted_in`, `directed_by`, `part_of`).

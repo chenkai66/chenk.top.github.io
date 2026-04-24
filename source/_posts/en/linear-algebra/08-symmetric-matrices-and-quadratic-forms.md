@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 disableNunjucks: true
+series_order: 8
 ---
 
 ## Why Symmetric Matrices Are the "Best"

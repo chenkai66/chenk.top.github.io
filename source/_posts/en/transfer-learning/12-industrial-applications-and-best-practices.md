@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "Series finale. A field guide to shipping transfer learning to production: when to use it, the end-to-end pipeline, compute and dollar economics, four landmark case studies, A/B testing, distribution-shift monitoring, and 12-month ROI."
 disableNunjucks: true
+series_order: 12
 ---
 
 This is the final part of the series. The previous eleven parts gave you the mechanics -- pretraining, fine-tuning, domain adaptation, few-shot and zero-shot learning, distillation, multi-task learning, multimodality, parameter-efficient methods, continual learning, and cross-lingual transfer. This part is about the work that happens once the notebook closes: deciding **whether** to use transfer learning, **how** to thread it into a production pipeline, and **how** to know it is still working six months later.

@@ -1,6 +1,6 @@
 ---
 title: "Cloud Computing Fundamentals and Architecture"
-date: 2024-06-06 09:00:00
+date: 2024-06-01 09:00:00
 tags:
   - Cloud Computing
   - IaaS
@@ -16,6 +16,7 @@ lang: en
 mathjax: false
 description: "An engineering-grade introduction to cloud computing -- service models (IaaS, PaaS, SaaS, FaaS), deployment topologies, the economics of CapEx vs OpEx, regions and AZs, vendor catalogues and a decision framework with real architecture cases."
 disableNunjucks: true
+series_order: 1
 ---
 
 Every team building software in 2025 inherits the same buy-or-rent question their predecessors faced -- only the answer has flipped. Twenty years ago you put hardware in a closet; today you describe the hardware in YAML and a global provider conjures it up in seconds, bills it by the second, and tears it down when you stop paying. Cloud computing is not just "someone else's computer". It is a programmable, metered, multi-tenant abstraction over compute, storage and networking that has fundamentally changed how businesses are built and how engineers spend their day.

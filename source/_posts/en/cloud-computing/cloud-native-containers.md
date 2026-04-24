@@ -1,6 +1,6 @@
 ---
 title: "Cloud-Native and Container Technologies"
-date: 2024-06-01 09:00:00
+date: 2024-06-11 09:00:00
 tags:
   - Cloud Computing
   - Cloud Native
@@ -16,6 +16,7 @@ lang: en
 mathjax: false
 description: "Why cloud-native exists, what containers actually do at the kernel level, how Kubernetes really works, when service mesh is worth its weight, and how the whole stack fits together in production."
 disableNunjucks: true
+series_order: 3
 ---
 The shift from monolithic applications to cloud-native architectures is one of the most consequential changes in software engineering this decade. The headline -- containers and Kubernetes -- is well known. The interesting story is *why* this stack won, what each layer actually does, and where the seams are that determine whether your platform feels effortless or feels like a maze.
 

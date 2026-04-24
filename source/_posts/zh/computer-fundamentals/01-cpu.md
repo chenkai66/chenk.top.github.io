@@ -13,6 +13,7 @@ lang: zh-CN
 mathjax: false
 description: "理解数据单位（位与字节）、CPU 架构、五级流水线、缓存层级、分支预测、乱序执行、多核与 SMT、Intel vs AMD 差异，以及如何选购合适的处理器。"
 disableNunjucks: true
+series_order: 1
 ---
 
 为什么 100 Mbps 宽带下载只有大约 12 MB/s？为什么"1 TB"硬盘在 Windows 里只显示 931 GB？为什么 32 位系统最多只能用约 3.2 GB 内存？当 CPU 真正开始执行你的代码时，每个时钟周期里到底发生了什么？

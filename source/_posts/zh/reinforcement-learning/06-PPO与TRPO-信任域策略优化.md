@@ -15,6 +15,7 @@ lang: zh-CN
 mathjax: true
 description: "PPO和TRPO的完整推导：从策略优化的不稳定性到信任域约束，PPO的裁剪技巧，以及PPO在RLHF中的关键角色。"
 disableNunjucks: true
+series_order: 6
 ---
 策略梯度（参见第三篇）直接对策略本身求导，绕开了离散 `argmax`，能自然处理连续动作和随机策略。但它有一个致命缺陷——**走错一步就可能毁掉整个策略**，而且因为采样分布跟着策略一起变，回头几乎不可能。
 

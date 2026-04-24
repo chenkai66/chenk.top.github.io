@@ -16,6 +16,7 @@ lang: en
 mathjax: true
 description: "The language of machine learning is linear algebra. This article derives vector spaces, eigendecomposition, SVD, and matrix calculus from first principles -- every tool you need for ML optimization."
 disableNunjucks: true
+series_order: 2
 ---
 
 ## Why this chapter, and what's different

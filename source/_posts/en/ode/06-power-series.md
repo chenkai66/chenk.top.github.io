@@ -17,6 +17,7 @@ lang: en
 mathjax: true
 description: "When multiple variables interact, you need systems of ODEs. Learn the matrix exponential, eigenvalue-based solutions, phase portrait classification, and applications to coupled oscillators and RLC circuits."
 disableNunjucks: true
+series_order: 6
 ---
 **One equation describes one quantity. The world is rarely that obliging.** Predator and prey populations push each other up and down. Currents and voltages in an RLC network oscillate together. Chemical species in a reaction network feed into one another. The moment two unknowns share an equation, you have a *system*, and a single $y'=ay$ is no longer enough.
 
@@ -307,8 +308,3 @@ Chapter 7 will lift this entire theory to nonlinear systems via linearization at
 
 **Series Navigation**
 
-| | |
-|---|---|
-| **Previous** | [Chapter 5: Power Series and Special Functions](/en/ode-chapter-05-laplace-transform/) |
-| **Current** | Chapter 6: Linear Systems and the Matrix Exponential |
-| **Next** | [Chapter 7: Stability Theory](/en/ode-chapter-07-systems-and-phase-plane/) |

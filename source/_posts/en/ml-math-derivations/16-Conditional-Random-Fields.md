@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding."
 disableNunjucks: true
+series_order: 16
 ---
 
 ## What This Article Covers

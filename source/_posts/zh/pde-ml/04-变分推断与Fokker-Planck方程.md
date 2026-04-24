@@ -17,10 +17,9 @@ lang: zh-CN
 mathjax: true
 description: "变分推断与 Langevin MCMC 在连续时间下是同一个 Fokker-Planck PDE：从 SDE 推导密度演化、KL 散度作为 Wasserstein 梯度流、SVGD 粒子方法、对数 Sobolev 不等式给出指数收敛、贝叶斯神经网络应用。"
 disableNunjucks: true
+series_order: 4
 ---
 
-> **系列**：PDE 与机器学习 -- 第 4 篇 / 共 4 篇
-> [<-- 上一篇：变分原理与优化](/zh/PDE与机器学习-三-变分原理与优化/)
 
 ## 本文的七个维度
 

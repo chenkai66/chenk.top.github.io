@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "Series finale: quantum gates as unitary matrices, graph convolution as Laplacian filtering, attention as soft retrieval, LoRA as low-rank adaptation, tensor networks, the matrix exponential, free probability, and a topological data analysis preview -- plus the 18-chapter dependency graph and the geometry / numerics / computation triangle that runs through everything."
 disableNunjucks: true
+series_order: 18
 ---
 
 We have walked the long road of linear algebra together. We started with arrows in the plane and ended at the gates of quantum computers, the inner workings of large language models, and the topology of data clouds. The remarkable thing -- the thing this series has tried to make visible -- is that the same handful of ideas keeps coming back. A vector is a state. A matrix is a transformation. A decomposition is the structure hiding inside the transformation. A norm tells you when you can trust your computation. Once you internalise that loop, every "frontier" looks less like a foreign country and more like another dialect of a language you already speak.

@@ -19,6 +19,7 @@ lang: en
 mathjax: true
 description: "A practical guide to domain adaptation: covariate shift, label shift, DANN with gradient reversal, MMD alignment, CORAL, self-training, AdaBN, and a complete DANN implementation."
 disableNunjucks: true
+series_order: 3
 ---
 
 Your autonomous-driving stack works perfectly on sunny California freeways. Then it rains in Seattle. Top-1 accuracy drops from 95% to 70%. The model did not get worse — the *data distribution shifted*, and your training set never told it what wet asphalt looks like at dusk.

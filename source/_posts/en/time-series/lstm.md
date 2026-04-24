@@ -12,8 +12,6 @@ mathjax: true
 description: "How LSTM's forget, input, and output gates solve the vanishing gradient problem. Complete PyTorch code for time series forecasting with practical tuning tips."
 disableNunjucks: true
 ---
-> **Series**: Time Series Forecasting -- Part 2 of 8
-> [<-- Previous: Traditional Models](/en/time-series-1-traditional-models/) | [Next: GRU -->](/en/time-series-gru/)
 
 ## What You Will Learn
 

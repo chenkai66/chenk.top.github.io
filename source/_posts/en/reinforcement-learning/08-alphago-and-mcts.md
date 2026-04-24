@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku."
 disableNunjucks: true
+series_order: 8
 ---
 
 In March 2016, AlphaGo defeated world Go champion Lee Sedol 4–1 in Seoul. The result was not just a sporting upset; it was the moment a 60-year programme in artificial intelligence — beating the world's best at Go — concluded a full decade ahead of most published predictions. Go has roughly $10^{170}$ legal positions, more than the number of atoms in the observable universe. No amount of brute-force search will ever crack it. AlphaGo's victory came from a different idea: let a deep network supply the *intuition* about which moves look promising, and let Monte Carlo Tree Search (MCTS) supply the *deliberation* that verifies and sharpens that intuition.
