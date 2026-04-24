@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies"
-date: 2024-11-20 09:00:00
+date: 2024-11-30 09:00:00
 tags:
   - Time Series
   - Deep Learning
@@ -11,6 +11,7 @@ lang: en
 mathjax: true
 description: "Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting."
 disableNunjucks: true
+series_order: 4
 ---
 
 

@@ -11,6 +11,7 @@ lang: en
 mathjax: true
 description: "GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix."
 disableNunjucks: true
+series_order: 3
 ---
 
 ## What You Will Learn

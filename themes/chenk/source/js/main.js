@@ -430,32 +430,43 @@
   var mobileLangSwitcher = document.getElementById('mobile-lang-switcher');
   var mobileLangLabel = document.getElementById('mobile-lang-label');
 
-  function getCurrentLang() {
-    // Priority: explicit per-page lang attr > localStorage > html lang
-    var pageLang = document.documentElement.getAttribute('data-page-lang');
-    if (pageLang) return pageLang.indexOf('zh') === 0 ? 'zh' : 'en';
-    var saved = localStorage.getItem('siteLang');
-    if (saved) return saved;
-    var htmlLang = (document.documentElement.lang || 'en').toLowerCase();
-    return htmlLang.indexOf('zh') === 0 ? 'zh' : 'en';
+  function getPageLang() {
+    // Hard language of the current URL (for paired-URL switching).
+    var pl = document.documentElement.getAttribute('data-page-lang') || '';
+    if (pl) return pl.indexOf('zh') === 0 ? 'zh' : 'en';
+    var path = window.location.pathname;
+    if (path.indexOf('/zh/') === 0) return 'zh';
+    if (path.indexOf('/en/') === 0) return 'en';
+    return null;
   }
+
+  function getSiteLang() {
+    // The user's *preferred* site language. Used for filtering listing pages
+    // and for deciding what the lang switcher button should display next.
+    var saved = localStorage.getItem('siteLang');
+    if (saved === 'zh' || saved === 'en') return saved;
+    // Fall back to page-lang (for first-time visitors landing on a translated post)
+    return getPageLang() || 'en';
+  }
+
+  function getCurrentLang() { return getSiteLang(); }
 
   function switchLanguage() {
     var path = window.location.pathname;
-    var current = getCurrentLang();
+    var current = getSiteLang();
     var next = current === 'en' ? 'zh' : 'en';
 
-    // Persist global preference for non-localized pages (home, archive, etc.)
+    // Persist the user's choice immediately.
     localStorage.setItem('siteLang', next);
 
-    // 1) If this page has a paired translation URL injected by Hexo, use it.
+    // 1) Paired translation URL set by Hexo helper — preferred for article pages.
     var paired = document.documentElement.getAttribute('data-translation');
     if (paired && paired !== '') {
       window.location.href = paired;
       return;
     }
 
-    // 2) Path-prefix swap when on a localized post path (/en/... or /zh/...)
+    // 2) /en/... ↔ /zh/... path swap fallback for article pages without a pair.
     if (path.indexOf('/zh/') === 0) {
       window.location.href = path.replace('/zh/', '/en/');
       return;
@@ -465,7 +476,8 @@
       return;
     }
 
-    // 3) Non-localized pages: just reload to apply siteLang filter on home/archive/etc.
+    // 3) Non-localized page (home, archive, me, projects, series, about, …):
+    //    just reload — the JS will re-apply the filter & update the label.
     window.location.reload();
   }
 
@@ -483,16 +495,38 @@
   updateLangLabels();
 
   // === Per-language content filtering on listing pages ===
-  // Hides post cards / archive items / etc. that don't match the user's siteLang.
-  // Items must carry data-post-lang="en" or "zh-CN".
+  // Hides post cards / archive items that don't match the user's siteLang.
+  // ONLY applied on home + archive pages (not category/tag pages, since those
+  // already cluster posts by category/tag name and should show all matches).
+  // If the filter would empty the page, fall back to showing all.
   function applyLangFilter() {
+    var path = window.location.pathname;
+    // Only filter on root home + archives + tags index + categories index — never on
+    // a specific category/tag page where posts are already grouped.
+    var isFilterable = path === '/' || path === '/index.html'
+      || /^\/(en|zh)\/?$/.test(path)
+      || /^\/page\/\d+\/?$/.test(path)
+      || /^\/archives\/?$/.test(path);
+    if (!isFilterable) return;
+
     var siteLang = localStorage.getItem('siteLang') || getCurrentLang();
     var wantZh = siteLang === 'zh';
-    document.querySelectorAll('[data-post-lang]').forEach(function(el) {
+    var items = document.querySelectorAll('[data-post-lang]');
+    if (items.length === 0) return;
+
+    var visible = 0;
+    items.forEach(function(el) {
       var pl = (el.getAttribute('data-post-lang') || '').toLowerCase();
       var isZh = pl.indexOf('zh') === 0;
-      el.style.display = (isZh === wantZh) ? '' : 'none';
+      var match = (isZh === wantZh);
+      el.style.display = match ? '' : 'none';
+      if (match) visible++;
     });
+
+    // If we hid everything, restore — better to show all than empty
+    if (visible === 0) {
+      items.forEach(function(el) { el.style.display = ''; });
+    }
   }
   applyLangFilter();
 

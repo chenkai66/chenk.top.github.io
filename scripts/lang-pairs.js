@@ -9,13 +9,17 @@
  */
 
 function getSeriesKey(post) {
+  // Always prefer the folder-based key — it's stable across EN/ZH because both
+  // languages organize posts under matching folder names (e.g. /en/time-series/
+  // and /zh/time-series/). Front-matter `series:` strings vary wildly (e.g.
+  // EN: "Time Series Forecasting" vs ZH: "时间序列模型") and aren't reliable.
+  var pathKey = inferSeriesKeyFromPath(post);
+  if (pathKey) return pathKey;
   if (!post.series) return null;
   if (typeof post.series === 'string') return post.series;
   if (typeof post.series === 'object') {
     if (post.series.slug) return post.series.slug;
     if (post.series.key) return post.series.key;
-    // Map zh series.name back to a slug via theme.series
-    return null;
   }
   return null;
 }

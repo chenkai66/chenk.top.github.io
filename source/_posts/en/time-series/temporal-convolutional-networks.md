@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (6): Temporal Convolutional Networks (TCN)"
-date: 2024-12-15 09:00:00
+date: 2024-12-10 09:00:00
 tags:
   - Time Series
   - Deep Learning
@@ -11,6 +11,7 @@ lang: en
 mathjax: true
 description: "TCNs use causal dilated convolutions for parallel training and exponential receptive fields. Complete PyTorch implementation with traffic flow and sensor data case studies."
 disableNunjucks: true
+series_order: 6
 ---
 
 

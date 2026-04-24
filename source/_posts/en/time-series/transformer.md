@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (5): Transformer Architecture for Time Series"
-date: 2024-12-20 09:00:00
+date: 2024-12-05 09:00:00
 tags:
   - Time Series
   - Deep Learning
@@ -11,6 +11,7 @@ lang: en
 mathjax: true
 description: "Transformers for time series, end to end: encoder-decoder anatomy, temporal positional encoding, the O(n^2) attention bottleneck, decoder-only forecasting, and patching. With variants (Autoformer, FEDformer, Informer, PatchTST) and a real implementation."
 disableNunjucks: true
+series_order: 5
 ---
 
 ## What You Will Learn

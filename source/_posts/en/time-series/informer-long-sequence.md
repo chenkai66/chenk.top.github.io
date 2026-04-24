@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting"
-date: 2024-11-30 09:00:00
+date: 2024-12-20 09:00:00
 tags:
   - Time Series
   - Deep Learning
@@ -12,6 +12,7 @@ lang: en
 mathjax: true
 description: "Informer reduces Transformer complexity from O(L^2) to O(L log L) via ProbSparse attention, distilling, and a one-shot generative decoder. Full math, PyTorch code, and ETT/weather benchmarks."
 disableNunjucks: true
+series_order: 8
 ---
 
 

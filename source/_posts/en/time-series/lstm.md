@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies"
-date: 2024-12-05 09:00:00
+date: 2024-11-20 09:00:00
 tags:
   - Time Series
   - Deep Learning
@@ -11,6 +11,7 @@ lang: en
 mathjax: true
 description: "How LSTM's forget, input, and output gates solve the vanishing gradient problem. Complete PyTorch code for time series forecasting with practical tuning tips."
 disableNunjucks: true
+series_order: 2
 ---
 
 ## What You Will Learn

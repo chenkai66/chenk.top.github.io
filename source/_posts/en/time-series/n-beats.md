@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (7): N-BEATS -- Interpretable Deep Architecture"
-date: 2024-12-10 09:00:00
+date: 2024-12-15 09:00:00
 tags:
   - Time Series
   - Deep Learning
@@ -11,6 +11,7 @@ lang: en
 mathjax: true
 description: "N-BEATS combines deep learning expressiveness with classical decomposition interpretability. Basis function expansion, double residual stacking, and M4 competition analysis with full PyTorch code."
 disableNunjucks: true
+series_order: 7
 ---
 
 
