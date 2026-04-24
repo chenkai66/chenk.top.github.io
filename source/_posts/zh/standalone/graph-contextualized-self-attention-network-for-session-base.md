@@ -1,4 +1,5 @@
 ---
+date: 2024-02-18 09:00:00
 title: "Graph Contextualized Self-Attention Network for Session-based Recommendation"
 tags:
   - GNN

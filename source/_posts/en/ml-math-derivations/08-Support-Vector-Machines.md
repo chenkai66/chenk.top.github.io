@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (8): Support Vector Machines"
-date: 2024-03-13 09:00:00
+date: 2026-02-12 09:00:00
 tags:
   - Machine Learning
   - Support Vector Machines

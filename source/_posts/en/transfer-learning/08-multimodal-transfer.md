@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (8): Multimodal Transfer"
-date: 2024-08-08 09:00:00
+date: 2025-05-13 09:00:00
 categories:
   - Transfer Learning
   - Machine Learning

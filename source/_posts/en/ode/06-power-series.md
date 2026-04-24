@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 6: Linear Systems and the Matrix Exponential"
-date: 2024-10-06 09:00:00
+date: 2024-08-04 09:00:00
 tags:
   - ODE
   - Linear Systems
@@ -112,7 +112,7 @@ print(expm_via_eig.real)    # same matrix (modulo floating-point noise)
 The eigendecomposition formula has a clean re-statement that avoids matrix exponentials altogether.
 
 > **Theorem.** If $A$ has eigenpairs $(\lambda_i,\mathbf{v}_i)$ with linearly independent $\mathbf{v}_i$, the general solution of $\mathbf{x}'=A\mathbf{x}$ is
-> $$\mathbf{x}(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1 + c_2 e^{\lambda_2 t}\mathbf{v}_2 + \cdots + c_n e^{\lambda_n t}\mathbf{v}_n.$$
+> $\mathbf{x}(t) = c_1 e^{\lambda_1 t}\mathbf{v}_1 + c_2 e^{\lambda_2 t}\mathbf{v}_2 + \cdots + c_n e^{\lambda_n t}\mathbf{v}_n.$
 
 The proof is a one-liner: for each eigenpair, $\frac{d}{dt}\bigl(e^{\lambda t}\mathbf{v}\bigr)=\lambda e^{\lambda t}\mathbf{v}=A\bigl(e^{\lambda t}\mathbf{v}\bigr)$. Linearity finishes the job.
 

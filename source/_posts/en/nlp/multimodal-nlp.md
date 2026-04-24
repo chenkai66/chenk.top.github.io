@@ -1,6 +1,6 @@
 ---
 title: "NLP (11): Multimodal Large Language Models"
-date: 2024-06-11 09:00:00
+date: 2025-09-12 09:00:00
 tags:
   - NLP
   - Multimodal

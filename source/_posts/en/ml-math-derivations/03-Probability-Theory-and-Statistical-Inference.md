@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (3): Probability Theory and Statistical Inference"
-date: 2024-03-03 09:00:00
+date: 2026-01-23 09:00:00
 tags:
   - Machine Learning
   - Probability Theory

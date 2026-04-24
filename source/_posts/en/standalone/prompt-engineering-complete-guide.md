@@ -1,6 +1,6 @@
 ---
 title: "Prompt Engineering Complete Guide: From Zero to Advanced Optimization"
-date: 2025-01-12 09:00:00
+date: 2025-01-29 09:00:00
 tags:
   - Prompt Engineering
   - LLM

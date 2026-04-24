@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 2: Word Embeddings and Language Models"
-date: 2024-06-02 09:00:00
+date: 2025-09-28 09:00:00
 tags:
   - NLP
   - Word Embeddings

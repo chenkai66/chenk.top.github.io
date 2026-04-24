@@ -1,6 +1,6 @@
 ---
 title: "Solving Constrained Mean-Variance Portfolio Optimization Using Spiral Optimization"
-date: 2024-11-20 09:00:00
+date: 2025-04-17 09:00:00
 tags:
   - Portfolio Optimization
   - Metaheuristics
@@ -47,7 +47,7 @@ $$
 
 where $\mathbf{e}$ is the all-ones vector. This is a convex quadratic program. Sweep $R_p$ across an interval and you trace the *efficient frontier*: the locus of portfolios that minimise variance for each return level.
 
-![Mean-variance frontier with cardinality constraint](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig1_efficient_frontier.png)
+![Mean-variance frontier with cardinality constraint](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig1_efficient_frontier.png)
 
 The figure above shows the geometry on a five-asset universe. The cloud of dots is 5,000 random portfolios sampled uniformly from the simplex (coloured by Sharpe-like ratio). The purple curve is the unconstrained efficient frontier (shorting permitted), and the dashed blue curve is the *cardinality-constrained* frontier with $K=3$. Two observations are immediate: (i) the cardinality-constrained frontier sits to the right of the unconstrained one at every return level (less choice means less diversification, which means more risk), and (ii) the gap between the two is *not* uniform in $R_p$. At extreme returns the gap widens because only a few combinations can hit the target at all.
 
@@ -96,7 +96,7 @@ $$
 
 where $R(\theta)$ is a $d$-dimensional rotation matrix with angle $\theta$, and $r \in (0, 1)$ is a contraction factor. The composition of rotation and contraction traces a logarithmic spiral inward.
 
-![SOA spiral trajectory and radius schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig2_spiral_trajectory.png)
+![SOA spiral trajectory and radius schedule](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig2_spiral_trajectory.png)
 
 The left panel shows the trajectories of five candidates initialised in the four quadrants of a non-convex landscape. The amber star marks the current best (which happens to be the global minimum here). Each candidate spirals inward, sampling the loss along the way. The right panel makes the *exploration vs exploitation* trade-off explicit: the geometric envelope $r^k$ governs how fast the spiral collapses. A slow shrink ($r = 0.95$) keeps candidates wandering far from $\mathbf{x}^*$ for many iterations (more exploration), while a fast shrink ($r = 0.85$) collapses them quickly onto the incumbent (more exploitation).
 
@@ -136,7 +136,7 @@ $$
 
 The integer constraint $z_i \in \{0,1\}$ is enforced by *rounding*: SOA searches over $z_i \in [0,1]$ continuously and rounds to the nearest integer when evaluating $P$.
 
-![Penalty pulls the optimum into the feasible band, plus 2-D feasibility map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig3_constraint_handling.png)
+![Penalty pulls the optimum into the feasible band, plus 2-D feasibility map](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig3_constraint_handling.png)
 
 The left panel shows what the penalty does on a 1-D weight slice: the raw variance $V(y)$ (grey dashed) has its minimum sitting in the infeasible region (purple dot, below the buy-in threshold). Adding $\rho \cdot P(y)$ produces sharp parabolic walls outside the feasible band $[l, u]$; the resulting penalised objective (solid blue) has its optimum pulled into the green strip (amber diamond). The right panel shows a 2-D feasibility map for two assets with cardinality $K=1$: only the green region is feasible. Crosses are infeasible candidates, dots are feasible ones.
 
@@ -168,7 +168,7 @@ and a $5 \times 5$ positive semidefinite covariance matrix (the precise values a
 
 ### 4.2 Convergence comparison
 
-![Convergence vs Quasi-Newton, DIRECT, and PSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig4_convergence.png)
+![Convergence vs Quasi-Newton, DIRECT, and PSO](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig4_convergence.png)
 
 The figure compares best-so-far variance over iterations for SOA-MINLP, Quasi-Newton, DIRECT, and a PSO baseline I added for context. The shaded blue band is the 10-90 percentile of 30 independent SOA runs; the solid blue curve is the median.
 
@@ -180,7 +180,7 @@ The catch: this is a five-asset problem. Every claim about SOA's relative rankin
 
 To pressure-test the *portfolio* (not just the *solver*), I simulated three years of daily returns from the multivariate Gaussian implied by $\overline{\mathbf{r}}$ and $Q$ and compared three rules: equal weight, unconstrained mean-variance at target return 11%, and an SOA-MINLP-style portfolio (long-only, $K=3$, buy-in $0.10$).
 
-![Out-of-sample backtest equity and drawdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig5_backtest.png)
+![Out-of-sample backtest equity and drawdown](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/spiral-portfolio/fig5_backtest.png)
 
 The unconstrained MV portfolio has the highest in-model Sharpe but it shorts assets and concentrates aggressively, which translates into a worse drawdown (bottom panel) than the SOA-MINLP portfolio. Equal weight is the most defensive but leaves return on the table. The SOA-MINLP rule hits a sweet spot: the cardinality and buy-in constraints regularise the portfolio, giving up a little expected return for materially better drawdown behaviour. This is the practical case for cardinality constraints: not theoretical optimality, but *risk diversification you can implement on a real desk*.
 

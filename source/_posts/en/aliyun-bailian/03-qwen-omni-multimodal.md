@@ -1,6 +1,6 @@
 ---
 title: "Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding"
-date: 2026-04-24 09:00:00
+date: 2026-04-22 09:00:00
 tags:
   - Aliyun Bailian
   - DashScope

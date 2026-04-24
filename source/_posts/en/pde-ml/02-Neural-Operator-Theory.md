@@ -1,4 +1,5 @@
 ---
+date: 2024-10-06 09:00:00
 title: "PDE and Machine Learning (2) — Neural Operator Theory"
 tags:
   - PDE

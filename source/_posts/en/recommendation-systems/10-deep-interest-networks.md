@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (10): Deep Interest Networks and Attention Mechanisms"
-date: 2024-05-11 09:00:00
+date: 2025-11-20 09:00:00
 tags:
   - Recommendation Systems
   - DIN

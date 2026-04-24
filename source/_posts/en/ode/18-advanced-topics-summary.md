@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (18): Frontiers and Series Finale"
-date: 2024-10-27 09:00:00
+date: 2024-09-21 09:00:00
 tags:
   - Ordinary Differential Equations
   - Neural ODEs

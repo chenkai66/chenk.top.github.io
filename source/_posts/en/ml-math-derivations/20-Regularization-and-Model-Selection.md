@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (20): Regularization and Model Selection"
-date: 2024-03-20 09:00:00
+date: 2026-04-01 09:00:00
 tags:
   - Machine Learning
   - Regularization

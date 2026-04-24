@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (12): Boundary Value Problems"
-date: 2024-10-21 09:00:00
+date: 2024-08-28 09:00:00
 tags:
   - Ordinary Differential Equations
   - Boundary Value Problems
@@ -38,7 +38,7 @@ This is also where ODE methods quietly become PDE methods. The discretization, e
 
 ## 1. From IVP to BVP: a small change with big consequences
 
-The canonical second-order BVP is$$y'' = f(x, y, y'), \quad y(a) = \alpha, \quad y(b) = \beta.$$Compare with the IVP, which would specify$y(a) = \alpha,\;y'(a) = \alpha'$. The data set is the same size (two scalars), but its **distribution** matters enormously.
+The canonical second-order BVP is$y'' = f(x, y, y'), \quad y(a) = \alpha, \quad y(b) = \beta.$Compare with the IVP, which would specify$y(a) = \alpha,\;y'(a) = \alpha'$. The data set is the same size (two scalars), but its **distribution** matters enormously.
 
 For an IVP under mild Lipschitz conditions, Picard's theorem guarantees existence and uniqueness. The flow exists, period. For a BVP, none of that is guaranteed.
 
@@ -66,7 +66,7 @@ Mixed types are common in practice (Dirichlet on one side, Neumann on the other)
 
 ## 2. The shooting method
 
-The simplest idea in the book: turn the BVP into a parametric IVP. For a second-order BVP we know$y(a) = \alpha$but not$y'(a)$. Pick a guess$s$, integrate the IVP$$y'' = f(x, y, y'), \quad y(a) = \alpha, \quad y'(a) = s$$forward to$x = b$, and look at the residual$F(s) := y(b; s) - \beta$. We want$F(s) = 0$. That is a one-dimensional root-finding problem, solvable by bisection, secant, Newton, or `brentq`.
+The simplest idea in the book: turn the BVP into a parametric IVP. For a second-order BVP we know$y(a) = \alpha$but not$y'(a)$. Pick a guess$s$, integrate the IVP$y'' = f(x, y, y'), \quad y(a) = \alpha, \quad y'(a) = s$forward to$x = b$, and look at the residual$F(s) := y(b; s) - \beta$. We want$F(s) = 0$. That is a one-dimensional root-finding problem, solvable by bisection, secant, Newton, or `brentq`.
 
 ![Shooting method: trial trajectories and the residual function whose root is the right initial slope.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/12-boundary-value-problems/fig1_shooting_method.png)
 *Left: the BVP$y''+y=0,\;y(0)=0,\;y(\pi/2)=1$. Five trial slopes give five trajectories; only$s=1$lands on the target marker. Right: the residual$F(s) = y(\pi/2; s) - 1$. Shooting reduces the BVP to finding the zero of this curve.*
@@ -108,7 +108,7 @@ The standard cure is **multiple shooting**: divide$[a, b]$into$M$panels, shoot i
 
 ## 3. The finite-difference method
 
-A different philosophy: discretize the operator first, then solve. On a uniform grid$x_i = a + ih,\;i=0,\ldots,N,\;h = (b-a)/N$, central differences give$$y'(x_i) \approx \frac{y_{i+1} - y_{i-1}}{2h}, \qquad y''(x_i) \approx \frac{y_{i+1} - 2y_i + y_{i-1}}{h^2}.$$Substituting into the BVP at every interior node$i = 1,\ldots,N-1$turns it into a system of$N-1$equations in$N-1$unknowns$y_1, \ldots, y_{N-1}$(with$y_0 = \alpha$and$y_N = \beta$absorbed into the right-hand side).
+A different philosophy: discretize the operator first, then solve. On a uniform grid$x_i = a + ih,\;i=0,\ldots,N,\;h = (b-a)/N$, central differences give$y'(x_i) \approx \frac{y_{i+1} - y_{i-1}}{2h}, \qquad y''(x_i) \approx \frac{y_{i+1} - 2y_i + y_{i-1}}{h^2}.$Substituting into the BVP at every interior node$i = 1,\ldots,N-1$turns it into a system of$N-1$equations in$N-1$unknowns$y_1, \ldots, y_{N-1}$(with$y_0 = \alpha$and$y_N = \beta$absorbed into the right-hand side).
 
 For a linear BVP$y'' + p(x) y' + q(x) y = r(x)$the system is **tridiagonal**, with one super- and one sub-diagonal. Solving an$n\times n$tridiagonal system costs$\mathcal{O}(n)$rather than the$\mathcal{O}(n^3)$of generic Gaussian elimination.
 
@@ -160,7 +160,7 @@ Central differences are second-order: the truncation error is$\mathcal{O}(h^2)$,
 
 ## 4. Eigenvalue problems
 
-Linear BVPs with homogeneous boundary conditions and a parameter$\lambda$in the equation are **eigenvalue problems**. The simplest case:$$-y'' = \lambda y, \quad y(0) = y(\pi) = 0.$$Direct calculation gives eigenvalues$\lambda_n = n^2$with eigenfunctions$\sin(nx)$,$n = 1, 2, 3, \ldots$.
+Linear BVPs with homogeneous boundary conditions and a parameter$\lambda$in the equation are **eigenvalue problems**. The simplest case:$-y'' = \lambda y, \quad y(0) = y(\pi) = 0.$Direct calculation gives eigenvalues$\lambda_n = n^2$with eigenfunctions$\sin(nx)$,$n = 1, 2, 3, \ldots$.
 
 After finite-difference discretization, the operator$-y''$becomes a symmetric tridiagonal matrix. Its eigenvalues approximate$\{\lambda_n\}$, accurately for low modes (long wavelengths) and progressively worse for high modes (the grid cannot resolve oscillations finer than$2h$).
 
@@ -186,7 +186,7 @@ print(eigvals.round(4))    # [1.0000  4.0000  9.0000 16.0000 25.0000 ...]
 
 ## 5. Sturm-Liouville theory
 
-The general second-order self-adjoint eigenvalue problem is$$-\bigl(p(x)\,y'\bigr)' + q(x)\,y = \lambda\,w(x)\,y, \quad y(a) = y(b) = 0,$$with$p>0$,$w>0$. This is the **Sturm-Liouville form**, and it is the bridge from ODEs to mathematical physics.
+The general second-order self-adjoint eigenvalue problem is$-\bigl(p(x)\,y'\bigr)' + q(x)\,y = \lambda\,w(x)\,y, \quad y(a) = y(b) = 0,$with$p>0$,$w>0$. This is the **Sturm-Liouville form**, and it is the bridge from ODEs to mathematical physics.
 
 **Properties** (for regular Sturm-Liouville problems on a finite interval):
 
@@ -199,7 +199,7 @@ These are the same properties that make Fourier series, Bessel-function expansio
 
 ### A worked example: the quantum harmonic oscillator
 
-Schrodinger's equation in dimensionless form for the harmonic oscillator:$$-\psi''(x) + x^2\,\psi(x) = E\,\psi(x), \quad \psi(\pm\infty) = 0.$$This is Sturm-Liouville with$p \equiv 1$,$q(x) = x^2$,$w \equiv 1$on the unbounded domain. Exact eigenvalues:$E_n = 2n + 1$for$n = 0, 1, 2, \ldots$. Eigenfunctions are Hermite functions.
+Schrodinger's equation in dimensionless form for the harmonic oscillator:$-\psi''(x) + x^2\,\psi(x) = E\,\psi(x), \quad \psi(\pm\infty) = 0.$This is Sturm-Liouville with$p \equiv 1$,$q(x) = x^2$,$w \equiv 1$on the unbounded domain. Exact eigenvalues:$E_n = 2n + 1$for$n = 0, 1, 2, \ldots$. Eigenfunctions are Hermite functions.
 
 We solve numerically by truncating the domain to$[-L, L]$with$L$large enough that$\psi$is essentially zero at the boundary, discretizing with central differences, and asking for the lowest few eigenvalues of the resulting matrix.
 

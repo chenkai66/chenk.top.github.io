@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Binary Search"
-date: 2024-01-13 09:00:00
+date: 2024-03-17 09:00:00
 tags:
   - LeetCode
   - Algorithms

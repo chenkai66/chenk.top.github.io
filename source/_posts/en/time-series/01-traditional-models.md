@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (1): Traditional Statistical Models"
-date: 2024-11-01 09:00:00
+date: 2024-11-15 09:00:00
 tags:
   - Time Series
   - ARIMA

@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (7): Decision Trees"
-date: 2024-03-13 09:00:00
+date: 2026-02-08 09:00:00
 tags:
   - Machine Learning
   - Decision Trees

@@ -1,6 +1,6 @@
 ---
 title: "Linux Service Management: systemd, systemctl, and journald"
-date: 2024-01-30 09:00:00
+date: 2024-02-09 09:00:00
 tags:
   - Linux
   - Cloud

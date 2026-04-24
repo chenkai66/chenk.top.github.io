@@ -1,6 +1,6 @@
 ---
 title: "NLP (7): Prompt Engineering and In-Context Learning"
-date: 2024-06-07 09:00:00
+date: 2025-09-16 09:00:00
 tags:
   - NLP
   - Prompt Engineering

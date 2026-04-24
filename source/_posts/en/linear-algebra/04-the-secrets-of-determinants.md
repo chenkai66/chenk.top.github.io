@@ -1,6 +1,6 @@
 ---
 title: "The Secrets of Determinants"
-date: 2024-04-04 09:00:00
+date: 2025-01-27 09:00:00
 tags:
   - Linear Algebra
   - Determinants

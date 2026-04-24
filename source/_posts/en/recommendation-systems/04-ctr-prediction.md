@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (4): CTR Prediction and Click-Through Rate Modeling"
-date: 2024-05-05 09:00:00
+date: 2025-10-27 09:00:00
 tags:
   - Recommendation Systems
   - CTR Prediction

@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies"
-date: 2024-11-02 09:00:00
+date: 2024-12-05 09:00:00
 tags:
   - Time Series
   - Deep Learning

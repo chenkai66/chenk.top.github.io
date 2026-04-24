@@ -1,6 +1,6 @@
 ---
 title: "Optimizer Evolution: From Gradient Descent to Adam (and Beyond, 2025)"
-date: 2025-02-01 09:00:00
+date: 2024-11-14 09:00:00
 tags:
   - ML
   - Optimization

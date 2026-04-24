@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (7): Imitation Learning and Inverse RL"
-date: 2024-07-07 09:00:00
+date: 2025-07-09 09:00:00
 tags:
   - Reinforcement Learning
   - Imitation Learning

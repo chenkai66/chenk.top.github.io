@@ -1,6 +1,6 @@
 ---
 title: "Aliyun Bailian (4): Wanxiang Video Generation End-to-End"
-date: 2026-04-24 09:00:00
+date: 2026-04-23 09:00:00
 tags:
   - Aliyun Bailian
   - DashScope

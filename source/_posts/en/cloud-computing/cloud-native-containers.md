@@ -1,6 +1,6 @@
 ---
 title: "Cloud-Native and Container Technologies"
-date: 2024-09-07 09:00:00
+date: 2024-06-01 09:00:00
 tags:
   - Cloud Computing
   - Cloud Native

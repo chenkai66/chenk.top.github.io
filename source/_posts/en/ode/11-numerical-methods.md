@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (11): Numerical Methods"
-date: 2024-10-20 09:00:00
+date: 2024-08-24 09:00:00
 tags:
   - Ordinary Differential Equations
   - Numerical Methods
@@ -34,7 +34,7 @@ Almost every interesting differential equation in science and engineering refuse
 
 ## 1. Why we need numerical methods
 
-The analytical methods of earlier chapters -- separation of variables, integrating factors, Laplace transforms, eigenvalue expansions -- are powerful but **fragile**. They work for narrow classes of equations and break the moment a real problem stops being symbolic-friendly. Take$$\frac{dy}{dx} = \sin(xy).$$No closed form exists. The Navier-Stokes equations, the three-body problem, every chemical reaction network with more than a handful of species, the Lorenz system -- all defeat symbolic methods. We have to settle for **discrete approximations**$y_n \approx y(x_n)$at a sequence of grid points$x_n = x_0 + nh$.
+The analytical methods of earlier chapters -- separation of variables, integrating factors, Laplace transforms, eigenvalue expansions -- are powerful but **fragile**. They work for narrow classes of equations and break the moment a real problem stops being symbolic-friendly. Take$\frac{dy}{dx} = \sin(xy).$No closed form exists. The Navier-Stokes equations, the three-body problem, every chemical reaction network with more than a handful of species, the Lorenz system -- all defeat symbolic methods. We have to settle for **discrete approximations**$y_n \approx y(x_n)$at a sequence of grid points$x_n = x_0 + nh$.
 
 The questions are then:
 
@@ -48,15 +48,15 @@ We answer all three.
 
 ## 2. Forward Euler: the geometric idea
 
-Given$\dot{y} = f(x, y),\;y(x_0) = y_0$, the simplest step replaces the curve by its tangent line:$$y_{n+1} = y_n + h\,f(x_n, y_n).$$This is **forward Euler**, and it is the prototype of every explicit one-step scheme. The intuition: at every step you read the slope at your current location, walk a small distance$h$in that direction, then re-read the slope. Like navigating a hillside in fog by always trusting the local incline.
+Given$\dot{y} = f(x, y),\;y(x_0) = y_0$, the simplest step replaces the curve by its tangent line:$y_{n+1} = y_n + h\,f(x_n, y_n).$This is **forward Euler**, and it is the prototype of every explicit one-step scheme. The intuition: at every step you read the slope at your current location, walk a small distance$h$in that direction, then re-read the slope. Like navigating a hillside in fog by always trusting the local incline.
 
 ### Order of accuracy
 
-Taylor-expand the true solution:$$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$$Subtracting the Euler step$y_{n+1} = y_n + h f(x_n, y_n)$leaves a **local truncation error** of$\mathcal{O}(h^2)$per step. Over a fixed interval$[x_0, X]$we take$N = (X - x_0)/h$steps, so the **global error** is$\mathcal{O}(h)$. Halving the step size halves the error -- a slow rate of return for the doubled cost.
+Taylor-expand the true solution:$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$Subtracting the Euler step$y_{n+1} = y_n + h f(x_n, y_n)$leaves a **local truncation error** of$\mathcal{O}(h^2)$per step. Over a fixed interval$[x_0, X]$we take$N = (X - x_0)/h$steps, so the **global error** is$\mathcal{O}(h)$. Halving the step size halves the error -- a slow rate of return for the doubled cost.
 
 ### Linear stability
 
-Apply Euler to the test equation$\dot{y} = \lambda y$, $\mathrm{Re}\,\lambda < 0$:$$y_{n+1} = (1 + h\lambda)\,y_n.$$The amplification factor is$R(z) := 1 + z$, where$z = h\lambda$. Stability requires$|R(z)| \le 1$. For real negative$\lambda$, this forces$h < 2/|\lambda|$. For oscillatory$\lambda$on the imaginary axis, **no$h>0$is stable**. Euler is **conditionally stable** at best, and useless for purely oscillatory problems.
+Apply Euler to the test equation$\dot{y} = \lambda y$, $\mathrm{Re}\,\lambda < 0$:$y_{n+1} = (1 + h\lambda)\,y_n.$The amplification factor is$R(z) := 1 + z$, where$z = h\lambda$. Stability requires$|R(z)| \le 1$. For real negative$\lambda$, this forces$h < 2/|\lambda|$. For oscillatory$\lambda$on the imaginary axis, **no$h>0$is stable**. Euler is **conditionally stable** at best, and useless for purely oscillatory problems.
 
 ```python
 import numpy as np
@@ -77,7 +77,7 @@ def euler(f, x0, y0, x_end, h):
 
 ## 3. Heun, midpoint, and the Runge-Kutta family
 
-The cure for Euler's first-order accuracy is to evaluate the slope **more than once per step** and combine the evaluations cleverly. The general structure of an explicit$s$-stage Runge-Kutta method:$$k_i = f\bigl(x_n + c_i h,\; y_n + h \textstyle\sum_{j<i} a_{ij}\,k_j\bigr), \quad y_{n+1} = y_n + h\sum_i b_i\,k_i.$$The coefficients$\{a_{ij}, b_i, c_i\}$are arranged in a **Butcher tableau**.
+The cure for Euler's first-order accuracy is to evaluate the slope **more than once per step** and combine the evaluations cleverly. The general structure of an explicit$s$-stage Runge-Kutta method:$k_i = f\bigl(x_n + c_i h,\; y_n + h \textstyle\sum_{j<i} a_{ij}\,k_j\bigr), \quad y_{n+1} = y_n + h\sum_i b_i\,k_i.$The coefficients$\{a_{ij}, b_i, c_i\}$are arranged in a **Butcher tableau**.
 
 ### Heun (improved Euler), order 2
 
@@ -143,7 +143,7 @@ Two practical lessons:
 
 Real solutions are not uniformly smooth. They have plateaus, sharp transients, slow tails. A fixed$h$is either wastefully small on the plateau or dangerously large on the transient. The fix is **adaptive stepping**: choose$h$on the fly to hold the local error near a user-specified tolerance.
 
-The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$p+1$share their stage evaluations. Their difference is an estimate of the local error$E_n$. If$E_n > \text{tol}$we reject the step and try a smaller$h$; otherwise we accept and pick the next step from$$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$$The 0.9 is a safety factor; the exponent comes from the order-$p+1$asymptotic. The most popular embedded pair is **Dormand-Prince RK4(5)** -- the "RK45" inside `scipy.integrate.solve_ivp`. Each step uses 6 function evaluations and produces both a 4th- and a 5th-order estimate.
+The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$p+1$share their stage evaluations. Their difference is an estimate of the local error$E_n$. If$E_n > \text{tol}$we reject the step and try a smaller$h$; otherwise we accept and pick the next step from$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$The 0.9 is a safety factor; the exponent comes from the order-$p+1$asymptotic. The most popular embedded pair is **Dormand-Prince RK4(5)** -- the "RK45" inside `scipy.integrate.solve_ivp`. Each step uses 6 function evaluations and produces both a 4th- and a 5th-order estimate.
 
 ![Adaptive RK45 step locations on a sharp transient, plus the step-size history.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig3_adaptive_step_size.png)
 *Top: a forced linear ODE with a Gaussian impulse at$t=1$. Red dots mark every step the integrator took. Bottom: the step size shrinks roughly 100x to follow the spike, then expands again. A fixed$h$small enough for the spike would have taken thousands of unnecessary steps in the smooth tail.*
@@ -154,12 +154,12 @@ The standard mechanism is **embedded Runge-Kutta**. Two methods of orders$p$and$
 
 Some equations have a small amount of fast dynamics living on top of a slow evolution. Once the fast part has decayed, you would *like* to take big steps -- but explicit methods will not let you. They demand$h \lesssim 1/|\lambda_{\max}|$forever, just to stay numerically stable. Such problems are called **stiff**.
 
-The textbook example is the van der Pol oscillator at large nonlinearity:$$\ddot{y} - \mu(1 - y^2)\dot{y} + y = 0.$$For$\mu = 1000$, the slow timescale is$\sim \mu$while the fast timescale is$\sim 1/\mu$. The ratio is $10^6$. Trying to integrate this with RK45 is a disaster.
+The textbook example is the van der Pol oscillator at large nonlinearity:$\ddot{y} - \mu(1 - y^2)\dot{y} + y = 0.$For$\mu = 1000$, the slow timescale is$\sim \mu$while the fast timescale is$\sim 1/\mu$. The ratio is $10^6$. Trying to integrate this with RK45 is a disaster.
 
 ![Stiff problem: explicit RK45 takes ~100x more steps than implicit BDF.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/11-numerical-methods/fig4_stiffness.png)
 *Same trajectory, two methods. BDF (implicit, blue) needs only a few thousand steps for the entire integration; RK45 (explicit, red) needs hundreds of thousands and still has trouble. The pattern is universal across stiff problems.*
 
-The way out is **implicit** methods. The simplest is **backward Euler**:$$y_{n+1} = y_n + h\,f(x_{n+1}, y_{n+1}),$$which evaluates the slope at the *new* point. The price: each step requires solving an algebraic equation for$y_{n+1}$, usually by Newton's method. The reward: backward Euler's stability region is the *entire* left half-plane (it is **A-stable**). No matter how stiff the problem, you can take whatever$h$is needed for accuracy.
+The way out is **implicit** methods. The simplest is **backward Euler**:$y_{n+1} = y_n + h\,f(x_{n+1}, y_{n+1}),$which evaluates the slope at the *new* point. The price: each step requires solving an algebraic equation for$y_{n+1}$, usually by Newton's method. The reward: backward Euler's stability region is the *entire* left half-plane (it is **A-stable**). No matter how stiff the problem, you can take whatever$h$is needed for accuracy.
 
 ### Stability regions, drawn
 
@@ -182,13 +182,13 @@ A practical rule: if `solve_ivp(..., method='RK45')` is taking forever or refusi
 
 ### Multistep: Adams-Bashforth and Adams-Moulton
 
-Instead of evaluating$f$at multiple internal stages, **multistep** methods reuse stored values from previous steps:$$y_{n+1} = y_n + h \sum_{j=0}^{k-1} \beta_j\,f(x_{n-j}, y_{n-j}).$$Adams-Bashforth (explicit) and Adams-Moulton (implicit) are the textbook families. Predictor-corrector pairs combine an Adams-Bashforth prediction with an Adams-Moulton correction. The advantage is one function evaluation per step (after startup); the disadvantage is fragility around discontinuities and the need for separate startup procedures.
+Instead of evaluating$f$at multiple internal stages, **multistep** methods reuse stored values from previous steps:$y_{n+1} = y_n + h \sum_{j=0}^{k-1} \beta_j\,f(x_{n-j}, y_{n-j}).$Adams-Bashforth (explicit) and Adams-Moulton (implicit) are the textbook families. Predictor-corrector pairs combine an Adams-Bashforth prediction with an Adams-Moulton correction. The advantage is one function evaluation per step (after startup); the disadvantage is fragility around discontinuities and the need for separate startup procedures.
 
 ### Symplectic integrators for Hamiltonian flows
 
 For energy-conserving systems (planetary orbits, molecular dynamics, lattice gauge theory), conventional methods cause **energy drift**: the conserved quantity slowly grows or shrinks as round-off accumulates. **Symplectic** integrators preserve the symplectic 2-form of phase space; they cannot conserve energy exactly either, but they confine the energy error to a bounded oscillation around the true value, even over millions of periods.
 
-The minimal example is **Stormer-Verlet (leapfrog)** for$\ddot q = -\nabla V(q)$:$$p_{n+1/2} = p_n - \tfrac{h}{2}\nabla V(q_n),\quad q_{n+1} = q_n + h\,p_{n+1/2},\quad p_{n+1} = p_{n+1/2} - \tfrac{h}{2}\nabla V(q_{n+1}).$$Second-order accurate, time-reversible, symplectic. The standard tool of N-body astrophysics.
+The minimal example is **Stormer-Verlet (leapfrog)** for$\ddot q = -\nabla V(q)$:$p_{n+1/2} = p_n - \tfrac{h}{2}\nabla V(q_n),\quad q_{n+1} = q_n + h\,p_{n+1/2},\quad p_{n+1} = p_{n+1/2} - \tfrac{h}{2}\nabla V(q_{n+1}).$Second-order accurate, time-reversible, symplectic. The standard tool of N-body astrophysics.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (11): Ensemble Learning"
-date: 2024-03-11 09:00:00
+date: 2026-02-24 09:00:00
 categories:
   - Machine Learning
 tags:

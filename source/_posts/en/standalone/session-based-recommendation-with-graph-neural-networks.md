@@ -1,6 +1,6 @@
 ---
 title: "Session-based Recommendation with Graph Neural Networks (SR-GNN)"
-date: 2024-12-08 09:00:00
+date: 2025-04-08 09:00:00
 tags:
   - GNN
   - Recommender Systems

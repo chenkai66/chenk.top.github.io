@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (15): Population Dynamics"
-date: 2024-10-24 09:00:00
+date: 2024-09-09 09:00:00
 tags:
   - Ordinary Differential Equations
   - Population Dynamics

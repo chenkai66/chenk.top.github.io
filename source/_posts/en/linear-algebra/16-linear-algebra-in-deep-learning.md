@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (16): Linear Algebra in Deep Learning"
-date: 2024-04-28 09:00:00
+date: 2025-03-16 09:00:00
 tags:
   - Linear Algebra
   - neural networks

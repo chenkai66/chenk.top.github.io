@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (16): Conditional Random Fields"
-date: 2024-03-16 09:00:00
+date: 2026-03-16 09:00:00
 tags:
   - Machine Learning
   - Conditional Random Fields

@@ -1,6 +1,6 @@
 ---
 title: "Matrices as Linear Transformations"
-date: 2024-04-03 09:00:00
+date: 2025-01-23 09:00:00
 tags:
   - Linear Algebra
   - Matrices

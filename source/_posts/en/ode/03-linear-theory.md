@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 3: Higher-Order Linear Theory"
-date: 2024-10-03 09:00:00
+date: 2024-07-23 09:00:00
 tags:
   - ODE
   - Higher-Order ODE

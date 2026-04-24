@@ -1,4 +1,5 @@
 ---
+date: 2024-04-10 09:00:00
 title: "Integrating Large Language Models with Graphical Session-Based Recommendation"
 tags:
   - LLM

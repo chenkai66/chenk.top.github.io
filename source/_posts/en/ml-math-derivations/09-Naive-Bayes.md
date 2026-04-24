@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (9): Naive Bayes"
-date: 2024-03-14 09:00:00
+date: 2026-02-16 09:00:00
 tags:
   - Machine Learning
   - Naive Bayes

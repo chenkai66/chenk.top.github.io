@@ -1,6 +1,6 @@
 ---
 title: "Recommendation Systems (11): Contrastive Learning and Self-Supervised Learning"
-date: 2024-05-12 09:00:00
+date: 2025-11-24 09:00:00
 tags:
   - Recommendation Systems
   - Contrastive Learning

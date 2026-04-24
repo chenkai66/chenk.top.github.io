@@ -1,6 +1,6 @@
 ---
 title: "Matrix Calculus and Optimization -- The Engine Behind Machine Learning"
-date: 2024-04-11 09:00:00
+date: 2025-02-24 09:00:00
 tags:
   - Linear Algebra
   - Matrix Calculus

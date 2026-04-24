@@ -1,6 +1,6 @@
 ---
 title: "Sparse Matrices and Compressed Sensing -- Less Is More"
-date: 2024-04-12 09:00:00
+date: 2025-02-28 09:00:00
 tags:
   - Linear Algebra
   - Sparsity
@@ -48,7 +48,7 @@ Both miracles run on the same engine: **sparsity**. Most natural signals, writte
 
 ### Definition
 
-A vector$\vec{x} \in \mathbb{R}^n$is **$k$-sparse** if at most$k$of its entries are nonzero:$$\|\vec{x}\|_0 \;=\; \bigl|\{\,i : x_i \neq 0\,\}\bigr| \;\leq\; k.$$The$L_0$"norm" simply counts nonzeros. It is not a real norm -- it fails homogeneity ($\|2x\|_0 = \|x\|_0$) -- but it is the cleanest measure of sparsity we have.
+A vector$\vec{x} \in \mathbb{R}^n$is **$k$-sparse** if at most$k$of its entries are nonzero:$\|\vec{x}\|_0 \;=\; \bigl|\{\,i : x_i \neq 0\,\}\bigr| \;\leq\; k.$The$L_0$"norm" simply counts nonzeros. It is not a real norm -- it fails homogeneity ($\|2x\|_0 = \|x\|_0$) -- but it is the cleanest measure of sparsity we have.
 
 In practice signals are rarely **exactly** sparse; they are **compressible**. Sort the coefficients by magnitude and the sorted sequence decays quickly. Truncating to the top$k$gives a near-perfect approximation. JPEG works exactly this way: compute the DCT, keep the largest few hundred coefficients, throw the rest away.
 
@@ -65,7 +65,7 @@ In practice signals are rarely **exactly** sparse; they are **compressible**. So
 
 ### Sparse representation in a dictionary
 
-A signal that is dense in the standard basis often becomes sparse after a change of basis. Pick a **dictionary**$D \in \mathbb{R}^{n \times p}$whose columns are called **atoms**, and ask:$$\vec{x} \;=\; D\vec{\alpha}, \qquad \vec{\alpha}\;\text{sparse}.$$Common choices:
+A signal that is dense in the standard basis often becomes sparse after a change of basis. Pick a **dictionary**$D \in \mathbb{R}^{n \times p}$whose columns are called **atoms**, and ask:$\vec{x} \;=\; D\vec{\alpha}, \qquad \vec{\alpha}\;\text{sparse}.$Common choices:
 
 | Dictionary | Built for | Property |
 |---|---|---|
@@ -106,11 +106,11 @@ CSR breaks even with dense storage at about 67% density (8 / (8+4)). Below ~10% 
 
 ###$L_0$is intractable
 
-Find the sparsest representation of$\vec{x}$in dictionary$D$:$$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_0 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$$This is **NP-hard**. Naively you would enumerate all$\binom{p}{k}$possible supports -- combinatorial explosion. No polynomial-time algorithm is known for the general problem.
+Find the sparsest representation of$\vec{x}$in dictionary$D$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_0 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This is **NP-hard**. Naively you would enumerate all$\binom{p}{k}$possible supports -- combinatorial explosion. No polynomial-time algorithm is known for the general problem.
 
 ###$L_1$as a convex relaxation
 
-Replace$\|\cdot\|_0$with$\|\cdot\|_1 = \sum |\alpha_i|$:$$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_1 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$$This problem is a **linear program** -- solvable in polynomial time. The remarkable fact is that, under mild conditions on$D$, the$L_1$solution coincides with the$L_0$solution. Convex relaxation is **exact**.
+Replace$\|\cdot\|_0$with$\|\cdot\|_1 = \sum |\alpha_i|$:$\min_{\vec{\alpha}}\;\|\vec{\alpha}\|_1 \quad \text{s.t.}\quad D\vec{\alpha} = \vec{x}.$This problem is a **linear program** -- solvable in polynomial time. The remarkable fact is that, under mild conditions on$D$, the$L_1$solution coincides with the$L_0$solution. Convex relaxation is **exact**.
 
 ### Why does$L_1$promote sparsity? The geometric picture
 
@@ -137,7 +137,7 @@ This picture is the entire intuition for why$L_1$, LASSO, basis pursuit, and com
 
 ### Elastic Net
 
-When features are highly correlated, pure$L_1$tends to pick one feature from a correlated group and drop the rest. Combining the two penalties$$\min_{\vec{\beta}}\; \tfrac{1}{2}\|X\vec{\beta} - \vec{y}\|^2 + \lambda_1\|\vec{\beta}\|_1 + \lambda_2\|\vec{\beta}\|_2^2$$keeps the sparsity of$L_1$while inheriting the stability of$L_2$. This is the **Elastic Net**, and in practice it is the safer default for high-dimensional regression.
+When features are highly correlated, pure$L_1$tends to pick one feature from a correlated group and drop the rest. Combining the two penalties$\min_{\vec{\beta}}\; \tfrac{1}{2}\|X\vec{\beta} - \vec{y}\|^2 + \lambda_1\|\vec{\beta}\|_1 + \lambda_2\|\vec{\beta}\|_2^2$keeps the sparsity of$L_1$while inheriting the stability of$L_2$. This is the **Elastic Net**, and in practice it is the safer default for high-dimensional regression.
 
 ---
 
@@ -145,11 +145,11 @@ When features are highly correlated, pure$L_1$tends to pick one feature from a c
 
 ### Definition
 
-**LASSO** -- Least Absolute Shrinkage and Selection Operator (Tibshirani, 1996):$$\min_{\vec{\beta}}\;\tfrac{1}{2}\|X\vec{\beta} - \vec{y}\|^2 \;+\; \lambda\|\vec{\beta}\|_1.$$Two things happen simultaneously: the data term fits$\vec{y}$, and the$L_1$penalty drives unimportant coefficients to **exactly zero**. So LASSO is regression and feature selection in one shot.
+**LASSO** -- Least Absolute Shrinkage and Selection Operator (Tibshirani, 1996):$\min_{\vec{\beta}}\;\tfrac{1}{2}\|X\vec{\beta} - \vec{y}\|^2 \;+\; \lambda\|\vec{\beta}\|_1.$Two things happen simultaneously: the data term fits$\vec{y}$, and the$L_1$penalty drives unimportant coefficients to **exactly zero**. So LASSO is regression and feature selection in one shot.
 
 ### Soft thresholding
 
-For an orthogonal design ($X^\top X = I$) the LASSO has a closed-form solution:$$\hat\beta_j \;=\; \mathcal{S}_\lambda\!\bigl(\hat\beta_j^{\text{OLS}}\bigr) \;=\; \operatorname{sign}\!\bigl(\hat\beta_j^{\text{OLS}}\bigr)\,\bigl(|\hat\beta_j^{\text{OLS}}| - \lambda\bigr)_+.$$This **soft thresholding** operator pushes every OLS coefficient toward zero by exactly$\lambda$, and clamps anything smaller than$\lambda$to zero outright. Compare with **hard thresholding**, which leaves large coefficients untouched and zeros the rest -- abrupt and unstable.
+For an orthogonal design ($X^\top X = I$) the LASSO has a closed-form solution:$\hat\beta_j \;=\; \mathcal{S}_\lambda\!\bigl(\hat\beta_j^{\text{OLS}}\bigr) \;=\; \operatorname{sign}\!\bigl(\hat\beta_j^{\text{OLS}}\bigr)\,\bigl(|\hat\beta_j^{\text{OLS}}| - \lambda\bigr)_+.$This **soft thresholding** operator pushes every OLS coefficient toward zero by exactly$\lambda$, and clamps anything smaller than$\lambda$to zero outright. Compare with **hard thresholding**, which leaves large coefficients untouched and zeros the rest -- abrupt and unstable.
 
 ### The LASSO solution path
 
@@ -173,11 +173,11 @@ The truly active features (bold) enter early and grow large. Spurious features e
 
 **Shannon-Nyquist** says: to recover a band-limited signal you must sample at twice its highest frequency. Period.
 
-**Compressed sensing** says: if the signal is$k$-sparse in some basis, you only need$$m \;\sim\; k\,\log\!\frac{n}{k}$$linear measurements. For a 256-pixel signal with 10 nonzero wavelet coefficients,$k\log(n/k) \approx 32$measurements -- not 256.
+**Compressed sensing** says: if the signal is$k$-sparse in some basis, you only need$m \;\sim\; k\,\log\!\frac{n}{k}$linear measurements. For a 256-pixel signal with 10 nonzero wavelet coefficients,$k\log(n/k) \approx 32$measurements -- not 256.
 
 This is not a free lunch; it works because **the signal model is much stronger**. Shannon-Nyquist asks "any band-limited signal," compressed sensing asks "any$k$-sparse signal." The narrower model permits cheaper sensing.
 
-### The measurement model$$\vec{y} \;=\; \Phi \vec{x} \;+\; \vec{e},$$with$\vec{x} \in \mathbb{R}^n$($k$-sparse),$\Phi \in \mathbb{R}^{m \times n}$with$m \ll n$, and noise$\vec{e}$. The system$\Phi \vec{x} = \vec{y}$is underdetermined -- infinitely many solutions. Sparsity is the side constraint that selects the right one.
+### The measurement model$\vec{y} \;=\; \Phi \vec{x} \;+\; \vec{e},$with$\vec{x} \in \mathbb{R}^n$($k$-sparse),$\Phi \in \mathbb{R}^{m \times n}$with$m \ll n$, and noise$\vec{e}$. The system$\Phi \vec{x} = \vec{y}$is underdetermined -- infinitely many solutions. Sparsity is the side constraint that selects the right one.
 
 ![A 10-sparse signal of length 256 recovered exactly from 64 random measurements via L1](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig4_compressed_sensing.png)
 
@@ -187,7 +187,7 @@ The figure runs ISTA on random Gaussian$\Phi$with$m=64$,$n=256$,$k=10$. The reco
 
 When does an underdetermined$\Phi$preserve enough information to uniquely identify a sparse$\vec{x}$? Candes and Tao's answer is the **Restricted Isometry Property**.
 
-**Definition.**$\Phi$satisfies the$k$-RIP with constant$\delta_k \in (0,1)$if$$(1 - \delta_k)\|\vec{x}\|_2^2 \;\leq\; \|\Phi\vec{x}\|_2^2 \;\leq\; (1 + \delta_k)\|\vec{x}\|_2^2$$for **every**$k$-sparse$\vec{x}$. In words:$\Phi$acts almost like an isometry on sparse vectors -- it cannot squash two different sparse vectors to (nearly) the same image.
+**Definition.**$\Phi$satisfies the$k$-RIP with constant$\delta_k \in (0,1)$if$(1 - \delta_k)\|\vec{x}\|_2^2 \;\leq\; \|\Phi\vec{x}\|_2^2 \;\leq\; (1 + \delta_k)\|\vec{x}\|_2^2$for **every**$k$-sparse$\vec{x}$. In words:$\Phi$acts almost like an isometry on sparse vectors -- it cannot squash two different sparse vectors to (nearly) the same image.
 
 ![RIP intuition: random Gaussian Phi tightly preserves the norm of sparse vectors](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig7_rip_intuition.png)
 
@@ -195,7 +195,7 @@ Left: histograms of$\|\Phi\vec{x}\|/\|\vec{x}\|$over many random$k$-sparse$\vec{
 
 ### The recovery theorem
 
-**Theorem (Candes-Tao, 2005).** If$\delta_{2k}(\Phi) < \sqrt{2} - 1 \approx 0.414$, then every$k$-sparse$\vec{x}$is the **unique** solution of$$\min \|\vec{z}\|_1 \quad \text{s.t.}\quad \Phi\vec{z} = \vec{y}, \qquad \vec{y} = \Phi\vec{x}.$$With noise -- via Basis Pursuit Denoising,$\min\|\vec{z}\|_1 \,\text{s.t.}\, \|\Phi\vec{z}-\vec{y}\| \leq \epsilon$-- the recovery error is bounded by a constant times$\epsilon$. Graceful degradation.
+**Theorem (Candes-Tao, 2005).** If$\delta_{2k}(\Phi) < \sqrt{2} - 1 \approx 0.414$, then every$k$-sparse$\vec{x}$is the **unique** solution of$\min \|\vec{z}\|_1 \quad \text{s.t.}\quad \Phi\vec{z} = \vec{y}, \qquad \vec{y} = \Phi\vec{x}.$With noise -- via Basis Pursuit Denoising,$\min\|\vec{z}\|_1 \,\text{s.t.}\, \|\Phi\vec{z}-\vec{y}\| \leq \epsilon$-- the recovery error is bounded by a constant times$\epsilon$. Graceful degradation.
 
 ### Designing$\Phi$Building deterministic matrices that satisfy RIP for large$k$is *hard*. The trick is to flip a coin: random matrices satisfy RIP with overwhelming probability.
 
@@ -214,7 +214,7 @@ Universality -- the same$\Phi$works for any$k$-sparse signal -- is what makes ra
 
 ### ISTA -- Iterative Shrinkage-Thresholding
 
-Apply proximal gradient to$\tfrac{1}{2}\|\Phi x - y\|^2 + \lambda\|x\|_1$:$$\boxed{\;\vec{x}^{(t+1)} \;=\; \mathcal{S}_{\lambda/L}\!\left(\vec{x}^{(t)} - \tfrac{1}{L}\Phi^\top\!\bigl(\Phi \vec{x}^{(t)} - \vec{y}\bigr)\right)\;}$$where$L = \|\Phi^\top\Phi\|_2$is the Lipschitz constant of the smooth part. One gradient step, then a soft threshold. Convergence rate$O(1/t)$.
+Apply proximal gradient to$\tfrac{1}{2}\|\Phi x - y\|^2 + \lambda\|x\|_1$:$\boxed{\;\vec{x}^{(t+1)} \;=\; \mathcal{S}_{\lambda/L}\!\left(\vec{x}^{(t)} - \tfrac{1}{L}\Phi^\top\!\bigl(\Phi \vec{x}^{(t)} - \vec{y}\bigr)\right)\;}$where$L = \|\Phi^\top\Phi\|_2$is the Lipschitz constant of the smooth part. One gradient step, then a soft threshold. Convergence rate$O(1/t)$.
 
 ```python
 import numpy as np
@@ -258,7 +258,7 @@ def fista(Phi, y, lam, max_iter=2000, tol=1e-6):
 
 ### IHT -- Iterative Hard Thresholding
 
-If you happen to know the sparsity level$k$, replace the soft threshold by **keep the top-$k$entries**:$$\vec{x}^{(t+1)} \;=\; H_k\!\left(\vec{x}^{(t)} - \tfrac{1}{L}\Phi^\top\!\bigl(\Phi \vec{x}^{(t)} - \vec{y}\bigr)\right).$$IHT directly attacks the$L_0$problem and converges to a$k$-sparse solution under an RIP-like condition. It is dirt-cheap per iteration: a matrix-vector product plus a partial sort.
+If you happen to know the sparsity level$k$, replace the soft threshold by **keep the top-$k$entries**:$\vec{x}^{(t+1)} \;=\; H_k\!\left(\vec{x}^{(t)} - \tfrac{1}{L}\Phi^\top\!\bigl(\Phi \vec{x}^{(t)} - \vec{y}\bigr)\right).$IHT directly attacks the$L_0$problem and converges to a$k$-sparse solution under an RIP-like condition. It is dirt-cheap per iteration: a matrix-vector product plus a partial sort.
 
 ![IHT iterates approach the true support; residual norm drops over iterations](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/12-sparse-matrices-and-compressed-sensing/fig6_iht_visualization.png)
 

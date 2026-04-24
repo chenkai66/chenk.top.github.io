@@ -1,6 +1,6 @@
 ---
 title: "PDE与机器学习（六）：连续归一化流与Neural ODE"
-date: 2024-09-06 09:00:00
+date: 2024-10-26 09:00:00
 tags:
   - Neural ODE
   - 归一化流

@@ -12,7 +12,7 @@ mathjax: false
 series: aliyun-bailian
 series_title: "阿里云百炼实战手册"
 series_order: 5
-description: "qwen3-tts-flash 的 40+ 音色、市面上罕见的方言覆盖，以及那个让所有先试过 OpenAI TTS 的团队踩坑的"只能走 DashScope 原生接口"细节。"
+description: "qwen3-tts-flash 的 40+ 音色、市面上罕见的方言覆盖，以及那个让所有先试过 OpenAI TTS 的团队踩坑的\"只能走 DashScope 原生接口\"细节。"
 disableNunjucks: true
 ---
 

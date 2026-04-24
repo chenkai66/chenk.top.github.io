@@ -1,6 +1,6 @@
 ---
 title: "LLM Workflows and Application Architecture: Enterprise Implementation Guide"
-date: 2025-01-10 09:00:00
+date: 2024-07-16 09:00:00
 tags:
   - Workflow
   - Architecture

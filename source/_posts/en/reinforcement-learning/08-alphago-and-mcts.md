@@ -1,6 +1,6 @@
 ---
 title: "Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search"
-date: 2024-07-08 09:00:00
+date: 2025-07-13 09:00:00
 tags:
   - Reinforcement Learning
   - AlphaGo
@@ -104,7 +104,7 @@ AlphaGo Zero is the same idea, *simpler*. Three changes — each of which would 
 The training loop is a tight closed cycle (see figure):
 
 1. **Self-play.** The current best network plays against itself with MCTS (800 simulations per move), producing trajectories of $(s_t, \boldsymbol{\pi}_t, z_T)$ where $\boldsymbol{\pi}_t$ is the *MCTS visit-count distribution* (a sharper, slower target than the raw network policy) and $z_T \in \{-1, +1\}$ is the final game result from the player-to-move's perspective.
-2. **Train.** Update $\theta$ by minimising $$\mathcal{L}(\theta) \;=\; (z - v)^2 \;-\; \boldsymbol{\pi}^\top \log \mathbf{p} \;+\; c\,\|\theta\|^2,$$ a squared-error value loss, a cross-entropy policy loss, and weight decay.
+2. **Train.** Update $\theta$ by minimising $\mathcal{L}(\theta) \;=\; (z - v)^2 \;-\; \boldsymbol{\pi}^\top \log \mathbf{p} \;+\; c\,\|\theta\|^2,$ a squared-error value loss, a cross-entropy policy loss, and weight decay.
 3. **Evaluate.** A new network challenges the current best. Only if it wins more than 55% of 400 games does it become the new generator of self-play games.
 
 The genius is in the *labels*. The MCTS visit distribution $\boldsymbol{\pi}$ is *strictly better than the raw network policy that produced it* — search has refined the priors. Training $\mathbf{p}$ to imitate $\boldsymbol{\pi}$ distils the search's improvement back into the network. This is policy iteration where the policy improvement step is MCTS itself. Each new network plays self-play that yields targets a little stronger than itself. The process bootstraps without external supervision because the *opponent improves at the same rate as the learner* — automatic curriculum learning.

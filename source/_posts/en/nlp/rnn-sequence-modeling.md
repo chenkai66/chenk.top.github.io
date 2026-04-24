@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 3: RNN and Sequence Modeling"
-date: 2024-06-03 09:00:00
+date: 2025-09-24 09:00:00
 tags:
   - NLP
   - RNN

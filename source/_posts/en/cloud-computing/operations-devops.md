@@ -1,6 +1,6 @@
 ---
 title: "Cloud Operations and DevOps Practices"
-date: 2024-09-06 09:00:00
+date: 2024-06-21 09:00:00
 tags:
   - Cloud Computing
   - DevOps

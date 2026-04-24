@@ -1,4 +1,5 @@
 ---
+date: 2024-03-18 09:00:00
 title: "HCGR —— Hyperbolic Contrastive Graph Representation Learning for Session-based Recommendation"
 tags:
   - 对比学习

@@ -1,6 +1,6 @@
 ---
 title: "Matrix Norms and Condition Numbers -- Is Your Linear System Healthy?"
-date: 2024-04-10 09:00:00
+date: 2025-02-20 09:00:00
 tags:
   - Linear Algebra
   - Matrix Norms
@@ -58,11 +58,11 @@ These match our everyday sense of "size". Nothing has negative size; doubling so
 
 For $\vec{x}\in\mathbb{R}^n$:
 
-**$L^1$ norm — Manhattan distance.** $$\|\vec{x}\|_1 = |x_1| + |x_2| + \cdots + |x_n|.$$ A taxi in midtown can only drive along the grid; reaching $(3,4)$ from the origin costs $3+4=7$ blocks.
+**$L^1$ norm — Manhattan distance.** $\|\vec{x}\|_1 = |x_1| + |x_2| + \cdots + |x_n|.$ A taxi in midtown can only drive along the grid; reaching $(3,4)$ from the origin costs $3+4=7$ blocks.
 
-**$L^2$ norm — Euclidean distance.** $$\|\vec{x}\|_2 = \sqrt{x_1^2 + x_2^2 + \cdots + x_n^2}.$$ The straight line "as the crow flies": a crow reaches $(3,4)$ in $\sqrt{9+16}=5$.
+**$L^2$ norm — Euclidean distance.** $\|\vec{x}\|_2 = \sqrt{x_1^2 + x_2^2 + \cdots + x_n^2}.$ The straight line "as the crow flies": a crow reaches $(3,4)$ in $\sqrt{9+16}=5$.
 
-**$L^\infty$ norm — Chebyshev distance.** $$\|\vec{x}\|_\infty = \max_i|x_i|.$$ A chess king moves one square in any of eight directions; reaching $(3,4)$ costs $\max(3,4)=4$ moves because the king can travel diagonally and orthogonally simultaneously.
+**$L^\infty$ norm — Chebyshev distance.** $\|\vec{x}\|_\infty = \max_i|x_i|.$ A chess king moves one square in any of eight directions; reaching $(3,4)$ costs $\max(3,4)=4$ moves because the king can travel diagonally and orthogonally simultaneously.
 
 ### The geometry of unit balls
 

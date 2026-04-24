@@ -1,6 +1,6 @@
 ---
 title: "Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting"
-date: 2025-01-20 09:00:00
+date: 2025-06-19 09:00:00
 tags:
   - ML
   - Deep Learning

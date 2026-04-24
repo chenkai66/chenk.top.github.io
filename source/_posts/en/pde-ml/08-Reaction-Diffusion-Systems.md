@@ -1,6 +1,6 @@
 ---
 title: "PDE and Machine Learning (8): Reaction-Diffusion Systems and Graph Neural Networks"
-date: 2024-12-12 09:00:00
+date: 2024-11-05 09:00:00
 tags:
   - PDE
   - Machine Learning

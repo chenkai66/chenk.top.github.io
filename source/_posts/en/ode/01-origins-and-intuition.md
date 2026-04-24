@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 1: Origins and Intuition"
-date: 2024-10-01 09:00:00
+date: 2024-07-15 09:00:00
 tags:
   - ODE
   - Mathematical Modeling

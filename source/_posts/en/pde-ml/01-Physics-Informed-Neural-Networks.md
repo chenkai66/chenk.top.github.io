@@ -1,6 +1,6 @@
 ---
 title: "PDE and Machine Learning (1): Physics-Informed Neural Networks"
-date: 2024-09-01 09:00:00
+date: 2024-10-01 09:00:00
 tags:
   - PINN
   - Scientific Computing

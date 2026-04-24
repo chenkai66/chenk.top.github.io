@@ -1,6 +1,6 @@
 ---
 title: "Eigenvalues and Eigenvectors"
-date: 2024-04-06 09:00:00
+date: 2025-02-04 09:00:00
 tags:
   - Linear Algebra
   - Eigenvalues

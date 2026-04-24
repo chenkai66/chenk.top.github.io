@@ -1,6 +1,6 @@
 ---
 title: "Orthogonality and Projections -- When Vectors Mind Their Own Business"
-date: 2024-04-07 09:00:00
+date: 2025-02-08 09:00:00
 tags:
   - Linear Algebra
   - Orthogonality
@@ -60,7 +60,7 @@ The recurring pattern: **orthogonal directions carry independent information**.
 
 ### The Mathematical Definition
 
-Two vectors$\vec{u}$and$\vec{v}$are **orthogonal** when:$$\vec{u}\cdot\vec{v}=0$$In components:$$u_1v_1+u_2v_2+\cdots+u_nv_n=0$$**Why does zero dot product mean perpendicular?** The geometric form of the dot product is:$$\vec{u}\cdot\vec{v}=\|\vec{u}\|\|\vec{v}\|\cos\theta$$When$\theta=90^\circ$,$\cos\theta=0$, so the dot product vanishes.
+Two vectors$\vec{u}$and$\vec{v}$are **orthogonal** when:$\vec{u}\cdot\vec{v}=0$In components:$u_1v_1+u_2v_2+\cdots+u_nv_n=0$**Why does zero dot product mean perpendicular?** The geometric form of the dot product is:$\vec{u}\cdot\vec{v}=\|\vec{u}\|\|\vec{v}\|\cos\theta$When$\theta=90^\circ$,$\cos\theta=0$, so the dot product vanishes.
 
 ![Orthogonal vectors and a generic pair](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/fig1_orthogonal_vectors.png)
 
@@ -87,7 +87,7 @@ In data analysis, we hunt for orthogonal features because they encode non-redund
 
 ### Definition
 
-A set$\{\vec{v}_1,\ldots,\vec{v}_k\}$is an **orthogonal set** if every pair is orthogonal:$$\vec{v}_i\cdot\vec{v}_j=0\quad\text{for all }i\neq j$$The standard basis$\{\vec{e}_1,\vec{e}_2,\vec{e}_3\}$in$\mathbb{R}^3$is the canonical example. Three coordinate axes, mutually perpendicular.
+A set$\{\vec{v}_1,\ldots,\vec{v}_k\}$is an **orthogonal set** if every pair is orthogonal:$\vec{v}_i\cdot\vec{v}_j=0\quad\text{for all }i\neq j$The standard basis$\{\vec{e}_1,\vec{e}_2,\vec{e}_3\}$in$\mathbb{R}^3$is the canonical example. Three coordinate axes, mutually perpendicular.
 
 ### Orthogonal Sets Are Automatically Independent
 
@@ -103,12 +103,12 @@ Orthogonality buys linear independence for free.
 
 If, in addition, every vector has unit length, the set is **orthonormal**. If it spans the whole space, it is an **orthonormal basis**.
 
-For an orthonormal basis$\{\vec{q}_1,\ldots,\vec{q}_n\}$:$$\vec{q}_i\cdot\vec{q}_j=\delta_{ij}=\begin{cases}1&i=j\\0&i\neq j\end{cases}$$### Why Orthogonal Bases Are So Powerful
+For an orthonormal basis$\{\vec{q}_1,\ldots,\vec{q}_n\}$:$\vec{q}_i\cdot\vec{q}_j=\delta_{ij}=\begin{cases}1&i=j\\0&i\neq j\end{cases}$### Why Orthogonal Bases Are So Powerful
 
 Take a vector$\vec{v}$and a basis$\{\vec{u}_1,\ldots,\vec{u}_n\}$. We want the coordinates$c_1,\ldots,c_n$such that$\vec{v}=c_1\vec{u}_1+\cdots+c_n\vec{u}_n$.
 
 - **Generic basis.** Solve$U\vec{c}=\vec{v}$. That is Gaussian elimination,$O(n^3)$work.
-- **Orthogonal basis.** Each coordinate is just a dot product:$$c_i=\frac{\vec{v}\cdot\vec{u}_i}{\|\vec{u}_i\|^2}$$- **Orthonormal basis.** Even simpler:$$c_i=\vec{v}\cdot\vec{q}_i$$That is$O(n)$per coordinate, with no equation-solving and no risk of catastrophic cancellation. Think of weighing a pile of luggage. With a tangled basis, you have to weigh everything together and back-solve. With an orthogonal basis, you weigh each piece on its own.
+- **Orthogonal basis.** Each coordinate is just a dot product:$c_i=\frac{\vec{v}\cdot\vec{u}_i}{\|\vec{u}_i\|^2}$- **Orthonormal basis.** Even simpler:$c_i=\vec{v}\cdot\vec{q}_i$That is$O(n)$per coordinate, with no equation-solving and no risk of catastrophic cancellation. Think of weighing a pile of luggage. With a tangled basis, you have to weigh everything together and back-solve. With an orthogonal basis, you weigh each piece on its own.
 
 ---
 
@@ -120,23 +120,23 @@ Take a vector$\vec{v}$and a basis$\{\vec{u}_1,\ldots,\vec{u}_n\}$. We want the c
 
 Imagine sunlight coming straight down. A tilted stick casts a shadow on the ground. That shadow is the **projection** of the stick onto the ground direction.
 
-The **orthogonal projection** of$\vec{b}$onto$\vec{a}$is:$$\mathrm{proj}_{\vec{a}}\vec{b}=\frac{\vec{a}\cdot\vec{b}}{\vec{a}\cdot\vec{a}}\,\vec{a}$$Reading this slowly:
+The **orthogonal projection** of$\vec{b}$onto$\vec{a}$is:$\mathrm{proj}_{\vec{a}}\vec{b}=\frac{\vec{a}\cdot\vec{b}}{\vec{a}\cdot\vec{a}}\,\vec{a}$Reading this slowly:
 
 -$\vec{a}\cdot\vec{b}$measures how much of$\vec{b}$points along$\vec{a}$.
 -$\vec{a}\cdot\vec{a}=\|\vec{a}\|^2$normalizes by$\vec{a}$'s squared length.
 - The ratio is a scalar; multiplying by$\vec{a}$produces the shadow vector.
 
-The **scalar projection** -- the signed length of the shadow -- is:$$\mathrm{comp}_{\vec{a}}\vec{b}=\frac{\vec{a}\cdot\vec{b}}{\|\vec{a}\|}$$It can be negative when$\vec{b}$points roughly opposite to$\vec{a}$.
+The **scalar projection** -- the signed length of the shadow -- is:$\mathrm{comp}_{\vec{a}}\vec{b}=\frac{\vec{a}\cdot\vec{b}}{\|\vec{a}\|}$It can be negative when$\vec{b}$points roughly opposite to$\vec{a}$.
 
 ### Projection as Closest Point
 
 Here is the deep geometric fact:$\mathrm{proj}_{\vec{a}}\vec{b}$is **the point on the line through$\vec{a}$that is closest to$\vec{b}$**.
 
-Why? Call the projection$\hat{\vec{b}}$and the error$\vec{e}=\vec{b}-\hat{\vec{b}}$. By construction,$\vec{e}\perp\vec{a}$. For any other point$t\vec{a}$on the line, the Pythagorean theorem gives:$$\|\vec{b}-t\vec{a}\|^2=\|\vec{e}\|^2+\|t\vec{a}-\hat{\vec{b}}\|^2\geq\|\vec{e}\|^2$$with equality only when$t\vec{a}=\hat{\vec{b}}$. Projection minimizes distance, automatically.
+Why? Call the projection$\hat{\vec{b}}$and the error$\vec{e}=\vec{b}-\hat{\vec{b}}$. By construction,$\vec{e}\perp\vec{a}$. For any other point$t\vec{a}$on the line, the Pythagorean theorem gives:$\|\vec{b}-t\vec{a}\|^2=\|\vec{e}\|^2+\|t\vec{a}-\hat{\vec{b}}\|^2\geq\|\vec{e}\|^2$with equality only when$t\vec{a}=\hat{\vec{b}}$. Projection minimizes distance, automatically.
 
 ### Orthogonal Decomposition
 
-Every vector$\vec{b}$splits **uniquely** into a part parallel to$\vec{a}$and a part perpendicular to$\vec{a}$:$$\vec{b}=\underbrace{\mathrm{proj}_{\vec{a}}\vec{b}}_{\text{parallel}}+\underbrace{(\vec{b}-\mathrm{proj}_{\vec{a}}\vec{b})}_{\text{perpendicular}}$$The two pieces are mutually orthogonal. The classic physics use case: decomposing gravity into components along and normal to an inclined plane.
+Every vector$\vec{b}$splits **uniquely** into a part parallel to$\vec{a}$and a part perpendicular to$\vec{a}$:$\vec{b}=\underbrace{\mathrm{proj}_{\vec{a}}\vec{b}}_{\text{parallel}}+\underbrace{(\vec{b}-\mathrm{proj}_{\vec{a}}\vec{b})}_{\text{perpendicular}}$The two pieces are mutually orthogonal. The classic physics use case: decomposing gravity into components along and normal to an inclined plane.
 
 ---
 
@@ -144,13 +144,13 @@ Every vector$\vec{b}$splits **uniquely** into a part parallel to$\vec{a}$and a p
 
 ### The Setup
 
-What if you want to project not onto a line but onto a **plane**, or any higher-dimensional subspace$W$? The projection$\hat{\vec{b}}$of$\vec{b}$onto$W$is defined by:$$\vec{b}-\hat{\vec{b}}\,\perp\,W$$The error vector is orthogonal to **every** vector in$W$, not just one.
+What if you want to project not onto a line but onto a **plane**, or any higher-dimensional subspace$W$? The projection$\hat{\vec{b}}$of$\vec{b}$onto$W$is defined by:$\vec{b}-\hat{\vec{b}}\,\perp\,W$The error vector is orthogonal to **every** vector in$W$, not just one.
 
 ![Projection of b onto a plane W (subspace)](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/fig3_subspace_projection.png)
 
 ### The Projection Matrix
 
-When$W=\mathrm{Col}(A)$for an$m\times n$matrix$A$with linearly independent columns, the projection has a clean closed form:$$\hat{\vec{b}}=A(A^TA)^{-1}A^T\vec{b}$$The **projection matrix** is:$$P=A(A^TA)^{-1}A^T$$Three properties to memorize:
+When$W=\mathrm{Col}(A)$for an$m\times n$matrix$A$with linearly independent columns, the projection has a clean closed form:$\hat{\vec{b}}=A(A^TA)^{-1}A^T\vec{b}$The **projection matrix** is:$P=A(A^TA)^{-1}A^T$Three properties to memorize:
 
 1. **Idempotent:**$P^2=P$. Once you have a shadow, projecting it again does nothing.
 2. **Symmetric:**$P^T=P$. Orthogonal projections are symmetric; oblique ones are not.
@@ -160,11 +160,11 @@ These three together actually **characterize** orthogonal projection matrices.
 
 ### The Normal Equations
 
-The coordinate vector$\hat{\vec{x}}$satisfying$\hat{\vec{b}}=A\hat{\vec{x}}$is the solution of the **normal equations**:$$A^TA\hat{\vec{x}}=A^T\vec{b}$$This drops out of the orthogonality condition$\vec{b}-A\hat{\vec{x}}\perp\mathrm{Col}(A)$, which says$A^T(\vec{b}-A\hat{\vec{x}})=\vec{0}$.
+The coordinate vector$\hat{\vec{x}}$satisfying$\hat{\vec{b}}=A\hat{\vec{x}}$is the solution of the **normal equations**:$A^TA\hat{\vec{x}}=A^T\vec{b}$This drops out of the orthogonality condition$\vec{b}-A\hat{\vec{x}}\perp\mathrm{Col}(A)$, which says$A^T(\vec{b}-A\hat{\vec{x}})=\vec{0}$.
 
 ### Orthogonal Complements
 
-The **orthogonal complement** of a subspace$W\subseteq\mathbb{R}^n$is the set of all vectors orthogonal to everything in$W$:$$W^{\perp}=\{\vec{v}\in\mathbb{R}^n:\vec{v}\cdot\vec{w}=0\text{ for all }\vec{w}\in W\}$$![Orthogonal complement and unique decomposition](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/fig5_orthogonal_complement.png)
+The **orthogonal complement** of a subspace$W\subseteq\mathbb{R}^n$is the set of all vectors orthogonal to everything in$W$:$W^{\perp}=\{\vec{v}\in\mathbb{R}^n:\vec{v}\cdot\vec{w}=0\text{ for all }\vec{w}\in W\}$![Orthogonal complement and unique decomposition](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/07-orthogonality-and-projections/fig5_orthogonal_complement.png)
 
 Every vector splits uniquely as$\vec{v}=\vec{v}_W+\vec{v}_{W^{\perp}}$with$\vec{v}_W\in W$and$\vec{v}_{W^{\perp}}\in W^{\perp}$. We write$\mathbb{R}^n=W\oplus W^{\perp}$.
 
@@ -190,7 +190,7 @@ Build orthogonal vectors$\vec{u}_1,\ldots,\vec{u}_n$as follows.
 
 **Step 1.** Take the first vector unchanged:$\vec{u}_1=\vec{a}_1$.
 
-**Step 2.** Subtract the part of$\vec{a}_2$that lies along$\vec{u}_1$:$$\vec{u}_2=\vec{a}_2-\frac{\vec{u}_1\cdot\vec{a}_2}{\vec{u}_1\cdot\vec{u}_1}\,\vec{u}_1$$**Step 3.** Subtract the parts of$\vec{a}_3$along both existing axes:$$\vec{u}_3=\vec{a}_3-\frac{\vec{u}_1\cdot\vec{a}_3}{\vec{u}_1\cdot\vec{u}_1}\,\vec{u}_1-\frac{\vec{u}_2\cdot\vec{a}_3}{\vec{u}_2\cdot\vec{u}_2}\,\vec{u}_2$$**General pattern:**$$\vec{u}_k=\vec{a}_k-\sum_{j=1}^{k-1}\frac{\vec{u}_j\cdot\vec{a}_k}{\vec{u}_j\cdot\vec{u}_j}\,\vec{u}_j$$Normalize each$\vec{u}_k$to length 1 if you want an orthonormal basis:$\vec{q}_k=\vec{u}_k/\|\vec{u}_k\|$.
+**Step 2.** Subtract the part of$\vec{a}_2$that lies along$\vec{u}_1$:$\vec{u}_2=\vec{a}_2-\frac{\vec{u}_1\cdot\vec{a}_2}{\vec{u}_1\cdot\vec{u}_1}\,\vec{u}_1$**Step 3.** Subtract the parts of$\vec{a}_3$along both existing axes:$\vec{u}_3=\vec{a}_3-\frac{\vec{u}_1\cdot\vec{a}_3}{\vec{u}_1\cdot\vec{u}_1}\,\vec{u}_1-\frac{\vec{u}_2\cdot\vec{a}_3}{\vec{u}_2\cdot\vec{u}_2}\,\vec{u}_2$**General pattern:**$\vec{u}_k=\vec{a}_k-\sum_{j=1}^{k-1}\frac{\vec{u}_j\cdot\vec{a}_k}{\vec{u}_j\cdot\vec{u}_j}\,\vec{u}_j$Normalize each$\vec{u}_k$to length 1 if you want an orthonormal basis:$\vec{q}_k=\vec{u}_k/\|\vec{u}_k\|$.
 
 ### The Intuition
 
@@ -235,11 +235,11 @@ For production work, prefer **Householder reflections** (used inside `numpy.lina
 
 ### Definition
 
-Any$m\times n$matrix$A$with linearly independent columns factors as:$$A=QR$$where$Q$is$m\times n$with orthonormal columns ($Q^TQ=I$) and$R$is$n\times n$upper triangular with positive diagonal entries.
+Any$m\times n$matrix$A$with linearly independent columns factors as:$A=QR$where$Q$is$m\times n$with orthonormal columns ($Q^TQ=I$) and$R$is$n\times n$upper triangular with positive diagonal entries.
 
 ### Where$Q$and$R$Come From
 
-The columns of$Q$are exactly the orthonormal vectors that Gram-Schmidt produces from$A$'s columns. The entries of$R$record the projection coefficients:$$r_{ij}=\vec{q}_i\cdot\vec{a}_j$$**Why is$R$upper triangular?** Because$\vec{a}_j$can be written using only$\vec{q}_1,\ldots,\vec{q}_j$-- it never needs orthogonal vectors that come later. Anything below the diagonal is a coefficient on a$\vec{q}_k$with$k>j$, which is necessarily zero.
+The columns of$Q$are exactly the orthonormal vectors that Gram-Schmidt produces from$A$'s columns. The entries of$R$record the projection coefficients:$r_{ij}=\vec{q}_i\cdot\vec{a}_j$**Why is$R$upper triangular?** Because$\vec{a}_j$can be written using only$\vec{q}_1,\ldots,\vec{q}_j$-- it never needs orthogonal vectors that come later. Anything below the diagonal is a coefficient on a$\vec{q}_k$with$k>j$, which is necessarily zero.
 
 In picture form:$\vec{a}_j$lives in the span of the first$j$orthonormal axes, and$R$is the change-of-basis matrix from the$\vec{q}$'s back to the$\vec{a}$'s.
 
@@ -247,7 +247,7 @@ In picture form:$\vec{a}_j$lives in the span of the first$j$orthonormal axes, an
 
 The normal equations$A^TA\hat{\vec{x}}=A^T\vec{b}$can blow up numerically because forming$A^TA$**squares** the condition number:$\kappa(A^TA)=\kappa(A)^2$. For nearly collinear data, this is fatal.
 
-QR sidesteps the problem. Substitute$A=QR$into the normal equations:$$R^TQ^TQR\hat{\vec{x}}=R^TQ^T\vec{b}$$Since$Q^TQ=I$and$R^T$is invertible, this collapses to:$$R\hat{\vec{x}}=Q^T\vec{b}$$An upper triangular system, solved in$O(n^2)$by back substitution -- both fast and numerically stable.
+QR sidesteps the problem. Substitute$A=QR$into the normal equations:$R^TQ^TQR\hat{\vec{x}}=R^TQ^T\vec{b}$Since$Q^TQ=I$and$R^T$is invertible, this collapses to:$R\hat{\vec{x}}=Q^T\vec{b}$An upper triangular system, solved in$O(n^2)$by back substitution -- both fast and numerically stable.
 
 ```python
 def qr_decomposition(A):
@@ -285,13 +285,13 @@ We do not give up. We change the question.
 
 ### The Least Squares Idea
 
-Instead of solving$A\vec{x}=\vec{b}$exactly, find the$\hat{\vec{x}}$that minimizes the **sum of squared errors**:$$\min_{\vec{x}}\|A\vec{x}-\vec{b}\|^2$$**Geometric interpretation.**$A\vec{x}$lives in the column space$\mathrm{Col}(A)$as$\vec{x}$varies. Minimizing$\|A\vec{x}-\vec{b}\|$means finding the point in$\mathrm{Col}(A)$closest to$\vec{b}$-- exactly an orthogonal projection. The answer$\hat{\vec{x}}$satisfies$A\hat{\vec{x}}=\hat{\vec{b}}$, where$\hat{\vec{b}}$is the projection of$\vec{b}$onto$\mathrm{Col}(A)$.
+Instead of solving$A\vec{x}=\vec{b}$exactly, find the$\hat{\vec{x}}$that minimizes the **sum of squared errors**:$\min_{\vec{x}}\|A\vec{x}-\vec{b}\|^2$**Geometric interpretation.**$A\vec{x}$lives in the column space$\mathrm{Col}(A)$as$\vec{x}$varies. Minimizing$\|A\vec{x}-\vec{b}\|$means finding the point in$\mathrm{Col}(A)$closest to$\vec{b}$-- exactly an orthogonal projection. The answer$\hat{\vec{x}}$satisfies$A\hat{\vec{x}}=\hat{\vec{b}}$, where$\hat{\vec{b}}$is the projection of$\vec{b}$onto$\mathrm{Col}(A)$.
 
 In the figure above, the left panel shows the familiar "best-fit line through scattered points" picture; the right panel shows the same situation as a projection of$\vec{b}$onto the column-space plane. They are the same problem in two different views.
 
 ### The Normal Equations (Again)
 
-The orthogonality condition is$\vec{b}-A\hat{\vec{x}}\perp\mathrm{Col}(A)$, so$A^T(\vec{b}-A\hat{\vec{x}})=\vec{0}$:$$A^TA\hat{\vec{x}}=A^T\vec{b}$$You can also derive this with calculus: expand$\|A\vec{x}-\vec{b}\|^2$, take the gradient with respect to$\vec{x}$, set it to zero, and the same equations fall out.
+The orthogonality condition is$\vec{b}-A\hat{\vec{x}}\perp\mathrm{Col}(A)$, so$A^T(\vec{b}-A\hat{\vec{x}})=\vec{0}$:$A^TA\hat{\vec{x}}=A^T\vec{b}$You can also derive this with calculus: expand$\|A\vec{x}-\vec{b}\|^2$, take the gradient with respect to$\vec{x}$, set it to zero, and the same equations fall out.
 
 ### Linear Regression Example
 
@@ -313,7 +313,7 @@ print(f"Best fit: y = {coeffs[0]:.4f} + {coeffs[1]:.4f}x")
 
 ### Weighted Least Squares
 
-When some measurements are more trustworthy than others, give them larger weights$w_i$:$$\min_{\vec{x}}\sum_i w_i(\vec{a}_i^T\vec{x}-b_i)^2$$The normal equations become$A^TWA\hat{\vec{x}}=A^TW\vec{b}$with$W=\mathrm{diag}(w_1,\ldots,w_m)$.
+When some measurements are more trustworthy than others, give them larger weights$w_i$:$\min_{\vec{x}}\sum_i w_i(\vec{a}_i^T\vec{x}-b_i)^2$The normal equations become$A^TWA\hat{\vec{x}}=A^TW\vec{b}$with$W=\mathrm{diag}(w_1,\ldots,w_m)$.
 
 ---
 
@@ -321,7 +321,7 @@ When some measurements are more trustworthy than others, give them larger weight
 
 ### Definition
 
-A square matrix$Q$is **orthogonal** if:$$Q^TQ=I$$Equivalently$Q^{-1}=Q^T$. The transpose is the inverse -- which is why orthogonal matrices are so cheap to invert.
+A square matrix$Q$is **orthogonal** if:$Q^TQ=I$Equivalently$Q^{-1}=Q^T$. The transpose is the inverse -- which is why orthogonal matrices are so cheap to invert.
 
 ### Orthogonal Matrices Preserve Everything
 
@@ -336,11 +336,11 @@ The determinant of an orthogonal matrix is$\pm 1$:
 -$\det Q=+1$: a **rotation** (preserves handedness).
 -$\det Q=-1$: a **reflection** (reverses handedness).
 
-The 2D rotation by angle$\theta$is the canonical example:$$R(\theta)=\begin{pmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{pmatrix}$$**Householder reflection** is another important orthogonal matrix; it is the building block of the most stable QR algorithms in production libraries.
+The 2D rotation by angle$\theta$is the canonical example:$R(\theta)=\begin{pmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{pmatrix}$**Householder reflection** is another important orthogonal matrix; it is the building block of the most stable QR algorithms in production libraries.
 
 ### Why Numerics Loves Orthogonal Matrices
 
-The condition number of an orthogonal matrix is exactly 1:$$\kappa(Q)=\frac{\sigma_{\max}}{\sigma_{\min}}=1$$Computations involving orthogonal matrices never amplify errors. This is the deep reason why so many high-quality numerical algorithms (QR, SVD, Householder, Givens) are built around them.
+The condition number of an orthogonal matrix is exactly 1:$\kappa(Q)=\frac{\sigma_{\max}}{\sigma_{\min}}=1$Computations involving orthogonal matrices never amplify errors. This is the deep reason why so many high-quality numerical algorithms (QR, SVD, Householder, Givens) are built around them.
 
 ---
 

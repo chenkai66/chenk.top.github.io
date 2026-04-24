@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (17): Physics and Engineering Applications"
-date: 2024-10-26 09:00:00
+date: 2024-09-17 09:00:00
 tags:
   - Ordinary Differential Equations
   - Pendulum

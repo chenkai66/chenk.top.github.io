@@ -1,6 +1,6 @@
 ---
 title: "Essence of Linear Algebra (17): Linear Algebra in Computer Vision"
-date: 2024-04-29 09:00:00
+date: 2025-03-20 09:00:00
 tags:
   - Linear Algebra
   - computer vision
@@ -402,7 +402,7 @@ where $\mathbf{H} = \mathbf{J}^\top \boldsymbol{\Omega}\,\mathbf{J}$ inherits th
 
 ### Convolution is a (huge, sparse, structured) linear map
 
-A 2D convolution $\mathbf{G} = \mathbf{I} * \mathbf{K}$ is, when written in vector form, a matrix multiplication $\mathbf{g} = \mathbf{T}\mathbf{i}$ where $\mathbf{T}$ is a **doubly block Toeplitz** matrix built from the kernel. We never form $\mathbf{T}$ explicitly — it would have $(HW)^2$ entries — but its existence justifies analysing convolutions with linear-algebraic tools (eigenvalues of $\mathbf{T}$ are precisely the discrete Fourier transform of the kernel).
+A 2D convolution $\mathbf{G} = \mathbf{I} \ast \mathbf{K}$ is, when written in vector form, a matrix multiplication $\mathbf{g} = \mathbf{T}\mathbf{i}$ where $\mathbf{T}$ is a **doubly block Toeplitz** matrix built from the kernel. We never form $\mathbf{T}$ explicitly — it would have $(HW)^2$ entries — but its existence justifies analysing convolutions with linear-algebraic tools (eigenvalues of $\mathbf{T}$ are precisely the discrete Fourier transform of the kernel).
 
 ### Three kernels you should know by heart
 
@@ -429,7 +429,7 @@ $$
 Every linear translation-invariant filter is diagonalised by the Fourier basis: spatial convolution becomes pointwise multiplication in frequency,
 
 $$
-\mathcal{F}[\mathbf{I} * \mathbf{K}] = \mathcal{F}[\mathbf{I}] \cdot \mathcal{F}[\mathbf{K}].
+\mathcal{F}[\mathbf{I} \ast \mathbf{K}] = \mathcal{F}[\mathbf{I}] \cdot \mathcal{F}[\mathbf{K}].
 $$
 
 Designing a filter becomes shaping its frequency response: low-pass for noise removal, high-pass for edges, band-pass for textures.

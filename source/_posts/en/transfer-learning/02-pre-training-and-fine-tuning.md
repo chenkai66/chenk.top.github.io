@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (2): Pre-training and Fine-tuning"
-date: 2024-08-02 09:00:00
+date: 2025-04-19 09:00:00
 tags:
   - Deep Learning
   - Transfer Learning

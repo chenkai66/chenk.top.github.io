@@ -1,6 +1,6 @@
 ---
 title: "Mathematical Derivation of Machine Learning (5): Linear Regression"
-date: 2024-03-08 09:00:00
+date: 2026-01-31 09:00:00
 tags:
   - Machine Learning
   - Linear Regression

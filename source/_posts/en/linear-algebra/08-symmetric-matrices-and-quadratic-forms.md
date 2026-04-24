@@ -1,6 +1,6 @@
 ---
 title: "Symmetric Matrices and Quadratic Forms -- The Best Matrices in Town"
-date: 2024-04-08 09:00:00
+date: 2025-02-12 09:00:00
 tags:
   - Linear Algebra
   - Symmetric Matrices
@@ -119,7 +119,7 @@ When eigenvalues repeat, the eigenspace has dimension equal to the multiplicity,
 Combine the previous two and you get the centerpiece of the chapter.
 
 > **Spectral Theorem.** Every real symmetric matrix $A$ admits a factorization
-> $$A = Q \Lambda Q^T,$$
+> $A = Q \Lambda Q^T,$
 > where $Q$ is orthogonal ($Q^T Q = I$) with the orthonormal eigenvectors as columns, and $\Lambda = \mathrm{diag}(\lambda_1, \ldots, \lambda_n)$ holds the eigenvalues.
 
 ![Spectral theorem: orthogonal eigenvectors of a symmetric matrix](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/linear-algebra/08-symmetric-matrices-and-quadratic-forms/fig2_spectral_theorem.png)
@@ -300,7 +300,7 @@ Numerator measures how much $A$ "stretches" in the direction $\vec{x}$; denomina
 
 ### Min--Max Property
 
-> $$\lambda_{\min} \;\le\; R(\vec{x}) \;\le\; \lambda_{\max} \quad \text{for every } \vec{x} \ne \vec{0}.$$
+> $\lambda_{\min} \;\le\; R(\vec{x}) \;\le\; \lambda_{\max} \quad \text{for every } \vec{x} \ne \vec{0}.$
 > The maximum is $\lambda_{\max}$, achieved at the corresponding eigenvector; the minimum is $\lambda_{\min}$, achieved at its eigenvector.
 
 **Proof in one line.** Write $\vec{x} = \sum c_i \vec{q}_i$ in the orthonormal eigenbasis. Then $R(\vec{x}) = \sum \lambda_i c_i^2 / \sum c_i^2$, a weighted average of the eigenvalues with non-negative weights.

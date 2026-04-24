@@ -1,6 +1,6 @@
 ---
 title: "The Essence of Vectors -- More Than Just Arrows"
-date: 2024-04-01 09:00:00
+date: 2025-01-15 09:00:00
 tags:
   - Linear Algebra
   - Vectors

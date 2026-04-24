@@ -1,4 +1,5 @@
 ---
+date: 2025-04-17 09:00:00
 title: "Solving Constrained Mean-Variance Portfolio Optimization Problems Using Spiral Optimization Algorithm"
 tags:
   - 约束优化
@@ -46,7 +47,7 @@ $$
 
 这里 $\mathbf{e}$ 是全 1 向量。这是一个标准的凸二次规划。把 $R_p$ 在某个区间里扫一遍，就能勾勒出**有效前沿**：每个收益水平下方差最小的那条曲线。
 
-![均值-方差有效前沿与基数约束前沿](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig1_efficient_frontier.png)
+![均值-方差有效前沿与基数约束前沿](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/spiral-portfolio/fig1_efficient_frontier.png)
 
 上图把这件事画在了一个五资产宇宙里。背景的散点云是从单纯形上均匀采样的 5000 个随机组合（颜色按"类夏普比"着色）。紫色实线是无约束的有效前沿（允许做空），蓝色虚线是 $K=3$ 的**基数约束**前沿。两件事很明显：第一，基数约束前沿在每个收益水平上都位于无约束前沿的右侧——选择变少意味着分散度变低，于是同样收益要承担更高风险；第二，两条曲线之间的距离**并不是均匀**的，在收益的极端区段差距拉大，因为能凑出该目标收益的组合本来就少。
 
@@ -95,7 +96,7 @@ $$
 
 其中 $R(\theta)$ 是 $d$ 维旋转矩阵，旋转角为 $\theta$，$r \in (0, 1)$ 是收缩因子。旋转加收缩复合在一起，就是一条向内卷曲的对数螺旋。
 
-![SOA 螺旋轨迹与半径调度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig2_spiral_trajectory.png)
+![SOA 螺旋轨迹与半径调度](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/spiral-portfolio/fig2_spiral_trajectory.png)
 
 左图是非凸地形上 5 个候选解的轨迹，初始化散布在四个象限。橙色星号是当前最优（恰好就是全局最优）。每个候选都螺旋着向中心收敛，沿途采样地形。右图把**探索 vs 利用**的取舍画得很直白：几何包络 $r^k$ 控制螺旋坍缩的速度。$r = 0.95$ 这种慢收缩让候选在很多次迭代里都远离 $\mathbf{x}^*$（更多探索），$r = 0.85$ 这种快收缩则会迅速把它们拉到当前最优身边（更多利用）。
 
@@ -135,7 +136,7 @@ $$
 
 整数约束 $z_i \in \{0,1\}$ 通过**取整**处理：SOA 在 $z_i \in [0,1]$ 上做连续搜索，评估 $P$ 时四舍五入到最近的整数。
 
-![罚函数把最优解拉回可行带，加上二维可行性图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig3_constraint_handling.png)
+![罚函数把最优解拉回可行带，加上二维可行性图](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/spiral-portfolio/fig3_constraint_handling.png)
 
 左图说明罚函数在做什么：原始方差 $V(y)$（灰色虚线）的最小值落在不可行区域（紫色点，低于买入门槛）。加上 $\rho \cdot P(y)$ 之后，可行带 $[l, u]$ 之外被立起两堵陡峭的抛物线墙；最终带罚目标（蓝色实线）的最优点被拉回绿色带内（橙色菱形）。右图是两资产、$K=1$ 情形下的二维可行性图：只有绿色区域可行。叉号是不可行候选，圆点是可行候选。
 
@@ -167,7 +168,7 @@ $$
 
 ### 4.2 收敛对比
 
-![SOA 与 Quasi-Newton、DIRECT、PSO 的收敛对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig4_convergence.png)
+![SOA 与 Quasi-Newton、DIRECT、PSO 的收敛对比](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/spiral-portfolio/fig4_convergence.png)
 
 上图把 SOA-MINLP、Quasi-Newton、DIRECT 以及我额外加的 PSO 基线放在同一张图里比较"截至当前迭代的最优方差"。蓝色阴影带是 30 次独立 SOA 运行的 10-90 分位区间，蓝色实线是中位数。
 
@@ -179,7 +180,7 @@ $$
 
 为了顺便压力测试**组合本身**（而不仅仅是求解器），我用 $\overline{\mathbf{r}}$ 和 $Q$ 隐含的多元高斯分布模拟了 3 年的日收益数据，对比三种规则：等权、目标 11% 收益的无约束均值-方差、SOA-MINLP 风格的组合（只做多、$K=3$、买入门槛 $0.10$）。
 
-![样本外回测的资金曲线和回撤](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/solving-constrained-mean-variance-portfolio-optimization-pro/fig5_backtest.png)
+![样本外回测的资金曲线和回撤](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/spiral-portfolio/fig5_backtest.png)
 
 无约束 MV 组合的样本内夏普最高，但它做空、并且仓位高度集中——这翻译到回撤面板上就是更深的回撤。等权最保守，但把收益让出去太多。SOA-MINLP 规则击中了一个甜蜜点：基数与买入门槛约束起到了正则化作用，用一点期望收益换来了**显著更好的回撤行为**。这才是基数约束在现实里真正的用处：不是理论最优，而是**能上交易台落地的风险分散**。
 

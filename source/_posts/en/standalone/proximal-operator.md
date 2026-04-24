@@ -1,6 +1,6 @@
 ---
 title: "Proximal Operator: From Moreau Envelope to ISTA/FISTA and ADMM"
-date: 2025-01-10 09:00:00
+date: 2025-02-22 09:00:00
 tags:
   - ML
   - Optimization

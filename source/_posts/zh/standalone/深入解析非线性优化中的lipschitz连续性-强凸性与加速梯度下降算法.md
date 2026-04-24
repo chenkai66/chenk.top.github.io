@@ -1,6 +1,6 @@
 ---
 title: "Lipschitz 连续性、强凸性与加速梯度下降"
-date: 2025-01-12 09:00:00
+date: 2024-10-29 09:00:00
 tags:
   - ML
   - Optimization

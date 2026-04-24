@@ -1,6 +1,6 @@
 ---
 title: "Transfer Learning (9): Parameter-Efficient Fine-Tuning"
-date: 2024-08-09 09:00:00
+date: 2025-05-17 09:00:00
 categories:
   - Transfer Learning
   - Machine Learning

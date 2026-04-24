@@ -1,6 +1,6 @@
 ---
 title: "Low-Rank Matrix Approximation and the Pseudoinverse: From SVD to Regularization"
-date: 2025-01-05 09:00:00
+date: 2024-08-21 09:00:00
 tags:
   - ML
   - Linear Algebra

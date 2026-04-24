@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting"
-date: 2024-11-08 09:00:00
+date: 2024-11-30 09:00:00
 tags:
   - Time Series
   - Deep Learning

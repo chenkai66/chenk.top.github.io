@@ -1,6 +1,6 @@
 ---
 title: "NLP (8): Model Fine-tuning and PEFT"
-date: 2024-06-08 09:00:00
+date: 2025-08-23 09:00:00
 tags:
   - NLP
   - PEFT

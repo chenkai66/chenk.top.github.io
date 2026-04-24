@@ -1,6 +1,6 @@
 ---
 title: "Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs"
-date: 2024-11-03 09:00:00
+date: 2024-11-25 09:00:00
 tags:
   - Time Series
   - Deep Learning

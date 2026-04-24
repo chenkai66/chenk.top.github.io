@@ -1,6 +1,6 @@
 ---
 title: "Graph Contextualized Self-Attention Network (GC-SAN) for Session-based Recommendation"
-date: 2024-12-15 09:00:00
+date: 2024-02-25 09:00:00
 tags:
   - Attention
   - Recommender Systems

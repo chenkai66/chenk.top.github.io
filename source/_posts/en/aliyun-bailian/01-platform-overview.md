@@ -1,6 +1,6 @@
 ---
 title: "Aliyun Bailian (1): Platform Overview and First Request"
-date: 2026-04-24 09:00:00
+date: 2026-04-20 09:00:00
 tags:
   - Aliyun Bailian
   - DashScope

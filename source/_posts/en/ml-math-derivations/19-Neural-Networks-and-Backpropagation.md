@@ -1,6 +1,6 @@
 ---
 title: "ML Math Derivations (19): Neural Networks and Backpropagation"
-date: 2024-03-19 09:00:00
+date: 2026-03-28 09:00:00
 tags:
   - Machine Learning
   - Neural Networks

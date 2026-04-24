@@ -1,6 +1,6 @@
 ---
 title: "强化学习（三）：Policy Gradient与Actor-Critic方法"
-date: 2024-07-03 09:00:00
+date: 2025-06-23 09:00:00
 tags:
   - 强化学习
   - 策略梯度

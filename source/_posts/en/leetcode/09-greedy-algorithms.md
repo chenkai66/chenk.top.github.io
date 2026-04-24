@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Greedy Algorithms"
-date: 2024-01-28 09:00:00
+date: 2024-04-06 09:00:00
 tags:
   - LeetCode
   - Algorithms

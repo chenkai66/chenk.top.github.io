@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Hash Tables"
-date: 2024-01-01 09:00:00
+date: 2024-03-01 09:00:00
 tags:
   - LeetCode
   - Algorithms

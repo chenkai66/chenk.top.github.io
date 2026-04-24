@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Backtracking Algorithms"
-date: 2024-01-22 09:00:00
+date: 2024-03-29 09:00:00
 tags:
   - LeetCode
   - Algorithms

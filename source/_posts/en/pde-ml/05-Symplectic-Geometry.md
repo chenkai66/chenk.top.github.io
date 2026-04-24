@@ -1,6 +1,6 @@
 ---
 title: "PDE and Machine Learning (5): Symplectic Geometry and Structure-Preserving Networks"
-date: 2024-12-09 09:00:00
+date: 2024-10-21 09:00:00
 tags:
   - PDE
   - Machine Learning

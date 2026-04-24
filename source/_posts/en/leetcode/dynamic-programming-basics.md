@@ -1,6 +1,6 @@
 ---
 title: "LeetCode Patterns: Dynamic Programming Basics"
-date: 2024-01-19 09:00:00
+date: 2024-03-25 09:00:00
 tags:
   - LeetCode
   - Algorithms

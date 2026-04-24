@@ -1,6 +1,6 @@
 ---
 title: "Machine Learning Mathematical Derivations (15): Hidden Markov Models"
-date: 2024-03-15 09:00:00
+date: 2026-03-12 09:00:00
 categories:
   - Machine Learning
 tags:

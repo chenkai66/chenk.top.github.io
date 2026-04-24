@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (10): Bifurcation Theory"
-date: 2024-10-19 09:00:00
+date: 2024-08-20 09:00:00
 tags:
   - Ordinary Differential Equations
   - Bifurcation Theory
@@ -61,7 +61,7 @@ Why "codimension-1"? Because each requires tuning exactly **one** parameter to o
 
 ### 2.1 Saddle-node (fold) bifurcation
 
-**Normal form:**$$\dot{x} = \mu - x^2.$$Setting$\dot{x}=0$gives$x^* = \pm\sqrt{\mu}$. So:
+**Normal form:**$\dot{x} = \mu - x^2.$Setting$\dot{x}=0$gives$x^* = \pm\sqrt{\mu}$. So:
 
 | range of$\mu$| equilibria |
 |---|---|
@@ -84,7 +84,7 @@ The signature of a fold is **bistability before annihilation**. Just below$\mu_c
 
 ### 2.2 Transcritical bifurcation
 
-**Normal form:**$$\dot{x} = \mu x - x^2.$$Two equilibria always exist:$x^*=0$and$x^*=\mu$. They never disappear -- they merely **swap stability** as they cross at$\mu=0$.
+**Normal form:**$\dot{x} = \mu x - x^2.$Two equilibria always exist:$x^*=0$and$x^*=\mu$. They never disappear -- they merely **swap stability** as they cross at$\mu=0$.
 
 | range of$\mu$|$x^*=0$|$x^*=\mu$|
 |---|---|---|
@@ -104,15 +104,15 @@ This is the bifurcation you get whenever the system has a "trivial" state ($x=0$
 
 ### 2.3 Supercritical pitchfork
 
-**Normal form:**$$\dot{x} = \mu x - x^3.$$Equilibria: always$x^*=0$, plus$x^*=\pm\sqrt{\mu}$when$\mu>0$. The trivial branch loses stability *and* two new stable branches are born symmetrically.
+**Normal form:**$\dot{x} = \mu x - x^3.$Equilibria: always$x^*=0$, plus$x^*=\pm\sqrt{\mu}$when$\mu>0$. The trivial branch loses stability *and* two new stable branches are born symmetrically.
 
 This is the universal **symmetry-breaking** bifurcation. The equation is invariant under$x \to -x$, so any new equilibrium must come with a partner. Below$\mu_c$the system sits on the symmetric solution; above$\mu_c$it must commit to one of two equally valid asymmetric solutions.
 
 ### 2.4 Subcritical pitchfork (the dangerous one)
 
-**Normal form:**$$\dot{x} = \mu x + x^3.$$Now the trivial branch loses stability without any nearby stable branch waiting to catch the system. Below$\mu=0$we have$x^*=0$stable plus two unstable branches at$\pm\sqrt{-\mu}$; above$\mu=0$, only the unstable trivial branch remains. Trajectories shoot off to infinity.
+**Normal form:**$\dot{x} = \mu x + x^3.$Now the trivial branch loses stability without any nearby stable branch waiting to catch the system. Below$\mu=0$we have$x^*=0$stable plus two unstable branches at$\pm\sqrt{-\mu}$; above$\mu=0$, only the unstable trivial branch remains. Trajectories shoot off to infinity.
 
-In real systems higher-order terms eventually re-stabilise things: adding a$-x^5$term gives the canonical hysteretic model$$\dot{x} = \mu x + x^3 - x^5,$$which has a high-amplitude stable branch coexisting with the trivial state in a window$-\tfrac14 \le \mu \le 0$. Slowly ramping$\mu$produces the famous **hysteresis loop**: the system jumps to large amplitude when$\mu$crosses 0 from below, and only jumps back down when$\mu$is pulled past$-\tfrac14$on the way back.
+In real systems higher-order terms eventually re-stabilise things: adding a$-x^5$term gives the canonical hysteretic model$\dot{x} = \mu x + x^3 - x^5,$which has a high-amplitude stable branch coexisting with the trivial state in a window$-\tfrac14 \le \mu \le 0$. Slowly ramping$\mu$produces the famous **hysteresis loop**: the system jumps to large amplitude when$\mu$crosses 0 from below, and only jumps back down when$\mu$is pulled past$-\tfrac14$on the way back.
 
 ![Pitchfork bifurcations: the gentle supercritical fork on the left, the dangerous subcritical version with hysteresis on the right.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig3_pitchfork_bifurcation.png)
 *Left: supercritical pitchfork. The new branches grow continuously from zero -- a gentle, reversible transition. Right: subcritical pitchfork stabilised by an$x^5$term. Purple arrows show the catastrophic jump up at$\mu=0$and the delayed jump down at$\mu=-\tfrac14$. The width of the bistable window is the hysteresis loop.*
@@ -139,12 +139,12 @@ In real systems higher-order terms eventually re-stabilise things: adding a$-x^5
 
 The bifurcations above are scalar. The first genuinely two-dimensional bifurcation is the **Hopf** (Andronov-Hopf, really). It is what allows oscillations to *appear*.
 
-**Normal form (polar coordinates):**$$\dot{r} = \mu r - r^3, \qquad \dot{\theta} = \omega.$$The radial equation is exactly the supercritical pitchfork. So:
+**Normal form (polar coordinates):**$\dot{r} = \mu r - r^3, \qquad \dot{\theta} = \omega.$The radial equation is exactly the supercritical pitchfork. So:
 
 - For$\mu \le 0$, the only attractor is$r=0$-- a stable spiral.
 - For$\mu > 0$, the origin is an unstable spiral and a **stable limit cycle** of radius$r=\sqrt{\mu}$encircles it.
 
-In Cartesian form,$$\dot{x} = \mu x - \omega y - x(x^2+y^2),$$$$\dot{y} = \omega x + \mu y - y(x^2+y^2).$$The Jacobian at the origin is$\bigl(\begin{smallmatrix}\mu & -\omega \\ \omega & \mu\end{smallmatrix}\bigr)$, with eigenvalues$\lambda = \mu \pm i\omega$. As$\mu$crosses zero from below, the complex pair crosses the imaginary axis transversally -- this is the **Hopf condition**.
+In Cartesian form,$\dot{x} = \mu x - \omega y - x(x^2+y^2),$$\dot{y} = \omega x + \mu y - y(x^2+y^2).$The Jacobian at the origin is$\bigl(\begin{smallmatrix}\mu & -\omega \\ \omega & \mu\end{smallmatrix}\bigr)$, with eigenvalues$\lambda = \mu \pm i\omega$. As$\mu$crosses zero from below, the complex pair crosses the imaginary axis transversally -- this is the **Hopf condition**.
 
 ![Hopf bifurcation: phase portraits before, at, and after, plus the 3D paraboloid of limit-cycle amplitudes.](https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ode/10-bifurcation-theory/fig4_hopf_bifurcation.png)
 *Top row: trajectories spiral inward to the origin for$\mu=-0.4$, hover indecisively at$\mu=0$, and converge onto a limit cycle of radius$\sqrt{0.4}\approx 0.63$for$\mu=+0.4$. Bottom: the family of limit cycles forms a paraboloid$r = \sqrt{\mu}$opening to the right.*
@@ -214,7 +214,7 @@ A saddle-node bifurcation that happens *on* a closed invariant curve. Below the 
 
 Limit cycles can themselves bifurcate. The most famous route is the **period-doubling cascade**: a stable cycle of period$T$loses stability and gives birth to a stable cycle of period$2T$, which in turn doubles to$4T$, then$8T$, then$16T$, accumulating at a finite parameter value beyond which the dynamics is chaotic.
 
-Mitchell Feigenbaum discovered (1978) that the parameter intervals$\Delta_n = \mu_n - \mu_{n-1}$between successive doublings shrink geometrically with a **universal** ratio$$\delta = \lim_{n \to \infty} \frac{\Delta_n}{\Delta_{n+1}} = 4.6692016\ldots$$independent of the specific system, as long as it has a smooth quadratic maximum. The same constant governs period doubling in dripping faucets, Rayleigh-Benard convection, and electronic circuits.
+Mitchell Feigenbaum discovered (1978) that the parameter intervals$\Delta_n = \mu_n - \mu_{n-1}$between successive doublings shrink geometrically with a **universal** ratio$\delta = \lim_{n \to \infty} \frac{\Delta_n}{\Delta_{n+1}} = 4.6692016\ldots$independent of the specific system, as long as it has a smooth quadratic maximum. The same constant governs period doubling in dripping faucets, Rayleigh-Benard convection, and electronic circuits.
 
 The minimal toy model is the **logistic map**$x_{n+1} = r x_n(1 - x_n)$:
 

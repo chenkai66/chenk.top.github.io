@@ -1,6 +1,6 @@
 ---
 title: "Graph Neural Networks for Learning Equivariant Representations of Neural Networks"
-date: 2024-12-20 09:00:00
+date: 2024-03-24 09:00:00
 tags:
   - Meta-Learning
   - Representation Learning

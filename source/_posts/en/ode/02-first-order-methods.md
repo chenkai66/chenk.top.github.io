@@ -1,6 +1,6 @@
 ---
 title: "ODE Chapter 2: First-Order Methods"
-date: 2024-10-02 09:00:00
+date: 2024-07-19 09:00:00
 tags:
   - ODE
   - Separable Equations

@@ -1,6 +1,6 @@
 ---
 title: "Ordinary Differential Equations (14): Epidemic Models and Epidemiology"
-date: 2024-10-23 09:00:00
+date: 2024-09-05 09:00:00
 tags:
   - Ordinary Differential Equations
   - Epidemiology

@@ -1,6 +1,6 @@
 ---
 title: "PDE and Machine Learning (4): Variational Inference and the Fokker-Planck Equation"
-date: 2024-12-04 09:00:00
+date: 2024-10-16 09:00:00
 tags:
   - PDE
   - Variational Inference

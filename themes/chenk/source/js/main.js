@@ -75,7 +75,43 @@
   }
 
   // === Code Blocks: Copy Button + Language Label ===
+  // Handle BOTH plain <pre><code> and Hexo's <figure class="highlight {lang}"><table>...
+  document.querySelectorAll('.markdown-body figure.highlight').forEach(function(fig) {
+    // Extract language from class names: "highlight python" -> "python"
+    var langs = Array.from(fig.classList).filter(function(c){ return c !== 'highlight'; });
+    var lang = langs[0] || '';
+    if (lang) {
+      var tag = document.createElement('span');
+      tag.className = 'code-lang-tag';
+      tag.textContent = lang;
+      fig.appendChild(tag);
+    }
+    var codeCell = fig.querySelector('td.code');
+    var codeText = codeCell ? codeCell.innerText.replace(/\n+$/,'') : fig.innerText;
+    var btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.setAttribute('aria-label', 'Copy code');
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    btn.addEventListener('click', function(){
+      navigator.clipboard.writeText(codeText).then(function(){
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.classList.remove('copied'); }, 2000);
+      }).catch(function(){
+        var ta = document.createElement('textarea'); ta.value = codeText;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch(e) {}
+        document.body.removeChild(ta);
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.classList.remove('copied'); }, 2000);
+      });
+    });
+    fig.appendChild(btn);
+  });
+
   document.querySelectorAll('.markdown-body pre').forEach(function(pre) {
+    // Skip pre inside hexo figure.highlight (handled above)
+    if (pre.closest('figure.highlight')) return;
     var code = pre.querySelector('code');
     if (!code) return;
 
