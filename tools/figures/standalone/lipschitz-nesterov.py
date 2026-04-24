@@ -33,18 +33,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"      # primary
-C_PURPLE = "#7c3aed"    # secondary
-C_GREEN = "#10b981"     # accent
-C_AMBER = "#f59e0b"     # highlight / warning
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
+C_BLUE = COLORS["primary"]      # primary
+C_PURPLE = COLORS["accent"]    # secondary
+C_GREEN = COLORS["success"]     # accent
+C_AMBER = COLORS["warning"]     # highlight / warning
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
 C_LIGHT_BLUE = "#dbeafe"
 C_LIGHT_PURPLE = "#ede9fe"
 C_LIGHT_GREEN = "#d1fae5"

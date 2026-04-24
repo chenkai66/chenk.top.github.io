@@ -36,19 +36,25 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle, FancyArrowPatch
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"     # owner / read
-C_PURPLE = "#7c3aed"   # group / write
-C_GREEN = "#10b981"    # others / execute / good
-C_AMBER = "#f59e0b"    # special / highlight
-C_RED = "#dc2626"
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
+C_BLUE = COLORS["primary"]     # owner / read
+C_PURPLE = COLORS["accent"]   # group / write
+C_GREEN = COLORS["success"]    # others / execute / good
+C_AMBER = COLORS["warning"]    # special / highlight
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
 C_BG_SOFT = "#f8fafc"
 
 DPI = 150

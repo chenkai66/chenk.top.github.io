@@ -21,18 +21,25 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Rectangle, Circle
 from matplotlib.lines import Line2D
 
-plt.style.use("seaborn-v0_8-whitegrid")
+# ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-GREY = "#64748b"
-LIGHT = "#e5e7eb"
-DARK = "#1e293b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+GREY = COLORS["text2"]
+LIGHT = COLORS["grid"]
+DARK = COLORS["text"]
 
 DPI = 150
 
@@ -90,7 +97,8 @@ def fig1_sequence_timeline() -> None:
         circle = Circle((x, y_axis + 0.55), 0.34, facecolor=face,
                         edgecolor=edge, lw=2.2, zorder=3)
         if is_pred:
-            circle.set_linestyle((0, (4, 3)))
+            circle.set_linestyle("--")
+            circle.set_linewidth(1.8)
         ax.add_patch(circle)
         ax.text(x, y_axis + 0.55, label, ha="center", va="center",
                 fontsize=10.5, fontweight="bold",
@@ -119,7 +127,7 @@ def fig1_sequence_timeline() -> None:
         mpatches.Patch(color=PURPLE, label="Click"),
         mpatches.Patch(color=GREEN,  label="Add to Cart"),
         mpatches.Patch(facecolor="white", edgecolor=ORANGE,
-                       linestyle="--", label="Next-item prediction"),
+                       linewidth=1.4, linestyle="--", label="Next-item prediction"),
     ]
     ax.legend(handles=legend_elems, loc="lower center",
               bbox_to_anchor=(0.5, -0.18), ncol=4, frameon=False, fontsize=10)
@@ -321,7 +329,7 @@ def fig4_bert4rec_masking() -> None:
             txt = "[MASK]"
             txt_color = ORANGE
             lw = 2.2
-            ls = (0, (4, 3))
+            ls = "--"
         else:
             face = BLUE
             edge = BLUE

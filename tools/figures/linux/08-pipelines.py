@@ -39,19 +39,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns  # noqa: F401  (registers the seaborn style we use)
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_AMBER = "#f59e0b"
-COLOR_GREY = "#475569"
-COLOR_LIGHT = "#e2e8f0"
-COLOR_RED = "#dc2626"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_GREY = COLORS["text2"]
+COLOR_LIGHT = COLORS["grid"]
+COLOR_RED = COLORS["danger"]
 
 DPI = 150
 
@@ -211,7 +217,7 @@ def fig1_pipe_data_flow() -> None:
                       edgecolor=COLOR_LIGHT, lw=1.0))
 
     ax.set_title("Pipe Data Flow: stdin / stdout / stderr",
-                 fontsize=15, fontweight="bold", pad=12, color="#1e293b")
+                 fontsize=15, fontweight="bold", pad=12, color=COLORS["text"])
 
     _save(fig, "fig1_pipe_data_flow.png")
 
@@ -358,7 +364,7 @@ def fig2_redirection() -> None:
     # Big title
     ax.text(6.0, 8.55, "Redirection: where each file descriptor goes",
             ha="center", va="center", fontsize=15, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(6.0, 8.10,
             "fd 0 = stdin   |   fd 1 = stdout   |   fd 2 = stderr",
             ha="center", va="center", fontsize=10, color=COLOR_GREY,
@@ -457,7 +463,7 @@ def fig3_grep_awk_sed_pipeline() -> None:
         for j, line in enumerate(st["sample"]):
             ax.text(x + 0.15, sample_top - j * line_h, line,
                     ha="left", va="center", fontsize=8.2,
-                    family="monospace", color="#1e293b")
+                    family="monospace", color=COLORS["text"])
 
         # Command at the bottom of the card
         ax.text(x + box_w / 2, y_box + 0.3, st["cmd"],
@@ -484,7 +490,7 @@ def fig3_grep_awk_sed_pipeline() -> None:
     ax.text(6.5, 7.4,
             "grep -E ' 5[0-9]{2} ' access.log | awk '{print $1}' | "
             "sort | uniq -c | sort -nr | head",
-            ha="center", va="center", fontsize=11.5, color="#1e293b",
+            ha="center", va="center", fontsize=11.5, color=COLORS["text"],
             family="monospace", fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.5", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.2))
@@ -512,7 +518,7 @@ def fig3_grep_awk_sed_pipeline() -> None:
             style="italic")
 
     ax.set_title("A grep / awk / sort / uniq pipeline",
-                 fontsize=15, fontweight="bold", pad=12, color="#1e293b")
+                 fontsize=15, fontweight="bold", pad=12, color=COLORS["text"])
 
     _save(fig, "fig3_grep_awk_sed_pipeline.png")
 
@@ -572,7 +578,7 @@ def fig4_named_pipes() -> None:
     # Notes
     ax.text(5.0, 5.7,
             "$ ls -l | wc -l",
-            ha="center", va="center", fontsize=12, color="#1e293b",
+            ha="center", va="center", fontsize=12, color=COLORS["text"],
             family="monospace", fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.4", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.0))
@@ -639,7 +645,7 @@ def fig4_named_pipes() -> None:
     # Notes
     ax.text(5.0, 5.7,
             "$ mkfifo /tmp/jobs",
-            ha="center", va="center", fontsize=12, color="#1e293b",
+            ha="center", va="center", fontsize=12, color=COLORS["text"],
             family="monospace", fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.4", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.0))
@@ -655,7 +661,7 @@ def fig4_named_pipes() -> None:
             ha="center", va="center", fontsize=9.5, color=COLOR_GREY)
 
     fig.suptitle("Pipes have two flavours: anonymous  |  and named (FIFO)",
-                 fontsize=14, fontweight="bold", y=1.02, color="#1e293b")
+                 fontsize=14, fontweight="bold", y=1.02, color=COLORS["text"])
 
     _save(fig, "fig4_named_pipes.png")
 
@@ -673,7 +679,7 @@ def fig5_process_substitution() -> None:
     # Top: the literal command the user types
     ax.text(6, 7.3,
             "$ diff  <(sort file1)  <(sort file2)",
-            ha="center", va="center", fontsize=14, color="#1e293b",
+            ha="center", va="center", fontsize=14, color=COLORS["text"],
             family="monospace", fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.5", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.2))
@@ -765,7 +771,7 @@ def fig5_process_substitution() -> None:
 
     ax.set_title("Process substitution:  <(cmd)  exposes a command's stdout "
                  "as a filename",
-                 fontsize=14, fontweight="bold", pad=12, color="#1e293b")
+                 fontsize=14, fontweight="bold", pad=12, color=COLORS["text"])
 
     _save(fig, "fig5_process_substitution.png")
 

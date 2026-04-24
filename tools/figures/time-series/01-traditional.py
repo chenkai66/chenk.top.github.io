@@ -43,16 +43,22 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
+# Shared style ----------------------------------------------------------------
+import sys
+from pathlib import Path as _StylePath
+sys.path.insert(0, str(_StylePath(__file__).parent.parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
+# Color palette (from shared _style)
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"     # primary / actual
-COLOR_PURPLE = "#7c3aed"   # secondary / model
-COLOR_GREEN = "#10b981"    # tertiary / good signal
-COLOR_AMBER = "#f59e0b"    # accent / warning, residual
 
 DPI = 150
 

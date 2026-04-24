@@ -16,12 +16,18 @@ from scipy.integrate import solve_ivp, solve_bvp
 from scipy.linalg import eigh, eigh_tridiagonal
 from scipy.optimize import brentq
 
-plt.style.use('seaborn-v0_8-whitegrid')
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
 
-BLUE   = '#2563eb'
-PURPLE = '#7c3aed'
-GREEN  = '#10b981'
-RED    = '#ef4444'
+BLUE   = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN  = COLORS["success"]
+RED    = COLORS["danger"]
 
 OUT_DIRS = [
     '/Users/kchen/Desktop/Project/chenk-site/source/_posts/en/ode/12-boundary-value-problems',
@@ -203,7 +209,7 @@ def fig3_eigenvalue_problem():
     x = np.concatenate([[0], x_int, [np.pi]])
 
     ax = axes[0]
-    palette = [BLUE, PURPLE, GREEN, RED, '#f59e0b']
+    palette = [BLUE, PURPLE, GREEN, RED, COLORS["warning"]]
     x_exact = np.linspace(0, np.pi, 300)
     for k in range(5):
         # Normalize: pin sign so first peak is positive
@@ -268,7 +274,7 @@ def fig4_sturm_liouville():
     ax.plot(x, x**2, color='black', lw=1.6, alpha=0.7,
             label='potential  $V(x)=x^2$')
 
-    palette = [BLUE, PURPLE, GREEN, RED, '#f59e0b']
+    palette = [BLUE, PURPLE, GREEN, RED, COLORS["warning"]]
     for n in range(5):
         psi = E_vecs[:, n]
         # normalize int |psi|^2 dx = 1

@@ -40,19 +40,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle, Circle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"
-C_PURPLE = "#7c3aed"
-C_GREEN = "#10b981"
-C_AMBER = "#f59e0b"
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
 C_BG = "#f8fafc"
 
 DPI = 150
@@ -496,7 +502,7 @@ def fig4_zero_trust() -> None:
         ("Partner\n(API)", C_AMBER, 0.5),
     ]
     for name, c, y in requesters:
-        fc = {"#2563eb": "#dbeafe", "#7c3aed": "#ede9fe", "#f59e0b": "#fef3c7"}.get(c, "#dbeafe")
+        fc = {COLORS["primary"]: "#dbeafe", COLORS["accent"]: "#ede9fe", COLORS["warning"]: "#fef3c7"}.get(c, "#dbeafe")
         _box(ax, 0.2, y, 1.6, 0.9, name, fc=fc, ec=c, fontsize=10, weight="semibold")
 
     # Centre: Policy Decision Point
@@ -528,7 +534,7 @@ def fig4_zero_trust() -> None:
         ("Threat\nIntel", C_RED, 6.8),
     ]
     for name, c, x in signals:
-        fc = {"#2563eb": "#dbeafe", "#10b981": "#d1fae5", "#ef4444": "#fee2e2"}.get(c, "white")
+        fc = {COLORS["primary"]: "#dbeafe", COLORS["success"]: "#d1fae5", COLORS["danger"]: "#fee2e2"}.get(c, "white")
         _box(ax, x, 5.7, 1.0, 0.7, name, fc=fc, ec=c, fontsize=9, weight="semibold")
         _arrow(ax, (x + 0.5, 5.7), (x + 0.5, pdp_y + pdp_h), color=c, lw=1.4)
 

@@ -56,19 +56,26 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"      # primary -- pre-trained / target
-C_PURPLE = "#7c3aed"    # secondary -- fine-tune / source
-C_GREEN = "#10b981"     # accent / good outcome
-C_AMBER = "#f59e0b"     # warning / highlight
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_LIGHT = "#e5e7eb"
-C_DARK = "#0f172a"
-C_BG = "#f8fafc"
+C_BLUE = COLORS["primary"]      # primary -- pre-trained / target
+C_PURPLE = COLORS["accent"]    # secondary -- fine-tune / source
+C_GREEN = COLORS["success"]     # accent / good outcome
+C_AMBER = COLORS["warning"]     # warning / highlight
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_LIGHT = COLORS["grid"]
+C_DARK = COLORS["text"]
+C_BG = COLORS["bg"]
 
 PALETTE = [C_BLUE, C_PURPLE, C_GREEN, C_AMBER]
 

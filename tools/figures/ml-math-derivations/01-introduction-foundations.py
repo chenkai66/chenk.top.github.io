@@ -51,37 +51,45 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, Rectangle, Circle
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS, annotate_callout  # noqa: E402, F401
+setup_style()
+
+
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
+# style applied via _style.setup_style()
 
-C_BLUE = "#2563eb"
-C_PURPLE = "#7c3aed"
-C_GREEN = "#10b981"
-C_AMBER = "#f59e0b"
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
-C_BG = "#f8fafc"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
+C_BG = COLORS["bg"]
 
 DPI = 150
 
-plt.rcParams.update({
-    "font.family": "DejaVu Sans",
-    "axes.titleweight": "bold",
-    "axes.titlesize": 12,
-    "axes.labelsize": 11,
-    "axes.edgecolor": C_DARK,
-    "axes.linewidth": 0.8,
-    "xtick.color": C_DARK,
-    "ytick.color": C_DARK,
-    "grid.color": C_LIGHT,
-    "grid.linewidth": 0.6,
-    "legend.frameon": False,
-    "legend.fontsize": 10,
-})
+# plt.rcParams.update({
+#     "font.family": "DejaVu Sans",
+#     "axes.titleweight": "bold",
+#     "axes.titlesize": 12,
+#     "axes.labelsize": 11,
+#     "axes.edgecolor": C_DARK,
+#     "axes.linewidth": 0.8,
+#     "xtick.color": C_DARK,
+#     "ytick.color": C_DARK,
+#     "grid.color": C_LIGHT,
+#     "grid.linewidth": 0.6,
+#     "legend.frameon": False,
+#     "legend.fontsize": 10,
+# })
 
 # ---------------------------------------------------------------------------
 # Output paths -- script writes to BOTH language asset folders

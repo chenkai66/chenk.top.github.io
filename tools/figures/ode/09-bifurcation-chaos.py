@@ -15,12 +15,18 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from scipy.integrate import odeint, solve_ivp
 
-plt.style.use('seaborn-v0_8-whitegrid')
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
 
-BLUE   = '#2563eb'
-PURPLE = '#7c3aed'
-GREEN  = '#10b981'
-RED    = '#ef4444'
+BLUE   = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN  = COLORS["success"]
+RED    = COLORS["danger"]
 
 OUT_DIRS = [
     '/Users/kchen/Desktop/Project/chenk-site/source/_posts/en/ode/09-bifurcation-chaos',

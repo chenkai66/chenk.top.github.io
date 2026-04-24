@@ -40,18 +40,25 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, Polygon, Rectangle
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS, annotate_callout  # noqa: E402, F401
+setup_style()
+
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
+# style applied via _style.setup_style()
 
-C_BLUE = "#2563eb"     # primary
-C_PURPLE = "#7c3aed"   # secondary
-C_GREEN = "#10b981"    # accent / projection result
-C_AMBER = "#f59e0b"    # error / residual / highlight
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
 
 DPI = 150
 
@@ -152,6 +159,7 @@ def fig1_orthogonal_vectors():
     _arrow(ax, (0, 0), b, C_PURPLE)
     # Arc for angle
     from matplotlib.patches import Arc
+
     ang_a = np.degrees(np.arctan2(a[1], a[0]))
     ang_b = np.degrees(np.arctan2(b[1], b[0]))
     ax.add_patch(Arc((0, 0), 1.2, 1.2,

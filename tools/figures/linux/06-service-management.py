@@ -37,19 +37,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns  # noqa: F401  (registers the seaborn style we use)
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_AMBER = "#f59e0b"
-COLOR_GREY = "#475569"
-COLOR_LIGHT = "#e2e8f0"
-COLOR_RED = "#dc2626"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_GREY = COLORS["text2"]
+COLOR_LIGHT = COLORS["grid"]
+COLOR_RED = COLORS["danger"]
 
 DPI = 150
 
@@ -138,7 +144,7 @@ def fig1_systemd_architecture() -> None:
 
     ax.text(0.3, unit_y + unit_h / 2, "Units",
             ha="left", va="center", fontsize=11,
-            color="#1e293b", fontweight="bold")
+            color=COLORS["text"], fontweight="bold")
 
     # Target chain (bottom): the runlevels of the systemd world
     tgt_y = 1.2
@@ -171,12 +177,12 @@ def fig1_systemd_architecture() -> None:
 
     ax.text(0.3, tgt_y + tgt_h / 2, "Targets\n(boot chain)",
             ha="left", va="center", fontsize=11,
-            color="#1e293b", fontweight="bold")
+            color=COLORS["text"], fontweight="bold")
 
     # Title
     ax.text(6.5, 8.4,
             "systemd architecture:  PID 1  ->  units  ->  targets",
-            ha="center", fontsize=14, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=14, fontweight="bold", color=COLORS["text"])
 
     _save(fig, "fig1_systemd_architecture.png")
 
@@ -265,7 +271,7 @@ def fig2_service_lifecycle() -> None:
     # Title and footnote
     ax.text(6.0, 7.2,
             "Service lifecycle:  the states reported by 'systemctl status'",
-            ha="center", fontsize=14, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=14, fontweight="bold", color=COLORS["text"])
     ax.text(6.0, 0.35,
             "An auto-restart policy turns 'failed' from a terminal state "
             "back into a transient one  -  the daemon stays up.",
@@ -346,7 +352,7 @@ def fig3_unit_file_anatomy() -> None:
 
         # File panel (dark) for this section
         ax.add_patch(Rectangle((left_x, section_bottom), left_w, section_h,
-                               facecolor="#0f172a", edgecolor=color, lw=1.6))
+                               facecolor=COLORS["text"], edgecolor=color, lw=1.6))
 
         # Header line inside the panel
         header_y = section_top - line_h * 0.7
@@ -366,7 +372,7 @@ def fig3_unit_file_anatomy() -> None:
                 # monospace at the same font size so the offsets align.
                 key_str = key + "="
                 ax.text(left_x + 0.5, line_y, key_str,
-                        ha="left", va="center", color="#cbd5e1",
+                        ha="left", va="center", color=COLORS["border"],
                         fontsize=9.5, family="monospace")
                 # Estimate width using monospace character width.
                 # 9.5pt monospace at 150 DPI is ~0.094 data units per char
@@ -374,11 +380,11 @@ def fig3_unit_file_anatomy() -> None:
                 char_w = 0.105
                 offset = len(key_str) * char_w
                 ax.text(left_x + 0.5 + offset, line_y, val,
-                        ha="left", va="center", color="#fbbf24",
+                        ha="left", va="center", color=COLORS["warning"],
                         fontsize=9.5, family="monospace")
             else:
                 ax.text(left_x + 0.5, line_y, line,
-                        ha="left", va="center", color="#e2e8f0",
+                        ha="left", va="center", color=COLORS["grid"],
                         fontsize=9.5, family="monospace")
             line_y -= line_h
 
@@ -397,12 +403,12 @@ def fig3_unit_file_anatomy() -> None:
         if card_h >= 1.4:
             ax.text(right_x + 0.25, card_y + card_h - 0.95,
                     body, ha="left", va="top", fontsize=9.5,
-                    color="#1e293b")
+                    color=COLORS["text"])
         else:
             single = body.replace("\n", " ")
             ax.text(right_x + 0.25, card_y + card_h - 0.85,
                     single, ha="left", va="top", fontsize=9.0,
-                    color="#1e293b")
+                    color=COLORS["text"])
 
         cursor_y = section_bottom - section_gap
 
@@ -415,7 +421,7 @@ def fig3_unit_file_anatomy() -> None:
             fontsize=10.5, family="monospace", style="italic")
     ax.text(6.5, 11.4,
             "Anatomy of a .service unit file",
-            ha="center", fontsize=14, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=14, fontweight="bold", color=COLORS["text"])
 
     _save(fig, "fig3_unit_file_anatomy.png")
 
@@ -458,7 +464,7 @@ def fig4_journalctl_filters() -> None:
     # Middle: the journal as a single ring buffer
     jb_x, jb_y, jb_w, jb_h = 0.6, 4.05, 10.8, 0.95
     _rounded_box(ax, jb_x, jb_y, jb_w, jb_h,
-                 facecolor="#0f172a", edgecolor="#0f172a")
+                 facecolor=COLORS["text"], edgecolor=COLORS["text"])
     ax.text(jb_x + 0.25, jb_y + jb_h / 2,
             "journald  ->  /var/log/journal/   (binary, indexed)",
             ha="left", va="center", color="white",
@@ -467,7 +473,7 @@ def fig4_journalctl_filters() -> None:
     for i in range(20):
         tx = jb_x + 4.1 + i * 0.32
         ax.add_patch(Rectangle((tx, jb_y + 0.18), 0.16, jb_h - 0.36,
-                               facecolor="#334155", edgecolor="#334155"))
+                               facecolor=COLORS["text2"], edgecolor=COLORS["text2"]))
 
     # Bottom: filter recipes drawn as cards reading from the journal
     filters = [
@@ -494,7 +500,7 @@ def fig4_journalctl_filters() -> None:
                 fontweight="bold")
         ax.text(x + fw / 2, fy + 0.55, desc,
                 ha="center", va="center", fontsize=9,
-                color="#1e293b")
+                color=COLORS["text"])
         # Arrow up from card to journal bar
         arr = FancyArrowPatch((x + fw / 2, fy + fh),
                               (x + fw / 2, jb_y),
@@ -505,7 +511,7 @@ def fig4_journalctl_filters() -> None:
     # Title
     ax.text(6.0, 7.7,
             "journald:  one unified log, queried with journalctl filters",
-            ha="center", fontsize=14, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=14, fontweight="bold", color=COLORS["text"])
 
     _save(fig, "fig4_journalctl_filters.png")
 
@@ -524,7 +530,7 @@ def fig5_boot_timeline() -> None:
     ax.text(6.5, 8.95,
             "Boot timeline:  firmware  ->  bootloader  ->  kernel  ->  systemd  "
             "->  multi-user.target",
-            ha="center", fontsize=13.5, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=13.5, fontweight="bold", color=COLORS["text"])
 
     # Useful diagnostic commands box (top, just below title)
     cmd_y = 7.35
@@ -532,7 +538,7 @@ def fig5_boot_timeline() -> None:
                  edgecolor=COLOR_LIGHT, lw=1.0)
     ax.text(6.5, cmd_y + 0.85,
             "Diagnose boot performance",
-            ha="center", fontsize=11, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=11, fontweight="bold", color=COLORS["text"])
     ax.text(6.5, cmd_y + 0.32,
             "systemd-analyze       systemd-analyze blame       "
             "systemd-analyze critical-chain",
@@ -568,7 +574,7 @@ def fig5_boot_timeline() -> None:
 
     ax.text(0.6, chain_y + 0.85,
             "Targets activated by systemd  (parallel where dependencies allow)",
-            ha="left", fontsize=10, color="#1e293b", fontweight="bold")
+            ha="left", fontsize=10, color=COLORS["text"], fontweight="bold")
     ax.text(0.6, chain_y - 0.35,
             "Ordering comes from After= / Before=; concurrency comes from "
             "Wants= without explicit ordering.",

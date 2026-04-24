@@ -24,19 +24,25 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Polygon, Rectang
 import numpy as np
 from scipy.integrate import solve_ivp
 
+# Shared style ----------------------------------------------------------------
+import sys
+from pathlib import Path as _StylePath
+sys.path.insert(0, str(_StylePath(__file__).parent.parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+# Color palette (from shared _style)
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+RED = COLORS["danger"]
+GRAY = COLORS["gray"]
+ORANGE = COLORS["warning"]
+DARK = COLORS["ink"]
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-RED = "#ef4444"
-GRAY = "#6b7280"
-ORANGE = "#f59e0b"
-DARK = "#1f2937"
 
 DPI = 150
 

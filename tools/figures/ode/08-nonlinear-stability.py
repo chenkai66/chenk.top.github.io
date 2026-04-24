@@ -15,12 +15,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 
-plt.style.use('seaborn-v0_8-whitegrid')
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
 
-BLUE   = '#2563eb'
-PURPLE = '#7c3aed'
-GREEN  = '#10b981'
-RED    = '#ef4444'
+BLUE   = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN  = COLORS["success"]
+RED    = COLORS["danger"]
 
 OUT_DIRS = [
     '/Users/kchen/Desktop/Project/chenk-site/source/_posts/en/ode/08-nonlinear-stability',
@@ -235,10 +241,10 @@ def fig4_limit_cycles():
         t = np.linspace(0, 60, 8000)
         # Outside-in
         sol = odeint(vdp, [3.5, 3.5], t)
-        ax.plot(sol[:, 0], sol[:, 1], color='#94a3b8', lw=0.7, alpha=0.7)
+        ax.plot(sol[:, 0], sol[:, 1], color=COLORS["muted"], lw=0.7, alpha=0.7)
         # Inside-out
         sol = odeint(vdp, [0.05, 0.05], t)
-        ax.plot(sol[:, 0], sol[:, 1], color='#94a3b8', lw=0.7, alpha=0.7)
+        ax.plot(sol[:, 0], sol[:, 1], color=COLORS["muted"], lw=0.7, alpha=0.7)
         # Highlight the limit cycle: long-time tail
         sol = odeint(vdp, [2.0, 0.0], np.linspace(0, 200, 20000))
         ax.plot(sol[-3000:, 0], sol[-3000:, 1], color=col, lw=2.6, alpha=0.95,

@@ -22,7 +22,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-plt.style.use("seaborn-v0_8-whitegrid")
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 plt.rcParams.update(
     {
         "figure.dpi": 150,
@@ -32,19 +39,19 @@ plt.rcParams.update(
         "axes.titleweight": "bold",
         "axes.titlesize": 13,
         "axes.labelsize": 11,
-        "axes.edgecolor": "#cbd5e1",
+        "axes.edgecolor": COLORS["border"],
         "axes.linewidth": 0.8,
-        "grid.color": "#e2e8f0",
+        "grid.color": COLORS["grid"],
         "grid.alpha": 0.6,
     }
 )
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-GREY = "#64748b"
-RED = "#ef4444"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+GREY = COLORS["text2"]
+RED = COLORS["danger"]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EN_DIR = REPO_ROOT / "source/_posts/en/standalone/reparameterization-gumbel-softmax"

@@ -21,20 +21,28 @@ from matplotlib.patches import FancyArrowPatch, Polygon, Rectangle
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers 3D projection)
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS, annotate_callout  # noqa: E402, F401
+setup_style()
+
+
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update({
-    "figure.dpi": 150,
-    "savefig.dpi": 150,
-    "savefig.bbox": "tight",
-    "font.family": "DejaVu Sans",
-    "axes.titlesize": 13,
-    "axes.titleweight": "bold",
-    "axes.labelsize": 11,
-    "legend.fontsize": 10,
-})
+# style applied via _style.setup_style()
+# plt.rcParams.update({
+#     "figure.dpi": 150,
+#     "savefig.dpi": 150,
+#     "savefig.bbox": "tight",
+#     "font.family": "DejaVu Sans",
+#     "axes.titlesize": 13,
+#     "axes.titleweight": "bold",
+#     "axes.labelsize": 11,
+#     "legend.fontsize": 10,
+# })
 
 BLUE = "#2563eb"
 PURPLE = "#7c3aed"

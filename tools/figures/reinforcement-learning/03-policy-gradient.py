@@ -54,18 +54,25 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"     # primary
-C_PURPLE = "#7c3aed"   # secondary
-C_GREEN = "#10b981"    # accent / good
-C_AMBER = "#f59e0b"    # warning / highlight
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_BG = "#f8fafc"
+C_BLUE = COLORS["primary"]     # primary
+C_PURPLE = COLORS["accent"]   # secondary
+C_GREEN = COLORS["success"]    # accent / good
+C_AMBER = COLORS["warning"]    # warning / highlight
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_BG = COLORS["bg"]
 
 PALETTE = [C_BLUE, C_PURPLE, C_GREEN, C_AMBER]
 
@@ -398,6 +405,8 @@ def fig4_advantage_decomposition() -> None:
 
     # Legend via proxies.
     from matplotlib.patches import Patch
+
+
     proxies = [Patch(color=C_GREEN, alpha=0.85, label="reinforce  ($A > 0$)"),
                Patch(color=C_RED, alpha=0.85, label="suppress   ($A < 0$)")]
     ax.legend(handles=proxies, loc="upper left", fontsize=10,

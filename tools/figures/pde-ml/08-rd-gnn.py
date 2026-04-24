@@ -25,31 +25,25 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
 from scipy.ndimage import laplace
 
+# Shared style ----------------------------------------------------------------
+import sys
+from pathlib import Path as _StylePath
+sys.path.insert(0, str(_StylePath(__file__).parent.parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+# Color palette (from shared _style)
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+RED = COLORS["danger"]
+GREY = COLORS["gray"]
+LIGHT = COLORS["light"]
+DARK = COLORS["ink"]
 
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "figure.dpi": 150,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "font.size": 11,
-        "axes.titlesize": 12,
-        "axes.labelsize": 11,
-        "legend.fontsize": 10,
-        "axes.titleweight": "bold",
-    }
-)
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-RED = "#ef4444"
-GREY = "#6b7280"
-LIGHT = "#e5e7eb"
-DARK = "#111827"
 
 REPO = Path(__file__).resolve().parents[3]
 EN_DIR = REPO / "source/_posts/en/pde-ml/08-Reaction-Diffusion-Systems"

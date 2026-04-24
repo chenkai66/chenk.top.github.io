@@ -19,29 +19,26 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Rectangle
 import numpy as np
 
+# ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
 # ----------------------------- Style ----------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update({
-    "figure.dpi": 150,
-    "savefig.dpi": 150,
-    "font.family": "DejaVu Sans",
-    "axes.titlesize": 13,
-    "axes.titleweight": "bold",
-    "axes.labelsize": 11,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
-    "legend.fontsize": 10,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-})
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+
+
 GRAY = "#6b7280"
-LIGHT = "#e5e7eb"
+LIGHT = COLORS["grid"]
 DARK = "#111827"
 
 PALETTE = [BLUE, PURPLE, GREEN, ORANGE]

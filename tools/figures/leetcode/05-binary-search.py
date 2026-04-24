@@ -32,18 +32,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_AMBER = "#f59e0b"
-COLOR_GRAY = "#94a3b8"
-COLOR_DARK = "#1e293b"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_GRAY = COLORS["muted"]
+COLOR_DARK = COLORS["text"]
 
 DPI = 150
 
@@ -77,7 +83,7 @@ def _draw_array(ax, values, x0, y, *, cell_w=0.55, cell_h=0.55,
             edge = COLOR_DARK
             txt_color = "white"
         elif i in faded:
-            face, edge, txt_color = "#f1f5f9", "#cbd5e1", "#94a3b8"
+            face, edge, txt_color = "#f1f5f9", COLORS["border"], COLORS["muted"]
         else:
             face, edge, txt_color = "white", COLOR_DARK, COLOR_DARK
         rect = Rectangle((x, y - cell_h / 2), cell_w, cell_h,
@@ -87,7 +93,7 @@ def _draw_array(ax, values, x0, y, *, cell_w=0.55, cell_h=0.55,
                 ha="center", va="center",
                 fontsize=fontsize, fontweight="bold", color=txt_color)
         if label_idx:
-            idx_color = "#94a3b8" if i in faded else "#64748b"
+            idx_color = COLORS["muted"] if i in faded else COLORS["text2"]
             ax.text(x + cell_w / 2, y - cell_h / 2 - 0.18, str(i),
                     ha="center", va="top", fontsize=8, color=idx_color)
     return x0 + n * cell_w

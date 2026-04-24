@@ -37,10 +37,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
 plt.rcParams.update(
     {
         "figure.dpi": 150,
@@ -57,14 +64,14 @@ plt.rcParams.update(
     }
 )
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-GRAY = "#64748b"
-LIGHT = "#e5e7eb"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+GRAY = COLORS["text2"]
+LIGHT = COLORS["grid"]
 DARK = "#1f2937"
-RED = "#ef4444"
+RED = COLORS["danger"]
 
 REPO = Path("/Users/kchen/Desktop/Project/chenk-site")
 EN_DIR = REPO / "source/_posts/en/standalone/llm-workflows-architecture"

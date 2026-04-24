@@ -33,34 +33,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# Shared style ----------------------------------------------------------------
+import sys
+from pathlib import Path as _StylePath
+sys.path.insert(0, str(_StylePath(__file__).parent.parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "figure.dpi": 150,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "font.family": "DejaVu Sans",
-        "font.size": 10,
-        "axes.titlesize": 13,
-        "axes.titleweight": "bold",
-        "axes.labelsize": 10,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "legend.frameon": False,
-    }
-)
+# Color palette (from shared _style)
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+GRAY = COLORS["gray"]
+LIGHT = COLORS["light"]
+DARK = COLORS["ink"]
+RED = COLORS["danger"]
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-GRAY = "#64748b"
-LIGHT = "#e5e7eb"
-DARK = "#1f2937"
-RED = "#ef4444"
 
 REPO = Path("/Users/kchen/Desktop/Project/chenk-site")
 EN_DIR = REPO / "source/_posts/en/nlp/fine-tuning-peft"

@@ -23,14 +23,20 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 import numpy as np
 
-# -------- Style --------
-plt.style.use("seaborn-v0_8-whitegrid")
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-AMBER = "#f59e0b"
-GRAY = "#6b7280"
+# -------- Style --------
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
+GRAY = COLORS["text2"]
 DARK = "#111827"
 
 DPI = 150

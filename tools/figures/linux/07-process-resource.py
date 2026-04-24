@@ -39,19 +39,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns  # noqa: F401  (registers the seaborn style we use)
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_AMBER = "#f59e0b"
-COLOR_GREY = "#475569"
-COLOR_LIGHT = "#e2e8f0"
-COLOR_RED = "#dc2626"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_GREY = COLORS["text2"]
+COLOR_LIGHT = COLORS["grid"]
+COLOR_RED = COLORS["danger"]
 
 DPI = 150
 
@@ -190,7 +196,7 @@ def fig1_process_states() -> None:
     ax.text(6.0, 7.4,
             "Linux Process State Machine",
             ha="center", va="center", fontsize=14, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(6.0, 7.0,
             "what `ps`/`top` print in the STAT/S column - "
             "and what each transition actually means",
@@ -223,7 +229,7 @@ def fig2_fork_exec_model() -> None:
     # Header row
     for x, label in zip(cols_x, col_labels):
         ax.text(x, 7.4, label, ha="center", va="center",
-                fontsize=10.5, fontweight="bold", color="#1e293b")
+                fontsize=10.5, fontweight="bold", color=COLORS["text"])
 
     # Helper to draw a process box
     def proc(x, y, *, pid, prog, color, w=2.2, h=1.4, note=None):
@@ -289,11 +295,11 @@ def fig2_fork_exec_model() -> None:
     ax.text(6.0, 1.1,
             "Linux never starts a process from scratch.  Every process is a "
             "fork() of an existing one,",
-            ha="center", va="center", fontsize=10.5, color="#1e293b")
+            ha="center", va="center", fontsize=10.5, color=COLORS["text"])
     ax.text(6.0, 0.65,
             "then exec() optionally replaces the program image while keeping "
             "the same PID, file descriptors and PPID.",
-            ha="center", va="center", fontsize=10.5, color="#1e293b")
+            ha="center", va="center", fontsize=10.5, color=COLORS["text"])
     ax.text(6.0, 0.18,
             "PID 1 (init / systemd) is the only process the kernel itself "
             "creates - every other PID is some descendant of it.",
@@ -301,7 +307,7 @@ def fig2_fork_exec_model() -> None:
             style="italic")
 
     fig.suptitle("The fork() + exec() Model",
-                 fontsize=14, fontweight="bold", y=0.98, color="#1e293b")
+                 fontsize=14, fontweight="bold", y=0.98, color=COLORS["text"])
 
     _save(fig, "fig2_fork_exec_model.png")
 
@@ -319,7 +325,7 @@ def fig3_top_dissected() -> None:
     # Terminal-looking panel
     panel_x, panel_y, panel_w, panel_h = 0.4, 1.3, 8.2, 7.0
     ax.add_patch(Rectangle((panel_x, panel_y), panel_w, panel_h,
-                           facecolor="#0f172a", edgecolor="#0f172a"))
+                           facecolor=COLORS["text"], edgecolor=COLORS["text"]))
 
     # Lines of a representative top output
     lines = [
@@ -340,9 +346,9 @@ def fig3_top_dissected() -> None:
     line_h = 0.45
     for i, (text, kind) in enumerate(lines):
         y = line_y - i * line_h
-        color = "#e2e8f0"
+        color = COLORS["grid"]
         if kind == "thead":
-            color = "#fbbf24"
+            color = COLORS["warning"]
         elif kind == "header":
             color = "#93c5fd"
         ax.text(panel_x + 0.2, y, text, ha="left", va="center",
@@ -380,13 +386,13 @@ def fig3_top_dissected() -> None:
     ax.text(6.5, 0.7,
             "STAT codes:  R running   S interruptible sleep   D uninterruptible sleep   "
             "T stopped   Z zombie",
-            ha="center", va="center", fontsize=9.5, color="#1e293b",
+            ha="center", va="center", fontsize=9.5, color=COLORS["text"],
             family="monospace",
             bbox=dict(boxstyle="round,pad=0.4", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.0))
 
     ax.set_title("Reading `top` - what every region tells you",
-                 fontsize=14, fontweight="bold", pad=10, color="#1e293b")
+                 fontsize=14, fontweight="bold", pad=10, color=COLORS["text"])
 
     _save(fig, "fig3_top_dissected.png")
 
@@ -405,7 +411,7 @@ def fig4_cgroups_namespaces() -> None:
     ax.text(6.0, 7.55,
             "Containers = namespaces (what you see) + cgroups (what you can use)",
             ha="center", va="center", fontsize=13.5, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(6.0, 7.15,
             "Two orthogonal kernel mechanisms.  Combine them and you have a container.",
             ha="center", va="center", fontsize=10, color=COLOR_GREY,
@@ -442,7 +448,7 @@ def fig4_cgroups_namespaces() -> None:
                 color="white", fontsize=10, fontweight="bold",
                 family="monospace")
         ax.text(ns_x + 1.85, y, desc, ha="left", va="center",
-                fontsize=9.5, color="#1e293b")
+                fontsize=9.5, color=COLORS["text"])
 
     # ----- Right column: cgroups -----
     cg_x, cg_y, cg_w, cg_h = 6.2, 0.7, 5.4, 6.0
@@ -474,7 +480,7 @@ def fig4_cgroups_namespaces() -> None:
                 color="white", fontsize=10, fontweight="bold",
                 family="monospace")
         ax.text(cg_x + 1.85, y, desc, ha="left", va="center",
-                fontsize=9, color="#1e293b", family="monospace")
+                fontsize=9, color=COLORS["text"], family="monospace")
 
     # Bottom synthesis bar
     syn_x, syn_y, syn_w, syn_h = 0.4, 0.05, 11.2, 0.55
@@ -548,7 +554,7 @@ def fig5_signals_table() -> None:
     header_y = 8.7
     header_h = 0.55
     ax.add_patch(Rectangle((col_x[0], header_y), sum(col_w) + 0.2, header_h,
-                           facecolor="#1e293b", edgecolor="#1e293b"))
+                           facecolor=COLORS["text"], edgecolor=COLORS["text"]))
     for i, label in enumerate(columns):
         ax.text(col_x[i] + 0.1, header_y + header_h / 2, label,
                 ha="left", va="center", color="white",
@@ -579,28 +585,28 @@ def fig5_signals_table() -> None:
                     ha="left", va="center", color=group_color,
                     fontsize=10, fontweight="bold", family="monospace")
             ax.text(col_x[1] + 0.1, y + row_h * 0.35, num,
-                    ha="left", va="center", color="#1e293b",
+                    ha="left", va="center", color=COLORS["text"],
                     fontsize=9.5, family="monospace")
             ax.text(col_x[2] + 0.1, y + row_h * 0.35, default,
-                    ha="left", va="center", color="#1e293b", fontsize=9.5)
+                    ha="left", va="center", color=COLORS["text"], fontsize=9.5)
             catch_color = COLOR_GREEN if catchable == "yes" else COLOR_RED
             ax.text(col_x[3] + 0.1, y + row_h * 0.35, catchable,
                     ha="left", va="center", color=catch_color,
                     fontsize=9.5, fontweight="bold")
             ax.text(col_x[4] + 0.1, y + row_h * 0.35, use,
-                    ha="left", va="center", color="#475569", fontsize=9)
+                    ha="left", va="center", color=COLORS["text2"], fontsize=9)
 
     # Footnote
     ax.text(6.0, 0.25,
             "Send a signal with:  kill -<NAME|NUM> <PID>  -  e.g. `kill -HUP $(pidof nginx)` "
             "or `kill -9 12345`",
-            ha="center", va="center", fontsize=9.5, color="#1e293b",
+            ha="center", va="center", fontsize=9.5, color=COLORS["text"],
             family="monospace",
             bbox=dict(boxstyle="round,pad=0.4", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.0))
 
     ax.set_title("Linux signals you actually send",
-                 fontsize=14, fontweight="bold", pad=10, color="#1e293b")
+                 fontsize=14, fontweight="bold", pad=10, color=COLORS["text"])
 
     _save(fig, "fig5_signals_table.png")
 

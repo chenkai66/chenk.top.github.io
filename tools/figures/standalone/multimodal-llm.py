@@ -11,12 +11,21 @@ Run:
 
 from __future__ import annotations
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 from pathlib import Path
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import (
+
     Circle,
     FancyArrowPatch,
     FancyBboxPatch,
@@ -27,14 +36,12 @@ from matplotlib.patches import (
 # Style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-RED = "#ef4444"
-GREY = "#94a3b8"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+RED = COLORS["danger"]
+GREY = COLORS["muted"]
 DARK = "#1f2937"
 LIGHT = "#f1f5f9"
 WHITE = "#ffffff"

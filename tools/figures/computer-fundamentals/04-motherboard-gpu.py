@@ -31,18 +31,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-AMBER = "#f59e0b"
-DARK = "#0f172a"
-GRAY = "#64748b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
+DARK = COLORS["text"]
+GRAY = COLORS["text2"]
 LIGHT = "#f1f5f9"
 
 DPI = 150
@@ -59,11 +65,11 @@ plt.rcParams.update({
     "axes.titlesize": 14,
     "axes.labelweight": "bold",
     "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
+    "axes.edgecolor": COLORS["border"],
     "axes.linewidth": 1.0,
     "xtick.color": DARK,
     "ytick.color": DARK,
-    "grid.color": "#e2e8f0",
+    "grid.color": COLORS["grid"],
     "grid.linewidth": 0.8,
 })
 
@@ -96,7 +102,7 @@ def fig1_motherboard_layout() -> None:
 
     # ----- I/O shield (top-left) -----
     ax.add_patch(Rectangle((0.6, 7.8), 2.6, 1.6,
-                           facecolor="#1e293b", edgecolor=DARK, linewidth=1))
+                           facecolor=COLORS["text"], edgecolor=DARK, linewidth=1))
     ax.text(1.9, 8.6, "Rear I/O\nUSB · LAN · audio · DP",
             ha="center", va="center", color="white", fontsize=8.5, fontweight="bold")
 
@@ -118,7 +124,7 @@ def fig1_motherboard_layout() -> None:
             ha="center", color=AMBER, fontsize=8.5, fontweight="bold")
     ax.add_patch(FancyBboxPatch((3.25, 9.45), 0.65, 0.25,
                                 boxstyle="round,pad=0.01,rounding_size=0.05",
-                                facecolor="#1e293b", edgecolor=DARK))
+                                facecolor=COLORS["text"], edgecolor=DARK))
     ax.text(3.575, 9.575, "EPS 8-pin", ha="center", va="center",
             color="white", fontsize=7.5, fontweight="bold")
 
@@ -135,7 +141,7 @@ def fig1_motherboard_layout() -> None:
     # ----- 24-pin ATX power -----
     ax.add_patch(FancyBboxPatch((9.3, 7.3), 0.6, 2.0,
                                 boxstyle="round,pad=0.02,rounding_size=0.05",
-                                facecolor="#1e293b", edgecolor=DARK))
+                                facecolor=COLORS["text"], edgecolor=DARK))
     ax.text(9.6, 9.5, "ATX 24-pin", ha="center", color="white",
             fontsize=8.5, fontweight="bold")
 
@@ -185,17 +191,17 @@ def fig1_motherboard_layout() -> None:
     for i in range(4):
         ax.add_patch(Rectangle((11.7 + (i % 2) * 0.55, 2.0 + (i // 2) * 0.55),
                                0.45, 0.45,
-                               facecolor="#dc2626", edgecolor=DARK, linewidth=0.6))
+                               facecolor=COLORS["danger"], edgecolor=DARK, linewidth=0.6))
     ax.text(12.0, 1.55, "SATA × 4", color="#fecaca", fontsize=8.5, fontweight="bold")
 
     ax.add_patch(Rectangle((11.5, 3.5), 1.4, 0.4,
-                           facecolor="#1e293b", edgecolor=DARK, linewidth=0.6))
+                           facecolor=COLORS["text"], edgecolor=DARK, linewidth=0.6))
     ax.text(12.2, 3.7, "USB 3.2 hdr", ha="center", va="center",
             color="white", fontsize=7.5, fontweight="bold")
 
     # Front-panel header
     ax.add_patch(Rectangle((11.7, 0.7), 1.2, 0.5,
-                           facecolor="#475569", edgecolor=DARK, linewidth=0.6))
+                           facecolor=COLORS["text2"], edgecolor=DARK, linewidth=0.6))
     ax.text(12.3, 0.95, "F_PANEL", ha="center", va="center",
             color="white", fontsize=7.5, fontweight="bold")
 
@@ -370,7 +376,7 @@ def fig3_gpu_simt() -> None:
     # ----- annotation box explaining SIMT -----
     ax.add_patch(FancyBboxPatch((0.6, 1.7), 12.8, 2.4,
                                 boxstyle="round,pad=0.04,rounding_size=0.1",
-                                facecolor="#0f172a", edgecolor="#475569",
+                                facecolor=COLORS["text"], edgecolor=COLORS["text2"],
                                 linewidth=0.8, alpha=0.85))
     ax.text(0.95, 3.85, "SIMT execution model",
             color="white", fontsize=11, fontweight="bold")
@@ -383,7 +389,7 @@ def fig3_gpu_simt() -> None:
     ]
     for i, line in enumerate(bullets):
         ax.text(0.95, 3.45 - i * 0.32, "• " + line,
-                color="#e2e8f0", fontsize=9.5)
+                color=COLORS["grid"], fontsize=9.5)
 
     fig.suptitle("GPU SIMT Architecture — Warps, SMs and Specialised Cores",
                  fontsize=15, fontweight="bold", color=DARK, y=0.99)
@@ -647,7 +653,7 @@ def fig6_display_interfaces() -> None:
             face = DARK if is_head else (LIGHT if i % 2 else "white")
             ax_r.add_patch(Rectangle((col_x[j], y - cell_h * 0.45),
                                      col_w[j], cell_h * 0.9,
-                                     facecolor=face, edgecolor="#cbd5e1",
+                                     facecolor=face, edgecolor=COLORS["border"],
                                      linewidth=0.6))
             ax_r.text(col_x[j] + 0.15, y,
                       txt,
@@ -707,7 +713,7 @@ def fig7_chipset_evolution() -> None:
     # legacy peripherals
     for i, lbl in enumerate(["PCI", "USB 1.1/2.0", "ATA / SATA", "AC'97 audio"]):
         x = 0.3 + i * 2.5
-        box(ax, x, 0.4, 2.2, 1.1, "#475569", lbl)
+        box(ax, x, 0.4, 2.2, 1.1, COLORS["text2"], lbl)
         ax.annotate("", xy=(x + 1.1, 1.5), xytext=(5.0, 2.3),
                     arrowprops=dict(arrowstyle="->", color=GRAY, lw=1))
 
@@ -752,7 +758,7 @@ def fig7_chipset_evolution() -> None:
     pcs = ["SATA", "USB 3.2", "extra PCIe ×4", "Wi-Fi / GbE", "audio"]
     for i, lbl in enumerate(pcs):
         x = 0.2 + i * 2.0
-        box(ax, x, 1.3, 1.85, 1.0, "#64748b", lbl)
+        box(ax, x, 1.3, 1.85, 1.0, COLORS["text2"], lbl)
         ax.annotate("", xy=(x + 0.92, 2.3), xytext=(5.0, 4.0),
                     arrowprops=dict(arrowstyle="->", color=GRAY, lw=0.9))
 

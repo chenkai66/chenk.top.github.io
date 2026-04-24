@@ -22,28 +22,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "figure.dpi": 150,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "font.family": "DejaVu Sans",
-        "axes.titleweight": "bold",
-        "axes.titlesize": 13,
-        "axes.labelsize": 11,
-        "axes.edgecolor": "#cbd5e1",
-        "axes.linewidth": 0.8,
-        "grid.color": "#e2e8f0",
-        "grid.alpha": 0.6,
-    }
-)
+# ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-GREY = "#64748b"
+
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+GREY = COLORS["text2"]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EN_DIR = REPO_ROOT / "source/_posts/en/recommendation-systems/02-collaborative-filtering"

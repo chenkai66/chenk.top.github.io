@@ -39,18 +39,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"     # primary
-C_PURPLE = "#7c3aed"   # secondary
-C_GREEN = "#10b981"    # accent / good
-C_AMBER = "#f59e0b"    # warning / highlight
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
+C_BLUE = COLORS["primary"]     # primary
+C_PURPLE = COLORS["accent"]   # secondary
+C_GREEN = COLORS["success"]    # accent / good
+C_AMBER = COLORS["warning"]    # warning / highlight
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
 
 DPI = 150
 
@@ -235,12 +241,12 @@ def fig2_valid_parentheses() -> None:
                 fontsize=11, color=C_DARK, fontweight="bold")
 
         # current char box
-        col = C_GREEN if ok else "#ef4444"
+        col = C_GREEN if ok else COLORS["danger"]
         _draw_cell(ax, x - 0.4, 5.05, 0.8, 0.7, s[i],
                    color=col, fontsize=14)
 
         # action label
-        action_color = C_DARK if ok else "#b91c1c"
+        action_color = C_DARK if ok else COLORS["danger"]
         ax.text(x, 4.1, action, ha="center", fontsize=10,
                 color=action_color, rotation=0)
 
@@ -263,7 +269,7 @@ def fig2_valid_parentheses() -> None:
     verdict = "VALID  -> stack empty" if final_ok else "INVALID"
     ax.text(n_steps * 0.8 + 1, 0.3, verdict,
             ha="center", fontsize=12, fontweight="bold",
-            color=C_GREEN if final_ok else "#b91c1c")
+            color=C_GREEN if final_ok else COLORS["danger"])
 
     _save(fig, "fig2_valid_parentheses")
 

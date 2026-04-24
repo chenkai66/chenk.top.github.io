@@ -40,33 +40,25 @@ from matplotlib.patches import (
 )
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "figure.dpi": 150,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "font.family": "DejaVu Sans",
-        "font.size": 10,
-        "axes.titlesize": 13,
-        "axes.titleweight": "bold",
-        "axes.labelsize": 10,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "legend.frameon": False,
-    }
-)
 
-BLUE = "#2563eb"     # expert / reference
-PURPLE = "#7c3aed"   # IRL / structural method
-GREEN = "#10b981"    # DAgger / corrected behaviour
-ORANGE = "#f59e0b"   # BC / drifting behaviour
-GRAY = "#64748b"
-LIGHT = "#e5e7eb"
-DARK = "#1f2937"
-RED = "#ef4444"
+BLUE = COLORS["primary"]     # expert / reference
+PURPLE = COLORS["accent"]   # IRL / structural method
+GREEN = COLORS["success"]    # DAgger / corrected behaviour
+ORANGE = COLORS["warning"]   # BC / drifting behaviour
+GRAY = COLORS["text2"]
+LIGHT = COLORS["grid"]
+DARK = COLORS["text"]
+RED = COLORS["danger"]
 
 REPO = Path("/Users/kchen/Desktop/Project/chenk-site")
 EN_DIR = REPO / "source/_posts/en/reinforcement-learning/07-imitation-learning"
@@ -289,6 +281,8 @@ def fig3_irl_recovery() -> None:
     smooth_noise = (rng.normal(0, 1.0, X.shape))
     # box-blur the noise
     from numpy.lib.stride_tricks import sliding_window_view
+
+
     k = 11
     pad = k // 2
     pn = np.pad(smooth_noise, pad, mode="edge")

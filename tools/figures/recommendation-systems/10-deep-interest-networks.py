@@ -19,32 +19,25 @@ from matplotlib.lines import Line2D
 import numpy as np
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style — applied once for the whole script
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "figure.dpi": 150,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "font.family": "DejaVu Sans",
-        "font.size": 10,
-        "axes.titlesize": 13,
-        "axes.titleweight": "bold",
-        "axes.labelsize": 10,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "legend.frameon": False,
-    }
-)
 
 # Brand palette (must match site)
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-GRAY = "#64748b"
-LIGHT = "#e5e7eb"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+GRAY = COLORS["text2"]
+LIGHT = COLORS["grid"]
 
 REPO = Path("/Users/kchen/Desktop/Project/chenk-site")
 EN_DIR = REPO / "source/_posts/en/recommendation-systems/10-deep-interest-networks"

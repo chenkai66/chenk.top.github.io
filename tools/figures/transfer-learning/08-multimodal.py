@@ -43,18 +43,25 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"     # image / vision modality
-C_PURPLE = "#7c3aed"   # text / language modality
-C_GREEN = "#10b981"    # positive / aligned
-C_AMBER = "#f59e0b"    # highlight / attention
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
-C_BG = "#f8fafc"
+C_BLUE = COLORS["primary"]     # image / vision modality
+C_PURPLE = COLORS["accent"]   # text / language modality
+C_GREEN = COLORS["success"]    # positive / aligned
+C_AMBER = COLORS["warning"]    # highlight / attention
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
+C_BG = COLORS["bg"]
 
 DPI = 150
 
@@ -451,6 +458,8 @@ def fig5_embedding_tsne() -> None:
 
     # Custom legend (markers only, no color clutter)
     from matplotlib.lines import Line2D
+
+
     legend_elements = [
         Line2D([0], [0], marker="o", color="w", markerfacecolor=C_GRAY,
                markersize=11, label="image embedding"),

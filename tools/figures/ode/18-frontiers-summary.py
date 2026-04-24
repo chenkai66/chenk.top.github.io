@@ -17,12 +17,18 @@ from matplotlib.lines import Line2D
 import networkx as nx
 from scipy.integrate import solve_ivp
 
-plt.style.use('seaborn-v0_8-whitegrid')
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
 
-BLUE   = '#2563eb'
-PURPLE = '#7c3aed'
-GREEN  = '#10b981'
-RED    = '#ef4444'
+BLUE   = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN  = COLORS["success"]
+RED    = COLORS["danger"]
 
 OUT_DIRS = [
     '/Users/kchen/Desktop/Project/chenk-site/source/_posts/en/ode/18-advanced-topics-summary',
@@ -73,7 +79,7 @@ def fig1_concept_map():
         'Ch16\nControl':       (0.88, 0.40, RED,    '16. Control\nTheory'),
         'Ch17\nPhysics':       (0.30, 0.18, RED,    '17. Physics &\nEngineering'),
         # finale
-        'Ch18\nFrontiers':     (0.65, 0.18, '#fbbf24', '18. Frontiers &\nSummary'),
+        'Ch18\nFrontiers':     (0.65, 0.18, COLORS["warning"], '18. Frontiers &\nSummary'),
     }
     for n, (x, y, c, lbl) in nodes.items():
         G.add_node(n, pos=(x, y), color=c, label=lbl)
@@ -145,7 +151,7 @@ def fig1_concept_map():
         ('Systems & nonlinear  (Ch 6-10)', PURPLE),
         ('Numerical & PDE  (Ch 11-13)',  GREEN),
         ('Applications  (Ch 14-17)',     RED),
-        ('Finale (Ch 18)',               '#fbbf24'),
+        ('Finale (Ch 18)',               COLORS["warning"]),
     ]
     for i, (txt, c) in enumerate(legend_items):
         ax.add_patch(Rectangle((0.005, 0.005 + i * 0.04), 0.016, 0.025,
@@ -385,7 +391,7 @@ def fig3_method_selection():
     node(11.0, 1.8, 3.4, 0.7, 'Hamiltonian -> symplectic\nintegrator (Ch 11/17)',
          RED, fontsize=10)
     node(14.5, 1.8, 2.6, 0.7, 'Modern: Neural ODE,\nSDE, fractional (Ch 18)',
-         '#fbbf24', fontsize=10)
+         COLORS["warning"], fontsize=10)
 
     arr(3.5, 6.55, 2.5, 2.15)
     arr(8.0, 4.6, 6.5, 2.15)
@@ -488,7 +494,7 @@ def fig4_ode_ml_connection():
         tbl[(0, j)].set_facecolor('#e0e7ff')
         tbl[(0, j)].set_text_props(weight='bold')
     # color rows
-    palette = [BLUE, PURPLE, GREEN, RED, '#0ea5e9']
+    palette = [BLUE, PURPLE, GREEN, RED, COLORS["info"]]
     for i in range(1, 6):
         for j in range(4):
             tbl[(i, j)].set_facecolor(palette[i-1] if False else 'white')
@@ -510,7 +516,7 @@ def fig5_series_journey():
     # Timeline backbone (a smooth curve representing the journey)
     xs = np.linspace(0.5, 18, 400)
     ys = 0.6 * np.sin(xs * 0.55) * np.exp(-0.05 * xs)
-    ax.plot(xs, ys, color='#6b7280', lw=3, alpha=0.6)
+    ax.plot(xs, ys, color=COLORS["text2"], lw=3, alpha=0.6)
     ax.plot(xs, ys, color=PURPLE, lw=1.2, alpha=0.9)
 
     # Chapter milestones along the curve
@@ -532,7 +538,7 @@ def fig5_series_journey():
         (15, 'Ecology',      'Lotka-Volterra,\ncompetition',    RED),
         (16, 'Control',      'PID, LQR,\nfeedback',             RED),
         (17, 'Physics',      'Pendulum, RLC,\norbits',          RED),
-        (18, 'Frontiers',    'Neural ODE, SDE,\nfractional',    '#fbbf24'),
+        (18, 'Frontiers',    'Neural ODE, SDE,\nfractional',    COLORS["warning"]),
     ]
 
     for i, (n, name, sub, color) in enumerate(chapters):
@@ -563,7 +569,7 @@ def fig5_series_journey():
     ax.text(18.2, 1.0, 'FINALE', fontsize=11, fontweight='bold',
             color='#b45309', ha='right',
             bbox=dict(boxstyle='round,pad=0.3', facecolor='#fef3c7',
-                      edgecolor='#fbbf24'))
+                      edgecolor=COLORS["warning"]))
 
     # Horizontal scale: epochs of the journey
     epochs = [
@@ -571,7 +577,7 @@ def fig5_series_journey():
         (6, 10,  'DYNAMICS & CHAOS\nch 6-10',        PURPLE, 3.7),
         (11, 13, 'COMPUTATION\nch 11-13',            GREEN,  3.7),
         (14, 17, 'APPLICATIONS\nch 14-17',           RED,    3.7),
-        (18, 18, 'BEYOND\nch 18',                    '#fbbf24', 3.7),
+        (18, 18, 'BEYOND\nch 18',                    COLORS["warning"], 3.7),
     ]
     for s, e, lbl, col, ypos in epochs:
         x1 = 0.5 + (s - 1 + 0.0) * (17 / 18)

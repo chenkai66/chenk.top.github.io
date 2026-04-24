@@ -21,18 +21,25 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"      # users / primary
-PURPLE = "#7c3aed"    # items / secondary
-GREEN = "#10b981"     # positive / aggregation
-ORANGE = "#f59e0b"    # highlight / target
-GREY = "#94a3b8"
-DARK = "#1f2937"
-LIGHT = "#f1f5f9"
+BLUE = COLORS["primary"]      # users / primary
+PURPLE = COLORS["accent"]    # items / secondary
+GREEN = COLORS["success"]     # positive / aggregation
+ORANGE = COLORS["warning"]    # highlight / target
+GREY = COLORS["muted"]
+DARK = COLORS["text"]
+LIGHT = COLORS["bg"]
 
 DPI = 150
 

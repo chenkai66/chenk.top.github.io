@@ -39,18 +39,25 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"     # source domain / primary
-C_PURPLE = "#7c3aed"   # target domain / secondary
-C_GREEN = "#10b981"    # success / aligned
-C_AMBER = "#f59e0b"    # warning / adversarial
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_BG = "#f8fafc"
-C_RED = "#ef4444"
+C_BLUE = COLORS["primary"]     # source domain / primary
+C_PURPLE = COLORS["accent"]   # target domain / secondary
+C_GREEN = COLORS["success"]    # success / aligned
+C_AMBER = COLORS["warning"]    # warning / adversarial
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_BG = COLORS["bg"]
+C_RED = COLORS["danger"]
 
 DPI = 150
 

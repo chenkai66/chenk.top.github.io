@@ -59,18 +59,24 @@ import numpy as np
 from matplotlib.patches import Circle, FancyArrowPatch
 from scipy.special import airy, eval_hermite, eval_legendre, jn_zeros, jv
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_RED = "#ef4444"
-COLOR_AMBER = "#f59e0b"
-COLOR_SLATE = "#475569"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_RED = COLORS["danger"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_SLATE = COLORS["text2"]
 
 PALETTE = [COLOR_BLUE, COLOR_PURPLE, COLOR_GREEN, COLOR_RED, COLOR_AMBER]
 

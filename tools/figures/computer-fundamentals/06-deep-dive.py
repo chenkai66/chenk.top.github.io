@@ -26,6 +26,14 @@ Style: matplotlib + networkx, seaborn-v0_8-whitegrid; brand palette
 
 from __future__ import annotations
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -33,22 +41,21 @@ import matplotlib.patches as mpatches
 import networkx as nx
 import numpy as np
 from matplotlib.patches import (Circle, FancyArrowPatch, FancyBboxPatch,
+
                                 Rectangle, RegularPolygon)
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-AMBER = "#f59e0b"
-DARK = "#0f172a"
-GRAY = "#64748b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
+DARK = COLORS["text"]
+GRAY = COLORS["text2"]
 LIGHT = "#f1f5f9"
-RED = "#dc2626"
+RED = COLORS["danger"]
 
 DPI = 150
 
@@ -64,11 +71,11 @@ plt.rcParams.update({
     "axes.titlesize": 14,
     "axes.labelweight": "bold",
     "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
+    "axes.edgecolor": COLORS["border"],
     "axes.linewidth": 1.0,
     "xtick.color": DARK,
     "ytick.color": DARK,
-    "grid.color": "#e2e8f0",
+    "grid.color": COLORS["grid"],
     "grid.linewidth": 0.8,
 })
 
@@ -360,15 +367,15 @@ def fig3_performance_counters() -> None:
                                   boxstyle="round,pad=0.02,rounding_size=0.15",
                                   facecolor=DARK, edgecolor=DARK))
     # title bar
-    ax_r.add_patch(Rectangle((0.2, 8.7), 9.6, 0.7, facecolor="#1e293b",
+    ax_r.add_patch(Rectangle((0.2, 8.7), 9.6, 0.7, facecolor=COLORS["text"],
                              edgecolor=DARK))
     ax_r.text(0.5, 9.05, "● ● ●", color="#f1f5f9", fontsize=10,
               fontweight="bold")
     ax_r.text(5.0, 9.05, "perf top — Hz: 4000   Comm: app",
-              ha="center", color="#cbd5e1", fontsize=9.5)
+              ha="center", color=COLORS["border"], fontsize=9.5)
 
     header = "  Overhead  Symbol                                Module"
-    ax_r.text(0.45, 8.25, header, color="#94a3b8", fontsize=9.5,
+    ax_r.text(0.45, 8.25, header, color=COLORS["muted"], fontsize=9.5,
               family="monospace")
     rows = [
         (32.4, "memcpy_avx2",                   "libc.so.6",   GREEN),
@@ -386,9 +393,9 @@ def fig3_performance_counters() -> None:
     for pct, sym, mod, color in rows:
         ax_r.text(0.45, y, f"  {pct:5.1f}%", color=color, fontsize=9.8,
                   family="monospace", fontweight="bold")
-        ax_r.text(2.3, y, sym, color="#e2e8f0", fontsize=9.8,
+        ax_r.text(2.3, y, sym, color=COLORS["grid"], fontsize=9.8,
                   family="monospace")
-        ax_r.text(7.2, y, mod, color="#94a3b8", fontsize=9.5,
+        ax_r.text(7.2, y, mod, color=COLORS["muted"], fontsize=9.5,
                   family="monospace")
         y -= 0.55
 

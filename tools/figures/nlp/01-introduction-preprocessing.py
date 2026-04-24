@@ -18,28 +18,24 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import numpy as np
 
+# Shared style ----------------------------------------------------------------
+import sys
+from pathlib import Path as _StylePath
+sys.path.insert(0, str(_StylePath(__file__).parent.parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 # ---------------------------------------------------------------------------
 # Style and output configuration
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update({
-    "figure.dpi": 150,
-    "savefig.dpi": 150,
-    "savefig.bbox": "tight",
-    "font.family": "DejaVu Sans",
-    "axes.titlesize": 13,
-    "axes.labelsize": 11,
-    "axes.titleweight": "bold",
-    "axes.edgecolor": "#94a3b8",
-    "grid.color": "#e2e8f0",
-})
+# Color palette (from shared _style)
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+SLATE = COLORS["slate"]
+LIGHT = COLORS["light"]
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
-SLATE = "#475569"
-LIGHT = "#f1f5f9"
 
 REPO = Path("/Users/kchen/Desktop/Project/chenk-site")
 EN_DIR = REPO / "source/_posts/en/nlp/introduction-and-preprocessing"

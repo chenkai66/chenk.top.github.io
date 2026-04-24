@@ -51,18 +51,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"
-C_PURPLE = "#7c3aed"
-C_GREEN = "#10b981"
-C_AMBER = "#f59e0b"
-C_RED = "#ef4444"
-C_GRAY = "#6b7280"
-C_LIGHT = "#e5e7eb"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["text2"]
+C_LIGHT = COLORS["grid"]
 C_BG = "#f9fafb"
 
 DPI = 150
@@ -386,7 +392,7 @@ def fig4_nqueens_board() -> None:
     queens = [(0, 1), (1, 3), (2, 0), (3, 2)]
     for r in range(n):
         for c in range(n):
-            color = "#f3f4f6" if (r + c) % 2 == 0 else "#9ca3af"
+            color = "#f3f4f6" if (r + c) % 2 == 0 else COLORS["muted"]
             ax.add_patch(Rectangle((c, n - 1 - r), 1, 1, facecolor=color,
                                    edgecolor="#374151", linewidth=1))
     for r, c in queens:
@@ -414,7 +420,7 @@ def fig4_nqueens_board() -> None:
         for c in range(n):
             color = "#f9fafb"
             ax.add_patch(Rectangle((c, n - 1 - r), 1, 1, facecolor=color,
-                                   edgecolor="#d1d5db", linewidth=1))
+                                   edgecolor=COLORS["border"], linewidth=1))
             # Annotate row-col and row+col in each cell
             ax.text(c + 0.5, n - 1 - r + 0.72,
                     f"r-c={r-c}", ha="center", fontsize=7.5,
@@ -505,7 +511,7 @@ def fig5_sudoku_step() -> None:
                 fc = "white"
                 alpha = 1.0
             ax.add_patch(Rectangle((c, n - 1 - r), 1, 1, facecolor=fc,
-                                   edgecolor="#9ca3af", linewidth=0.7,
+                                   edgecolor=COLORS["muted"], linewidth=0.7,
                                    alpha=alpha, zorder=1))
             v = board[r][c]
             if v != 0:

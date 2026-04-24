@@ -45,28 +45,34 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Rectangle, Circle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"      # primary  - control / instructions
-C_PURPLE = "#7c3aed"    # secondary - data / compute
-C_GREEN = "#10b981"     # good / hit / fast
-C_AMBER = "#f59e0b"     # warning / miss / hot path
-C_RED = "#ef4444"       # bad / stall
-C_GRAY = "#94a3b8"
-C_LIGHT = "#e2e8f0"
-C_DARK = "#0f172a"
+C_BLUE = COLORS["primary"]      # primary  - control / instructions
+C_PURPLE = COLORS["accent"]    # secondary - data / compute
+C_GREEN = COLORS["success"]     # good / hit / fast
+C_AMBER = COLORS["warning"]     # warning / miss / hot path
+C_RED = COLORS["danger"]       # bad / stall
+C_GRAY = COLORS["muted"]
+C_LIGHT = COLORS["grid"]
+C_DARK = COLORS["text"]
 
 plt.rcParams.update({
     "font.family": "DejaVu Sans",
     "axes.titleweight": "bold",
     "axes.titlesize": 13,
     "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
+    "axes.edgecolor": COLORS["border"],
     "axes.linewidth": 1.0,
-    "grid.color": "#e2e8f0",
+    "grid.color": COLORS["grid"],
     "grid.linewidth": 0.8,
     "savefig.dpi": 150,
     "savefig.bbox": "tight",
@@ -138,7 +144,7 @@ def fig1_cpu_architecture():
     # Front-end: fetch + decode + branch predictor
     _box(ax, 0.7, 4.6, 2.2, 1.1, "Fetch\n(IF)", C_BLUE)
     _box(ax, 0.7, 3.2, 2.2, 1.1, "Decode\n(ID)", C_BLUE)
-    _box(ax, 0.7, 1.8, 2.2, 1.1, "Branch\nPredictor", "#1d4ed8")
+    _box(ax, 0.7, 1.8, 2.2, 1.1, "Branch\nPredictor", COLORS["primary"])
 
     # Register file
     _box(ax, 3.5, 3.2, 1.8, 2.5, "Register\nFile\n(x86: 16 GPR\nAVX: 32x512b)",
@@ -211,7 +217,7 @@ def fig2_pipeline_stages():
     fig, ax = plt.subplots(figsize=(11, 5.6))
     stages = ["IF", "ID", "EX", "MEM", "WB"]
     stage_color = {
-        "IF": C_BLUE, "ID": "#3b82f6", "EX": C_PURPLE,
+        "IF": C_BLUE, "ID": COLORS["primary"], "EX": C_PURPLE,
         "MEM": C_AMBER, "WB": C_GREEN,
     }
     n_inst = 5

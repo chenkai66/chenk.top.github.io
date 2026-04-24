@@ -41,16 +41,22 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 from matplotlib.lines import Line2D
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"     # primary
-C_PURPLE = "#7c3aed"   # secondary
-C_GREEN = "#10b981"    # positive / success
-C_AMBER = "#f59e0b"    # warning / failure
-C_GREY = "#6b7280"
+C_BLUE = COLORS["primary"]     # primary
+C_PURPLE = COLORS["accent"]   # secondary
+C_GREEN = COLORS["success"]    # positive / success
+C_AMBER = COLORS["warning"]    # warning / failure
+C_GREY = COLORS["text2"]
 C_DARK = "#111827"
 
 DPI = 150

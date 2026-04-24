@@ -41,28 +41,34 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Rectangle, Circle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"
-C_PURPLE = "#7c3aed"
-C_GREEN = "#10b981"
-C_AMBER = "#f59e0b"
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_LIGHT = "#e2e8f0"
-C_DARK = "#0f172a"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_LIGHT = COLORS["grid"]
+C_DARK = COLORS["text"]
 
 plt.rcParams.update({
     "font.family": "DejaVu Sans",
     "axes.titleweight": "bold",
     "axes.titlesize": 13,
     "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
+    "axes.edgecolor": COLORS["border"],
     "axes.linewidth": 1.0,
-    "grid.color": "#e2e8f0",
+    "grid.color": COLORS["grid"],
     "grid.linewidth": 0.8,
     "savefig.dpi": 150,
     "savefig.bbox": "tight",
@@ -523,7 +529,7 @@ def fig5_space_optimization():
                 fontc = "white"
             else:
                 fc = "#f8fafc"
-                fontc = "#cbd5e1"
+                fontc = COLORS["border"]
             _cell(ax, j * cw, (rows - 1 - i) * ch, cw, ch, "", fc,
                   fontsize=8, fontcolor=fontc)
 

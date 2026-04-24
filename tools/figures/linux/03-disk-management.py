@@ -39,18 +39,24 @@ import numpy as np
 import seaborn as sns  # noqa: F401  (registers the seaborn style we use)
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_AMBER = "#f59e0b"
-COLOR_GREY = "#475569"
-COLOR_LIGHT = "#e2e8f0"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_GREY = COLORS["text2"]
+COLOR_LIGHT = COLORS["grid"]
 
 DPI = 150
 
@@ -144,7 +150,7 @@ def fig1_filesystem_hierarchy() -> None:
                       edgecolor=COLOR_BLUE, lw=1.0))
 
     ax.set_title("Linux Filesystem Hierarchy (FHS, simplified)",
-                 fontsize=14, fontweight="bold", pad=12, color="#1e293b")
+                 fontsize=14, fontweight="bold", pad=12, color=COLORS["text"])
 
     _save(fig, "fig1_filesystem_hierarchy.png")
 
@@ -290,7 +296,7 @@ def fig2_partition_layout() -> None:
             ha="center", fontsize=9.5, color=COLOR_GREY)
 
     fig.suptitle("Partition Layout: MBR vs GPT",
-                 fontsize=15, fontweight="bold", y=1.02, color="#1e293b")
+                 fontsize=15, fontweight="bold", y=1.02, color=COLORS["text"])
 
     _save(fig, "fig2_partition_layout.png")
 
@@ -401,7 +407,7 @@ def fig3_lvm_stack() -> None:
     # Title and tag line
     ax.text(6, 7.6, "LVM stack:  Physical Volume  ->  Volume Group  ->  Logical Volume",
             ha="center", va="center", fontsize=13.5, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(6, 7.2,
             "Decouples filesystems from physical disks - resize, migrate "
             "and snapshot without re-partitioning",
@@ -465,7 +471,7 @@ def fig4_mount_table() -> None:
     ax.text(6, 6.5,
             "mount -t ext4 /dev/sdb1 /mnt/data",
             ha="center", va="center", fontsize=14, fontweight="bold",
-            family="monospace", color="#1e293b",
+            family="monospace", color=COLORS["text"],
             bbox=dict(boxstyle="round,pad=0.5", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.2))
     ax.text(6, 5.85,
@@ -476,7 +482,7 @@ def fig4_mount_table() -> None:
 
     # /etc/fstab table at the bottom
     ax.text(6, 2.3, "/etc/fstab  -  persistent mount table",
-            ha="center", fontsize=11, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=11, fontweight="bold", color=COLORS["text"])
 
     fstab_lines = [
         "# <device>            <mount>     <fs>    <options>           <dump> <pass>",
@@ -490,14 +496,14 @@ def fig4_mount_table() -> None:
     ax.add_patch(Rectangle((0.6, 0.05), 10.8, len(fstab_lines) * line_h + 0.25,
                            facecolor="#f8fafc", edgecolor=COLOR_GREY, lw=1.0))
     for i, line in enumerate(fstab_lines):
-        color = COLOR_GREY if i == 0 else "#1e293b"
+        color = COLOR_GREY if i == 0 else COLORS["text"]
         weight = "normal" if i == 0 else "normal"
         ax.text(0.85, table_y - i * line_h, line,
                 ha="left", va="center", fontsize=8.8,
                 family="monospace", color=color, fontweight=weight)
 
     ax.set_title("Mount Points and the Mount Table",
-                 fontsize=14, fontweight="bold", pad=12, color="#1e293b")
+                 fontsize=14, fontweight="bold", pad=12, color=COLORS["text"])
 
     _save(fig, "fig4_mount_table.png")
 
@@ -558,7 +564,7 @@ def fig5_filesystem_comparison() -> None:
                                facecolor="#f1f5f9", edgecolor=COLOR_LIGHT,
                                lw=0.8))
         ax.text(col0_x + 0.2, y + row_h * 0.5, label,
-                ha="left", va="center", fontsize=10.5, color="#1e293b",
+                ha="left", va="center", fontsize=10.5, color=COLORS["text"],
                 fontweight="bold")
         for i, (val, color) in enumerate(zip(values, fs_colors)):
             x = col0_x + col0_w + col_gap + i * (col_w + col_gap)
@@ -570,7 +576,7 @@ def fig5_filesystem_comparison() -> None:
                     color=color, fontweight="bold")
 
     ax.set_title("Filesystem Comparison:  ext4  /  xfs  /  btrfs",
-                 fontsize=14, fontweight="bold", pad=12, color="#1e293b")
+                 fontsize=14, fontweight="bold", pad=12, color=COLORS["text"])
 
     _save(fig, "fig5_filesystem_comparison.png")
 

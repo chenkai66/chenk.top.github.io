@@ -22,41 +22,32 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Output directories (figures are duplicated to EN and ZH asset folders).
 # ---------------------------------------------------------------------------
 PROJECT_ROOT = Path("/Users/kchen/Desktop/Project/chenk-site")
 EN_DIR = PROJECT_ROOT / "source/_posts/en/recommendation-systems/09-multi-task-learning"
 ZH_DIR = PROJECT_ROOT / "source/_posts/zh/recommendation-systems/09-多任务学习与多目标优化"
 
+
 # Brand palette
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-AMBER = "#f59e0b"
-INK = "#1f2937"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
+INK = COLORS["text"]
+
+
 MUTED = "#6b7280"
 LIGHT = "#f3f4f6"
-
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "font.family": ["DejaVu Sans", "Helvetica", "Arial"],
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.titleweight": "bold",
-        "axes.labelsize": 11,
-        "axes.edgecolor": INK,
-        "axes.labelcolor": INK,
-        "xtick.color": INK,
-        "ytick.color": INK,
-        "grid.color": "#e5e7eb",
-        "grid.linewidth": 0.6,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "savefig.facecolor": "white",
-        "figure.facecolor": "white",
-    }
-)
 
 
 def save_to_both(fig, name: str) -> None:

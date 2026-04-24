@@ -24,15 +24,24 @@ import networkx as nx
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-plt.style.use("seaborn-v0_8-whitegrid")
+# ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 
 # Brand palette
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-ORANGE = "#f59e0b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+ORANGE = COLORS["warning"]
+
+
 GRAY = "#6b7280"
-DARK = "#1f2937"
+DARK = COLORS["text"]
 LIGHT = "#f3f4f6"
 
 DPI = 150

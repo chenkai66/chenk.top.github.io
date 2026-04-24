@@ -44,19 +44,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"      # primary -- prefix / learned
-C_PURPLE = "#7c3aed"    # secondary -- attention / model interior
-C_GREEN = "#10b981"     # accent -- frozen / efficient
-C_AMBER = "#f59e0b"     # warning / highlight
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_LIGHT = "#e5e7eb"
-C_DARK = "#0f172a"
+C_BLUE = COLORS["primary"]      # primary -- prefix / learned
+C_PURPLE = COLORS["accent"]    # secondary -- attention / model interior
+C_GREEN = COLORS["success"]     # accent -- frozen / efficient
+C_AMBER = COLORS["warning"]     # warning / highlight
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_LIGHT = COLORS["grid"]
+C_DARK = COLORS["text"]
 C_BG = "#f8fafc"
 
 PALETTE = [C_BLUE, C_PURPLE, C_GREEN, C_AMBER]
@@ -126,7 +132,7 @@ def fig1_architecture() -> None:
             facecolor=C_GRAY, alpha=0.18, edgecolor=C_GRAY, linewidth=1.0,
         ))
         ax.text(stack_x + 2.92, y + layer_h / 2, "Feed-Forward",
-                ha="center", va="center", fontsize=9, color="#475569", weight="bold")
+                ha="center", va="center", fontsize=9, color=COLORS["text2"], weight="bold")
         ax.text(stack_x - 0.18, y + layer_h / 2, f"L{i+1}",
                 ha="right", va="center", fontsize=9, color=C_DARK)
 
@@ -205,7 +211,7 @@ def fig1_architecture() -> None:
         5.5, 0.05,
         "Only $P_\\theta$ (and the optional reparam MLP) is updated. "
         "At each layer the prefix is concatenated with the real K/V before attention.",
-        ha="center", fontsize=9, color="#475569", style="italic",
+        ha="center", fontsize=9, color=COLORS["text2"], style="italic",
     )
 
     _save(fig, "fig1_architecture")
@@ -244,7 +250,7 @@ def fig2_method_comparison() -> None:
         ax.axis("off")
         ax.set_title(title, fontsize=11.5, weight="bold", color=color, pad=8)
         ax.text(2.5, 5.85, subtitle, ha="center", fontsize=9.5,
-                color="#475569", style="italic")
+                color=COLORS["text2"], style="italic")
 
         # Stack of 4 layers
         n = 4
@@ -511,7 +517,7 @@ def fig5_gpt2_application() -> None:
     storage = ["~355 M", "~11 M", "~0.4 M"]
     for i, s in enumerate(storage):
         ax.text(i, 65.4, f"per-task storage:\n{s}", ha="center", va="bottom",
-                fontsize=8.8, color="#475569", style="italic")
+                fontsize=8.8, color=COLORS["text2"], style="italic")
 
     # ---- Panel B: XSum summarization (ROUGE-L) low-data regime ----
     ax = axes[1]

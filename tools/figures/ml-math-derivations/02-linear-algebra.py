@@ -46,16 +46,24 @@ from matplotlib.patches import FancyArrowPatch, Rectangle
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers 3d projection)
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS, annotate_callout  # noqa: E402, F401
+setup_style()
+
+
+
 # ----------------------------------------------------------------------------
 # Style
 # ----------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
+# style applied via _style.setup_style()
 
-C_BLUE = "#2563eb"
-C_PURPLE = "#7c3aed"
-C_GREEN = "#10b981"
-C_AMBER = "#f59e0b"
-C_GRAY = "#6b7280"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_GRAY = COLORS["muted"]
 
 DPI = 150
 

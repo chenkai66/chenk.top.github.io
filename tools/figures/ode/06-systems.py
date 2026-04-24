@@ -23,10 +23,17 @@ from matplotlib.patches import FancyArrowPatch
 from scipy.integrate import odeint
 from scipy.linalg import expm
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
 plt.rcParams.update(
     {
         "figure.dpi": 150,
@@ -36,18 +43,18 @@ plt.rcParams.update(
         "axes.titleweight": "bold",
         "axes.titlesize": 12.5,
         "axes.labelsize": 11,
-        "axes.edgecolor": "#cbd5e1",
+        "axes.edgecolor": COLORS["border"],
         "axes.linewidth": 0.9,
-        "grid.color": "#e2e8f0",
+        "grid.color": COLORS["grid"],
         "grid.alpha": 0.6,
     }
 )
 
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-RED = "#ef4444"
-GREY = "#64748b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+RED = COLORS["danger"]
+GREY = COLORS["text2"]
 
 REPO = Path(__file__).resolve().parents[3]
 EN_DIR = REPO / "source/_posts/en/ode/06-power-series"

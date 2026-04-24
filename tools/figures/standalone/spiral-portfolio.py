@@ -40,17 +40,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns  # noqa: F401  (registers style)
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"     # primary signal / SOA
-COLOR_PURPLE = "#7c3aed"   # secondary / unconstrained
-COLOR_GREEN = "#10b981"    # good / feasible
-COLOR_AMBER = "#f59e0b"    # accent / threshold / warning
-COLOR_GREY = "#94a3b8"
+COLOR_BLUE = COLORS["primary"]     # primary signal / SOA
+COLOR_PURPLE = COLORS["accent"]   # secondary / unconstrained
+COLOR_GREEN = COLORS["success"]    # good / feasible
+COLOR_AMBER = COLORS["warning"]    # accent / threshold / warning
+COLOR_GREY = COLORS["muted"]
 
 DPI = 150
 

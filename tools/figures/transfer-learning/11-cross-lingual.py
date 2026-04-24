@@ -54,10 +54,17 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 # ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
+# ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
 # Make sure CJK glyphs render. Fall back gracefully on Linux.
 plt.rcParams["font.sans-serif"] = [
     "Hiragino Sans GB", "PingFang SC", "Heiti TC", "Songti SC",
@@ -65,14 +72,14 @@ plt.rcParams["font.sans-serif"] = [
 ]
 plt.rcParams["axes.unicode_minus"] = False
 
-C_BLUE = "#2563eb"     # English / source
-C_PURPLE = "#7c3aed"   # Chinese / target-A
-C_GREEN = "#10b981"    # French  / target-B
-C_AMBER = "#f59e0b"    # warning / oracle
-C_GRAY = "#94a3b8"
-C_LIGHT = "#e2e8f0"
-C_DARK = "#0f172a"
-C_BG = "#f8fafc"
+C_BLUE = COLORS["primary"]     # English / source
+C_PURPLE = COLORS["accent"]   # Chinese / target-A
+C_GREEN = COLORS["success"]    # French  / target-B
+C_AMBER = COLORS["warning"]    # warning / oracle
+C_GRAY = COLORS["muted"]
+C_LIGHT = COLORS["grid"]
+C_DARK = COLORS["text"]
+C_BG = COLORS["bg"]
 
 PALETTE = [C_BLUE, C_PURPLE, C_GREEN, C_AMBER]
 DPI = 150

@@ -48,19 +48,25 @@ import numpy as np
 import seaborn as sns  # noqa: F401  (registers the seaborn style we use)
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Global style
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-COLOR_BLUE = "#2563eb"
-COLOR_PURPLE = "#7c3aed"
-COLOR_GREEN = "#10b981"
-COLOR_AMBER = "#f59e0b"
-COLOR_GREY = "#475569"
-COLOR_LIGHT = "#e2e8f0"
-COLOR_RED = "#dc2626"
+COLOR_BLUE = COLORS["primary"]
+COLOR_PURPLE = COLORS["accent"]
+COLOR_GREEN = COLORS["success"]
+COLOR_AMBER = COLORS["warning"]
+COLOR_GREY = COLORS["text2"]
+COLOR_LIGHT = COLORS["grid"]
+COLOR_RED = COLORS["danger"]
 
 DPI = 150
 
@@ -190,7 +196,7 @@ def fig1_package_manager_comparison() -> None:
                 style="italic")
         ax.text(x + col_w / 2, col_top - 3.75, fam["low"],
                 ha="center", va="center", fontsize=11, fontweight="bold",
-                color="#1e293b", family="monospace")
+                color=COLORS["text"], family="monospace")
 
         # Package format pill
         ax.text(x + col_w / 2, col_bot + 0.45,
@@ -209,7 +215,7 @@ def fig1_package_manager_comparison() -> None:
 
     ax.text(6, 7.55, "Mainstream Linux package toolchains",
             ha="center", va="center", fontsize=15, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(6, 7.15,
             "Same job (search / install / upgrade / remove), different "
             "command names and package formats",
@@ -298,7 +304,7 @@ def fig2_dependency_resolution() -> None:
     # Side panel: what the solver does
     ax.text(-5.6, 2.1,
             "What the dependency solver does",
-            fontsize=11.5, fontweight="bold", color="#1e293b")
+            fontsize=11.5, fontweight="bold", color=COLORS["text"])
     bullets = [
         "1. read declared deps of nginx",
         "2. recurse into each dep",
@@ -317,7 +323,7 @@ def fig2_dependency_resolution() -> None:
             "dpkg -i nginx.deb        ->  fails: 'depends on libssl3 (>= 3.0) but it is not installable'\n"
             "apt install nginx        ->  resolves the whole graph above and installs it in order",
             ha="center", va="center", fontsize=9.5,
-            family="monospace", color="#1e293b",
+            family="monospace", color=COLORS["text"],
             bbox=dict(boxstyle="round,pad=0.5", facecolor="#fef3c7",
                       edgecolor=COLOR_AMBER, lw=1.0))
 
@@ -326,7 +332,7 @@ def fig2_dependency_resolution() -> None:
 
     ax.text(0, 2.78, "Dependency resolution: install one package, pull in a graph",
             ha="center", va="center", fontsize=14, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
 
     _save(fig, "fig2_dependency_resolution.png")
 
@@ -387,7 +393,7 @@ def fig3_package_lifecycle() -> None:
     ]
     for txt, (cx, cy) in edge_cmds:
         ax.text(cx, cy, txt, ha="center", va="center",
-                fontsize=8.8, color="#1e293b", family="monospace",
+                fontsize=8.8, color=COLORS["text"], family="monospace",
                 bbox=dict(boxstyle="round,pad=0.25", facecolor="white",
                           edgecolor=COLOR_LIGHT, lw=0.8))
 
@@ -396,7 +402,7 @@ def fig3_package_lifecycle() -> None:
                  facecolor="#f8fafc", edgecolor=COLOR_GREY, lw=1.2)
     ax.text(0, 0.15, "package state",
             ha="center", va="center", fontsize=11, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(0, -0.25, "tracked in /var/lib/dpkg  /  rpmdb",
             ha="center", va="center", fontsize=8.5,
             color=COLOR_GREY, family="monospace")
@@ -404,7 +410,7 @@ def fig3_package_lifecycle() -> None:
     # Title
     ax.text(0, 4.5, "Lifecycle of a package on one machine",
             ha="center", va="center", fontsize=14.5, fontweight="bold",
-            color="#1e293b")
+            color=COLORS["text"])
     ax.text(0, 4.05,
             "search -> install -> upgrade -> hold -> remove,  "
             "with autoremove cleaning orphan deps",
@@ -426,7 +432,7 @@ def fig4_repository_structure() -> None:
 
     # ---------- Left: tree of files on the mirror ----------
     ax.text(3.0, 8.4, "Apt repository on the mirror",
-            ha="center", fontsize=12.5, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=12.5, fontweight="bold", color=COLORS["text"])
     ax.text(3.0, 8.0, "(Debian / Ubuntu layout)",
             ha="center", fontsize=9, color=COLOR_GREY, style="italic")
 
@@ -471,7 +477,7 @@ def fig4_repository_structure() -> None:
 
     # ---------- Right: chain of trust ----------
     ax.text(8.8, 8.4, "Chain of trust  (apt update -> apt install)",
-            ha="center", fontsize=12.5, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=12.5, fontweight="bold", color=COLORS["text"])
 
     steps = [
         ("apt-key / signed-by",
@@ -519,7 +525,7 @@ def fig4_repository_structure() -> None:
             ha="center", fontsize=9.3, color=COLOR_GREY, style="italic")
 
     ax.text(6, 8.85, "Anatomy of an apt repository",
-            ha="center", fontsize=14.5, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=14.5, fontweight="bold", color=COLORS["text"])
 
     _save(fig, "fig4_repository_structure.png")
 
@@ -584,7 +590,7 @@ def fig5_modern_alternatives() -> None:
                                facecolor="#f1f5f9", edgecolor=COLOR_LIGHT,
                                lw=0.8))
         ax.text(col0_x + 0.2, y + row_h * 0.5, label,
-                ha="left", va="center", fontsize=10.2, color="#1e293b",
+                ha="left", va="center", fontsize=10.2, color=COLORS["text"],
                 fontweight="bold")
         for i, (val, color) in enumerate(zip(values, fmt_colors)):
             x = col0_x + col0_w + col_gap + i * (col_w + col_gap)
@@ -613,7 +619,7 @@ def fig5_modern_alternatives() -> None:
 
     ax.text(6, 8.65,
             "Modern alternatives:  Snap  /  Flatpak  /  AppImage  vs  distro packages",
-            ha="center", fontsize=14, fontweight="bold", color="#1e293b")
+            ha="center", fontsize=14, fontweight="bold", color=COLORS["text"])
 
     _save(fig, "fig5_modern_alternatives.png")
 

@@ -26,18 +26,24 @@ import matplotlib.patches as mpatches
 import numpy as np
 from matplotlib.patches import FancyBboxPatch, Circle, Rectangle, FancyArrowPatch, Wedge
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-AMBER = "#f59e0b"
-DARK = "#0f172a"
-GRAY = "#64748b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
+DARK = COLORS["text"]
+GRAY = COLORS["text2"]
 LIGHT = "#f1f5f9"
 
 DPI = 150
@@ -54,11 +60,11 @@ plt.rcParams.update({
     "axes.titlesize": 14,
     "axes.labelweight": "bold",
     "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
+    "axes.edgecolor": COLORS["border"],
     "axes.linewidth": 1.0,
     "xtick.color": DARK,
     "ytick.color": DARK,
-    "grid.color": "#e2e8f0",
+    "grid.color": COLORS["grid"],
     "grid.linewidth": 0.8,
 })
 
@@ -105,7 +111,7 @@ def fig1_hdd_vs_ssd_structure() -> None:
     # actuator arm + head
     ax_l.plot([8.7, 5.9], [7.8, 5.9], color=DARK, linewidth=3.5, solid_capstyle="round")
     ax_l.add_patch(Circle((8.7, 7.8), 0.35, facecolor=DARK, edgecolor=DARK))
-    ax_l.add_patch(Circle((5.9, 5.9), 0.18, facecolor="#dc2626", edgecolor=DARK))
+    ax_l.add_patch(Circle((5.9, 5.9), 0.18, facecolor=COLORS["danger"], edgecolor=DARK))
 
     # rotation arrow
     arc = mpatches.FancyArrowPatch((cx + 1.7, cy - 1.7), (cx - 1.7, cy - 1.7),
@@ -355,7 +361,7 @@ def fig4_filesystem_layout() -> None:
     regions = [
         ("Boot\nblock",        0.4, 1.2, GRAY),
         ("Super-\nblock",      1.7, 1.2, DARK),
-        ("Block group\ndescriptors", 3.1, 1.7, "#475569"),
+        ("Block group\ndescriptors", 3.1, 1.7, COLORS["text2"]),
         ("Block\nbitmap",      5.0, 1.4, AMBER),
         ("Inode\nbitmap",      6.6, 1.4, AMBER),
         ("Inode table",        8.2, 2.4, PURPLE),
@@ -463,9 +469,9 @@ def fig5_nvme_vs_sata() -> None:
         ax.set_title(title, color=color, fontsize=14, pad=10)
 
         layers = [
-            ("Application",         9.0, "#cbd5e1"),
-            ("VFS / file system",   8.0, "#94a3b8"),
-            ("Block layer",         7.0, "#64748b"),
+            ("Application",         9.0, COLORS["border"]),
+            ("VFS / file system",   8.0, COLORS["muted"]),
+            ("Block layer",         7.0, COLORS["text2"]),
         ]
         for name, y, col in layers:
             ax.add_patch(FancyBboxPatch((1.0, y - 0.4), 8.0, 0.7,

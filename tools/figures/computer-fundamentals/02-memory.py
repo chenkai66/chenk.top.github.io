@@ -45,19 +45,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle, Circle, Polygon
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
-
-C_BLUE = "#2563eb"
-C_PURPLE = "#7c3aed"
-C_GREEN = "#10b981"
-C_AMBER = "#f59e0b"
-C_RED = "#ef4444"
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_RED = COLORS["danger"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
 C_BG = "#f8fafc"
 
 DPI = 150
@@ -105,7 +111,7 @@ def fig1_memory_hierarchy() -> None:
         ("L3 Cache",    "8-96 MB",     "15 ns",   C_GREEN,  4.6, 3.4),
         ("DRAM",        "8-128 GB",    "100 ns",  C_AMBER,  3.6, 4.4),
         ("SSD (NVMe)",  "0.5-8 TB",    "100 us",  C_GRAY,   2.4, 5.6),
-        ("HDD",         "1-20 TB",     "10 ms",   "#64748b", 1.0, 6.8),
+        ("HDD",         "1-20 TB",     "10 ms",   COLORS["text2"], 1.0, 6.8),
     ]
 
     cx = 6.0

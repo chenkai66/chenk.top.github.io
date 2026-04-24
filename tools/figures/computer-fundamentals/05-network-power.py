@@ -25,19 +25,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyBboxPatch, Rectangle, FancyArrowPatch, Circle, Wedge
 
+# --- Shared style ----------------------------------------------------------
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+# ---------------------------------------------------------------------------
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-AMBER = "#f59e0b"
-RED = "#ef4444"
-DARK = "#0f172a"
-GRAY = "#64748b"
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
+RED = COLORS["danger"]
+DARK = COLORS["text"]
+GRAY = COLORS["text2"]
 LIGHT = "#f1f5f9"
 
 DPI = 150
@@ -54,11 +60,11 @@ plt.rcParams.update({
     "axes.titlesize": 14,
     "axes.labelweight": "bold",
     "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
+    "axes.edgecolor": COLORS["border"],
     "axes.linewidth": 1.0,
     "xtick.color": DARK,
     "ytick.color": DARK,
-    "grid.color": "#e2e8f0",
+    "grid.color": COLORS["grid"],
     "grid.linewidth": 0.8,
 })
 
@@ -96,7 +102,7 @@ def fig1_nic_architecture() -> None:
             ha="center", fontsize=10, color=GRAY, style="italic")
 
     # Outside world
-    _box(ax, 0.3, 2.8, 1.5, 1.2, "Ethernet\nCable\n(RJ-45)", "#475569", fontsize=9)
+    _box(ax, 0.3, 2.8, 1.5, 1.2, "Ethernet\nCable\n(RJ-45)", COLORS["text2"], fontsize=9)
     ax.annotate("", xy=(2.0, 3.4), xytext=(1.85, 3.4),
                 arrowprops=dict(arrowstyle="->", color=DARK, lw=1.8))
 
@@ -131,7 +137,7 @@ def fig1_nic_architecture() -> None:
 
     # Top: control path
     _box(ax, 4.5, 4.8, 5.1, 0.9, "PCIe Bus  (Gen 3 x4 = 4 GB/s | Gen 4 x4 = 8 GB/s)",
-         "#0f172a", fontsize=10)
+         COLORS["text"], fontsize=10)
     ax.annotate("", xy=(5.7, 4.8), xytext=(5.7, 4.3),
                 arrowprops=dict(arrowstyle="<->", color=DARK, lw=1.5))
     ax.annotate("", xy=(8.4, 4.8), xytext=(8.4, 4.3),
@@ -143,7 +149,7 @@ def fig1_nic_architecture() -> None:
         ("TSO / LRO\nSegmentation", PURPLE),
         ("RSS\nMulti-queue", GREEN),
         ("VLAN\nTagging", AMBER),
-        ("SR-IOV\nVirtualization", "#0ea5e9"),
+        ("SR-IOV\nVirtualization", COLORS["info"]),
     ]
     fx = 1.0
     fw = 2.2
@@ -218,7 +224,7 @@ def fig2_tcp_handshake() -> None:
     # Bottom note
     _box(ax, 1.0, 0.05, 10.0, 0.65,
          "Why three (not two)? Confirms both directions can send AND receive — defends against half-open state and replayed SYNs.",
-         "#1e293b", fontsize=10)
+         COLORS["text"], fontsize=10)
 
     _save(fig, "fig2_tcp_handshake.png")
 
@@ -342,9 +348,9 @@ def fig4_psu_efficiency() -> None:
     load = np.array([10, 20, 50, 100])  # % load tested by 80 PLUS
     # Approximate 115V internal spec curves
     curves = {
-        "80 PLUS White":    (np.array([0,   80, 80, 80]), "#94a3b8"),
+        "80 PLUS White":    (np.array([0,   80, 80, 80]), COLORS["muted"]),
         "Bronze":           (np.array([0,   82, 85, 82]), "#a16207"),
-        "Silver":           (np.array([0,   85, 88, 85]), "#9ca3af"),
+        "Silver":           (np.array([0,   85, 88, 85]), COLORS["muted"]),
         "Gold":             (np.array([0,   87, 90, 87]), AMBER),
         "Platinum":         (np.array([0,   90, 92, 89]), PURPLE),
         "Titanium":         (np.array([90,  92, 94, 90]), GREEN),
@@ -526,7 +532,7 @@ def fig7_ups_backup() -> None:
                 arrowprops=dict(arrowstyle="->", color=DARK, lw=2))
 
     # DC bus junction
-    _box(ax, 4.4, 3.5, 1.6, 1.2, "DC bus\n(48 V / HVDC)", "#0f172a", fontsize=10)
+    _box(ax, 4.4, 3.5, 1.6, 1.2, "DC bus\n(48 V / HVDC)", COLORS["text"], fontsize=10)
 
     # Battery bank (below DC bus)
     _box(ax, 4.4, 1.4, 1.6, 1.4, "Battery\nbank\n(VRLA / Li-ion)", AMBER,
@@ -552,7 +558,7 @@ def fig7_ups_backup() -> None:
                 arrowprops=dict(arrowstyle="->", color=GRAY, lw=1.4, ls="--"))
 
     # PDU
-    _box(ax, 8.5, 3.5, 1.6, 1.2, "PDU\n(distribution)", "#0ea5e9", fontsize=10)
+    _box(ax, 8.5, 3.5, 1.6, 1.2, "PDU\n(distribution)", COLORS["info"], fontsize=10)
     ax.annotate("", xy=(10.6, 4.1), xytext=(10.15, 4.1),
                 arrowprops=dict(arrowstyle="->", color=DARK, lw=2))
 
@@ -567,7 +573,7 @@ def fig7_ups_backup() -> None:
     ax.text(2.15, 2.4, "long-outage path", fontsize=8, color=DARK, style="italic")
 
     # ATS
-    _box(ax, 2.4, 1.4, 1.6, 1.4, "ATS\nAuto transfer\nswitch", "#475569", fontsize=9)
+    _box(ax, 2.4, 1.4, 1.6, 1.4, "ATS\nAuto transfer\nswitch", COLORS["text2"], fontsize=9)
     ax.annotate("", xy=(4.4, 2.1), xytext=(4.05, 2.1),
                 arrowprops=dict(arrowstyle="->", color=DARK, lw=1.6, ls="--"))
 

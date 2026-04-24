@@ -22,6 +22,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+# ---------------------------------------------------------------------------
+# Shared aesthetic style (chenk-site)
+# ---------------------------------------------------------------------------
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
+
 # --------------------------------------------------------------------------- #
 # Output configuration
 # --------------------------------------------------------------------------- #
@@ -39,16 +48,15 @@ OUT_DIRS = [EN_DIR, ZH_DIR]
 for _d in OUT_DIRS:
     _d.mkdir(parents=True, exist_ok=True)
 
+
 # --------------------------------------------------------------------------- #
 # Style
 # --------------------------------------------------------------------------- #
 
-plt.style.use("seaborn-v0_8-whitegrid")
-
-BLUE   = "#2563eb"
-VIOLET = "#7c3aed"
-GREEN  = "#10b981"
-AMBER  = "#f59e0b"
+BLUE = COLORS["primary"]
+VIOLET = COLORS["accent"]
+GREEN = COLORS["success"]
+AMBER = COLORS["warning"]
 GREY   = "#6b7280"
 DARK   = "#111827"
 LIGHT  = "#f3f4f6"
@@ -56,17 +64,6 @@ LIGHT  = "#f3f4f6"
 PALETTE = [BLUE, VIOLET, GREEN, AMBER]
 
 DPI = 150
-
-plt.rcParams.update({
-    "font.family": "sans-serif",
-    "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
-    "axes.titleweight": "bold",
-    "axes.titlesize": 13,
-    "axes.labelsize": 11,
-    "axes.edgecolor": "#cbd5e1",
-    "savefig.facecolor": "white",
-    "axes.facecolor": "white",
-})
 
 
 def _save(fig, name: str) -> None:
@@ -541,6 +538,8 @@ def fig6_similarity_heatmap() -> None:
 
     # custom blue-white-violet diverging colormap
     from matplotlib.colors import LinearSegmentedColormap
+
+
     cmap = LinearSegmentedColormap.from_list(
         "bwv", ["#bfdbfe", "#ffffff", VIOLET], N=256
     )

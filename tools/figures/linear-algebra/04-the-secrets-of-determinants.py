@@ -41,18 +41,25 @@ import numpy as np
 from matplotlib.patches import FancyArrowPatch, Polygon, Rectangle
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from _style import setup_style, COLORS, annotate_callout  # noqa: E402, F401
+setup_style()
+
+
 # ---------------------------------------------------------------------------
 # Style
 # ---------------------------------------------------------------------------
-plt.style.use("seaborn-v0_8-whitegrid")
+# style applied via _style.setup_style()
 
-C_BLUE = "#2563eb"     # primary - input / e1
-C_PURPLE = "#7c3aed"   # secondary - e2
-C_GREEN = "#10b981"    # accent - positive transform
-C_AMBER = "#f59e0b"    # warning - negative / collapse
-C_GRAY = "#94a3b8"
-C_DARK = "#0f172a"
-C_LIGHT = "#e2e8f0"
+C_BLUE = COLORS["primary"]
+C_PURPLE = COLORS["accent"]
+C_GREEN = COLORS["success"]
+C_AMBER = COLORS["warning"]
+C_GRAY = COLORS["muted"]
+C_DARK = COLORS["text"]
+C_LIGHT = COLORS["grid"]
 
 DPI = 150
 
@@ -266,6 +273,7 @@ def fig3_orientation():
 
     # CW arc on the reflected side
     from matplotlib.patches import Arc
+
     arc = Arc((0, 0), 0.9, 0.9, angle=0, theta1=100, theta2=170,
               color=C_AMBER, lw=2.2, zorder=5)
     ax.add_patch(arc)

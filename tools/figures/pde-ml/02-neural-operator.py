@@ -21,6 +21,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
+# Shared style ----------------------------------------------------------------
+import sys
+from pathlib import Path as _StylePath
+sys.path.insert(0, str(_StylePath(__file__).parent.parent.parent))
+from _style import setup_style, COLORS  # noqa: E402
+setup_style()
+
 # ---------------------------------------------------------------------------
 # Output directories
 # ---------------------------------------------------------------------------
@@ -29,38 +36,17 @@ EN_DIR = PROJECT_ROOT / "source/_posts/en/pde-ml/02-Neural-Operator-Theory"
 ZH_DIR = PROJECT_ROOT / "source/_posts/zh/pde-ml/02-神经算子理论"
 
 # Brand palette
-BLUE = "#2563eb"
-PURPLE = "#7c3aed"
-GREEN = "#10b981"
-RED = "#ef4444"
-AMBER = "#f59e0b"
-INK = "#1f2937"
-MUTED = "#6b7280"
-LIGHT = "#f3f4f6"
+# Color palette (from shared _style)
+BLUE = COLORS["primary"]
+PURPLE = COLORS["accent"]
+GREEN = COLORS["success"]
+RED = COLORS["danger"]
+AMBER = COLORS["warning"]
+INK = COLORS["ink"]
+MUTED = COLORS["muted"]
+LIGHT = COLORS["light"]
+
 SOFT = "#eef2ff"
-
-plt.style.use("seaborn-v0_8-whitegrid")
-plt.rcParams.update(
-    {
-        "font.family": ["DejaVu Sans", "Helvetica", "Arial"],
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.titleweight": "bold",
-        "axes.labelsize": 11,
-        "axes.edgecolor": INK,
-        "axes.labelcolor": INK,
-        "xtick.color": INK,
-        "ytick.color": INK,
-        "grid.color": "#e5e7eb",
-        "grid.linewidth": 0.6,
-        "savefig.dpi": 150,
-        "savefig.bbox": "tight",
-        "savefig.facecolor": "white",
-        "figure.facecolor": "white",
-    }
-)
-
-
 def _save(fig: plt.Figure, name: str) -> None:
     for d in (EN_DIR, ZH_DIR):
         d.mkdir(parents=True, exist_ok=True)
