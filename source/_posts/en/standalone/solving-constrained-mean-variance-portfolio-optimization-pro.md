@@ -8,6 +8,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "Apply Spiral Optimization Algorithm (SOA) to mean-variance portfolio problems with buy-in thresholds and cardinality constraints. Covers MINLP formulation, penalty methods, and performance comparison."
+disableNunjucks: true
 ---
 
 Markowitz's mean-variance model is elegant until you add real trading constraints: "if you buy a stock at all, hold at least 5% of it" and "pick exactly 10 names from the S&P 500." The closed-form quadratic program quietly mutates into a *mixed-integer nonlinear program* (MINLP), and the standard solver chain (Lagrange multipliers, KKT conditions, interior-point methods) stops working. The paper reviewed here applies the **Spiral Optimization Algorithm** (SOA), a population-based metaheuristic, to this problem and shows it can find competitive feasible solutions where gradient methods fail outright.

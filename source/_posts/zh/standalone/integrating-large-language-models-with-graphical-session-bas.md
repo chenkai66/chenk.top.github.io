@@ -7,6 +7,7 @@ tags:
 categories: 论文笔记
 lang: zh-CN
 mathjax: true
+disableNunjucks: true
 ---
 
 会话推荐（Session-based Recommendation, SBR）本质上是一个"短历史"问题：你只看到用户在一次会话里很短的一段点击序列（通常 3-20 次），就要预测下一个最可能点击的物品。难点不在概念，而在工程现实——会话短、长尾多、冷启动多，**纯靠交互图（ID + 转移边）经常学不稳**：新物品几乎没有边，长尾物品的边稀疏且不可靠，再叠加一层用户随手点击的噪声。

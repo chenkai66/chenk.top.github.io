@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation."
+disableNunjucks: true
 ---
 
 You can teach yourself to play guitar this year and you will still remember how to ride a bike. A neural network cannot. Fine-tune a vision model on CIFAR-10 then on SVHN, evaluate it on CIFAR-10 again, and accuracy collapses to barely above chance. The phenomenon is called **catastrophic forgetting**, and overcoming it is the central problem of **continual learning (CL)**: a learner that absorbs a stream of tasks $\mathcal{T}_1, \mathcal{T}_2, \ldots$ without re-accessing past data and without losing what it already knew.

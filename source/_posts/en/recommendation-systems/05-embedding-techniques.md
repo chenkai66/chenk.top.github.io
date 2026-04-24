@@ -12,6 +12,7 @@ series: recommendation-systems
 series_title: "Part 5 of 16: Embedding and Representation Learning"
 permalink: "en/recommendation-systems-5-embedding-techniques/"
 description: "How modern recommenders learn dense vector representations for users and items: Word2Vec / Item2Vec, Node2Vec, two-tower DSSM and YouTube DNN, negative sampling, FAISS/HNSW serving, and how to evaluate embedding quality. Concept, math, code and production guidance in one place."
+disableNunjucks: true
 ---
 
 When Netflix suggests *Inception* to someone who just finished *The Dark Knight*, the magic is not a hand-crafted "if-watched-Nolan-then" rule. It is geometry. Both films sit close together in a 128-dimensional **embedding space** that the model has learned from billions of viewing events. Geometry replaces enumeration: instead of comparing a movie to fifteen thousand others through brittle similarity rules, the system asks a single question — **how far apart are these two vectors?**

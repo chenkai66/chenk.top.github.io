@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "Complete derivation of logistic regression from sigmoid to softmax, cross-entropy loss, gradient computation, regularization, and multi-class extension with Python verification."
+disableNunjucks: true
 ---
 
 > **Hook.** Linear regression maps inputs to any real number — but what if the output has to be a probability between 0 and 1? Logistic regression solves this with one elegant trick: a sigmoid squashing function. Despite its name, logistic regression is a *classification* algorithm, and its math underpins every neuron in every modern neural network.

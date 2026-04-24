@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "End-to-end disk workflow on Linux: identify block devices with lsblk, partition with GPT, format with ext4 / xfs, mount persistently through /etc/fstab, expand capacity online with LVM, and debug the classic 'disk full but du can't find it' incidents."
+disableNunjucks: true
 ---
 
 Disk problems in production almost never have a one-line fix. You are

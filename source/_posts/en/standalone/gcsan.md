@@ -9,6 +9,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "GC-SAN combines a session-graph GGNN (local transitions) with multi-layer self-attention (global dependencies) for session-based recommendation. Covers graph construction, message passing, attention fusion, and where the design wins or breaks."
+disableNunjucks: true
 ---
 
 In session-based recommendation you only see a short anonymous click sequence -- no user profile, no long history, no demographics. Every signal you have lives inside that single window. **GC-SAN** (IJCAI 2019) takes the strongest two ideas of the time -- SR-GNN's session graph and the Transformer's self-attention -- and stacks them: a *graph* view captures local transition patterns and loops, a *sequence* view captures long-range intent, and a tiny weighted sum decides how much of each to trust. The result is a clean "best of both worlds" baseline that is genuinely hard to beat at its parameter budget.

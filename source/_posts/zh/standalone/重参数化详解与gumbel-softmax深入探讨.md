@@ -9,6 +9,7 @@ categories: Algorithm
 lang: zh-CN
 mathjax: true
 description: "讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。"
+disableNunjucks: true
 ---
 
 一旦模型里出现"采样"，训练立刻就会撞上一个硬问题：**梯度怎么穿过随机节点？**

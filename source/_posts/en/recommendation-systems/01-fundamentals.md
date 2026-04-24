@@ -12,6 +12,7 @@ series: recommendation-systems
 series_title: "Recommendation Systems Series"
 series_order: 1
 description: "A beginner-friendly guide to recommendation systems: the three core paradigms (collaborative filtering, content-based, hybrid), evaluation metrics, the multi-stage funnel architecture used in production, and the open challenges of cold-start, sparsity, and the long tail. With working Python implementations."
+disableNunjucks: true
 ---
 
 Open Netflix and the homepage somehow knows you. Scroll TikTok and the next video is the one you didn't realise you wanted. Drop into Spotify on a Monday morning and *Discover Weekly* serves up thirty songs you've never heard of, and you save half of them.

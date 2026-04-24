@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "Why PPO became the most widely used RL algorithm -- from TRPO's theoretical foundations through natural gradients to PPO's elegant clipping mechanism, plus its role in RLHF for large language models."
+disableNunjucks: true
 ---
 Policy gradients (Part 3) optimise the policy directly, sidestepping discrete `argmax` operators and naturally handling stochastic strategies. They have one fatal flaw: **a single overlong step can destroy the policy**, and because the data distribution is *coupled* to the policy, recovery is nearly impossible.
 

@@ -10,6 +10,7 @@ series: Time Series Forecasting
 lang: en
 mathjax: true
 description: "Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting."
+disableNunjucks: true
 ---
 
 > **Series**: Time Series Forecasting -- Part 4 of 8

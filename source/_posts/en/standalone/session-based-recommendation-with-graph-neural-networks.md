@@ -8,6 +8,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "SR-GNN turns a click session into a directed weighted graph and runs a gated GNN to predict the next item. Covers session-graph construction, GGNN updates, attention-based session pooling, training, benchmarks, and the failure modes that decide whether you should reach for it."
+disableNunjucks: true
 ---
 
 A user clicks **A, B, C, B, D**. A sequence model reads this as five tokens and folds them into a hidden state. **SR-GNN** sees a *graph* in which the edge `B -> C` survives even after the user returns to `B`, the node `B` is reused (so its in/out neighbours both inform its embedding), and the geometry of the click stream is preserved as adjacency. That structural insight is why [SR-GNN (Wu et al., AAAI 2019)](https://arxiv.org/abs/1811.00855) outperforms purely sequential baselines such as GRU4Rec and NARM on standard session-based recommendation (SBR) benchmarks.

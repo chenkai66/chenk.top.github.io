@@ -9,6 +9,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "Make sense of the reparameterization trick and Gumbel-Softmax: why gradients can flow through sampling, how temperature trades bias for variance, and the practical pitfalls of training discrete latent variables end-to-end."
+disableNunjucks: true
 ---
 
 The moment your model contains a sampling step, training hits a hard wall: **how do gradients flow through a random node?**

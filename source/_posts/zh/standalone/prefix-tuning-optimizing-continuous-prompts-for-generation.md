@@ -8,6 +8,7 @@ categories: 论文笔记
 lang: zh-CN
 mathjax: true
 description: "Prefix-Tuning 冻结整个语言模型，只学习一组注入到注意力层的连续向量来引导生成。本文从注意力公式、重参数化、KV cache 机制到 GPT-2 上的实验，把这套方法和 Adapter、Prompt Tuning、LoRA 的边界讲清楚。"
+disableNunjucks: true
 ---
 
 把 GPT-2 微调到一个具体任务上，意味着要再多存一份 1.5B 参数的权重。换十几个任务，存储和上线成本就能直接劝退一个团队，更别提"一份基模 + 多任务共享"这种工程上很想要的架构。**Prefix-Tuning**（Li & Liang, 2021）走了一条相反的路：模型权重一个不动，只学一小段连续向量——也就是论文里所说的"前缀"——在每一层注意力里被当作"已经在那里的上下文"喂进去。模型本身没变，换一段前缀就等于换了一种"任务人格"。

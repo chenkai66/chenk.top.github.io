@@ -15,6 +15,7 @@ series:
 lang: en
 mathjax: true
 description: "A complete derivation of linear regression from three perspectives -- algebra (the normal equation), geometry (orthogonal projection), and probability (maximum likelihood) -- followed by Ridge, Lasso, gradient methods, and diagnostics, with every claim verified against scikit-learn."
+disableNunjucks: true
 ---
 
 > **Hook.** In 1886 Francis Galton noticed something strange about heredity: children of unusually tall (or short) parents tended to be closer to the average than their parents were. He called this drift toward the mean *regression*, and the name stuck. The statistical curiosity grew up into the most consequential model in machine learning -- not because linear regression is powerful on its own, but because almost every other algorithm (logistic regression, neural networks, kernel methods) is some twist on the same idea: **fit a line, but in the right space.**

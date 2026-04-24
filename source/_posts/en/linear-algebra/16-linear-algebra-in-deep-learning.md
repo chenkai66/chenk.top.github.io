@@ -15,6 +15,7 @@ series:
 lang: en
 mathjax: true
 description: "Deep learning is large-scale matrix computation. From backpropagation as the chain rule in matrix form, to im2col turning convolutions into GEMM, to attention as soft retrieval via dot products -- see every core DL operation through the lens of linear algebra."
+disableNunjucks: true
 ---
 
 Strip away the marketing and a deep network is one thing: a long pipeline of matrix multiplications glued together by elementwise nonlinearities. Forward pass, backward pass, convolution, attention, normalization, fine-tuning -- every "trick" is a small twist on the same algebraic theme. Once you see the matrices, the field stops looking like a bag of recipes and starts looking like a single language.

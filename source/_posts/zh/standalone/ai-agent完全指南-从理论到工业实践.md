@@ -8,6 +8,7 @@ tags:
 categories: Large Language Models
 lang: zh-CN
 description: "面向工程师的 AI Agent 实战指南：规划（CoT/ReAct/ToT）、记忆体系、工具调用、自我反思、多 Agent 协作、主流框架（LangChain、LangGraph、AutoGen、CrewAI）、评估方法与生产部署的全部坑。"
+disableNunjucks: true
 ---
 
 聊天机器人是用来回答问题的，Agent 是用来**把事情做完**的。同样一个大模型放在背后，前者只会输出文字，后者会去搜索、写代码、调 API、查数据库，并且不断迭代直到任务完成。差别不在模型，差别在外层包了什么——一个能保留状态的循环、一组工具、一个能审视自己输出的批评者。

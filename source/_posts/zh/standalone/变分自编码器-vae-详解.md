@@ -9,6 +9,7 @@ categories: Algorithm
 lang: zh-CN
 mathjax: true
 description: "从零用 PyTorch 构建 VAE。涵盖 ELBO 目标函数、重参数化技巧、后验坍塌修复、beta-VAE，以及完整的训练流水线。"
+disableNunjucks: true
 ---
 
 普通自编码器只能压缩与重建，变分自编码器（VAE）则要有用得多——它学到的是一个**平滑、有结构的潜在空间**，你可以从里面**采样**，凭空生成新的数据。把编码器从"输出一个向量"改成"输出一个分布"，仅这一步，模型就从一个花哨的压缩器升级成了带可优化似然下界的生成模型。

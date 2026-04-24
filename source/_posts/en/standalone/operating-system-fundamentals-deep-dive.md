@@ -9,6 +9,7 @@ tags:
 categories: Computer Fundamentals
 lang: en
 description: "Walk through processes, virtual memory, file systems, the I/O stack, system calls and schedulers, with the actual numbers and the commands you can verify each claim with on a Linux box."
+disableNunjucks: true
 ---
 
 Open a terminal and type `cat hello.txt`. The instant you press Enter, at least seven layers of machinery wake up: bash parses the line, fork+execve launches the cat process, the kernel hands it a virtual address space, cat issues a `read()` syscall, the CPU traps into kernel mode, VFS dispatches to ext4, the block layer queues an NVMe request, the SSD DMA-writes the bytes back, an interrupt wakes cat, the bytes are copied through the page cache into the user buffer, and finally something appears on your screen.

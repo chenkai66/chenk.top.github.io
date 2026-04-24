@@ -11,6 +11,7 @@ series_total: 6
 lang: en
 mathjax: false
 description: "Deep dive into the NIC pipeline (PHY/MAC/DMA), TCP handshake, network topologies, PSU efficiency curves, datacenter PUE, component power hierarchy, and UPS architecture."
+disableNunjucks: true
 ---
 
 Why does the gigabit NIC on your motherboard sometimes negotiate down to 100 Mbps? Why does a brand-new build with a 650 W "Gold" PSU randomly reboot under heavy GPU load? Why does the room next to the server rack always feel warm? These are the everyday consequences of two systems that most people never look at: **the network I/O pipeline** and **the power-and-cooling chain** that keeps the silicon alive.

@@ -9,6 +9,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "Represent a neural network as a directed graph (neurons as nodes, weights as edges) and use a GNN to produce permutation-equivariant embeddings. The right symmetry unlocks generalisation prediction, network classification, retrieval, and model merging across architectures and widths."
+disableNunjucks: true
 ---
 
 You can shuffle the hidden neurons of a trained MLP and get the *exact* same function back -- but the flat parameter vector now looks completely different. This single fact ruins most attempts at "learning over neural networks": naive representations treat two functionally identical models as two unrelated points in parameter space, and the downstream learner wastes capacity rediscovering a symmetry it should have for free. This paper -- *Graph Neural Networks for Learning Equivariant Representations of Neural Networks* (Kofinas et al., ICML 2024) -- proposes the clean fix: turn the network itself into a graph, then use a GNN whose architecture *natively* respects the relevant permutation symmetry.

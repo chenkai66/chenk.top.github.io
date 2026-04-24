@@ -11,6 +11,7 @@ series_total: 6
 lang: en
 mathjax: false
 description: "How memory really works: hierarchy, DRAM vs SRAM, virtual memory, the TLB, ECC, NUMA, and channel scaling — explained from circuits to system design."
+disableNunjucks: true
 ---
 
 A CPU core can complete a multiplication in roughly **0.3 ns**. A spinning hard disk needs **10 ms** to seat its head over a sector. Between those two numbers sits a factor of about **30 million**. Every line of memory engineering — caches, DRAM cells, page tables, TLBs, ECC, NUMA, channels — is a coordinated answer to that single, brutal asymmetry.

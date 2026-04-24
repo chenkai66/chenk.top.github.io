@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "Boundary value problems specify the solution at both ends of an interval. Master shooting, finite differences, collocation, and Sturm-Liouville eigenproblems -- with applications from beam deflection to the quantum harmonic oscillator."
+disableNunjucks: true
 ---
 An initial value problem hands you a starting state and asks you to march forward. A boundary value problem (BVP) hands you partial information at two different points and asks you to find a path that fits both. The change is small in wording, large in consequence: BVPs can have a unique solution, no solution at all, or infinitely many. They demand a fundamentally different toolkit -- one that is iterative, global, and intimately connected to linear algebra.
 

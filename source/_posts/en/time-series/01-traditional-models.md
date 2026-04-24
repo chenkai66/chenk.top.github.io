@@ -10,6 +10,7 @@ series: Time Series Forecasting
 lang: en
 mathjax: true
 description: "ARIMA, SARIMA, VAR, GARCH, Prophet, exponential smoothing and the Kalman filter, derived from a single state-space view. With Box-Jenkins workflow, ACF/PACF identification, and runnable Python."
+disableNunjucks: true
 ---
 
 > **Series**: Time Series Forecasting -- Part 1 of 8

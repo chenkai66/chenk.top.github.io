@@ -14,6 +14,7 @@ total_parts: 12
 lang: en
 mathjax: true
 description: "A working tour of multi-agent RL: Markov games, the non-stationarity and credit-assignment problems, CTDE, value decomposition (VDN, QMIX), counterfactual baselines (COMA), MADDPG, communication topologies, and the league-training pipeline behind AlphaStar and OpenAI Five — with a runnable QMIX mixer in PyTorch."
+disableNunjucks: true
 ---
 
 Single-agent RL rests on one quiet but enormous assumption: the environment is stationary. The transition kernel does not change while the agent learns. The moment a second learner shares the world, that assumption collapses. Each agent now sees an environment whose dynamics shift as its peers update, rewards become entangled across agents, and the joint action space explodes combinatorially. These are not engineering nuisances. They are the reason multi-agent RL needs its own algorithms instead of just *running DQN n times in parallel*.

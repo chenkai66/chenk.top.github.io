@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "Complete SVM derivation from maximum margin to Lagrangian duality, KKT conditions, soft margin, kernel trick, and SMO algorithm with step-by-step proofs and Python code."
+disableNunjucks: true
 ---
 
 > **Hook.** You have two clouds of points and infinitely many lines that separate them. Which line is "best"? SVM gives a startlingly geometric answer: the line that sits in the middle of the *widest empty corridor* between the two classes. Push that single idea through Lagrangian duality and it produces a sparse model (only the points on the corridor wall matter), a quadratic program with a global optimum, and -- almost as a free gift -- the kernel trick that lets the same linear machinery carve curved boundaries in infinite-dimensional spaces.

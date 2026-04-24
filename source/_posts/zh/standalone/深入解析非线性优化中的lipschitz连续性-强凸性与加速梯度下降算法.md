@@ -9,6 +9,7 @@ categories: Algorithm
 lang: zh-CN
 mathjax: true
 description: "用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。"
+disableNunjucks: true
 ---
 
 很多优化"玄学"其实都能被三个概念讲清楚：

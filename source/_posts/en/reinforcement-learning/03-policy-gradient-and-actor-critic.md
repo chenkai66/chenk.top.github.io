@@ -20,6 +20,7 @@ series:
 lang: en
 mathjax: true
 description: "From REINFORCE to SAC -- how policy gradient methods directly optimize policies, naturally handle continuous actions, and power modern algorithms like PPO, TD3, and SAC."
+disableNunjucks: true
 ---
 
 DQN proved that deep RL can master Atari, but it has a hard ceiling: it only works in **discrete action spaces**. Ask it to control a robot arm with seven continuous joint angles and it falls apart -- you would have to solve an inner optimisation problem every time you choose an action.

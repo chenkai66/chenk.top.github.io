@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: true
 description: "A complete linked list toolkit: reversal (iterative and recursive), merging sorted lists, Floyd's cycle detection, removing the nth node from end, and an LRU cache built on a doubly linked list plus hash map."
+disableNunjucks: true
 ---
 
 A linked list is the simplest data structure that forces you to **think in pointers**. Arrays let you index in $O(1)$ and forget about layout; linked lists hand you a head pointer and ask, *"now what?"* That single shift — from indices to references — is what makes linked-list problems so common in interviews. They are short to state, brutal to get right, and reward exactly the habits good engineers build: drawing pictures, naming pointers, and **never dereferencing without checking for `None`**.

@@ -10,6 +10,7 @@ series: Time Series Forecasting
 lang: en
 mathjax: true
 description: "GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix."
+disableNunjucks: true
 ---
 > **Series**: Time Series Forecasting -- Part 3 of 8
 > [<-- Previous: LSTM](/en/time-series-lstm/) | [Next: Attention Mechanisms -->](/en/time-series-attention-mechanism/)

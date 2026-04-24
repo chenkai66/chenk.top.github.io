@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "Master the universal backtracking template through six classic problems: Permutations, Combinations, Subsets, Word Search, N-Queens, and Sudoku Solver. Learn the choose -> recurse -> un-choose pattern and the pruning techniques that make it fast."
+disableNunjucks: true
 ---
 
 Backtracking is the algorithm you reach for whenever a problem asks you to *enumerate* something — every permutation, every subset, every legal board, every path through a grid. It is brute force with a brain: you build a candidate solution one decision at a time, abandon it the moment a constraint says "this cannot work", and undo your last move so the next branch sees a clean slate. The whole technique fits in three lines:

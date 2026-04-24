@@ -12,6 +12,7 @@ series: recommendation-systems
 series_title: "Recommendation Systems Series"
 series_order: 2
 description: "An in-depth tour of collaborative filtering and matrix factorization: User-CF and Item-CF, similarity metrics, latent-factor models, SVD++, ALS, BPR, and factorization machines — with intuitions, derivations, and runnable Python."
+disableNunjucks: true
 ---
 
 You finish *The Shawshank Redemption* and want something with the same feeling. A genre filter would surface every prison drama ever made, most of them awful. Collaborative filtering takes a different route: it never looks at the movie itself. It looks at *people who watched what you watched* and asks what else they loved.

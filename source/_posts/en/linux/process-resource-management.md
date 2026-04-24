@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "How processes are born and die on Linux: the fork/exec model, the state machine that ps and top print in the STAT column, the resource axes (CPU, memory, disk I/O, network) that actually constrain a server, the signals you should know by heart, and the cgroup + namespace primitives that turn all of this into containers."
+disableNunjucks: true
 ---
 
 The job of a Linux operator is rarely "memorise more commands". It is to take a fuzzy symptom — *the site feels slow, the API timed out, the box is unresponsive* — and quickly **map it to the right axis**: is the CPU saturated, is memory being eaten by cache (which is fine) or by a runaway process (which is not), is the disk queue full, is some socket leaking? Once the axis is named, the tool follows almost mechanically.

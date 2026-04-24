@@ -19,6 +19,7 @@ series:
 lang: en
 mathjax: true
 description: "Derive why combining weak learners produces strong ones. Covers bias-variance decomposition, Bagging/Random Forest variance reduction, AdaBoost exponential loss, and GBDT gradient optimization in function space."
+disableNunjucks: true
 ---
 
 Why does a committee of mediocre classifiers outperform a single brilliant one? The answer is unromantic but precise: averaging cuts variance, sequential reweighting cuts bias, and a little randomisation breaks the correlation that would otherwise destroy both effects. This post derives the mathematics behind that picture --- bias--variance decomposition, bootstrap aggregating, AdaBoost as forward stagewise minimisation of exponential loss, and gradient boosting as gradient descent in function space.

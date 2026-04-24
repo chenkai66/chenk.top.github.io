@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "Master hash table patterns through four classic LeetCode problems — Two Sum, Group Anagrams, Longest Substring Without Repeating Characters, and Top K Frequent Elements. Learn complement search, canonical-form grouping, sliding window with counts, and bucket sort by frequency."
+disableNunjucks: true
 ---
 
 A hash table is the cheapest superpower in your toolbox. You spend a constant amount of memory per stored item, and in return every "is *x* in here?" question costs roughly one CPU instruction. Whole families of `O(n²)` brute-force solutions collapse into a single `O(n)` pass once you reach for one.

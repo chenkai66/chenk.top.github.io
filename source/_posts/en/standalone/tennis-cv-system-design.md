@@ -10,6 +10,7 @@ categories: Technical Design
 lang: en
 mathjax: true
 description: "A complete CV system for tennis: small high-speed object detection, multi-camera 3D reconstruction, physics-based trajectory prediction, and pose-based action recognition. From the literature down to a 16.7 ms-per-frame deployment budget."
+disableNunjucks: true
 ---
 
 A 6.7 cm tennis ball travels at over 200 km/h. Reconstructing its 3D trajectory from eight 4K cameras in real time, while simultaneously classifying what stroke each player is making, is a system problem that touches **small-object detection, multi-view geometry, Kalman filtering, physics modelling, and human-pose estimation** — all at once. This post walks the same path you'd walk at deployment time: state the constraints, survey the literature, choose, then build, and finally lay out a millisecond-by-millisecond budget for what runs in production.

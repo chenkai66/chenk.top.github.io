@@ -9,6 +9,7 @@ categories: Natural Language Processing
 lang: en
 mathjax: true
 description: "End-to-end map of multimodal LLMs: vision-language alignment, cross-modal fusion, the CLIP/BLIP/LLaVA families, downstream tasks (VQA, captioning, grounding, OCR), fine-tuning trade-offs, benchmarks, and what it takes to ship one in production."
+disableNunjucks: true
 ---
 
 Stuffing pixels, audio, and video into a language model so it can "see," "hear," and reason -- that was a research curiosity before CLIP landed in 2021. Today it's table stakes for most consumer-facing AI products. But shipping a Multimodal LLM (MLLM) in production turns out to be hard in places people rarely talk about. Almost never the vision encoder. Almost always these four:

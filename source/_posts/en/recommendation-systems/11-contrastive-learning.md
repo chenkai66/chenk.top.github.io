@@ -13,6 +13,7 @@ series:
 lang: en
 mathjax: true
 description: "A practitioner's guide to contrastive learning for recommendations: InfoNCE and the role of temperature, SimCLR vs MoCo negatives, SGL graph augmentations, CL4SRec sequence augmentations, XSimGCL's noise-only trick, with intuition, math, and clean PyTorch."
+disableNunjucks: true
 ---
 
 Classical recommenders learn from one signal: did a user click, watch, or buy? That signal is precious, but it is also brutally sparse. Most users touch fewer than 1% of the catalogue, most items are touched by fewer than 0.1% of users, and a brand-new item or user has nothing at all. Optimising a model directly against such sparse labels almost guarantees overfitting on the head and silence on the tail.

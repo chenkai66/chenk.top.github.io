@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "A deep walk-through of the Unix pipeline model: stdin/stdout/stderr and file descriptors, every common redirection form, the grep/awk/sed/cut/sort/uniq/xargs toolchain, named pipes, and process substitution -- with one-liners you can actually use on logs."
+disableNunjucks: true
 ---
 
 The biggest productivity jump on Linux is not memorising more commands. It is learning to **compose small tools** into clean data flows. The pipe operator `|` is the embodiment of the Unix philosophy: each tool does one thing and does it well (`grep` only filters, `awk` only extracts fields, `sort` only sorts), and you chain them into a pipeline that is readable, debuggable, and obvious to maintain. This article starts from the data-flow model -- `stdin`, `stdout`, `stderr` and the file descriptors behind them -- then walks through every common redirection form (`>`, `>>`, `<`, `2>`, `2>&1`, `&>`), builds up the text-processing toolchain (`grep`, `awk`, `sed`, `cut`, `tr`, `sort`, `uniq`, `xargs`, `tee`), and ends with two patterns most introductions skip: named pipes (FIFOs) and process substitution. By the end you should be able to replace many "I need to write a script" tasks with one or two readable command lines, and read other people's one-liners without squinting.

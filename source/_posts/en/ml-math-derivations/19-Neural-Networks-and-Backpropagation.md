@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He)."
+disableNunjucks: true
 ---
 
 ## What This Article Covers

@@ -11,6 +11,7 @@ categories: PDE and Machine Learning
 lang: zh-CN
 mathjax: true
 description: "理解能保持能量与辛结构的物理感知神经网络。涵盖 HNN、LNN、SympNet、辛积分器，以及四个经典物理系统实验。"
+disableNunjucks: true
 ---
 
 随手训练一个普通 MLP 去拟合一维谐振子的运动。验证集上误差很小，前十步看着也对。然后让它一口气往后推一千步——轨道不再闭合，能量缓慢漂移，本该周期运动的系统变成了一条慢慢张开的螺旋。网络学到了"数据点之间的插值"，没学到"物理"。**结构保持网络**（structure-preserving NN）的做法，是把守恒律——能量守恒、辛 2-形式、欧拉-拉格朗日方程——直接编码进架构里，使得模型从数学结构上就不可能违反这些约束，无论积分多长时间。

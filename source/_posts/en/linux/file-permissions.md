@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "Master the Linux permission model: rwx semantics on files vs directories, numeric and symbolic notation, chmod/chown usage, umask defaults, SUID/SGID/Sticky bit, and ACLs."
+disableNunjucks: true
 ---
 
 File permissions look elementary — `chmod 755`, done — but they remain one of the top causes of production incidents I see: a service won't start, a deploy script silently does nothing, Nginx returns `403`, a shared directory leaks, or `rm` refuses on a file that "should" be removable. Memorising magic numbers does not get you out of any of these. What does is understanding three things at the same time:

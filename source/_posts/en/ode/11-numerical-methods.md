@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "From Euler's tangent step to Dormand-Prince adaptive integrators: a working numerics toolkit. Convergence orders, A-stability, stiffness, and when to reach for Radau or BDF instead of RK45."
+disableNunjucks: true
 ---
 Almost every interesting differential equation in science and engineering refuses to yield a closed-form solution. Nonlinear vector fields, variable coefficients, ten thousand coupled state variables -- pen and paper give up long before the problem does. Numerical integration is the way through. This chapter builds, evaluates, and compares the small set of algorithms that solve essentially every ODE you will meet, and gives you the diagnostics to know when an integrator is lying to you.
 

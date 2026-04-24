@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "自注意力、多头注意力和位置编码在时间序列中的应用。逐步推导数学公式，附 PyTorch 实现和注意力可视化。"
+disableNunjucks: true
 ---
 
 > **系列**：时间序列模型 -- 第 4 部分，共 8 部分

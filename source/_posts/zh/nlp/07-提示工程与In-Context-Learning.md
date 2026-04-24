@@ -14,6 +14,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "从提示结构、思维链到 Self-Consistency 与 ReAct：一套关于 In-Context Learning 的工作原理、必须正面应对的方差问题，以及能扩展到生产系统的提示模式。"
+disableNunjucks: true
 ---
 
 同一个模型，可以给出一针见血的分析，也能一本正经地胡说八道。区别几乎从不在权重，而在你怎么问。一句"分析一下这段文本"换来的多半是泛泛的总结；同样的请求加上一个角色、两条干净的示例和一段严格的输出 schema，得到的就是下游解析器能直接消费的 JSON。**提示工程的意义，是把这种差距从"碰运气"变成可重复、可度量的工程实践。**

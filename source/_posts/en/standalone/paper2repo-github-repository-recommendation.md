@@ -8,6 +8,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "paper2repo aligns academic papers with GitHub repositories in a shared embedding space using a constrained GCN. Covers the joint heterogeneous graph, the WARP ranking loss, the cosine alignment constraint, and the full inference path."
+disableNunjucks: true
 ---
 
 You read a paper, want the code, and the "code available at" link is dead, missing, or points to a stub. Search engines fall back to keyword matching over the README, which works for popular repos with descriptive names and dies on everything else. paper2repo (WWW 2020) frames this as a cross-platform recommendation problem: learn one embedding space in which a paper abstract and a GitHub repository are directly comparable by dot product, then rank.

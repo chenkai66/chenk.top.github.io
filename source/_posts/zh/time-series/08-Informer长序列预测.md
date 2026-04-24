@@ -14,6 +14,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "Informer 用 ProbSparse 注意力、编码器蒸馏、生成式解码器把 Transformer 复杂度从 O(L^2) 降到 O(L log L)。完整数学推导、PyTorch 代码与 ETT/气象 benchmark。"
+disableNunjucks: true
 ---
 
 > **系列**：时间序列模型 -- 第 8 部分，共 8 部分

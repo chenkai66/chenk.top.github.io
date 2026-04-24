@@ -10,6 +10,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "One article that traces the full lineage GD -> SGD -> Momentum -> NAG -> AdaGrad -> RMSProp -> Adam -> AdamW, then onwards to Lion / Sophia / Schedule-Free. Each step is framed by the specific failure of the previous one, and we end with a practical selection guide."
+disableNunjucks: true
 ---
 
 Why is "tuning the LR is an art" a meme for ResNet, while every modern LLM paper just writes "AdamW, $\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$" and moves on? It is not an accident — it is the **end-point of three decades of optimizer evolution**.

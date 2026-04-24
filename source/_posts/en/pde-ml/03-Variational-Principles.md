@@ -9,6 +9,7 @@ tags:
 categories: PDE and Machine Learning
 lang: en
 mathjax: true
+disableNunjucks: true
 ---
 
 What is the essence of neural-network training? When we run gradient descent in a high-dimensional parameter space, is there a deeper continuous-time dynamics at work? As the network width tends to infinity, does discrete parameter updating converge to some elegant partial differential equation? The answers live at the intersection of the calculus of variations, optimal transport, and PDE theory.

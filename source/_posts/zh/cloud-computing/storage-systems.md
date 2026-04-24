@@ -15,6 +15,7 @@ series:
 lang: zh-CN
 mathjax: false
 description: "从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。"
+disableNunjucks: true
 ---
 
 Netflix 存储 PB 级视频，Instagram 提供数十亿张照片，量化基金几分钟内回放一年的行情数据 —— 它们背后都是 *分布式存储系统*。从开发者的视角看，存储简单得近乎透明（`PUT key`、`GET key`），但只要跨过单机的边界，你就接管了一整摞折磨了学术界几十年的难题：如何在磁盘失效时不丢数据、如何线性扩展、如何提供一个不会让上层应用踩坑的一致性模型，还要把每 GB 的成本压到几分钱。

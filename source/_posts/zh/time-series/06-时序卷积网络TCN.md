@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。"
+disableNunjucks: true
 ---
 
 > **系列**：时间序列模型 -- 第 6 部分，共 8 部分

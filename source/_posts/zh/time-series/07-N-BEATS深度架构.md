@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "N-BEATS 把深度学习的表达力和经典分解的可解释性合二为一：基函数展开、双重残差堆叠、M4 竞赛分析，以及完整的 PyTorch 代码。"
+disableNunjucks: true
 ---
 
 > **系列**：时间序列模型 -- 第 7 部分，共 8 部分

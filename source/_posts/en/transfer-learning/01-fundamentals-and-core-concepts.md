@@ -15,6 +15,7 @@ series:
 lang: en
 mathjax: true
 description: "A beginner-friendly guide to transfer learning fundamentals: why it works, formal definitions, taxonomy, negative transfer, and a complete feature-transfer implementation with MMD domain adaptation."
+disableNunjucks: true
 ---
 
 You spent two weeks training an ImageNet classifier on a rack of GPUs. On Monday morning your team lead asks for a chest-X-ray pneumonia model -- and the entire labelled dataset is **two hundred images**. Do you book another two weeks of GPU time and start from scratch?

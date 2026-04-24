@@ -19,6 +19,7 @@ series:
 lang: en
 mathjax: true
 description: "The series finale: from the bias-variance decomposition to L1/L2 geometry, dropout as a sub-network sampler, k-fold CV, AIC/BIC, VC bounds, and the modern double-descent phenomenon that broke classical theory."
+disableNunjucks: true
 ---
 
 ## What This Article Covers

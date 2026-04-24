@@ -10,6 +10,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "A practitioner's tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters."
+disableNunjucks: true
 ---
 
 Self-attention has a strange property that surprises most people the first time they compute it by hand: it does not know the order of its inputs. Permute the tokens and every attention score is permuted along with them — the function is exactly equivariant. So before we can do anything useful with a Transformer, we have to inject position information from the outside.

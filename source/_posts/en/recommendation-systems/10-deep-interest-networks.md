@@ -13,6 +13,7 @@ series:
 lang: en
 mathjax: true
 description: "From DIN's target attention to DIEN's AUGRU and BST's Transformer — how Alibaba taught CTR models to read a user's history like a chef reads the room."
+disableNunjucks: true
 ---
 
 A good chef doesn't cook the same dish for every guest. She watches you walk in, notes the wine you order, glances at how you eyed the chalkboard — and only then decides whether tonight's special should be the steak or the risotto. Your past visits matter, but only the parts that fit *this* mood.

@@ -9,6 +9,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "Three concepts that demystify most of optimization: Lipschitz smoothness fixes the maximum step size, strong convexity sets the convergence rate and uniqueness of the minimizer, and Nesterov acceleration replaces kappa with sqrt(kappa) without sacrificing stability. Includes the key theorems with proofs and a least-squares experiment."
+disableNunjucks: true
 ---
 
 A surprising amount of "optimizer folklore" collapses into three concepts:

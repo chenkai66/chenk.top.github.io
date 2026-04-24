@@ -18,6 +18,7 @@ series:
 lang: en
 mathjax: true
 description: "A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs."
+disableNunjucks: true
 ---
 
 When the posterior $p(\mathbf{z}\mid\mathbf{x})$ is intractable, you have two roads. **Sampling** (MCMC) walks a Markov chain whose stationary distribution is the posterior — eventually exact, but slow and hard to diagnose. **Variational inference** (VI) instead picks a simple family $\mathcal{Q}$ of distributions and finds the member $q^\star\in\mathcal{Q}$ that lies closest to the true posterior. Inference becomes optimization, and the same machinery that fits a neural network now fits a Bayesian model.

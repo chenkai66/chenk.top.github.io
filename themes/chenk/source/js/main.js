@@ -44,6 +44,20 @@
     }, { passive: true });
   }
 
+  // === Header scrolled state (subtle bg + shadow when not at top) ===
+  var siteHeader = document.querySelector('.site-header');
+  if (siteHeader) {
+    var headerScrollHandler = function() {
+      if (window.scrollY > 8) {
+        siteHeader.classList.add('scrolled');
+      } else {
+        siteHeader.classList.remove('scrolled');
+      }
+    };
+    window.addEventListener('scroll', headerScrollHandler, { passive: true });
+    headerScrollHandler();
+  }
+
   // === Back to Top (smooth animation) ===
   var backToTop = document.getElementById('back-to-top');
   if (backToTop) {

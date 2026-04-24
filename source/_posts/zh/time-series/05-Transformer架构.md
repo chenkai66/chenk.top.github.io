@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。"
+disableNunjucks: true
 ---
 > **系列**：时间序列模型 -- 第 5 部分，共 8 部分
 > [<-- 上一篇：Attention 机制](/zh/时间序列模型-四-Attention机制/) | [下一篇：TCN -->](/zh/时间序列模型-六-时序卷积网络TCN/)

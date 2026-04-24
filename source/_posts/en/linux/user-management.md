@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "A working mental model for Linux accounts: how /etc/passwd and /etc/shadow fit together, when to use a primary group versus a supplementary one, how sudo actually decides, and the full lifecycle of useradd / usermod / passwd / chage / userdel — including the PAM stack underneath."
+disableNunjucks: true
 ---
 
 If you only ever ran `useradd` and `passwd` on a single laptop, you can probably get away without thinking about any of this. The moment more than one human (or more than one service) shares a host, "user management" stops being paperwork and starts being the security model: it decides who can log in, which UID owns the files a process writes, which commands `sudo` will lift to root, and how long a stolen password remains useful.

@@ -9,6 +9,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "From the least-squares view to the Moore-Penrose pseudoinverse, the four Penrose conditions, computation via SVD, truncated SVD, Tikhonov regularization, and modern applications from PCA to LoRA."
+disableNunjucks: true
 ---
 Real data matrices are almost never both square and full rank: correlated features, too few samples, and noise-induced ill-conditioning all make "matrix inverse" either undefined or numerically useless. The **pseudoinverse** (Moore-Penrose inverse) preserves the *spirit* of an inverse while dropping the impossible-to-meet requirements: it redefines the "solution" of a linear system as the **least-squares solution**, breaking ties by picking the one with **minimum norm**. This post derives the pseudoinverse from that least-squares viewpoint, gives the four Penrose conditions, builds it from the SVD, and connects this single object to **the Eckart-Young low-rank approximation theorem**, **PCA**, **recommender-system matrix factorization**, and **LoRA fine-tuning**.
 

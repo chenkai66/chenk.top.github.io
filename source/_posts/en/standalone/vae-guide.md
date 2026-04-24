@@ -9,6 +9,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline."
+disableNunjucks: true
 ---
 
 A plain autoencoder compresses and reconstructs. A variational autoencoder learns something far more useful: a smooth, structured latent space you can *sample* from to generate genuinely new data. That single change — making the encoder output a *distribution* instead of a vector — turns the network from a fancy compressor into a generative model with a tractable likelihood lower bound.

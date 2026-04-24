@@ -10,6 +10,7 @@ series: Time Series Forecasting
 lang: en
 mathjax: true
 description: "TCNs use causal dilated convolutions for parallel training and exponential receptive fields. Complete PyTorch implementation with traffic flow and sensor data case studies."
+disableNunjucks: true
 ---
 
 > **Series**: Time Series Forecasting -- Part 6 of 8

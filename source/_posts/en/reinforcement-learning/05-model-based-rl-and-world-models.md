@@ -19,6 +19,7 @@ series:
 lang: en
 mathjax: true
 description: "From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions."
+disableNunjucks: true
 ---
 
 Every algorithm we have covered so far -- DQN, REINFORCE, A2C, PPO, SAC -- is **model-free**: the agent treats the environment as a black box, throws actions at it, and updates its policy from the rewards that come back. The approach works, but it is profligate. DQN needs roughly **10 million frames** to master Atari Pong. OpenAI Five trained on Dota 2 for the equivalent of **~45,000 years** of self-play. AlphaStar consumed years of StarCraft for a single agent.

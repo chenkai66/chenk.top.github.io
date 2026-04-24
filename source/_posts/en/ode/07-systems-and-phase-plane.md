@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "Will a bridge survive the wind? Will an ecosystem recover from a shock? Stability theory answers these questions using Lyapunov functions, linearization, and bifurcation analysis."
+disableNunjucks: true
 ---
 
 **A small push hits a system. Does it return to rest, drift away, or break entirely?** That single question decides whether bridges survive storms, ecosystems recover from droughts, and economies bounce back from crises. Stability theory answers it -- and it does so *without ever solving the differential equation*. We will learn to read the destiny of a system off the geometry of its phase plane.

@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "Your entry guide to Linux: the multi-user permission model, the FHS directory tree, distribution lineages, and the command-line muscle memory you need before any deeper topic makes sense."
+disableNunjucks: true
 ---
 
 The "difficulty" of Linux rarely lives in the commands themselves. The hard part is whether you have a clear *map* of the system: why it dominates servers, what multi-user and per-file permissions actually buy you, what changes when you switch between Debian and Red Hat lineages, and what to do in the first ten minutes after an SSH prompt opens. This post is the **entry guide** for the entire Linux series. It first builds the mental model -- philosophy, distributions, the FHS tree -- and then walks you through the commands you will use ten times an hour: `cd ls pwd`, `cp mv rm mkdir`, `cat less head tail`, `find grep`, plus pipelines, redirection, SSH, and a quick taste of permissions and processes. Each topic is intentionally **kept short**; depth lives in the dedicated articles (File Permissions, Disk Management, User Management, Service Management, Process Management, Package Management, Advanced File Operations).

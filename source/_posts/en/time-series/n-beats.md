@@ -10,6 +10,7 @@ series: Time Series Forecasting
 lang: en
 mathjax: true
 description: "N-BEATS combines deep learning expressiveness with classical decomposition interpretability. Basis function expansion, double residual stacking, and M4 competition analysis with full PyTorch code."
+disableNunjucks: true
 ---
 
 > **Series**: Time Series Forecasting -- Part 7 of 8

@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "The engineer's secret weapon: turn differential equations into algebra with the Laplace transform. Learn the key properties, partial fractions, transfer functions, and PID control basics."
+disableNunjucks: true
 ---
 
 **The Laplace transform turns calculus into algebra.** Instead of grinding through integration, guessing trial solutions, and bolting on initial conditions at the end, you transform the entire ODE — equation, forcing, and initial data — into a single polynomial equation in a complex variable $s$. You solve it like a high-school problem, then transform back. Along the way, the *shape* of the solution becomes geometry: poles in the left half of the complex plane decay, poles on the right blow up, poles on the imaginary axis ring forever. This chapter develops that picture from first principles and connects it to the engineering tools — transfer functions, Bode plots, PID control — that turned the Laplace transform into the lingua franca of dynamics.

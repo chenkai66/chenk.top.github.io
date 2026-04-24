@@ -14,6 +14,7 @@ series:
   total: 18
 lang: en
 mathjax: true
+disableNunjucks: true
 ---
 ## Why Vectors, and Why Care?
 

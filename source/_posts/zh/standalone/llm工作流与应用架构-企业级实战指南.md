@@ -9,6 +9,7 @@ tags:
 categories: Large Language Models
 lang: zh-CN
 description: "从一次 API 调用到一个生产级 LLM 平台：工作流模式、RAG、模型路由、部署拓扑、成本杠杆、可观测性、企业集成——以及那些真正决定成败的取舍。"
+disableNunjucks: true
 ---
 
 绝大多数 LLM 教程，恰恰在真正有意思的工作开始之前就结束了。它们告诉你怎么调用 chat completion 接口，怎么挂一个向量库，怎么用 Streamlit 包成一个 demo——这些都没错，但都不是凌晨三点一万人涌入、每隔一条回答就出现幻觉时让你头疼的那部分。

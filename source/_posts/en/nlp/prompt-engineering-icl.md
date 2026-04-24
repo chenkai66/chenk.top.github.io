@@ -13,6 +13,7 @@ total_parts: 12
 lang: en
 mathjax: true
 description: "From prompt anatomy to chain-of-thought, self-consistency and ReAct: a working theory of in-context learning, the variance you have to fight, and the patterns that scale to real systems."
+disableNunjucks: true
 ---
 
 The same model can produce a sharp answer or a confident hallucination. The difference is rarely the weights -- it is the framing. A vague request like *"analyze this text"* gets you a generic summary; a prompt with a role, two clean examples, and a strict output schema gets you something a parser can consume. **Prompt engineering is the discipline of turning that gap into a repeatable system instead of a lucky shot.**

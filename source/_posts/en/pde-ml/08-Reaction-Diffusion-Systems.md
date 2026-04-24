@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "Deep GNNs collapse because they are diffusion equations on graphs. Turing's reaction-diffusion theory tells us how to fix it -- and closes the eight-chapter PDE+ML series."
+disableNunjucks: true
 ---
 
 ## What This Article Covers

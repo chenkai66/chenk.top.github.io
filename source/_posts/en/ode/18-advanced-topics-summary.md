@@ -19,6 +19,7 @@ series:
 lang: en
 mathjax: true
 description: "The series finale. Survey four research frontiers reshaping how we model dynamics -- Neural ODEs, delay equations, stochastic differential equations, and fractional calculus -- then take stock of the entire 18-chapter journey with a method-selection flowchart, the deep ODE-ML connection, and a roadmap for what to study next."
+disableNunjucks: true
 ---
 
 **The journey ends here.** Eighteen chapters ago we picked up a falling apple. Today we're going to finish in the same vein in which we began -- by treating ODEs as the *universal language of change* -- but standing on a much taller mountain.

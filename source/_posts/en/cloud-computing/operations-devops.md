@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: false
 description: "A working DevOps engineer's guide: CI/CD pipelines that gate quality, Terraform for reproducible infrastructure, Prometheus + Grafana monitoring, ELK/EFK logging, SRE error budgets, and the operational habits that keep services up at 3 AM."
+disableNunjucks: true
 ---
 
 In 2017 GitLab lost six hours of database state. An engineer, exhausted, ran `rm -rf` on the wrong server during an incident. The backup procedures had silently been broken for months; nobody noticed because no one was restoring from backups. The lesson is not "be careful with rm". The lesson is that operations is a *system* - tools, runbooks, monitoring, automation, and the rituals around them. When the system is healthy, no single tired engineer can take down production. When the system is rotten, every late-night fix is one keystroke from disaster.

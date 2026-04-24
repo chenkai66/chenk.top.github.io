@@ -19,6 +19,7 @@ series:
 lang: en
 mathjax: true
 description: "High-dimensional spaces are hostile to distance-based learning. This article derives PCA from two equivalent angles (max variance and min reconstruction error), and extends to kernel PCA, LDA, t-SNE, and ICA -- with figures that show what each method actually does to the same data."
+disableNunjucks: true
 ---
 
 ## What This Article Covers

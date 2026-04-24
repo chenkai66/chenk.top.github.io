@@ -16,6 +16,7 @@ series:
   total: 18
 lang: zh-CN
 mathjax: true
+disableNunjucks: true
 ---
 
 ## 一、为什么 SVD 配得上"皇冠"二字

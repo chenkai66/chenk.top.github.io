@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "从 Seq2Seq 的瓶颈到 Attention Is All You Need，建立缩放点积注意力、多头注意力、位置编码和因果掩码的直觉，并用 PyTorch 从零搭一个完整 Transformer。"
+disableNunjucks: true
 ---
 
 2017 年 6 月，Google 的八位研究者发了一篇标题相当大胆的论文：*Attention Is All You Need*。论文里提出的 **Transformer** 架构干脆把循环结构整个扔掉了——没有 LSTM，没有 GRU，也不再从左到右一个一个地读句子。取而代之，序列里的每个 token 都可以通过一个数学操作直接看到其他所有 token：缩放点积注意力。

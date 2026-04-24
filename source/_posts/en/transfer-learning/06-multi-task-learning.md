@@ -18,6 +18,7 @@ series:
 lang: en
 mathjax: true
 description: "Train one model on multiple tasks simultaneously. Covers hard vs. soft parameter sharing, gradient conflicts (PCGrad, GradNorm, CAGrad), auxiliary task design, and a complete multi-task framework with dynamic weight balancing."
+disableNunjucks: true
 ---
 
 A self-driving car looking through a single camera needs to do three things at once: detect cars and pedestrians, segment lanes and free space, and estimate how far away each pixel is. You could train three separate networks. You would burn 3x the parameters, run 3x the forward passes at inference, and ignore the obvious fact that all three tasks need the same kind of low-level features (edges, surfaces, occlusion cues).

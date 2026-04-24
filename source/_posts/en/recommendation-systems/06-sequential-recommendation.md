@@ -12,6 +12,7 @@ series: recommendation-systems
 series_title: "Part 6 of 16: Sequential Recommendation and Session-based Modeling"
 permalink: "en/recommendation-systems-6-sequential-recommendation/"
 description: "How recommenders use the order of user actions to predict the next one. Markov chains, GRU4Rec, Caser, SASRec, BERT4Rec, BST, and SR-GNN, with implementations and intuition."
+disableNunjucks: true
 ---
 
 When you scroll TikTok, every recommendation feels eerily on-point — not because the system reads your mind, but because it reads the **order** of what you just watched. A cooking video followed by a travel vlog tells a different story than the same two clips in reverse. That ordering is exactly the signal that sequential recommenders are built to exploit.

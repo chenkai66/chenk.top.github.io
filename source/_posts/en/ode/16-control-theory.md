@@ -18,6 +18,7 @@ series:
 lang: en
 mathjax: true
 description: "Learn how differential equations power control systems. Cover transfer functions, PID controllers, root locus, Bode plots, state-space methods, controllability, observability, pole placement, LQR optimal control, and observer design with Python examples."
+disableNunjucks: true
 ---
 
 **When you steer a car you constantly correct based on lane position. A thermostat compares room temperature with the setpoint and adjusts a heater. A rocket gimbal nudges its thrust vector to keep the booster vertical.** Strip away the hardware and the same idea remains: *measure, compare, act*. Control theory is the mathematics of that loop -- and its native language is the ordinary differential equation.

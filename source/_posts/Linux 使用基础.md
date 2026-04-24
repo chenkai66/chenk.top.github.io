@@ -1,1 +1,0 @@
-/Users/kchen/Desktop/Cloud Computing/Note//Linux 使用基础.md

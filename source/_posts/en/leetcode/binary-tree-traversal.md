@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "A unified mental model for binary trees: how the four traversal orders are really one DFS recipe, why recursion and an explicit stack are the same algorithm, and how to reconstruct a tree from preorder + inorder. Includes Inorder Traversal, Level Order Traversal, Construct from Preorder + Inorder, Maximum Depth, and Validate BST."
+disableNunjucks: true
 ---
 
 A binary tree problem is rarely about the tree. It is about *the order in which you touch nodes* and *what you remember from the children before deciding what to do at the parent*. Once those two ideas click, the four traversal orders, the iterative rewrites, the construction problems, and even classics like Validate BST and Maximum Depth all collapse into a handful of variations on the same recipe. This article builds that recipe end to end.

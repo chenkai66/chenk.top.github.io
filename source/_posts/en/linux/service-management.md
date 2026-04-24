@@ -12,6 +12,7 @@ series_total: 8
 lang: en
 mathjax: false
 description: "A working model of systemd: PID 1, units and targets, the service lifecycle, writing your own unit files, journalctl filtering, timers as a cron replacement, and a disciplined troubleshooting workflow."
+disableNunjucks: true
 ---
 
 A "service" on Linux is a long-running background process whose

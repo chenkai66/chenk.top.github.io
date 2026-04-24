@@ -13,6 +13,7 @@ series:
 lang: en
 mathjax: true
 description: "A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations."
+disableNunjucks: true
 ---
 
 Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language -- and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.

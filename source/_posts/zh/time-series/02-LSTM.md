@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "LSTM 的遗忘门、输入门和输出门如何解决梯度消失问题。完整的 PyTorch 时间序列预测代码和实用调参技巧。"
+disableNunjucks: true
 ---
 > **系列**：时间序列模型 -- 第 2 部分，共 8 部分
 > [<-- 上一篇：传统模型](/zh/时间序列模型-一-传统模型/) | [下一篇：GRU -->](/zh/时间序列模型-三-GRU/)

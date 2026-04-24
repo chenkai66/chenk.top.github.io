@@ -13,6 +13,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "推荐系统 Embedding 技术全解：从 Word2Vec、Item2Vec、Node2Vec 到双塔 DSSM 与 YouTube DNN，再到负采样策略与 FAISS/HNSW 近邻检索的工程实践。每节配有可运行的 PyTorch 代码、关键设计权衡与生产经验。"
+disableNunjucks: true
 ---
 
 当 Netflix 把《盗梦空间》推给一个刚看完《蝙蝠侠：黑暗骑士》的用户，背后并不是一条手写的"看过 Nolan 就推 Nolan"的规则，而是一个几何问题：这两部电影在一个 128 维的 **Embedding 空间** 里距离很近，而它们和《海底总动员》之间的距离很远。**几何替代了枚举**——系统不再去和数万部电影逐一比对，而是只问一个问题："这两个向量之间有多远？"

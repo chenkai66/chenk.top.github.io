@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "Master fixed-size and variable-size sliding window patterns. Solve Maximum Sum Subarray, Longest Substring Without Repeating Characters, Minimum Window Substring, and Permutation in String."
+disableNunjucks: true
 ---
 
 If you have ever caught yourself writing a double `for` loop to inspect every contiguous subarray, **sliding window** is probably the optimisation you are missing. It turns an $O(nk)$ or $O(n^2)$ scan into a single linear pass by *reusing the work* it has already done. This article walks through the technique from first principles, then drills four canonical LeetCode problems plus a monotonic-deque variant.

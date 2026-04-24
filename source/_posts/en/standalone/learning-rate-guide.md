@@ -10,6 +10,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "A practitioner's guide to the single most important hyperparameter: why too-large LR explodes, how warmup and schedules really work, the LR range test, the LR-batch-size-weight-decay coupling, and recent ideas like WSD, Schedule-Free AdamW, and D-Adaptation."
+disableNunjucks: true
 ---
 
 Your model diverges. You halve the learning rate. Now it trains, but takes forever. You halve again — now the loss is a flat line. Sound familiar? Of all the knobs you can turn, **learning rate** is the one that most often decides whether training converges, crawls, or blows up. This guide gives you the intuition, the minimal math, and a practical workflow to get it right — from a 12-layer CNN on your laptop to a 70B-parameter LLM on a thousand GPUs.

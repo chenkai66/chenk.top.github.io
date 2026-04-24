@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "A working coder's guide to binary search: three templates, rotated arrays, peak finding, and binary search on the answer with worked traces and figures."
+disableNunjucks: true
 ---
 
 Binary search is the algorithm everyone thinks they understand until they have to write it under interview pressure. The idea is one sentence — *halve the search space at every step* — but the implementation is a minefield of off-by-one errors, infinite loops, and subtly wrong return values. The goal of this article is not to give you yet another recitation of the standard template; it is to give you a **mental model** that explains why each template looks the way it does, and a small toolkit (three templates plus the answer-space pattern) that covers the vast majority of LeetCode problems.

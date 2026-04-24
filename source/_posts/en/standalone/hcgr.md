@@ -10,6 +10,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "HCGR embeds session graphs in the Lorentz model of hyperbolic space and trains them with InfoNCE-style contrastive learning. This review unpacks why hierarchical session intent fits hyperbolic geometry, how Lorentz attention works in tangent space, and what the ablations actually prove."
+disableNunjucks: true
 ---
 
 A user opens a sneaker app, taps "running shoes", drills into a brand, then a price band, then a single SKU. That trajectory is a *tree*: each click narrows the candidate set roughly multiplicatively. In Euclidean space you need many dimensions to keep all the leaves of that tree apart, because Euclidean volume only grows polynomially with radius. In hyperbolic space volume grows *exponentially* with radius, so the tree fits naturally — a few dimensions are enough to keep the whole long tail untangled.

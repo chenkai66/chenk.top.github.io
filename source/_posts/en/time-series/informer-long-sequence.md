@@ -11,6 +11,7 @@ series: Time Series Forecasting
 lang: en
 mathjax: true
 description: "Informer reduces Transformer complexity from O(L^2) to O(L log L) via ProbSparse attention, distilling, and a one-shot generative decoder. Full math, PyTorch code, and ETT/weather benchmarks."
+disableNunjucks: true
 ---
 
 > **Series**: Time Series Forecasting -- Part 8 of 8

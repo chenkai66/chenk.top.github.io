@@ -14,6 +14,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "从GPT-1到GPT-4：理解自回归语言建模、解码策略（贪心、束搜索、top-k、top-p）、上下文学习，并用HuggingFace构建聊天机器人。"
+disableNunjucks: true
 ---
 
 当你向 ChatGPT 提一个问题，看到一段流畅的多段回答一个 token 接一个 token 流式涌出时，你目睹的其实是一个朴素到惊人的循环：把"目前为止的所有内容"喂给一个 Transformer 解码器，看它输出的词表概率分布，挑一个 token，拼到末尾，再循环。这就是自回归语言模型干的全部事情。神奇的不是这个循环，而是当你把循环背后的网络放大到几千亿参数、用半个互联网训练时，会发生什么。

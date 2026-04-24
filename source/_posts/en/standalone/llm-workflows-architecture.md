@@ -9,6 +9,7 @@ tags:
 categories: Large Language Models
 lang: en
 description: "From a single API call to a production LLM platform — workflow patterns, RAG, model routing, deployment, cost levers, observability, and enterprise integration, with the trade-offs that actually matter."
+disableNunjucks: true
 ---
 
 Most LLM tutorials end where the interesting work begins. They show you how to call a chat completion endpoint, attach a vector store, and wrap the whole thing in a Streamlit demo. None of that is wrong, but none of it is what breaks at 3 a.m. when 10,000 users hit your service at once and every other answer is a hallucination.

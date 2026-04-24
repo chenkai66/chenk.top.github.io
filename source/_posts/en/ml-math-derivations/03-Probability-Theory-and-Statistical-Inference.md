@@ -15,6 +15,7 @@ series:
 lang: en
 mathjax: true
 description: "Machine learning is uncertainty modeling. This article derives probability spaces, common distributions, MLE, Bayesian estimation, limit theorems and information theory -- the statistical engine behind every ML model."
+disableNunjucks: true
 ---
 
 ## What This Article Covers

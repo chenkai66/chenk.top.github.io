@@ -15,6 +15,7 @@ series:
 lang: en
 mathjax: true
 description: "Images are matrices, geometric transformations are matrix multiplications, camera imaging is a projective map, and 3D reconstruction is solving linear systems. Master the linear algebra that quietly powers every corner of computer vision."
+disableNunjucks: true
 ---
 
 Computer vision is the science of teaching machines to see. What is striking is how thoroughly the whole field reduces to linear algebra: an image is a matrix, a geometric transformation is a matrix product, a camera is a $3 \times 4$ projection matrix, two-view geometry is the equation $\mathbf{x}_2^\top \mathbf{F}\, \mathbf{x}_1 = 0$, and 3D reconstruction is a sparse linear least-squares problem. Once you see the field through that lens, what once looked like a zoo of algorithms turns out to be a small set of linear-algebraic ideas applied repeatedly.

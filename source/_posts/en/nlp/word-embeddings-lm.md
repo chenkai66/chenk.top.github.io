@@ -13,6 +13,7 @@ series:
 lang: en
 mathjax: true
 description: "Understand how Word2Vec, GloVe, and FastText turn words into vectors that capture meaning. Learn the math, train your own embeddings with Gensim, and connect embeddings to language models."
+disableNunjucks: true
 ---
 
 For decades, machines treated "king" and "queen" as unrelated symbols -- nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute

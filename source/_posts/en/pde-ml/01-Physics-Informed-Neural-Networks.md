@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included."
+disableNunjucks: true
 ---
 
 > **Series chapter 1 — about a 35-minute read.** This is the foundation of the entire series. Neural operators, variational principles, score matching — every later chapter is, at heart, *the same idea*: how do we encode physical or mathematical constraints directly into the optimisation objective of a neural network? Get PINNs right and the rest is "swap one constraint for another".

@@ -8,6 +8,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips."
+disableNunjucks: true
 ---
 
 LoRA is the default tool for adapting a frozen base model: cheap, stable, mergeable, and good enough for most single-task settings. But the moment your fine-tuning data is genuinely heterogeneous -- code mixed with math, instruction following mixed with creative writing, several domains in one adapter -- a single low-rank subspace starts to feel cramped. You can grow $r$, but cost grows with it and you still get *one* subspace, just a fatter one.

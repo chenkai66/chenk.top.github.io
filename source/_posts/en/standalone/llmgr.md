@@ -9,6 +9,7 @@ categories: Paper
 lang: en
 mathjax: true
 description: "LLMGR uses an LLM as the semantic engine for session-based recommendation and a GNN as the ranker. Covers the hybrid encoding layer, two-stage prompt tuning, ~8.68% HR@20 lift, and how to deploy without running an LLM per request."
+disableNunjucks: true
 ---
 
 Session-based recommendation lives or dies on the click graph. New items have no edges. Long-tail items have a handful of noisy edges. Yet every item ships with a title and a description that the model never reads. **LLMGR** plugs that hole: treat the LLM as a "semantic engine" that turns text into representations a graph encoder can fuse with, then let a GNN do what it does best -- rank. The headline result on Amazon Music/Beauty/Pantry: HR@20 up ~8.68%, NDCG@20 up ~10.71%, MRR@20 up ~11.75% over the strongest GNN baseline, with the largest uplift concentrated on cold-start items.

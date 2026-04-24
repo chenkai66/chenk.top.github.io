@@ -15,6 +15,7 @@ series:
 lang: zh-CN
 mathjax: true
 description: "RLHF 把基础语言模型变成 ChatGPT 与 Claude 的完整路径：SFT→奖励模型→PPO 三阶段流程、Bradley-Terry 偏好模型、DPO 闭式解推导、RLAIF 与 Constitutional AI、Goodhart 定律下的奖励黑客，以及强化学习在具身智能与推理时搜索中的下一步。"
+disableNunjucks: true
 ---
 GPT-3（2020 年 6 月）和 ChatGPT（2022 年 11 月）共享了大部分权重。基础模型能写流畅的散文、补全代码、续写任何模式——但你直接问它一个问题，它会东拉西扯、用错误的理由拒绝、编造引用，或者直接生成一段有毒内容。两年半的时间没有花在更大的 Transformer 上，而是花在**教模型怎么变得有用**——而这件事，最终被证明是一个强化学习问题。
 

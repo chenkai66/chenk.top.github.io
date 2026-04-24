@@ -11,6 +11,7 @@ series_total: 6
 lang: en
 mathjax: false
 description: "Series finale. We zoom out from individual components to the whole system: how CPU, cache, memory, storage, IO, and accelerators are wired together; how hardware-aware software wins by 100×; how to read performance counters; and where computing is heading next — chiplets, photonics, and quantum."
+disableNunjucks: true
 ---
 
 We've spent five chapters opening one box at a time — the CPU, the cache hierarchy, storage, the motherboard and GPU, the network and power supply. Each part is interesting on its own, but a computer is not its components. A computer is what happens when those components have to agree, every nanosecond, on what to do next.

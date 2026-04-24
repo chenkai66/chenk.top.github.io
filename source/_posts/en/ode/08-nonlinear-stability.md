@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "Step beyond linearity: predator-prey oscillations, competition exclusion, Van der Pol limit cycles, Hamiltonian systems, and the Poincare-Bendixson theorem -- the full toolkit for nonlinear 2D dynamics."
+disableNunjucks: true
 ---
 
 **The real world is nonlinear.** Predator-prey cycles, heartbeat rhythms, neuron firing -- none of these can be captured by linear equations. When superposition fails, the world acquires *new* behaviors: limit cycles, multiple equilibria, bistability, hysteresis. This chapter gives you the geometric and analytic tools to read those behaviors directly off a 2D phase portrait.

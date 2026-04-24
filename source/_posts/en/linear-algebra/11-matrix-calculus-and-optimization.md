@@ -16,6 +16,7 @@ series:
   total: 18
 lang: en
 mathjax: true
+disableNunjucks: true
 ---
 
 ## From Shower Knobs to Neural Networks

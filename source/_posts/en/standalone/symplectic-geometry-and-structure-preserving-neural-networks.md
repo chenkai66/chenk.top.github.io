@@ -11,6 +11,7 @@ categories: PDE and Machine Learning
 lang: en
 mathjax: true
 description: "Learn physics-informed neural networks that preserve energy and symplectic structure. Covers HNN, LNN, SympNet, symplectic integrators, and four classical experiments."
+disableNunjucks: true
 ---
 
 Train a vanilla feedforward network to predict a one-dimensional harmonic oscillator. Validate it on the next ten time steps -- the error is fine. Now roll it out for a thousand steps. The orbit no longer closes, the energy creeps upward, and what should be a periodic motion turns into a slow spiral. The network learned to fit data points; it never learned the *physics*. Structure-preserving networks fix this by baking geometric invariants -- energy conservation, the symplectic 2-form, the Euler-Lagrange equations -- directly into the architecture, so the learned model cannot violate them no matter how long you integrate.

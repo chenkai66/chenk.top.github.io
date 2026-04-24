@@ -15,6 +15,7 @@ series:
   total: 18
 lang: en
 mathjax: true
+disableNunjucks: true
 ---
 
 ## The Big Question

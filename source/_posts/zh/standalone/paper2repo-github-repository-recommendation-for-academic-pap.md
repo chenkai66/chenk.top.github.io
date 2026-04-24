@@ -5,6 +5,7 @@ tags:
 categories: 论文笔记
 lang: zh-CN
 mathjax: true
+disableNunjucks: true
 ---
 
 读论文时最折磨的瞬间之一：方法看懂了，想跑一下原作者的代码，结果论文里那行 "code available at" 要么压根没有，要么链接已经 404，要么指向的是一个空仓库。退而求其次去 GitHub 搜，能命中的基本都是名字起得规范、README 写得用心的那批；冷门方法、起名随意的工程，怎么都翻不出来。

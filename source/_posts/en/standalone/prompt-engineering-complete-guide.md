@@ -7,6 +7,7 @@ tags:
 categories: Large Language Models
 lang: en
 description: "Master prompt engineering from zero-shot basics to Tree of Thoughts, DSPy, and automated optimization. Includes benchmarks, code, and a debugging toolkit."
+disableNunjucks: true
 ---
 
 The same model, two prompts: one gets 17% accuracy on grade-school math, the other gets 78%. The difference is not magic — it is prompt engineering. This guide shows you the techniques that work, the research behind them, and how to systematically optimize prompts for production.

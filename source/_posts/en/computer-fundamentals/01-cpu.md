@@ -11,6 +11,7 @@ series_total: 6
 lang: en
 mathjax: false
 description: "Understand data units (bits and bytes), CPU architecture, the 5-stage pipeline, cache hierarchy, branch prediction, out-of-order execution, multi-core and SMT, Intel vs AMD differences, and how to choose the right processor."
+disableNunjucks: true
 ---
 
 Why does your 100 Mbps internet only download at about 12 MB/s? Why does a "1 TB" hard drive show only 931 GB in Windows? Why does a 32-bit system top out around 3.2 GB of usable RAM? And what *actually* happens, cycle by cycle, when the CPU runs your code?

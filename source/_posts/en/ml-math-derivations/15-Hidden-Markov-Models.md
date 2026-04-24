@@ -18,6 +18,7 @@ series:
 lang: en
 mathjax: true
 description: "Derive the three classical HMM algorithms from one principle (factorising the joint, then sharing sub-computations across time): Forward-Backward for evaluation and smoothing, Viterbi for MAP decoding, and Baum-Welch (EM) for parameter learning."
+disableNunjucks: true
 ---
 
 You hear footsteps behind you in a fog. You cannot see the walker, only the sounds. From the rhythm and pitch -- short, soft, hurried -- can you guess whether they are walking, running, or limping? And if you observed an entire sequence, which gait sequence is most likely? How likely is *any* sequence of sounds under your model of how walking works?

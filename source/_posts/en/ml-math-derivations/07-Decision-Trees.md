@@ -16,6 +16,7 @@ series:
 lang: en
 mathjax: true
 description: "From information entropy to the Gini index, from ID3 to CART — a complete derivation of decision-tree mathematics: split criteria, continuous and missing values, pruning, and feature importance, with sklearn-verified figures."
+disableNunjucks: true
 ---
 
 > **Hook.** A decision tree mimics how humans actually decide things: ask a question, branch on the answer, ask the next question. The math under that intuition is surprisingly rich — entropy from information theory tells us *which* question to ask first, the Gini index gives a cheaper proxy that lands on essentially the same trees, and cost-complexity pruning gives a principled way to stop the tree from memorising noise. Almost every modern boosted ensemble (XGBoost, LightGBM, CatBoost) is just a clever sum of these objects, so getting the foundations right pays off many times over.

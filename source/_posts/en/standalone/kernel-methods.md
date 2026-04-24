@@ -9,6 +9,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "Understand the kernel trick, RKHS theory, and practical kernel selection. Covers RBF, polynomial, Matern, and periodic kernels with sklearn code and a tuning flowchart."
+disableNunjucks: true
 ---
 
 You have non-linear data and a linear algorithm. The kernel trick lets you run that linear algorithm on the non-linear data -- without ever writing down the high-dimensional feature map. This guide builds the intuition first, then the math, then a practical toolkit you can ship.

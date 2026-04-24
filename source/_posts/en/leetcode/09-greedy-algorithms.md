@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "When does picking the locally best option give the global optimum? A working tour of greedy algorithms with proofs (exchange argument), classic problems (Jump Game, Gas Station, Interval Scheduling, Task Scheduler, Partition Labels), and a clear rule for when greedy fails."
+disableNunjucks: true
 ---
 
 Greedy is the algorithm paradigm that feels too good to be true: at every step, take the choice that looks best right now, never look back, and somehow end up at the global optimum. When it works, the code is almost embarrassingly short. When it doesn't, it produces confidently wrong answers — which is why the real skill is not writing greedy code, but recognising **when greedy is allowed**.

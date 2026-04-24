@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution."
+disableNunjucks: true
 ---
 
 > **Hook.** Naive Bayes assumes every feature is conditionally independent given the class. It is a convenient lie -- one that lets us train in a single pass over the data, but one that classifiers based on tree structures and small graphs can systematically beat by a few accuracy points on virtually every UCI benchmark. This part walks the spectrum from "no dependencies" (Naive Bayes) to "all dependencies" (full joint), showing the three sweet spots that practitioners actually use: SPODE, TAN and AODE. The same factorisation idea, taken to its general form, is the Bayesian network.

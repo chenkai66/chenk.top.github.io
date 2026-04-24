@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "A beginner-friendly guide to the mathematical foundations of reinforcement learning -- MDPs, Bellman equations, dynamic programming, Monte Carlo methods, and temporal difference learning -- with working Python code, all explained through the analogy of learning to ride a bicycle."
+disableNunjucks: true
 ---
 
 The first time you sat on a bicycle, nobody handed you a manual that said *"if your tilt angle exceeds 7.4 degrees, apply 12% counter-steer."* You wobbled, you over-corrected, you fell, you got back on. After a few hundred attempts your body simply *knew* what to do, even though you could not put it into words.

@@ -14,6 +14,7 @@ total_parts: 12
 lang: en
 mathjax: true
 description: "Series finale: agents and tool use (Function Calling, ReAct), code generation (Code Llama, Codex), long-context attention (Longformer, Infini-attention), reasoning models (o1, R1), safety and alignment, evaluation, and production deployment with FastAPI, vLLM and Docker."
+disableNunjucks: true
 ---
 
 We have spent eleven chapters climbing from raw text to multimodal foundation models. This twelfth and final chapter sits at the frontier and at the runway. It is where research stops being a paper and starts being a service: an LLM that calls tools, writes and debugs code, reasons through hundred-step problems, ingests a 200K-token contract, and serves a thousand concurrent users behind a FastAPI endpoint with p95 latency under 300 ms.

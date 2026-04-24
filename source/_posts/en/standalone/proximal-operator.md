@@ -9,6 +9,7 @@ categories: Algorithm
 lang: en
 mathjax: true
 description: "A systematic walk through the proximal operator: convex-analysis basics, the Moreau envelope, closed-form proxes, and how they power ISTA, FISTA, ADMM, LASSO, and SVM in practice."
+disableNunjucks: true
 ---
 When your objective contains a non-smooth piece (sparse regularisation, total variation, an indicator of a constraint set) or a constraint that is hard to handle directly, "just do gradient descent" stalls -- there is no gradient at the kink, or every step violates feasibility. The **proximal operator** is the engineered, beautiful workaround: think of each update as "take a step on the smooth part, then run a tiny penalised minimisation that pulls the iterate back toward a structured solution".
 

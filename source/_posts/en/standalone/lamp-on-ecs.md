@@ -8,6 +8,7 @@ tags:
 categories: Tutorial
 lang: en
 description: "Set up a LAMP stack (Linux, Apache, MySQL, PHP) on Alibaba Cloud ECS. Covers security groups, service installation, Discuz deployment, source compilation, hardening and three-tier scale-out."
+disableNunjucks: true
 ---
 
 You have a fresh ECS instance and SSH access. Your goal is a public website running Apache, PHP and MySQL. Between you and that goal sit three classes of problems that catch every beginner the first time:

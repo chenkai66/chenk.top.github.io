@@ -6,6 +6,7 @@ tags:
   - LAMP
 categories: 云计算
 lang: zh-CN
+disableNunjucks: true
 ---
 
 刚买的一台阿里云 ECS，从「能 SSH 登录」到「公网能稳定访问、跑得动一个站点」之间，最容易卡的其实就三件事：

@@ -17,6 +17,7 @@ series:
 lang: en
 mathjax: true
 description: "How do you turn a Gaussian into a complex data distribution? This article derives Neural ODEs, the adjoint method, continuous normalizing flows (FFJORD), and Flow Matching from the underlying ODE/PDE theory, and shows the seven core mechanisms in pictures."
+disableNunjucks: true
 ---
 
 ## What This Article Covers

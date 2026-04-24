@@ -8,6 +8,7 @@ tags:
 categories: Large Language Models
 lang: en
 description: "A practitioner-grade guide to building AI agents: planning (CoT/ReAct/ToT), memory architectures, tool use, reflection, multi-agent patterns, frameworks (LangChain, LangGraph, AutoGen, CrewAI), evaluation, and production concerns."
+disableNunjucks: true
 ---
 
 A chatbot answers questions. An *agent* gets things done -- it browses, runs code, calls APIs, queries databases, and iterates until the job is finished. The same LLM sits behind both, but the wrapper is different: an agent runs inside a loop with tools, memory, and the ability to inspect its own work.

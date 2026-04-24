@@ -14,6 +14,7 @@ series:
 lang: en
 mathjax: true
 description: "How BERT made bidirectional pretraining the default in NLP. We unpack the architecture, the 80/10/10 masking rule, fine-tuning recipes, and the RoBERTa/ALBERT/ELECTRA family with HuggingFace code."
+disableNunjucks: true
 ---
 
 In October 2018, Google released BERT and broke eleven NLP benchmarks at once. The recipe is almost embarrassingly simple: take a Transformer encoder, train it to predict words that have been randomly hidden using both left and right context, and then fine-tune the same pretrained model for whatever downstream task you have. Before BERT, every task came with its own from-scratch model. After BERT, "pretrain once, fine-tune everywhere" became the default mental model for the entire field.

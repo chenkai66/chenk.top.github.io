@@ -12,6 +12,7 @@ series_total: 10
 lang: en
 mathjax: false
 description: "Master dynamic programming through a single recipe: define the state, write the transition, anchor the base case. Worked solutions for Climbing Stairs, House Robber, Coin Change, LIS, 0/1 Knapsack, LCS, and Edit Distance."
+disableNunjucks: true
 ---
 
 Dynamic programming has a reputation for being the algorithm topic that

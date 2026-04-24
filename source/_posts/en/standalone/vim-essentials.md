@@ -7,6 +7,7 @@ tags:
 categories: Tutorial
 lang: en
 description: "Learn Vim by understanding its grammar -- modes, operators + motions, text objects -- not by memorizing shortcuts. A practical, beginner-friendly guide with a one-week practice plan."
+disableNunjucks: true
 ---
 
 Most people quit Vim because they try to memorize shortcuts. That is the wrong frame. Vim is a *small language*: learn the grammar -- **operator + motion** -- and you can express any edit without ever opening a cheat sheet again. This guide walks you through the 80% of Vim you will use daily, then shows how the remaining 20% composes naturally from the same handful of rules.
