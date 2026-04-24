@@ -19,7 +19,19 @@
         if (!res.ok) throw new Error('Search data not found');
         return res.json();
       })
-      .then(function(data) { searchData = data; return data; })
+      .then(function(data) {
+        // hexo-generator-searchdb wraps results under different shapes depending
+        // on version. Normalize to a plain array of {title, url, content}.
+        var arr = Array.isArray(data) ? data : (data && data.posts) ? data.posts : [];
+        searchData = arr.map(function(item) {
+          return {
+            title: item.title || '',
+            url: item.url || item.permalink || item.path || '#',
+            content: item.content || item.text || ''
+          };
+        });
+        return searchData;
+      })
       .catch(function() {
         searchResults.innerHTML = '<p class="search-empty">Search index not available. Run <code>hexo generate</code> first.</p>';
         return [];

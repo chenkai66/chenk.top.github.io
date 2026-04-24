@@ -1,7 +1,7 @@
 ---
-title: categories
+title: Categories
 date: 2022-07-19 14:32:03
-tags:
-categories:
-mathjax:
+layout: category
+type: category
+comments: false
 ---

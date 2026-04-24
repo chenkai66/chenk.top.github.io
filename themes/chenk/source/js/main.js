@@ -394,33 +394,71 @@
   var mobileLangSwitcher = document.getElementById('mobile-lang-switcher');
   var mobileLangLabel = document.getElementById('mobile-lang-label');
 
+  function getCurrentLang() {
+    // Priority: explicit per-page lang attr > localStorage > html lang
+    var pageLang = document.documentElement.getAttribute('data-page-lang');
+    if (pageLang) return pageLang.indexOf('zh') === 0 ? 'zh' : 'en';
+    var saved = localStorage.getItem('siteLang');
+    if (saved) return saved;
+    var htmlLang = (document.documentElement.lang || 'en').toLowerCase();
+    return htmlLang.indexOf('zh') === 0 ? 'zh' : 'en';
+  }
+
   function switchLanguage() {
     var path = window.location.pathname;
-    var currentLang = document.documentElement.lang || 'en';
+    var current = getCurrentLang();
+    var next = current === 'en' ? 'zh' : 'en';
 
-    if (currentLang.indexOf('zh') === 0 || path.startsWith('/zh-CN/')) {
-      // Switch to English
-      var newPath = path.replace(/^\/zh-CN\//, '/');
-      window.location.href = newPath;
-    } else if (path.startsWith('/en/')) {
-      // Switch to Chinese
-      window.location.href = path.replace('/en/', '/zh-CN/');
-    } else {
-      // Default: try adding zh-CN prefix
-      window.location.href = '/zh-CN' + path;
+    // Persist global preference for non-localized pages (home, archive, etc.)
+    localStorage.setItem('siteLang', next);
+
+    // 1) If this page has a paired translation URL injected by Hexo, use it.
+    var paired = document.documentElement.getAttribute('data-translation');
+    if (paired && paired !== '') {
+      window.location.href = paired;
+      return;
     }
+
+    // 2) Path-prefix swap when on a localized post path (/en/... or /zh/...)
+    if (path.indexOf('/zh/') === 0) {
+      window.location.href = path.replace('/zh/', '/en/');
+      return;
+    }
+    if (path.indexOf('/en/') === 0) {
+      window.location.href = path.replace('/en/', '/zh/');
+      return;
+    }
+
+    // 3) Non-localized pages: just reload to apply siteLang filter on home/archive/etc.
+    window.location.reload();
   }
 
   if (langSwitcher) langSwitcher.addEventListener('click', switchLanguage);
   if (mobileLangSwitcher) mobileLangSwitcher.addEventListener('click', switchLanguage);
 
-  // Update language labels based on current page lang
+  // Update language labels — show the language the user will switch TO,
+  // so the button reads as an action ("EN" = click to go English).
   function updateLangLabels() {
-    var currentLang = document.documentElement.lang || 'en';
-    var label = currentLang.indexOf('zh') === 0 ? 'CN' : 'EN';
-    if (langLabel) langLabel.textContent = label;
-    if (mobileLangLabel) mobileLangLabel.textContent = label;
+    var current = getCurrentLang();
+    var next = current === 'en' ? 'CN' : 'EN';
+    if (langLabel) langLabel.textContent = next;
+    if (mobileLangLabel) mobileLangLabel.textContent = next;
   }
   updateLangLabels();
+
+  // === Per-language content filtering on listing pages ===
+  // Hides post cards / archive items / etc. that don't match the user's siteLang.
+  // Items must carry data-post-lang="en" or "zh-CN".
+  function applyLangFilter() {
+    var siteLang = localStorage.getItem('siteLang') || getCurrentLang();
+    var wantZh = siteLang === 'zh';
+    document.querySelectorAll('[data-post-lang]').forEach(function(el) {
+      var pl = (el.getAttribute('data-post-lang') || '').toLowerCase();
+      var isZh = pl.indexOf('zh') === 0;
+      el.style.display = (isZh === wantZh) ? '' : 'none';
+    });
+  }
+  applyLangFilter();
+
 
 })();
