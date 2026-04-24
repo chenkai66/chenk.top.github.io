@@ -1,6 +1,6 @@
 ---
 title: "NLP (11): Multimodal Large Language Models"
-date: 2025-09-12 09:00:00
+date: 2025-09-24 09:00:00
 tags:
   - NLP
   - Multimodal
@@ -18,6 +18,7 @@ lang: en
 mathjax: true
 description: "A deep dive into multimodal LLMs: contrastive vision-language pre-training with CLIP, parameter-efficient bridging with BLIP-2's Q-Former, visual instruction tuning with LLaVA, robust speech recognition with Whisper, GPT-4V capabilities, and the MMBench/MME/MMMU benchmark landscape — with reproducible code."
 disableNunjucks: true
+series_order: 11
 ---
 Humans never perceive the world in one channel at a time. We watch a chart while reading the caption, hear a tone of voice while reading a face, glance at a screenshot while debating a bug. Pure-text language models are deaf and blind to all of that. **Multimodal Large Language Models (MLLMs)** close the gap by aligning images, audio, and video into the same representation space the language model already speaks.
 

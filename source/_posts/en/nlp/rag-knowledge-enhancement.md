@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "Build production-grade RAG systems from first principles: the retrieve-then-generate decomposition, vector indexes (FAISS / Milvus / Chroma / Weaviate / Pinecone), dense+sparse hybrid retrieval with RRF, cross-encoder reranking, chunking strategies, query rewriting, HyDE, and Self-RAG / Corrective-RAG."
 disableNunjucks: true
+series_order: 10
 ---
 
 A frozen language model is a confident liar. It cannot read yesterday's incident report, your company wiki, or the patch notes that shipped this morning, so when you ask, it confabulates an answer that is grammatically perfect and factually wrong. **Retrieval-Augmented Generation (RAG)** breaks the deadlock by separating *memory* from *reasoning*: keep the LLM small and stable, and put the volatile knowledge in an external store that you can update at any time. Before generating, retrieve the relevant evidence and condition the model on it.

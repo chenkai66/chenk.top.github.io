@@ -1,6 +1,6 @@
 ---
 title: "NLP (12): Frontiers and Practical Applications"
-date: 2025-08-27 09:00:00
+date: 2025-09-28 09:00:00
 tags:
   - NLP
   - LLM
@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "Series finale: agents and tool use (Function Calling, ReAct), code generation (Code Llama, Codex), long-context attention (Longformer, Infini-attention), reasoning models (o1, R1), safety and alignment, evaluation, and production deployment with FastAPI, vLLM and Docker."
 disableNunjucks: true
+series_order: 12
 ---
 
 We have spent eleven chapters climbing from raw text to multimodal foundation models. This twelfth and final chapter sits at the frontier and at the runway. It is where research stops being a paper and starts being a service: an LLM that calls tools, writes and debugs code, reasons through hundred-step problems, ingests a 200K-token contract, and serves a thousand concurrent users behind a FastAPI endpoint with p95 latency under 300 ms.

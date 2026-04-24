@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 1: Introduction and Text Preprocessing"
-date: 2025-09-04 09:00:00
+date: 2025-08-15 09:00:00
 tags:
   - NLP
   - Deep Learning
@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 description: "A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations."
 disableNunjucks: true
+series_order: 1
 ---
 
 Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language -- and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.

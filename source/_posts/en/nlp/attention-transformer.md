@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 4: Attention Mechanism and Transformer"
-date: 2025-08-15 09:00:00
+date: 2025-08-27 09:00:00
 tags:
   - NLP
   - Attention
@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "From the bottleneck of Seq2Seq to Attention Is All You Need. Build intuition for scaled dot-product attention, multi-head attention, positional encoding, masking, and assemble a complete Transformer in PyTorch."
 disableNunjucks: true
+series_order: 4
 ---
 
 In June 2017, eight researchers at Google Brain and Google Research published a paper with a deliberately bold title: *Attention Is All You Need*. The architecture it introduced, the **Transformer**, threw away recurrence entirely. There were no LSTMs, no GRUs, no left-to-right scanning of a sentence. Instead, every token in a sequence could look at every other token directly through a single mathematical operation: scaled dot-product attention.

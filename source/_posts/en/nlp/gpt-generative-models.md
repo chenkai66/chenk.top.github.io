@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 6: GPT and Generative Language Models"
-date: 2025-08-31 09:00:00
+date: 2025-09-04 09:00:00
 tags:
   - NLP
   - GPT
@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace."
 disableNunjucks: true
+series_order: 6
 ---
 
 When you ask ChatGPT a question and a fluent multi-paragraph answer streams back token by token, you are watching a single deceptively simple loop: feed everything-so-far into a Transformer decoder, look at the probability distribution it produces over the vocabulary, pick one token, append it, repeat. That is *all* an autoregressive language model does. The miracle is not the loop -- it is what happens when you scale the network behind the loop to hundreds of billions of parameters and train it on most of the internet.

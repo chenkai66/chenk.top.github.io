@@ -1,6 +1,6 @@
 ---
 title: "NLP Part 2: Word Embeddings and Language Models"
-date: 2025-09-28 09:00:00
+date: 2025-08-19 09:00:00
 tags:
   - NLP
   - Word Embeddings
@@ -14,6 +14,7 @@ lang: en
 mathjax: true
 description: "Understand how Word2Vec, GloVe, and FastText turn words into vectors that capture meaning. Learn the math, train your own embeddings with Gensim, and connect embeddings to language models."
 disableNunjucks: true
+series_order: 2
 ---
 
 For decades, machines treated "king" and "queen" as unrelated symbols -- nothing more than two distinct slots in a vocabulary list. Then a single idea changed everything: what if every word lived in a continuous space, and meaning was just a *direction*? Once that idea took hold, models could compute

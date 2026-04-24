@@ -1,6 +1,6 @@
 ---
 title: "NLP (8): Model Fine-tuning and PEFT"
-date: 2025-08-23 09:00:00
+date: 2025-09-12 09:00:00
 tags:
   - NLP
   - PEFT
@@ -15,6 +15,7 @@ lang: en
 mathjax: true
 description: "A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA's low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production."
 disableNunjucks: true
+series_order: 8
 ---
 
 In 2020, fine-tuning a 7-billion-parameter language model was a project budget item: eight A100s, several days, and an engineer who knew how to babysit gradient checkpointing. In 2024, a graduate student does it on a laptop. The distance between those two worlds is almost entirely covered by one paper — Hu et al.'s LoRA (ICLR 2022) — and one follow-up — Dettmers et al.'s QLoRA (NeurIPS 2023).
