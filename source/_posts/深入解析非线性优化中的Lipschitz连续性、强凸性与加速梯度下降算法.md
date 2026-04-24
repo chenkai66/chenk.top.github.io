@@ -6,7 +6,6 @@ date: 2024-09-19 19:20:00
 mathjax: true
 
 ---
-
 在非线性优化领域，Lipschitz连续性、强凸性和加速梯度下降算法是理解和解决优化问题的关键概念。这些概念不仅在理论上具有深刻的意义，而且在实际应用中也具有重要的作用。本文将深入探讨这些概念，涵盖它们的定义、性质、定理、证明和应用实例。通过丰富的例子和通俗易懂的解释，帮助读者全面理解并掌握这些内容，为进一步研究和应用奠定坚实的基础。
 
 <!-- more -->
@@ -39,16 +38,9 @@ mathjax: true
 # Lipschitz连续性与梯度光滑性
 
 
-
 ## Lipschitz连续性的定义与基本性质
 
-**定义**：设函数$f: \mathbb{R}^d \rightarrow \mathbb{R}$，如果存在一个常数$L \geq 0$，对于任意的$x, y \in \mathbb{R}^d$，都有：
-
-$$
-|f(x) - f(y)| \leq L \| x - y \|，
-$$
-
-则称$f$是**Lipschitz连续的**（Lipschitz Continuous），$L$称为其**Lipschitz常数**（Lipschitz Constant）。
+**定义**：设函数$f: \mathbb{R}^d \rightarrow \mathbb{R}$，如果存在一个常数$L \geq 0$，对于任意的$x, y \in \mathbb{R}^d$，都有：$$|f(x) - f(y)| \leq L \| x - y \|，$$则称$f$是**Lipschitz连续的**（Lipschitz Continuous），$L$称为其**Lipschitz常数**（Lipschitz Constant）。
 
 **性质**：
 
@@ -60,69 +52,25 @@ $$
 
 ## 函数的梯度Lipschitz连续性（梯度光滑性）
 
-**定义**：如果可微函数$f$的梯度函数$\nabla f$是Lipschitz连续的，即存在常数$L \geq 0$，对于任意$x, y \in \mathbb{R}^d$，有：
-
-$$
-\| \nabla f(x) - \nabla f(y) \| \leq L \| x - y \|，
-$$
-
-则称$f$是**$L$-光滑函数**（$L$-Smooth Function）。
+**定义**：如果可微函数$f$的梯度函数$\nabla f$是Lipschitz连续的，即存在常数$L \geq 0$，对于任意$x, y \in \mathbb{R}^d$，有：$$\| \nabla f(x) - \nabla f(y) \| \leq L \| x - y \|，$$则称$f$是**$L$-光滑函数**（$L$-Smooth Function）。
 
 **性质**：
 
 - **二次可微性**：$L$-光滑函数在几乎处处二次可微，且Hessian矩阵（$\nabla^2 f(x)$）的谱范数被$L$所限制。
 - **收敛性保证**：在优化算法中，梯度的Lipschitz连续性是许多收敛性分析的基础。
-- **Taylor展开**：$L$-光滑函数满足以下不等式：
-  $$
-  f(y) \leq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{L}{2} \| y - x \|^2。
-  $$
-
-**通俗理解**：梯度的Lipschitz连续性确保了函数的曲率不会突然发生巨大变化，这对于梯度下降等优化算法的稳定性和收敛性至关重要。
+- **Taylor展开**：$L$-光滑函数满足以下不等式：$$f(y) \leq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{L}{2} \| y - x \|^2。$$**通俗理解**：梯度的Lipschitz连续性确保了函数的曲率不会突然发生巨大变化，这对于梯度下降等优化算法的稳定性和收敛性至关重要。
 
 ## 例子分析
 
-**例1：平方范数函数**
-$$
-f(x) = \dfrac{1}{2} \| x \|^2
-$$
+**例1：平方范数函数**$$f(x) = \dfrac{1}{2} \| x \|^2$$- **梯度**：$\nabla f(x) = x$- **梯度差**：$\| \nabla f(x) - \nabla f(y) \| = \| x - y \|$- **Lipschitz常数**：$L = 1$**分析**：由于梯度的变化率为$1$，函数是$1$-光滑的。这是最基本的二次函数，在许多优化问题中被广泛使用。
 
-- **梯度**：$\nabla f(x) = x$
-- **梯度差**：$\| \nabla f(x) - \nabla f(y) \| = \| x - y \|$
-- **Lipschitz常数**：$L = 1$
+**例2：Logistic损失函数**$$f(x) = \sum_{i=1}^d \log(1 + \exp(x_i))$$- **梯度**：$$\nabla f(x) = \left( \dfrac{\exp(x_1)}{1 + \exp(x_1)}, \dfrac{\exp(x_2)}{1 + \exp(x_2)}, \dots, \dfrac{\exp(x_d)}{1 + \exp(x_d)} \right)^\top$$这是Sigmoid函数$\sigma(x_i) = \dfrac{1}{1 + \exp(-x_i)}$。
 
-**分析**：由于梯度的变化率为$1$，函数是$1$-光滑的。这是最基本的二次函数，在许多优化问题中被广泛使用。
-
-**例2：Logistic损失函数**
-$$
-f(x) = \sum_{i=1}^d \log(1 + \exp(x_i))
-$$
-
-- **梯度**：
-
-  $$
-  \nabla f(x) = \left( \dfrac{\exp(x_1)}{1 + \exp(x_1)}, \dfrac{\exp(x_2)}{1 + \exp(x_2)}, \dots, \dfrac{\exp(x_d)}{1 + \exp(x_d)} \right)^\top
-  $$
-
-  这是Sigmoid函数$\sigma(x_i) = \dfrac{1}{1 + \exp(-x_i)}$。
-
-- **Hessian矩阵**：对角矩阵，元素为$\sigma(x_i)(1 - \sigma(x_i))$
-- **Lipschitz常数**：$L = \dfrac{1}{4}$，因为对于所有$x_i$，有$0 < \sigma(x_i)(1 - \sigma(x_i)) \leq \dfrac{1}{4}$。
+- **Hessian矩阵**：对角矩阵，元素为$\sigma(x_i)(1 - \sigma(x_i))$- **Lipschitz常数**：$L = \dfrac{1}{4}$，因为对于所有$x_i$，有$0 < \sigma(x_i)(1 - \sigma(x_i)) \leq \dfrac{1}{4}$。
 
 **分析**：Logistic损失函数在分类问题中经常出现，其梯度和Hessian矩阵具有良好的性质，方便优化算法的实现。
 
-**例3：平移范数函数**
-$$
-f(x) = \sum_{i=1}^d \sqrt{1 + x_i^2}
-$$
-
-- **梯度**：
-
-  $$
-  \nabla f(x) = \left( \dfrac{x_1}{\sqrt{1 + x_1^2}}, \dfrac{x_2}{\sqrt{1 + x_2^2}}, \dots, \dfrac{x_d}{\sqrt{1 + x_d^2}} \right)^\top
-  $$
-
-- **Hessian矩阵**：对角矩阵，元素为$\dfrac{1}{(1 + x_i^2)^{3/2}}$
-- **Lipschitz常数**：$L = 1$，因为对于所有$x_i$，有$0 < \dfrac{1}{(1 + x_i^2)^{3/2}} \leq 1$。
+**例3：平移范数函数**$$f(x) = \sum_{i=1}^d \sqrt{1 + x_i^2}$$- **梯度**：$$\nabla f(x) = \left( \dfrac{x_1}{\sqrt{1 + x_1^2}}, \dfrac{x_2}{\sqrt{1 + x_2^2}}, \dots, \dfrac{x_d}{\sqrt{1 + x_d^2}} \right)^\top$$- **Hessian矩阵**：对角矩阵，元素为$\dfrac{1}{(1 + x_i^2)^{3/2}}$- **Lipschitz常数**：$L = 1$，因为对于所有$x_i$，有$0 < \dfrac{1}{(1 + x_i^2)^{3/2}} \leq 1$。
 
 **分析**：该函数的梯度变化率被$1$限制，说明即使在无穷远处，函数的曲率也不会超过$1$。
 
@@ -130,85 +78,31 @@ $$
 
 **定理1**（梯度Lipschitz连续性的判别准则）：
 
-如果$f$的Hessian矩阵$\nabla^2 f(x)$在整个定义域上满足：
-
-$$
-0 \preceq \nabla^2 f(x) \preceq L I，
-$$
-
-则$f$的梯度是$L$-Lipschitz连续的。
+如果$f$的Hessian矩阵$\nabla^2 f(x)$在整个定义域上满足：$$0 \preceq \nabla^2 f(x) \preceq L I，$$则$f$的梯度是$L$-Lipschitz连续的。
 
 **证明**：
 
-根据多元微积分的基本定理，对于任意$x, y \in \mathbb{R}^d$，有：
-
-$$
-\nabla f(x) - \nabla f(y) = \int_{0}^{1} \nabla^2 f(y + t(x - y)) (x - y) dt
-$$
-
-取范数并应用矩阵范数的性质：
-
-$$
-\| \nabla f(x) - \nabla f(y) \| \leq \int_{0}^{1} \| \nabla^2 f(y + t(x - y)) \| \| x - y \| dt \leq L \| x - y \|
-$$
-
-**定理2**（复合函数的梯度Lipschitz连续性）：
+根据多元微积分的基本定理，对于任意$x, y \in \mathbb{R}^d$，有：$$\nabla f(x) - \nabla f(y) = \int_{0}^{1} \nabla^2 f(y + t(x - y)) (x - y) dt$$取范数并应用矩阵范数的性质：$$\| \nabla f(x) - \nabla f(y) \| \leq \int_{0}^{1} \| \nabla^2 f(y + t(x - y)) \| \| x - y \| dt \leq L \| x - y \|$$**定理2**（复合函数的梯度Lipschitz连续性）：
 
 设$f$是$L$-光滑的函数，$A \in \mathbb{R}^{n \times d}$，则$h(x) = f(Ax + b)$的梯度是$L_h$-Lipschitz连续的，其中$L_h = L \| A \|^2$。
 
 **证明**：
 
-1. **计算梯度**：
-
-   $$
-   \nabla h(x) = A^\top \nabla f(Ax + b)
-   $$
-
-2. **计算梯度差**：
-
-   $$
-   \| \nabla h(x) - \nabla h(y) \| = \| A^\top [\nabla f(Ax + b) - \nabla f(Ay + b)] \| \leq \| A^\top \| \cdot \| \nabla f(Ax + b) - \nabla f(Ay + b) \|
-   $$
-
-3. **应用$f$的Lipschitz性质**：
-
-   $$
-   \| \nabla f(Ax + b) - \nabla f(Ay + b) \| \leq L \| A(x - y) \|
-   $$
-
-4. **综合得到**：
-
-   $$
-   \| \nabla h(x) - \nabla h(y) \| \leq L \| A^\top \| \| A \| \| x - y \| = L \| A \|^2 \| x - y \|
-   $$
-
----
+1. **计算梯度**：$$\nabla h(x) = A^\top \nabla f(Ax + b)$$2. **计算梯度差**：$$\| \nabla h(x) - \nabla h(y) \| = \| A^\top [\nabla f(Ax + b) - \nabla f(Ay + b)] \| \leq \| A^\top \| \cdot \| \nabla f(Ax + b) - \nabla f(Ay + b) \|$$3. **应用$f$的Lipschitz性质**：$$\| \nabla f(Ax + b) - \nabla f(Ay + b) \| \leq L \| A(x - y) \|$$4. **综合得到**：$$\| \nabla h(x) - \nabla h(y) \| \leq L \| A^\top \| \| A \| \| x - y \| = L \| A \|^2 \| x - y \|$$---
 
 <a name="strong-convexity"></a>
 
 # 强凸性与优化问题的解
 
 
-
 ## 强凸函数的定义与性质
 
-**定义**：函数$f: \mathbb{R}^d \rightarrow \mathbb{R}$是**$\mu$-强凸的**（$\mu$-Strongly Convex），如果对于任意$x, y \in \mathbb{R}^d$，有：
-
-$$
-f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{\mu}{2} \| y - x \|^2
-$$
-
-**等价定义**：函数$f$是$\mu$-强凸的，当且仅当函数$x \mapsto f(x) - \dfrac{\mu}{2} \| x \|^2$是凸函数。
+**定义**：函数$f: \mathbb{R}^d \rightarrow \mathbb{R}$是**$\mu$-强凸的**（$\mu$-Strongly Convex），如果对于任意$x, y \in \mathbb{R}^d$，有：$$f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{\mu}{2} \| y - x \|^2$$**等价定义**：函数$f$是$\mu$-强凸的，当且仅当函数$x \mapsto f(x) - \dfrac{\mu}{2} \| x \|^2$是凸函数。
 
 **性质**：
 
 - **唯一的全局最小值**：强凸函数在其定义域上有唯一的全局最小值点$x^\star$。
-- **二次增长性**：对于任意$x \in \mathbb{R}^d$，有：
-  $$
-  f(x) \geq f(x^\star) + \dfrac{\mu}{2} \| x - x^\star \|^2
-  $$
-  
-- **Hessian矩阵下界**：如果$f$二次可微，则$\nabla^2 f(x) \succeq \mu I$。
+- **二次增长性**：对于任意$x \in \mathbb{R}^d$，有：$$f(x) \geq f(x^\star) + \dfrac{\mu}{2} \| x - x^\star \|^2$$- **Hessian矩阵下界**：如果$f$二次可微，则$\nabla^2 f(x) \succeq \mu I$。
 
 可以这么理解，强凸函数的曲率足够大，使得其图像像一个“抛物面”，只有一个最低点，且远离最低点的地方函数值会显著增大。
 
@@ -224,31 +118,11 @@ $$
 2. **下半连续性**：$f$的下侧图闭合意味着$f$是下半连续的。
 3. **应用Weierstrass极值定理**：下半连续函数在紧致集上必定达到其最小值。
 
-**定理4**（极小值唯一性）：
-
-$\mu$-强凸函数$f$在$\mathbb{R}^d$上具有唯一的全局最小值$x^\star$。
+**定理4**（极小值唯一性）：$\mu$-强凸函数$f$在$\mathbb{R}^d$上具有唯一的全局最小值$x^\star$。
 
 **证明**：
 
-假设存在两个不同的全局最小值点$x^\star$和$x^\dagger$，则：
-
-$$
-f(x^\star) = f(x^\dagger)
-$$
-
-根据强凸性的二次增长性质，有：
-
-$$
-f(x^\dagger) \geq f(x^\star) + \dfrac{\mu}{2} \| x^\dagger - x^\star \|^2
-$$
-
-因此：
-
-$$
-f(x^\star) \geq f(x^\star) + \dfrac{\mu}{2} \| x^\dagger - x^\star \|^2
-$$
-
-这只能成立于$\| x^\dagger - x^\star \| = 0$，即$x^\dagger = x^\star$，矛盾。
+假设存在两个不同的全局最小值点$x^\star$和$x^\dagger$，则：$$f(x^\star) = f(x^\dagger)$$根据强凸性的二次增长性质，有：$$f(x^\dagger) \geq f(x^\star) + \dfrac{\mu}{2} \| x^\dagger - x^\star \|^2$$因此：$$f(x^\star) \geq f(x^\star) + \dfrac{\mu}{2} \| x^\dagger - x^\star \|^2$$这只能成立于$\| x^\dagger - x^\star \| = 0$，即$x^\dagger = x^\star$，矛盾。
 
 ## 相关定理与证明
 
@@ -260,46 +134,16 @@ $$
 
 1. **$(\Rightarrow)$方向**：
 
-   - 由于$f$是$\mu$-强凸的，对于任意$x, y$：
-
-     $$
-     f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{\mu}{2} \| y - x \|^2
-     $$
-
-   - 移项得：
-
-     $$
-     [f(y) - \dfrac{\mu}{2} \| y \|^2] \geq [f(x) - \dfrac{\mu}{2} \| x \|^2] + \langle \nabla f(x) - \mu x, y - x \rangle
-     $$
-
-   - 即$\phi(x) = f(x) - \dfrac{\mu}{2} \| x \|^2$满足凸函数的定义。
+   - 由于$f$是$\mu$-强凸的，对于任意$x, y$：$$f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{\mu}{2} \| y - x \|^2$$- 移项得：$$[f(y) - \dfrac{\mu}{2} \| y \|^2] \geq [f(x) - \dfrac{\mu}{2} \| x \|^2] + \langle \nabla f(x) - \mu x, y - x \rangle$$- 即$\phi(x) = f(x) - \dfrac{\mu}{2} \| x \|^2$满足凸函数的定义。
 
 2. **$(\Leftarrow)$方向**：
 
    - 假设$\phi(x) = f(x) - \dfrac{\mu}{2} \| x \|^2$是凸函数。
-   - 根据凸函数的定义，对于任意$x, y$：
-
-     $$
-     f(y) - \dfrac{\mu}{2} \| y \|^2 \geq f(x) - \dfrac{\mu}{2} \| x \|^2 + \langle \nabla f(x) - \mu x, y - x \rangle
-     $$
-
-   - 整理得到：
-
-     $$
-     f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{\mu}{2} \| y - x \|^2
-     $$
-
-   - 证明了$f$是$\mu$-强凸的。
+   - 根据凸函数的定义，对于任意$x, y$：$$f(y) - \dfrac{\mu}{2} \| y \|^2 \geq f(x) - \dfrac{\mu}{2} \| x \|^2 + \langle \nabla f(x) - \mu x, y - x \rangle$$- 整理得到：$$f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \dfrac{\mu}{2} \| y - x \|^2$$- 证明了$f$是$\mu$-强凸的。
 
 **定理6**（强凸函数的误差下界）：
 
-对于$\mu$-强凸且$L$-光滑的函数$f$，有：
-
-$$
-f(x) - f^\star \geq \dfrac{\mu}{2} \| x - x^\star \|^2
-$$
-
-**证明**：
+对于$\mu$-强凸且$L$-光滑的函数$f$，有：$$f(x) - f^\star \geq \dfrac{\mu}{2} \| x - x^\star \|^2$$**证明**：
 
 直接应用强凸性的二次增长性质。
 
@@ -310,19 +154,11 @@ $$
 # 加速梯度下降算法及其收敛性
 
 
-
 ## 梯度下降算法回顾
 
 **梯度下降算法**：
 
-1. **初始化**：选择初始点$x_0$
-2. **迭代更新**：
-
-   $$
-   x_{k+1} = x_k - \alpha_k \nabla f(x_k)
-   $$
-
-   其中$\alpha_k > 0$为步长（学习率）。
+1. **初始化**：选择初始点$x_0$2. **迭代更新**：$$x_{k+1} = x_k - \alpha_k \nabla f(x_k)$$其中$\alpha_k > 0$为步长（学习率）。
 
 **收敛性分析**：
 
@@ -335,18 +171,11 @@ $$
 
 **算法描述**：
 
-1. **初始化**：$x_0 = y_0$，$t_0 = 1$
-2. **迭代更新**：对于$k \geq 0$，
-
-   $$
-   \begin{cases}
+1. **初始化**：$x_0 = y_0$，$t_0 = 1$2. **迭代更新**：对于$k \geq 0$，$$\begin{cases}
    x_{k+1} = y_k - \dfrac{1}{L} \nabla f(y_k) \\
    t_{k+1} = \dfrac{1 + \sqrt{1 + 4 t_k^2}}{2} \\
    y_{k+1} = x_{k+1} + \left( \dfrac{t_k - 1}{t_{k+1}} \right)(x_{k+1} - x_k)
-   \end{cases}
-   $$
-
-**收敛性**：
+   \end{cases}$$**收敛性**：
 
 - 对于$L$-光滑的凸函数，收敛速度为$O\left( \dfrac{1}{k^2} \right)$。
 - 通过引入动量项，加速了收敛速度。
@@ -364,13 +193,7 @@ $$
 
 - **定理7**（重启加速梯度下降的收敛性）：
 
-  对于$\mu$-强凸且$L$-光滑的函数$f$，设$T^\star = \left\lceil 2 \sqrt{\dfrac{L}{\mu}} \right\rceil$，则重启加速梯度下降算法在总迭代次数$N$内达到精度$\varepsilon$所需的$N$满足：
-
-  $$
-  N \leq \left\lceil 2 \sqrt{\dfrac{L}{\mu}} \right\rceil \cdot \log_2 \left( \dfrac{f(x_0) - f^\star}{\varepsilon} \right)
-  $$
-
-**证明思路**：
+  对于$\mu$-强凸且$L$-光滑的函数$f$，设$T^\star = \left\lceil 2 \sqrt{\dfrac{L}{\mu}} \right\rceil$，则重启加速梯度下降算法在总迭代次数$N$内达到精度$\varepsilon$所需的$N$满足：$$N \leq \left\lceil 2 \sqrt{\dfrac{L}{\mu}} \right\rceil \cdot \log_2 \left( \dfrac{f(x_0) - f^\star}{\varepsilon} \right)$$**证明思路**：
 
 - 证明每次重启后，函数值误差至少减半。
 - 计算需要的重启次数$n$，使得$\left( \dfrac{1}{2} \right)^n (f(x_0) - f^\star) \leq \varepsilon$。
@@ -379,46 +202,21 @@ $$
 **例子**：
 
 - **参数设置**：$L = 100$，$\mu = 1$，$x_0$为初始点。
-- **计算$T^\star$**：$T^\star = \left\lceil 2 \sqrt{\dfrac{100}{1}} \right\rceil = 20$
-- **目标精度**：$\varepsilon = 10^{-6}$
-- **需要的重启次数**：$n = \log_2 \left( \dfrac{f(x_0) - f^\star}{10^{-6}} \right)$
-- **总迭代次数**：$N = 20 \times n$
-
----
+- **计算$T^\star$**：$T^\star = \left\lceil 2 \sqrt{\dfrac{100}{1}} \right\rceil = 20$- **目标精度**：$\varepsilon = 10^{-6}$- **需要的重启次数**：$n = \log_2 \left( \dfrac{f(x_0) - f^\star}{10^{-6}} \right)$- **总迭代次数**：$N = 20 \times n$---
 
 <a name="least-squares"></a>
 # 最小二乘问题与优化算法实践
 
 
-
 ## 最小二乘问题的数学背景
 
-**问题描述**：
-
-$$
-\min_{x \in \mathbb{R}^n} \quad f(x) = \dfrac{1}{2} \| A x - b \|^2
-$$
-
-其中$A \in \mathbb{R}^{m \times n}$，$b \in \mathbb{R}^m$。
+**问题描述**：$$\min_{x \in \mathbb{R}^n} \quad f(x) = \dfrac{1}{2} \| A x - b \|^2$$其中$A \in \mathbb{R}^{m \times n}$，$b \in \mathbb{R}^m$。
 
 **梯度与Hessian矩阵**：
 
-- **梯度**：
+- **梯度**：$$\nabla f(x) = A^\top (A x - b)$$- **Hessian矩阵**：$$\nabla^2 f(x) = A^\top A$$**性质**：
 
-  $$
-  \nabla f(x) = A^\top (A x - b)
-  $$
-
-- **Hessian矩阵**：
-
-  $$
-  \nabla^2 f(x) = A^\top A
-  $$
-
-**性质**：
-
-- **Lipschitz梯度**：梯度的Lipschitz常数$L = \lambda_{\max}(A^\top A)$
-- **强凸性**：强凸参数$\mu = \lambda_{\min}(A^\top A)$（如果$A^\top A$是正定的）
+- **Lipschitz梯度**：梯度的Lipschitz常数$L = \lambda_{\max}(A^\top A)$- **强凸性**：强凸参数$\mu = \lambda_{\min}(A^\top A)$（如果$A^\top A$是正定的）
 
 **应用背景**：最小二乘问题在数据拟合、信号处理、机器学习等领域广泛存在，目标是找到最优参数$x$，使得模型$A x$尽可能逼近观测数据$b$。
 
@@ -438,23 +236,11 @@ $$
 
 3. **算法实现**：
 
-   - **梯度下降算法（GD）**：
-
-     $$
-     x_{k+1} = x_k - \dfrac{1}{L} \nabla f(x_k)
-     $$
-
-   - **加速梯度下降算法（AGD）**：
-
-     $$
-     \begin{cases}
+   - **梯度下降算法（GD）**：$$x_{k+1} = x_k - \dfrac{1}{L} \nabla f(x_k)$$- **加速梯度下降算法（AGD）**：$$\begin{cases}
      y_k = x_k + \dfrac{t_k - 1}{t_{k+1}} (x_k - x_{k-1}) \\
      x_{k+1} = y_k - \dfrac{1}{L} \nabla f(y_k) \\
      t_{k+1} = \dfrac{1 + \sqrt{1 + 4 t_k^2}}{2}
-     \end{cases}
-     $$
-
-     其中$t_0 = 1$，$x_{-1} = x_0$。
+     \end{cases}$$其中$t_0 = 1$，$x_{-1} = x_0$。
 
    - **重启加速梯度下降算法**：每隔$T$次迭代，将$t_k$重置为$1$，$x_{k-1}$重置为$x_k$。
 
@@ -485,6 +271,6 @@ $$
 <a name="conclusion"></a>
 **参考文献**：
 
-1. Nesterov, Y. (1983). A method of solving a convex programming problem with convergence rate $O(1/k^2)$. Soviet Mathematics Doklady, 27(2), 372–376.
+1. Nesterov, Y. (1983). A method of solving a convex programming problem with convergence rate$O(1/k^2)$. Soviet Mathematics Doklady, 27(2), 372–376.
 2. Boyd, S., & Vandenberghe, L. (2004). Convex Optimization. Cambridge University Press.
 3. Bubeck, S. (2015). Convex Optimization: Algorithms and Complexity. Foundations and Trends in Machine Learning, 8(3-4), 231–357.

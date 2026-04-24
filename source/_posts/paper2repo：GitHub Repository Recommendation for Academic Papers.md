@@ -5,7 +5,6 @@ categories: Paper
 date: 2024-10-17 19:00:00
 mathjax: true
 ---
-
 本文介绍了一种新颖的跨平台推荐系统——**paper2repo**，旨在将学术论文与相关的 GitHub 代码仓库进行匹配。该系统通过构建论文与代码仓库的联合嵌入空间，利用图卷积神经网络（GCN）和文本编码技术，自动地在两者之间建立关联，从而帮助研究者更方便地找到与论文相关的开源代码。实验结果表明，paper2repo 在推荐准确性方面优于现有的方法，显著提高了命中率、MAP 和 MRR 等指标。
 
 <!-- more -->
@@ -55,20 +54,14 @@ paper2repo 的核心是一个联合模型，包括：
 
 1. **词嵌入表示**：
 
-   - 将描述和标签的文本进行分词，得到序列 $\{\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_n\}$。
-   - 使用预训练的词向量（如 GloVe）将每个词映射为 $k$ 维向量 $\mathbf{x}_i \in \mathbb{R}^k$。
+   - 将描述和标签的文本进行分词，得到序列$\{\mathbf{x}_1, \mathbf{x}_2, \dots, \mathbf{x}_n\}$。
+   - 使用预训练的词向量（如 GloVe）将每个词映射为$k$维向量$\mathbf{x}_i \in \mathbb{R}^k$。
 
 2. **卷积层**：
 
-   - 对文本序列进行卷积操作，使用多种窗口大小 $h$ 的卷积核 $\mathbf{w} \in \mathbb{R}^{h \times k}$。
-   - 卷积计算公式：
-
-     $$
-     c_i = f\left( \mathbf{w} \cdot \mathbf{x}_{i:i+h-1} + b \right)
-     $$
-
-     - 其中 $\mathbf{x}_{i:i+h-1}$ 表示从位置 $i$ 到 $i+h-1$ 的词向量序列。
-     - $b$ 为偏置项，$f$ 为非线性激活函数（如 ReLU）。
+   - 对文本序列进行卷积操作，使用多种窗口大小$h$的卷积核$\mathbf{w} \in \mathbb{R}^{h \times k}$。
+   - 卷积计算公式：$$c_i = f\left( \mathbf{w} \cdot \mathbf{x}_{i:i+h-1} + b \right)$$- 其中$\mathbf{x}_{i:i+h-1}$表示从位置$i$到$i+h-1$的词向量序列。
+     -$b$为偏置项，$f$为非线性激活函数（如 ReLU）。
 
 3. **最大池化层**：
 
@@ -81,11 +74,11 @@ paper2repo 的核心是一个联合模型，包括：
 
 5. **特征融合**：
 
-   - 将描述的特征向量和标签的特征向量进行融合（如相加或拼接），得到仓库的最终表示向量 $\mathbf{v}_j$。
+   - 将描述的特征向量和标签的特征向量进行融合（如相加或拼接），得到仓库的最终表示向量$\mathbf{v}_j$。
 
 ### 对论文的文本编码
 
-- 对论文摘要使用与仓库描述相同的卷积神经网络进行编码，得到论文的表示向量 $\mathbf{p}_i$。
+- 对论文摘要使用与仓库描述相同的卷积神经网络进行编码，得到论文的表示向量$\mathbf{p}_i$。
 
 ## 受限图卷积神经网络（Constrained GCN）
 
@@ -93,17 +86,11 @@ paper2repo 的核心是一个联合模型，包括：
 
 GCN 是一种在图结构上进行卷积运算的神经网络，能够利用节点的特征和图的结构信息来学习节点的嵌入表示。
 
-GCN 的层间传播公式为：
-
-$$
-\mathbf{H}^{(l+1)} = \sigma \left( \tilde{\mathbf{D}}^{-\frac{1}{2}} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-\frac{1}{2}} \mathbf{H}^{(l)} \mathbf{W}^{(l)} \right)
-$$
-
-- $\mathbf{H}^{(l)}$：第 $l$ 层的节点表示矩阵，行表示节点，列表示特征维度。
-- $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$：加上自环后的邻接矩阵。
-- $\tilde{\mathbf{D}}$：$\tilde{\mathbf{A}}$ 的度矩阵，$\tilde{\mathbf{D}}_{ii} = \sum_j \tilde{\mathbf{A}}_{ij}$。
-- $\mathbf{W}^{(l)}$：第 $l$ 层的权重矩阵。
-- $\sigma$：激活函数，如 ReLU。
+GCN 的层间传播公式为：$$\mathbf{H}^{(l+1)} = \sigma \left( \tilde{\mathbf{D}}^{-\frac{1}{2}} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-\frac{1}{2}} \mathbf{H}^{(l)} \mathbf{W}^{(l)} \right)$$-$\mathbf{H}^{(l)}$：第$l$层的节点表示矩阵，行表示节点，列表示特征维度。
+-$\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$：加上自环后的邻接矩阵。
+-$\tilde{\mathbf{D}}$：$\tilde{\mathbf{A}}$的度矩阵，$\tilde{\mathbf{D}}_{ii} = \sum_j \tilde{\mathbf{A}}_{ij}$。
+-$\mathbf{W}^{(l)}$：第$l$层的权重矩阵。
+-$\sigma$：激活函数，如 ReLU。
 
 ### 受限 GCN 模型
 
@@ -111,22 +98,9 @@ $$
 
 ### 约束条件
 
-对于每一对桥接论文 $\mathbf{p}_i'$ 和其对应的桥接仓库 $\mathbf{r}_i'$，要求它们的嵌入表示尽可能接近。使用余弦相似度作为度量，约束条件为：
+对于每一对桥接论文$\mathbf{p}_i'$和其对应的桥接仓库$\mathbf{r}_i'$，要求它们的嵌入表示尽可能接近。使用余弦相似度作为度量，约束条件为：$$1 - \cos\left( \mathbf{p}_i', \mathbf{r}_i' \right) \leq \epsilon$$-$\cos\left( \mathbf{p}_i', \mathbf{r}_i' \right) = \frac{\mathbf{p}_i'^{\top} \mathbf{r}_i'}{\| \mathbf{p}_i' \| \| \mathbf{r}_i' \|}$- 为了简化计算，嵌入向量进行了归一化处理，即$\| \mathbf{p}_i' \| = \| \mathbf{r}_i' \| = 1$，因此余弦相似度简化为内积。
 
-$$
-1 - \cos\left( \mathbf{p}_i', \mathbf{r}_i' \right) \leq \epsilon
-$$
-
-- $\cos\left( \mathbf{p}_i', \mathbf{r}_i' \right) = \frac{\mathbf{p}_i'^{\top} \mathbf{r}_i'}{\| \mathbf{p}_i' \| \| \mathbf{r}_i' \|}$
-- 为了简化计算，嵌入向量进行了归一化处理，即 $\| \mathbf{p}_i' \| = \| \mathbf{r}_i' \| = 1$，因此余弦相似度简化为内积。
-
-因此，约束条件可以表示为：
-
-$$
-1 - \mathbf{p}_i'^{\top} \mathbf{r}_i' \leq \epsilon
-$$
-
-- $\epsilon$ 是一个小的容忍误差，例如 0.001。
+因此，约束条件可以表示为：$$1 - \mathbf{p}_i'^{\top} \mathbf{r}_i' \leq \epsilon$$-$\epsilon$是一个小的容忍误差，例如 0.001。
 
 ### 损失函数
 
@@ -134,66 +108,24 @@ $$
 
 #### WARP 损失函数
 
-WARP 损失函数定义为：
-
-$$
-\mathcal{L} = \sum_{(p, r^+)} L\left( \operatorname{rank}^\Delta(s(p, r^+)) \right) \cdot \left| \Delta - s(p, r^+) + s(p, r^-) \right|_+
-$$
-
-- $(p, r^+)$：正样本对，表示论文 $p$ 与相关的仓库 $r^+$。
-- $s(p, r) = \mathbf{p}^\top \mathbf{r}$：论文和仓库的相似度（内积）。
-- $r^-$：负样本仓库。
-- $\Delta$：边际超参数，控制正负样本之间的间隔，取值在 $(0, 1)$。
-- $|t|_+ = \max(0, t)$：取非负部分。
-- $L(K)$：将排名转换为损失的函数，定义为：
-
-  $$
-  L(K) = \sum_{j=1}^K \frac{1}{j}
-  $$
-
-- $\operatorname{rank}^\Delta(s(p, r^+))$：正样本的边际排名，定义为：
-
-  $$
-  \operatorname{rank}^\Delta(s(p, r^+)) = \sum_{r^-} I\left( \Delta - s(p, r^+) + s(p, r^-) > 0 \right)
-  $$
-
-  - $I(\cdot)$：指示函数，当条件为真时取 1，否则取 0。
-  - 表示有多少负样本满足 $\Delta - s(p, r^+) + s(p, r^-) > 0$，即负样本得分比正样本高出 $\Delta$。
+WARP 损失函数定义为：$$\mathcal{L} = \sum_{(p, r^+)} L\left( \operatorname{rank}^\Delta(s(p, r^+)) \right) \cdot \left| \Delta - s(p, r^+) + s(p, r^-) \right|_+$$-$(p, r^+)$：正样本对，表示论文$p$与相关的仓库$r^+$。
+-$s(p, r) = \mathbf{p}^\top \mathbf{r}$：论文和仓库的相似度（内积）。
+-$r^-$：负样本仓库。
+-$\Delta$：边际超参数，控制正负样本之间的间隔，取值在$(0, 1)$。
+-$|t|_+ = \max(0, t)$：取非负部分。
+-$L(K)$：将排名转换为损失的函数，定义为：$$L(K) = \sum_{j=1}^K \frac{1}{j}$$-$\operatorname{rank}^\Delta(s(p, r^+))$：正样本的边际排名，定义为：$$\operatorname{rank}^\Delta(s(p, r^+)) = \sum_{r^-} I\left( \Delta - s(p, r^+) + s(p, r^-) > 0 \right)$$-$I(\cdot)$：指示函数，当条件为真时取 1，否则取 0。
+  - 表示有多少负样本满足$\Delta - s(p, r^+) + s(p, r^-) > 0$，即负样本得分比正样本高出$\Delta$。
 
 #### 优化目标
 
-原始的优化问题是：
+原始的优化问题是：$$\min \quad \mathcal{L} \\
+\text{subject to} \quad \sum_{i=1}^m (1 - \mathbf{p}_i'^{\top} \mathbf{r}_i') \leq \epsilon$$-$m$：桥接论文-仓库对的数量。
 
-$$
-\min \quad \mathcal{L} \\
-\text{subject to} \quad \sum_{i=1}^m (1 - \mathbf{p}_i'^{\top} \mathbf{r}_i') \leq \epsilon
-$$
+为了将约束条件融入优化目标，采用了拉格朗日乘子法，将优化问题转换为：$$\min \quad \mathcal{L} + \lambda \sum_{i=1}^m (1 - \mathbf{p}_i'^{\top} \mathbf{r}_i')$$-$\lambda$：拉格朗日乘子，控制损失函数和约束项之间的权重。
 
-- $m$：桥接论文-仓库对的数量。
+然而，由于训练过程中$\mathcal{L}$会动态变化，难以选择合适的$\lambda$。为了解决这一问题，模型将$\lambda$替换为动态变化的$\mathcal{L}$，并对约束误差进行归一化，得到新的优化目标：$$\min \quad (1 + C_e) \mathcal{L}$$-$C_e$：平均约束误差，定义为：$$C_e = \frac{1}{2m} \sum_{i=1}^m (1 - \mathbf{p}_i'^{\top} \mathbf{r}_i')$$- 由于$\mathbf{p}_i'$和$\mathbf{r}_i'$已归一化，$\mathbf{p}_i'^{\top} \mathbf{r}_i'$的取值范围为$[-1, 1]$，因此$C_e$的取值范围为$[0, 1]$。
 
-为了将约束条件融入优化目标，采用了拉格朗日乘子法，将优化问题转换为：
-
-$$
-\min \quad \mathcal{L} + \lambda \sum_{i=1}^m (1 - \mathbf{p}_i'^{\top} \mathbf{r}_i')
-$$
-
-- $\lambda$：拉格朗日乘子，控制损失函数和约束项之间的权重。
-
-然而，由于训练过程中 $\mathcal{L}$ 会动态变化，难以选择合适的 $\lambda$。为了解决这一问题，模型将 $\lambda$ 替换为动态变化的 $\mathcal{L}$，并对约束误差进行归一化，得到新的优化目标：
-
-$$
-\min \quad (1 + C_e) \mathcal{L}
-$$
-
-- $C_e$：平均约束误差，定义为：
-
-  $$
-  C_e = \frac{1}{2m} \sum_{i=1}^m (1 - \mathbf{p}_i'^{\top} \mathbf{r}_i')
-  $$
-
-  - 由于 $\mathbf{p}_i'$ 和 $\mathbf{r}_i'$ 已归一化，$\mathbf{p}_i'^{\top} \mathbf{r}_i'$ 的取值范围为 $[-1, 1]$，因此 $C_e$ 的取值范围为 $[0, 1]$。
-
-这个新的优化目标避免了手动调整 $\lambda$ 的问题，使损失函数和约束项在同一量级上，方便模型训练。
+这个新的优化目标避免了手动调整$\lambda$的问题，使损失函数和约束项在同一量级上，方便模型训练。
 
 ## 模型训练
 
@@ -202,7 +134,7 @@ $$
 - **正样本**：
 
   - 桥接论文与其对应的桥接仓库构成正样本对。
-  - 为了增加正样本数量，假设如果用户同时星标了仓库 $A$ 和仓库 $B$，且频率较高，那么仓库 $B$ 与 $A$ 相关性较高。
+  - 为了增加正样本数量，假设如果用户同时星标了仓库$A$和仓库$B$，且频率较高，那么仓库$B$与$A$相关性较高。
   - 基于此，从星标桥接仓库的用户中，统计他们还星标的其他仓库，选择共星标次数较高的仓库作为额外的正样本。
 
 - **负样本**：
@@ -219,7 +151,7 @@ $$
 
 - **目标**：
 
-  - 最小化新的优化目标 $(1 + C_e) \mathcal{L}$。
+  - 最小化新的优化目标$(1 + C_e) \mathcal{L}$。
 
 - **优化算法**：
 
