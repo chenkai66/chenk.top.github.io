@@ -1,0 +1,106 @@
+<!doctype html><html lang=zh data-translation=/en/openclaw-quickstart/07-memory-system/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>OpenClaw 快速上手（7）：把记忆系统讲清楚，不靠玄学 · Chen Kai Blog</title>
+<meta name=description content="MEMORY.md 是 40 行以内的索引，不是数据库；memoryFlush 在压缩前抢救信息；用 bge-m3 做语义搜索；v2026.3.7 之后 ContextEngine 把记忆从 Agent 手里拿回到 harness。这一篇讲它能省什么，又在哪里漏。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/openclaw-quickstart/07-memory-system/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/><meta property="og:type" content="article"><meta property="og:title" content="OpenClaw 快速上手（7）：把记忆系统讲清楚，不靠玄学"><meta property="og:description" content="MEMORY.md 是 40 行以内的索引，不是数据库；memoryFlush 在压缩前抢救信息；用 bge-m3 做语义搜索；v2026.3.7 之后 ContextEngine 把记忆从 Agent 手里拿回到 harness。这一篇讲它能省什么，又在哪里漏。"><meta property="og:url" content="https://www.chenk.top/zh/openclaw-quickstart/07-memory-system/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.89bcd3ce78c3656c0b3458d0efc15f674bb044a7c5c5c58bb54eb568597f86eb.css><script defer src=/js/site.min.4f116e466d1d3b505d02af72013821e4ef934532a0d2236ac93ea937a6a9722f.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder=搜文章、系列、标签… autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>搜文章、系列、标签…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>系列</a> · <a href=/zh/series/>OpenClaw 快速上手</a>
+· 第 7</div><h1>OpenClaw 快速上手（7）：把记忆系统讲清楚，不靠玄学</h1><p class=deck>MEMORY.md 是 40 行以内的索引，不是数据库；memoryFlush 在压缩前抢救信息；用 bge-m3 做语义搜索；v2026.3.7 之后 ContextEngine 把记忆从 Agent 手里拿回到 harness。这一篇讲它能省什么，又在哪里漏。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-04-14>April 14, 2026</time> · 3 分钟 · 1448 字</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/openclaw/ class=tag>#openclaw</a><a href=/zh/tags/memory/ class=tag>#memory</a><a href=/zh/tags/context-engine/ class=tag>#context-engine</a><a href=/zh/tags/bge-m3/ class=tag>#bge-m3</a></div><a class="pill pill-outline" href=/en/openclaw-quickstart/07-memory-system/>Read in English →</a></div></header><div class=prose><p>前六篇让你跑起来了一个能用的 OpenClaw，挂上了渠道，写了一个 Skill。这一篇要讲第一次安装时大家普遍踩坑的部分：记忆。</p><h2 id=workspace-的样子>workspace 的样子</h2><p>打开 <code>~/.openclaw/workspace/</code>，你会看到：</p><pre tabindex=0><code>~/.openclaw/workspace/
+├── MEMORY.md              # 索引，控制在 40 行以内
+├── HEARTBEAT.md           # 巡逻规则，按节奏被重读
+└── memory/
+    ├── projects.md        # 当前项目状态
+    ├── lessons.md         # 踩过的坑，不想再踩
+    ├── 2026-04-14.md      # 当日原始日志
+    └── archive/           # 30 天以前的全部归档到这里
+</code></pre><p>最重要的两个文件：<code>MEMORY.md</code> 是索引——Agent 每一轮都会读，所以必须短；<code>lessons.md</code> 沉淀那些"我们试过、它因为 Y 崩了"的长尾。日志写得勤、读得稀，平时只通过搜索去触达。</p><p>我自己花了两个月才弄明白的事：什么都往 <code>MEMORY.md</code> 里塞。等它涨到 200 行，每一轮先吃掉三千 token 才开始干活，Agent 还是找不到要的东西。<strong>索引不是档案。</strong></p><h2 id=四层记忆的心智模型>四层记忆的心智模型</h2><p>判断一条信息该放哪儿，我脑子里挂着这张表：</p><table><thead><tr><th>层</th><th>寿命</th><th>该去哪里</th></tr></thead><tbody><tr><td>身份</td><td>永久</td><td><code>MEMORY.md</code>（姓名、语气、角色）</td></tr><tr><td>决策</td><td>数月</td><td><code>projects.md</code></td></tr><tr><td>教训</td><td>数年</td><td><code>lessons.md</code></td></tr><tr><td>痕迹</td><td>数日</td><td><code>memory/YYYY-MM-DD.md</code></td></tr></tbody></table><p>塞不进任何一格的，多半就是噪音。直接丢。</p><h2 id=memoryflush必装的一行配置>memoryFlush——必装的一行配置</h2><p>长对话上下文吃紧时会自动压缩。默认行为是：<strong>没写下来的全部蒸发</strong>。<code>memoryFlush</code> 会在压缩<strong>之前</strong>专门跑一遍"把重要信息抢出来"：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agents&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;defaults&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;compaction&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;reserveTokensFloor&#34;</span><span class=p>:</span> <span class=mi>20000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;memoryFlush&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=nt>&#34;softThresholdTokens&#34;</span><span class=p>:</span> <span class=mi>4000</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>softThresholdTokens</code> 是抢救阶段允许用掉的 token 上限。4000 够写一段有用的总结；8000 浪费——除非你在跑超长会话。</p><h2 id=memorysearchbge-m3-完全够用>memorySearch——bge-m3 完全够用</h2><p>可以对所有记忆文件做语义搜索，前提是接一个 Embedding API。最便宜的路是 SiliconFlow 的 <code>BAAI/bge-m3</code>，免费而且足够用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;tools&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&#34;memorySearch&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;enabled&#34;</span><span class=p>:</span> <span class=kc>true</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=nt>&#34;embedding&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;provider&#34;</span><span class=p>:</span> <span class=s2>&#34;openai-compatible&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;baseUrl&#34;</span><span class=p>:</span> <span class=s2>&#34;https://api.siliconflow.cn/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;apiKey&#34;</span><span class=p>:</span> <span class=s2>&#34;...&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=nt>&#34;model&#34;</span><span class=p>:</span> <span class=s2>&#34;BAAI/bge-m3&#34;</span>
+</span></span><span class=line><span class=cl>      <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>  <span class=p>}</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>效果要等大约一周才看得到。在那之前根本没东西可搜。</p><h2 id=contextenginev202637-之后的转向>ContextEngine——v2026.3.7 之后的转向</h2><p>到 v2026.3.6 为止，记忆是个<strong>显式工具</strong>：Agent 必须主动调 <code>memory_search</code>、<code>memory_get</code> 才能拿到历史信息。一忘就等于没记忆。</p><p>从 v2026.3.7 起，记忆改成了 hooks 生命周期，由 harness 围绕 Agent 自动跑：</p><pre tabindex=0><code>bootstrap   → 第一轮之前先加载先验
+ingest      → 出现新事实时实时吸收
+assemble    → 拼出最终 Prompt 切片
+compact     → 按预算裁剪
+afterTurn   → 每一轮结束后写回变化
+</code></pre><p><strong>Agent 不再决定什么时候去记</strong>，harness 决定。听起来是小变化，其实不是。它把"Agent 记得去记忆"变成了"系统替你记，没条件可讲"。</p><p>默认的 ContextEngine 适用于绝大多数人。要换成 RAG 检索器或者知识图谱后端也行——Agent 配置不动，换一个引擎插件即可。</p><h2 id=它仍然会漏的地方>它仍然会漏的地方</h2><p>我目前还会被咬到的三件事：</p><ol><li><strong>群聊和子 Agent 默认不读 <code>MEMORY.md</code>。</strong> 这是有意为之——群上下文是共享的，子 Agent 应该是沙箱——但忘了这点，你会花一下午想"为什么团队群里的 bot 不知道我叫什么"。</li><li><strong>Embedding 漂移。</strong> 换 embedding 模型，旧向量全废。要么重建索引，要么忍受召回下降。没有自动迁移。</li><li><strong>40 行的纪律没人替你守。</strong> 加一条每周 cron，<code>wc -l MEMORY.md</code> 超过 40 就大声报错。比"我会注意的"靠谱得多。</li></ol><p>每个周日我跑这三行体检：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>wc -l ~/.openclaw/workspace/MEMORY.md      <span class=c1># &lt; 40</span>
+</span></span><span class=line><span class=cl>ls -lt ~/.openclaw/workspace/memory/*.md <span class=p>|</span> head
+</span></span><span class=line><span class=cl>ls ~/.openclaw/agents/main/sessions/*.jsonl <span class=p>|</span> wc -l
+</span></span></code></pre></td></tr></table></div></div><p><code>MEMORY.md</code> 一旦超 40 行，就有东西该挪到 <code>projects.md</code> 或 <code>lessons.md</code>。session 文件堆到几百以上，就该归档——不然启动会越来越慢。</p><h2 id=一句话总结>一句话总结</h2><ul><li><code>MEMORY.md</code> 是索引，不是数据库。</li><li>第一天就把 <code>memoryFlush</code> 打开。</li><li><code>memorySearch</code> 等到有东西可搜的时候再加。</li><li>v2026.3.7 之后，别再让 Agent 记着去记忆，让 engine 替你记。</li><li>记忆决定 Agent 用起来像工具还是像同事。这点纪律值得守。</li></ul></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← 前一篇</div><a href=https://www.chenk.top/zh/openclaw-quickstart/06-skills-and-mcp/><span class=title>OpenClaw 快速上手（六）：Skills、MCP、以及交付一个真正有用的东西</span></a></div><div class="nav-item next-item"><div class=label>后一篇 →</div><a href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=title>OpenClaw 快速上手（8）：Heartbeat、Cron，以及怎么让它早上 7 点叫你</span></a></div></nav><div class=article-end><h4>翻完了？</h4><p>去 GitHub 关注一下，新一篇通常隔一周就到。</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>本篇目录</div><nav id=TableOfContents><ul><li><a href=#workspace-的样子>workspace 的样子</a></li><li><a href=#四层记忆的心智模型>四层记忆的心智模型</a></li><li><a href=#memoryflush必装的一行配置>memoryFlush——必装的一行配置</a></li><li><a href=#memorysearchbge-m3-完全够用>memorySearch——bge-m3 完全够用</a></li><li><a href=#contextenginev202637-之后的转向>ContextEngine——v2026.3.7 之后的转向</a></li><li><a href=#它仍然会漏的地方>它仍然会漏的地方</a></li><li><a href=#一句话总结>一句话总结</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label=属于系列><div class=label><a href=/zh/series/ class=series-name>OpenClaw 快速上手</a>
+<span class=count>10</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/01-what-is-openclaw/><span class=chapter-num>01</span>
+<span class=chapter-title>OpenClaw 快速上手（一）：这玩意到底是什么</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/02-install-and-first-chat/><span class=chapter-num>02</span>
+<span class=chapter-title>OpenClaw 快速上手（二）：10 分钟装好并完成第一次对话</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/03-architecture/><span class=chapter-num>03</span>
+<span class=chapter-title>OpenClaw 快速上手（三）：让 Agent 循环跑起来的六层架构</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/04-configuration/><span class=chapter-num>04</span>
+<span class=chapter-title>OpenClaw 快速上手（四）：配置文件、模型 Provider，以及 Coding Plan 的小窍门</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/05-channels/><span class=chapter-num>05</span>
+<span class=chapter-title>OpenClaw 快速上手（五）：接 Telegram、钉钉，以及微信的真实情况</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/06-skills-and-mcp/><span class=chapter-num>06</span>
+<span class=chapter-title>OpenClaw 快速上手（六）：Skills、MCP、以及交付一个真正有用的东西</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>OpenClaw 快速上手（7）：把记忆系统讲清楚，不靠玄学</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/08-cron-and-heartbeat/><span class=chapter-num>08</span>
+<span class=chapter-title>OpenClaw 快速上手（8）：Heartbeat、Cron，以及怎么让它早上 7 点叫你</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/09-china-channels/><span class=chapter-num>09</span>
+<span class=chapter-title>OpenClaw 快速上手（9）：国内 IM 怎么挑，把权衡说透</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/openclaw-quickstart/10-production-deploy/><span class=chapter-num>10</span>
+<span class=chapter-title>OpenClaw 快速上手（10）：上生产部署，以及没人提醒你的那些故障模式</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>约读</span><strong>3 min</strong></div><div class=row><span>字数</span><strong>1448</strong></div><div class=row><span>写于</span><strong>Apr 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>这个站</h5><p>陈锴的笔记。机器、数学、云，中英两版各写各的。</p></div><div class=footer-col><h5>系列</h5><ul><li><a href=https://www.chenk.top/zh/series/claude-code-learn/>Claude-Code-Learn</a></li><li><a href=https://www.chenk.top/zh/series/openclaw-quickstart/>Openclaw-Quickstart</a></li><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/ml-math-derivations/>Ml-Math-Derivations</a></li><li><a href=/zh/series/>全部系列 →</a></li></ul></div><div class=footer-col><h5>别的地方</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>关于</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 陈锴。Hugo 写的，托在 GitHub Pages。</span>
+<span class=signature>于北京。</span></div></div></footer></body></html>
