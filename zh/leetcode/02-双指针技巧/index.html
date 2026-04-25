@@ -1,794 +1,265 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>LeetCode（二）—— 双指针技巧 · Chen Kai Blog</title>
-<meta name="description" content="哈希表是用空间换时间，双指针正好相反：用一点结构假设（数组有序、链表可能成环、答案落在某个连续窗口里），换来 $O(n)$ 时间和 $O(1)$ 额外空间。代码看起来再朴素不过——两个下标、一个 while 循环——但它是新手最容易踩坑的技巧：下标差一、死循环、漏掉去重、平手时移错指针。真正能把这些坑填掉的，不是死记移动规则，而是用循环不变量去思考。
-">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="LeetCode（二）—— 双指针技巧">
-<meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。">
-<meta property="og:url" content="https://www.chenk.top/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-         · Chapter 2
-      </div>
-      <h1>LeetCode（二）—— 双指针技巧</h1>
-      
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2022-05-16">May 16, 2022</time> · 11 min read · 5400 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/leetcode/" class="tag">#LeetCode</a><a href="/zh/tags/%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3/" class="tag">#滑动窗口</a><a href="/zh/tags/%E7%AE%97%E6%B3%95/" class="tag">#算法</a><a href="/zh/tags/%E5%8F%8C%E6%8C%87%E9%92%88/" class="tag">#双指针</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>哈希表是用空间换时间，双指针正好相反：用一点结构假设（数组有序、链表可能成环、答案落在某个连续窗口里），换来 $O(n)$ 时间和 $O(1)$ 额外空间。代码看起来再朴素不过——两个下标、一个 <code>while</code> 循环——但它是新手最容易踩坑的技巧：下标差一、死循环、漏掉去重、平手时移错指针。真正能把这些坑填掉的，不是死记移动规则，而是用<strong>循环不变量</strong>去思考。</p>
-<p>本文把双指针拆成四种风格——<strong>对撞指针</strong>、<strong>快慢指针</strong>、<strong>滑动窗口</strong>、<strong>分区指针</strong>——每种都配一道面试常客：Two Sum II、3Sum、盛最多水的容器、环形链表、移动零。</p>
-<h1 id="系列导航">系列导航</h1>
-<p><strong>LeetCode 算法精讲系列</strong>（共 10 篇）：</p>
-<ol>
-<li>哈希表 —— 两数之和、最长连续序列、字母异位词分组</li>
-<li><strong>→ 双指针技巧</strong> —— 对撞、快慢、滑动窗口、分区  ← <em>当前文章</em></li>
-<li>链表操作 —— 反转、找环入口、合并</li>
-<li>二叉树遍历与构造 —— 中序/前序/后序、最近公共祖先</li>
-<li>动态规划入门 —— 一维/二维 DP、状态转移</li>
-<li>回溯算法 —— 排列、组合、剪枝</li>
-<li>二分查找 —— 索引二分、答案二分、实数二分</li>
-<li>栈与队列 —— 单调栈、优先队列、双端队列</li>
-<li>图算法 —— BFS / DFS、拓扑排序、并查集</li>
-<li>贪心与位运算</li>
-</ol>
-<h1 id="双指针为什么管用">双指针为什么管用</h1>
-<p>长度为 $n$ 的数组上暴力枚举所有数对是 $\Theta(n^2)$，每对都看一次。双指针之所以能压到 $\Theta(n)$，是因为<strong>比较一次就能砍掉一整片候选</strong>，而不是只排除一个候选：</p>
-<table>
-  <thead>
-      <tr>
-          <th>利用的结构事实</th>
-          <th>模式</th>
-          <th>一次比较砍掉的候选</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>数组已经有序</td>
-          <td>对撞指针</td>
-          <td>经过被淘汰那个端点的所有对</td>
-      </tr>
-      <tr>
-          <td>在有限环里，快指针能套圈慢指针</td>
-          <td>快慢指针</td>
-          <td>所有非环节点</td>
-      </tr>
-      <tr>
-          <td>合法性关于窗口长度单调</td>
-          <td>滑动窗口</td>
-          <td>同一右端点下所有更小的窗口</td>
-      </tr>
-      <tr>
-          <td>每个值落入 $k$ 个区域之一</td>
-          <td>分区指针</td>
-          <td>已分类的前缀和后缀</td>
-      </tr>
-  </tbody>
-</table>
-<p>四种模式的共同骨架：<em>一次比较干掉的是一片，不是一个</em>。当这条性质不成立时（数组无序、不成环、合法性非单调、不存在干净的分区），双指针就退化回 $O(n^2)$ 甚至直接错误。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig5_decision_tree.png" alt="判定决策树：什么时候用哪种双指针" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="模式一--对撞指针有序数组">模式一 —— 对撞指针（有序数组）</h1>
-<h2 id="不变量">不变量</h2>
-<p><code>left</code> 和 <code>right</code> 从有序数组两端出发，相向而行。维护的不变量是：</p>
-<blockquote>
-<p>答案如果存在，必定落在闭区间 <code>[left, right]</code> 内。</p>
-</blockquote>
-<p>每次比较要么命中当前对，要么排除掉<strong>两端中的一个元素</strong>。被排掉那一端的指针前进，另一端不动。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig1_collision_pointers.png" alt="对撞指针在 Two Sum II 上的运行轨迹" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="leetcode-167--two-sum-ii">LeetCode 167 —— Two Sum II</h2>
-<p><strong>题意。</strong> 给定升序数组 <code>numbers</code>（题目按 1 起始下标）和 <code>target</code>，返回唯一一对和等于目标值的下标（1-based）。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">two_sum_sorted</span><span class="p">(</span><span class="n">numbers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">target</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;在升序数组里找唯一一对和为 target 的值，返回 1-based 下标。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">numbers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">left</span> <span class="o">&lt;</span> <span class="n">right</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">numbers</span><span class="p">[</span><span class="n">left</span><span class="p">]</span> <span class="o">+</span> <span class="n">numbers</span><span class="p">[</span><span class="n">right</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="p">[</span><span class="n">left</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">right</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">s</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>          <span class="c1"># 和偏小 -&gt; 丢掉当前最小值</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">right</span> <span class="o">-=</span> <span class="mi">1</span>         <span class="c1"># 和偏大 -&gt; 丢掉当前最大值</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[]</span>                  <span class="c1"># 题目保证有解，理论上不会走到这里</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>为什么 <code>s &lt; target</code> 时移左指针就不会漏解？</strong> 设当前 <code>s = numbers[left] + numbers[right] &lt; target</code>。那么 <code>numbers[left]</code> 和 <code>[left+1, right]</code> 里<strong>任何</strong>一个数配对，结果都 $\le s < \text{target}$。也就是说，所有以 <code>left</code> 为左端点的对都不可能命中——这一整行配对都被排除了，不只是 <code>(left, right)</code> 这一对。<code>s &gt; target</code> 是对称的论证。</p>
-<p><strong>复杂度。</strong> 时间 $O(n)$，空间 $O(1)$。每轮至少有一个指针向中间靠拢一步，相遇即停。</p>
-<h2 id="leetcode-11--盛最多水的容器">LeetCode 11 —— 盛最多水的容器</h2>
-<p><strong>题意。</strong> 给定高度 $h_0, h_1, \dots, h_{n-1}$，挑两个下标 $i < j$ 使矩形面积 $(j - i) \cdot \min(h_i, h_j)$ 最大。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">max_area</span><span class="p">(</span><span class="n">height</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;两条竖线和 x 轴围成的最大矩形面积。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">height</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">left</span> <span class="o">&lt;</span> <span class="n">right</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">height</span><span class="p">[</span><span class="n">left</span><span class="p">],</span> <span class="n">height</span><span class="p">[</span><span class="n">right</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="p">(</span><span class="n">right</span> <span class="o">-</span> <span class="n">left</span><span class="p">)</span> <span class="o">*</span> <span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 移动较短的那一边：这是唯一可能让面积变大的方向</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">height</span><span class="p">[</span><span class="n">left</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">height</span><span class="p">[</span><span class="n">right</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">right</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>贪心正确性——为什么必须移短的那一边。</strong> 不妨设当前 $h_i \le h_j$。考虑所有以 $i$ 为左端点的其他对 $(i, k)$（$k < j$）：宽度 $(k - i) < (j - i)$ 严格变小，高度 $\min(h_i, h_k) \le h_i$ 不会超过当前高度上限——所以面积不超过 $(j - i) \cdot h_i$，正好就是我们刚刚记下的那个值。结论：以 $i$ 为左端点的所有对都不可能更优，下标 $i$ 可以放心丢掉。右边对称。</p>
-<p>值得记住的是：<strong>不是说</strong>下一对一定更大，<strong>而是说</strong>被丢掉那一端做端点的所有对都不可能更大。这就够保证贪心正确。</p>
-<h2 id="leetcode-15--3sum">LeetCode 15 —— 3Sum</h2>
-<p><strong>题意。</strong> 返回所有不重复三元组 <code>[a, b, c]</code>，满足 <code>a + b + c == 0</code>。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">three_sum</span><span class="p">(</span><span class="n">nums</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;所有和为 0 的不重复三元组。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">nums</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>                                <span class="c1"># O(n log n)，为对撞指针铺路</span>
-</span></span><span class="line"><span class="cl">    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nums</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 剪枝 1：当前最小值已经为正，三个非负数不可能和为 0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">break</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 第一位去重</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">nums</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">continue</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="n">target</span> <span class="o">=</span> <span class="o">-</span><span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="n">left</span> <span class="o">&lt;</span> <span class="n">right</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">s</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[</span><span class="n">left</span><span class="p">]</span> <span class="o">+</span> <span class="n">nums</span><span class="p">[</span><span class="n">right</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">left</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">right</span><span class="p">]])</span>
-</span></span><span class="line"><span class="cl">                <span class="c1"># 命中之后，再对第二、三位去重</span>
-</span></span><span class="line"><span class="cl">                <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">                <span class="n">right</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">                <span class="k">while</span> <span class="n">left</span> <span class="o">&lt;</span> <span class="n">right</span> <span class="ow">and</span> <span class="n">nums</span><span class="p">[</span><span class="n">left</span><span class="p">]</span> <span class="o">==</span> <span class="n">nums</span><span class="p">[</span><span class="n">left</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">                <span class="k">while</span> <span class="n">left</span> <span class="o">&lt;</span> <span class="n">right</span> <span class="ow">and</span> <span class="n">nums</span><span class="p">[</span><span class="n">right</span><span class="p">]</span> <span class="o">==</span> <span class="n">nums</span><span class="p">[</span><span class="n">right</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">right</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">s</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">right</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">out</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>三处去重，缺一不可。</strong> 排序把重复值聚到一起；算法在每个槽位选值时，都得<strong>走过</strong>这段重复区间：</p>
-<ul>
-<li><strong>第一位。</strong> <code>if i &gt; 0 and nums[i] == nums[i - 1]: continue</code> —— 同一个外层值不重复处理。</li>
-<li><strong>第二位。</strong> 命中之后，把 <code>left</code> 往右推过所有等于刚用过那个值的位置。</li>
-<li><strong>第三位。</strong> 同理在右边推 <code>right</code>。</li>
-</ul>
-<p>任何一处漏掉，在 <code>[-2, 0, 0, 2, 2]</code> 这类输入上都会输出重复三元组。当然也可以全用 <code>set</code> 兜底，但每次插入要多 $O(\log n)$，而且把算法本身的结构盖住了。</p>
-<p><strong>复杂度。</strong> 排序 $O(n \log n)$，外层 $O(n)$，内层对撞 $O(n)$，合计 $O(n^2)$ 时间，$O(\log n)$ 排序栈空间。</p>
-<h1 id="模式二--快慢指针floyd-龟兔赛跑">模式二 —— 快慢指针（Floyd 龟兔赛跑）</h1>
-<h2 id="不变量-1">不变量</h2>
-<p>两个指针沿同一条序列前进，速度不同（经典是慢 1 步、快 2 步）。维护的不变量是：</p>
-<blockquote>
-<p>若有环，快指针必然在环内追上慢指针；若无环，快指针先到达终点。</p>
-</blockquote>
-<p>机制纯粹是算术：进入环之后，每一轮快慢指针的相对距离精确地减 1，所以最多 $\lambda$ 轮（环长）必然相遇。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig2_fast_slow_cycle.png" alt="快慢指针检测链表环" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="leetcode-141--环形链表">LeetCode 141 —— 环形链表</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ListNode</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">next</span><span class="p">:</span> <span class="s2">&#34;ListNode | None&#34;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">val</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="nb">next</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">has_cycle</span><span class="p">(</span><span class="n">head</span><span class="p">:</span> <span class="n">ListNode</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;链表是否有环。O(1) 额外空间。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">slow</span> <span class="o">=</span> <span class="n">fast</span> <span class="o">=</span> <span class="n">head</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">fast</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fast</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">slow</span> <span class="o">=</span> <span class="n">slow</span><span class="o">.</span><span class="n">next</span>
-</span></span><span class="line"><span class="cl">        <span class="n">fast</span> <span class="o">=</span> <span class="n">fast</span><span class="o">.</span><span class="n">next</span><span class="o">.</span><span class="n">next</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">slow</span> <span class="ow">is</span> <span class="n">fast</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kc">False</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>为什么相遇是必然的。</strong> 设入环前的尾巴长度为 $\mu$，环长为 $\lambda$。两指针都进入环之后，<code>fast</code> 相对 <code>slow</code> 在环上的偏移（模 $\lambda$）每轮严格减 1。从任意非零偏移 $d \in \{1, 2, \dots, \lambda - 1\}$ 出发，$d$ 轮后偏移归零。所以总轮数 $\le \mu + \lambda$，时间 $O(n)$，空间 $O(1)$。</p>
-<p><strong>为什么是 1 vs 2，不是 1 vs 3 或 1 vs 5？</strong> 任意速度对 $(a, b)$ 只要满足 $a < b$ 且 $\gcd(b - a, \lambda) = 1$ 就能保证必然相遇。$(1, 2)$ 的特别之处在于 $b - a = 1$ 永远整除 $\lambda$——<strong>和环长无关</strong>，没有数论上的踩雷。</p>
-<h2 id="找环入口leetcode-142">找环入口（LeetCode 142）</h2>
-<p><code>slow</code> 和 <code>fast</code> 在环内某节点 <code>m</code> 相遇之后，把其中一个指针重置回 <code>head</code>，两个指针都按 1 步走，再次相遇的位置就是环入口。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">detect_cycle</span><span class="p">(</span><span class="n">head</span><span class="p">:</span> <span class="n">ListNode</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ListNode</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;返回环的入口节点，若无环返回 None。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">slow</span> <span class="o">=</span> <span class="n">fast</span> <span class="o">=</span> <span class="n">head</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">fast</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fast</span><span class="o">.</span><span class="n">next</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">slow</span> <span class="o">=</span> <span class="n">slow</span><span class="o">.</span><span class="n">next</span>
-</span></span><span class="line"><span class="cl">        <span class="n">fast</span> <span class="o">=</span> <span class="n">fast</span><span class="o">.</span><span class="n">next</span><span class="o">.</span><span class="n">next</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">slow</span> <span class="ow">is</span> <span class="n">fast</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># 第二阶段：从 head 派一个新指针，和 slow 同速前进</span>
-</span></span><span class="line"><span class="cl">            <span class="n">entry</span> <span class="o">=</span> <span class="n">head</span>
-</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="n">entry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">slow</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">entry</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">next</span>
-</span></span><span class="line"><span class="cl">                <span class="n">slow</span> <span class="o">=</span> <span class="n">slow</span><span class="o">.</span><span class="n">next</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">entry</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="kc">None</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>入口结论的一行证明��</strong> 相遇时，慢指针走了 $\mu + k$ 步（$0 \le k < \lambda$），快指针正好两倍 $2(\mu + k)$，二者落在同一节点 ⇒ 差值 $\mu + k$ 是 $\lambda$ 的整数倍。所以从 <code>head</code> 再走 $\mu$ 步，从相遇点再走 $\mu$ 步，都会落在环入口——它们在那里第二次相遇。</p>
-<h1 id="模式三--滑动窗口">模式三 —— 滑动窗口</h1>
-<h2 id="不变量-2">不变量</h2>
-<p>数组或字符串上的窗口 $[l, r]$ 满足某个约束（无重复字符、和 $\ge k$、包含所有必需字符等）就算<strong>合法</strong>。滑动窗口起作用的前提是合法性<strong>关于窗口内容单调</strong>：</p>
-<blockquote>
-<p>$[l, r]$ 不合法 ⇒ 任何包含它的更大窗口 $[l, r']$（$r' \ge r$）也不合法（或反之亦然）。</p>
-</blockquote>
-<p>正因为单调，<code>left</code> 才能一直向前推、永不回头。每个下标最多被 <code>right</code> 摸一次、被 <code>left</code> 摸一次，总功 $O(n)$。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig3_sliding_window.png" alt="滑动窗口：右扩、遇到重复时左缩" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="leetcode-3--无重复字符的最长子串">LeetCode 3 —— 无重复字符的最长子串</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">length_of_longest_substring</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;s 中所有字符互不相同的最长子串长度。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">last_seen</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>     <span class="c1"># 字符 -&gt; 它在 s 中最近出现的下标</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 只有当这个字符的上次出现还在窗口内时，才需要把 left 跳过去。</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># max(...) 不能省：之前别的重复可能已经把 left 推到更右。</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">last_seen</span> <span class="ow">and</span> <span class="n">last_seen</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">left</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">=</span> <span class="n">last_seen</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="n">last_seen</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">=</span> <span class="n">right</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">right</span> <span class="o">-</span> <span class="n">left</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>用 <code>&quot;abba&quot;</code> 演示 <code>&gt;= left</code> 这一道防线。</strong> <code>right = 2</code>（第二个 <code>b</code>）时，<code>left</code> 推到 2。<code>right = 3</code>（第二个 <code>a</code>）时，<code>last_seen['a'] = 0</code> 已经在当前窗口 <code>[2, 3]</code> <strong>之外</strong>。如果不加 <code>&gt;= left</code> 这层判断，<code>left</code> 就会倒退回 1，违反&quot;永不回头&quot;的不变量，结果直接错。</p>
-<p><strong>复杂度。</strong> 时间 $O(n)$（每个字符进出各一次），空间 $O(\min(n, |\Sigma|))$。</p>
-<h1 id="模式四--分区指针k-路">模式四 —— 分区指针（k 路）</h1>
-<h2 id="不变量-3">不变量</h2>
-<p>在同一个数组里维护 $k$ 个区域。$k = 3$ 是经典的荷兰国旗问题，三指针 <code>lo</code>、<code>mid</code>、<code>hi</code> 把数组切成：</p>
-<blockquote>
-<p><code>[0, lo)</code> 是已经放好的&quot;低&quot;值；<code>[lo, mid)</code> 是已经放好的&quot;中&quot;值；<code>[mid, hi]</code> 是未处理；<code>(hi, n)</code> 是已经放好的&quot;高&quot;值。</p>
-</blockquote>
-<p>每一步处理 <code>arr[mid]</code>，要么换到低区、要么留在中区、要么换到高区——同时维持上述切分。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig4_partition_pointers.png" alt="荷兰国旗：三指针把数组分成 0/1/2 三个区域" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="leetcode-75--颜色排序荷兰国旗">LeetCode 75 —— 颜色排序（荷兰国旗）</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">sort_colors</span><span class="p">(</span><span class="n">nums</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;原地排序仅含 0/1/2 的数组，时间 O(n)，空间 O(1)。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">lo</span><span class="p">,</span> <span class="n">mid</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">nums</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">mid</span> <span class="o">&lt;=</span> <span class="n">hi</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[</span><span class="n">mid</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nums</span><span class="p">[</span><span class="n">lo</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">mid</span><span class="p">]</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[</span><span class="n">mid</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">lo</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">lo</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="n">mid</span> <span class="o">+=</span> <span class="mi">1</span>                  <span class="c1"># 换上来的值原本在 [lo, mid)，按不变量已经是 1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">v</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nums</span><span class="p">[</span><span class="n">mid</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">hi</span><span class="p">]</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[</span><span class="n">hi</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">mid</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">hi</span> <span class="o">-=</span> <span class="mi">1</span>                   <span class="c1"># 注意：mid 不前进，换上来的值还没看过</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>                          <span class="c1"># v == 1</span>
-</span></span><span class="line"><span class="cl">            <span class="n">mid</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>0 分支和 2 分支的不对称是最容易写错的地方。</strong> 当你把元素换到<strong>低</strong>区时，被换出来的那个值原本住在 <code>[lo, mid)</code>，按不变量它<strong>已经是 1</strong>，可以放心跳过；当你把元素换到<strong>高</strong>区时，被换出来的值原本住在 <code>[mid+1, hi]</code>，<strong>还没分类</strong>，下一轮必须再看一次，所以 <code>mid</code> 不动。</p>
-<h2 id="leetcode-283--移动零k--2-的退化版">LeetCode 283 —— 移动零（k = 2 的退化版）</h2>
-<p>两区域版本：<code>[0, write)</code> 是按原顺序排列的非零值，<code>[write, n)</code> 是其余。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">move_zeroes</span><span class="p">(</span><span class="n">nums</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;把所有 0 移到数组末尾，保持非零元素的相对顺序。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">write</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nums</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nums</span><span class="p">[</span><span class="n">read</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nums</span><span class="p">[</span><span class="n">write</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">read</span><span class="p">]</span> <span class="o">=</span> <span class="n">nums</span><span class="p">[</span><span class="n">read</span><span class="p">],</span> <span class="n">nums</span><span class="p">[</span><span class="n">write</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">write</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这里用 <code>swap</code> 而不是直接赋值，是因为要保证第二段始终是 0：每次往前拉一个非零值，留下的那一格必然是 0——位置 <code>[write, read)</code> 全是 0，这一点可以归纳出来。</p>
-<h1 id="哈希表-vs-双指针到底要不要排序">哈希表 vs 双指针：到底要不要排序？</h1>
-<p>把大家想看但很少写清楚的对照表列出来：</p>
-<table>
-  <thead>
-      <tr>
-          <th>问题</th>
-          <th>哈希表</th>
-          <th>双指针</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>找一对和为 $T$（不要求原下标）</td>
-          <td>$O(n)$ 时间，$O(n)$ 空间</td>
-          <td>$O(n \log n) + O(n)$，$O(1)$ 额外空间</td>
-      </tr>
-      <tr>
-          <td>找一对，必须返回原下标</td>
-          <td>哈希表更省事</td>
-          <td>排序时带上原下标数组，多 $O(n)$ 空间</td>
-      </tr>
-      <tr>
-          <td>找所有对/三元组/四元组</td>
-          <td>去重很烦</td>
-          <td>$O(n^{k-1})$，跳重复段的去重很干净</td>
-      </tr>
-      <tr>
-          <td>检测链表环</td>
-          <td>$O(n)$ 额外空间</td>
-          <td>$O(1)$ —— Floyd</td>
-      </tr>
-      <tr>
-          <td>最长合法连续区间</td>
-          <td>通常不必</td>
-          <td>滑动窗口几乎是标准答案</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>取舍准则。</strong> 需要原下标、或数组无序且不允许排序，用哈希表；结构本身已经有序（或可排序）、答案是连续的、或者必须 $O(1)$ 额外空间，用双指针。</p>
-<h1 id="五种常见翻车以及怎么躲开">五种常见翻车（以及怎么躲开）</h1>
-<p>模式识别其实不难，写对循环才是真正的难点。下面这些坑足以毁掉一场面试：</p>
-<p><strong>1. 平手时移错指针。</strong> 盛最多水的容器里如果移<strong>高</strong>的那一边，高度上限不变、宽度变窄，必然变小。要么移短的一边，要么平手时随便选一边。</p>
-<p><strong>2. 命中后忘了推进。</strong> 3Sum 命中三元组之后必须同时推 <code>left</code> 和 <code>right</code>；否则同一对会被反复命中陷入死循环。这一对推进要和去重 <code>while</code> 配套使用。</p>
-<p><strong>3. 滑动窗口里 <code>left</code> 倒退。</strong> <code>left = last_seen[ch] + 1</code> 不加 <code>max(left, ...)</code> 防线，在 <code>&quot;abba&quot;</code> 这类输入上就错。要么用 <code>max</code> 兜底，要么 <code>left</code> 走过的字符显式从计数里删掉。</p>
-<p><strong>4. <code>fast.next</code> 没判空。</strong> <code>fast.next.next</code> 要求 <code>fast</code> 和 <code>fast.next</code> 都非空。只判 <code>fast</code> 会在两节点链表上崩。务必两个一起判。</p>
-<p><strong>5. 荷兰国旗里 <code>mid</code> 在 2 分支误前进。</strong> 分区指针最常翻的车。死记一句话：<strong>low 分支推 mid，high 分支不推。</strong></p>
-<h1 id="面试沟通">面试沟通</h1>
-<p>下面这套话术能拿到任意双指针题的 80% 分：</p>
-<blockquote>
-<p>&ldquo;数组是有序的 / 答案是连续窗口 / 这是链表环检测，我倾向用 <strong>&lt;某种模式&gt;</strong>。暴力是 $O(n^2)$，双指针能压到 $O(n)$，因为每次比较能砍掉一整行/一整列/一整段前缀，而不是一个候选。我维护的不变量是 <strong>&lt;把不变量说出来&gt;</strong>。需要先处理的边界：空输入、单元素、所有元素相等。&rdquo;</p>
-</blockquote>
-<p>写代码之前<strong>先把不变量讲清楚</strong>，是区分&quot;理解技术&quot;和&quot;背模板&quot;最可靠的信号——面试官的反应非常一致。</p>
-<h1 id="推荐练习按难度">推荐练习（按难度）</h1>
-<table>
-  <thead>
-      <tr>
-          <th>LeetCode #</th>
-          <th>题目</th>
-          <th>模式</th>
-          <th>难度</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>167</td>
-          <td>两数之和 II - 输入有序数组</td>
-          <td>对撞指针</td>
-          <td>Easy</td>
-      </tr>
-      <tr>
-          <td>283</td>
-          <td>移动零</td>
-          <td>分区（k=2）</td>
-          <td>Easy</td>
-      </tr>
-      <tr>
-          <td>141</td>
-          <td>环形链表</td>
-          <td>快慢指针</td>
-          <td>Easy</td>
-      </tr>
-      <tr>
-          <td>11</td>
-          <td>盛最多水的容器</td>
-          <td>对撞 + 贪心</td>
-          <td>Medium</td>
-      </tr>
-      <tr>
-          <td>15</td>
-          <td>三数之和</td>
-          <td>排序 + 对撞</td>
-          <td>Medium</td>
-      </tr>
-      <tr>
-          <td>75</td>
-          <td>颜色分类</td>
-          <td>分区（k=3）</td>
-          <td>Medium</td>
-      </tr>
-      <tr>
-          <td>142</td>
-          <td>环形链表 II</td>
-          <td>快慢 + 数论</td>
-          <td>Medium</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td>无重复字符的最长子串</td>
-          <td>滑动窗口</td>
-          <td>Medium</td>
-      </tr>
-      <tr>
-          <td>209</td>
-          <td>长度最小的子数组</td>
-          <td>滑动窗口</td>
-          <td>Medium</td>
-      </tr>
-      <tr>
-          <td>76</td>
-          <td>最小覆盖子串</td>
-          <td>滑动窗口</td>
-          <td>Hard</td>
-      </tr>
-  </tbody>
-</table>
-<h1 id="延伸阅读">延伸阅读</h1>
-<ul>
-<li>Robert Floyd, <em>Nondeterministic Algorithms</em>, J. ACM 14(4), 1967 —— 环检测算法的原始论文。</li>
-<li>Cormen 等, <em>算法导论</em>, 第 8 章 —— 快排和荷兰国旗的分区论述基础。</li>
-<li>Donald Knuth, <em>TAOCP</em> Vol. 2, §3.1 —— rho 算法（&ldquo;龟兔赛跑&quot;最早的应用）。</li>
-</ul>
-<h1 id="下一篇预告">下一篇预告</h1>
-<p><strong>第三篇：链表操作</strong>里同样的快慢指针机制会换一种面孔出现——找中点、为归并排序对半切、k 个一组反转。对撞指针的思路也能直接迁移到链表回文判断。让一切顺起来的关键技巧是<strong>虚拟头节点</strong>——下一篇见。</p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#不变量">不变量</a></li>
-    <li><a href="#leetcode-167--two-sum-ii">LeetCode 167 —— Two Sum II</a></li>
-    <li><a href="#leetcode-11--盛最多水的容器">LeetCode 11 —— 盛最多水的容器</a></li>
-    <li><a href="#leetcode-15--3sum">LeetCode 15 —— 3Sum</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#不变量-1">不变量</a></li>
-    <li><a href="#leetcode-141--环形链表">LeetCode 141 —— 环形链表</a></li>
-    <li><a href="#找环入口leetcode-142">找环入口（LeetCode 142）</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#不变量-2">不变量</a></li>
-    <li><a href="#leetcode-3--无重复字符的最长子串">LeetCode 3 —— 无重复字符的最长子串</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#不变量-3">不变量</a></li>
-    <li><a href="#leetcode-75--颜色排序荷兰国旗">LeetCode 75 —— 颜色排序（荷兰国旗）</a></li>
-    <li><a href="#leetcode-283--移动零k--2-的退化版">LeetCode 283 —— 移动零（k = 2 的退化版）</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5400</strong></div>
-      <div class="row"><span>Published</span><strong>May 2022</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>LeetCode（二）—— 双指针技巧 · Chen Kai Blog</title>
+<meta name=description content="哈希表是用空间换时间，双指针正好相反：用一点结构假设（数组有序、链表可能成环、答案落在某个连续窗口里），换来 $O(n)$ 时间和 $O(1)$ 额外空间。代码看起来再朴素不过——两个下标、一个 while 循环——但它是新手最容易踩坑的技巧：下标差一、死循环、漏掉去重、平手时移错指针。真正能把这些坑填掉的，不是死记移动规则，而是用循环不变量去思考。
+"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/><meta property="og:type" content="article"><meta property="og:title" content="LeetCode（二）—— 双指针技巧"><meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。"><meta property="og:url" content="https://www.chenk.top/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a>
+· Chapter 2</div><h1>LeetCode（二）—— 双指针技巧</h1><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-05-16>May 16, 2022</time> · 11 min read · 5306 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/leetcode/ class=tag>#LeetCode</a><a href=/zh/tags/%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3/ class=tag>#滑动窗口</a><a href=/zh/tags/%E7%AE%97%E6%B3%95/ class=tag>#算法</a><a href=/zh/tags/%E5%8F%8C%E6%8C%87%E9%92%88/ class=tag>#双指针</a></div></div></header><div class=prose><p>哈希表是用空间换时间，双指针正好相反：用一点结构假设（数组有序、链表可能成环、答案落在某个连续窗口里），换来 $O(n)$ 时间和 $O(1)$ 额外空间。代码看起来再朴素不过——两个下标、一个 <code>while</code> 循环——但它是新手最容易踩坑的技巧：下标差一、死循环、漏掉去重、平手时移错指针。真正能把这些坑填掉的，不是死记移动规则，而是用<strong>循环不变量</strong>去思考。</p><p>本文把双指针拆成四种风格——<strong>对撞指针</strong>、<strong>快慢指针</strong>、<strong>滑动窗口</strong>、<strong>分区指针</strong>——每种都配一道面试常客：Two Sum II、3Sum、盛最多水的容器、环形链表、移动零。</p><h1 id=系列导航>系列导航</h1><p><strong>LeetCode 算法精讲系列</strong>（共 10 篇）：</p><ol><li>哈希表 —— 两数之和、最长连续序列、字母异位词分组</li><li><strong>→ 双指针技巧</strong> —— 对撞、快慢、滑动窗口、分区 ← <em>当前文章</em></li><li>链表操作 —— 反转、找环入口、合并</li><li>二叉树遍历与构造 —— 中序/前序/后序、最近公共祖先</li><li>动态规划入门 —— 一维/二维 DP、状态转移</li><li>回溯算法 —— 排列、组合、剪枝</li><li>二分查找 —— 索引二分、答案二分、实数二分</li><li>栈与队列 —— 单调栈、优先队列、双端队列</li><li>图算法 —— BFS / DFS、拓扑排序、并查集</li><li>贪心与位运算</li></ol><h1 id=双指针为什么管用>双指针为什么管用</h1><p>长度为 $n$ 的数组上暴力枚举所有数对是 $\Theta(n^2)$，每对都看一次。双指针之所以能压到 $\Theta(n)$，是因为<strong>比较一次就能砍掉一整片候选</strong>，而不是只排除一个候选：</p><table><thead><tr><th>利用的结构事实</th><th>模式</th><th>一次比较砍掉的候选</th></tr></thead><tbody><tr><td>数组已经有序</td><td>对撞指针</td><td>经过被淘汰那个端点的所有对</td></tr><tr><td>在有限环里，快指针能套圈慢指针</td><td>快慢指针</td><td>所有非环节点</td></tr><tr><td>合法性关于窗口长度单调</td><td>滑动窗口</td><td>同一右端点下所有更小的窗口</td></tr><tr><td>每个值落入 $k$ 个区域之一</td><td>分区指针</td><td>已分类的前缀和后缀</td></tr></tbody></table><p>四种模式的共同骨架：<em>一次比较干掉的是一片，不是一个</em>。当这条性质不成立时（数组无序、不成环、合法性非单调、不存在干净的分区），双指针就退化回 $O(n^2)$ 甚至直接错误。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig5_decision_tree.png alt=判定决策树：什么时候用哪种双指针 loading=lazy decoding=async></figure></p><h1 id=模式一--对撞指针有序数组>模式一 —— 对撞指针（有序数组）</h1><h2 id=不变量>不变量</h2><p><code>left</code> 和 <code>right</code> 从有序数组两端出发，相向而行。维护的不变量是：</p><blockquote><p>答案如果存在，必定落在闭区间 <code>[left, right]</code> 内。</p></blockquote><p>每次比较要么命中当前对，要么排除掉<strong>两端中的一个元素</strong>。被排掉那一端的指针前进，另一端不动。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig1_collision_pointers.png alt="对撞指针在 Two Sum II 上的运行轨迹" loading=lazy decoding=async></figure></p><h2 id=leetcode-167--two-sum-ii>LeetCode 167 —— Two Sum II</h2><p><strong>题意。</strong> 给定升序数组 <code>numbers</code>（题目按 1 起始下标）和 <code>target</code>，返回唯一一对和等于目标值的下标（1-based）。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>two_sum_sorted</span><span class=p>(</span><span class=n>numbers</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span> <span class=n>target</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;在升序数组里找唯一一对和为 target 的值，返回 1-based 下标。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span><span class=p>,</span> <span class=n>right</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>numbers</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>left</span> <span class=o>&lt;</span> <span class=n>right</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span> <span class=o>=</span> <span class=n>numbers</span><span class=p>[</span><span class=n>left</span><span class=p>]</span> <span class=o>+</span> <span class=n>numbers</span><span class=p>[</span><span class=n>right</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>s</span> <span class=o>==</span> <span class=n>target</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=p>[</span><span class=n>left</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>right</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>s</span> <span class=o>&lt;</span> <span class=n>target</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>          <span class=c1># 和偏小 -&gt; 丢掉当前最小值</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>right</span> <span class=o>-=</span> <span class=mi>1</span>         <span class=c1># 和偏大 -&gt; 丢掉当前最大值</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>[]</span>                  <span class=c1># 题目保证有解，理论上不会走到这里</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>为什么 <code>s &lt; target</code> 时移左指针就不会漏解？</strong> 设当前 <code>s = numbers[left] + numbers[right] &lt; target</code>。那么 <code>numbers[left]</code> 和 <code>[left+1, right]</code> 里<strong>任何</strong>一个数配对，结果都 $\le s < \text{target}$。也就是说，所有以 <code>left</code> 为左端点的对都不可能命中——这一整行配对都被排除了，不只是 <code>(left, right)</code> 这一对。<code>s > target</code> 是对称的论证。</p><p><strong>复杂度。</strong> 时间 $O(n)$，空间 $O(1)$。每轮至少有一个指针向中间靠拢一步，相遇即停。</p><h2 id=leetcode-11--盛最多水的容器>LeetCode 11 —— 盛最多水的容器</h2><p><strong>题意。</strong> 给定高度 $h_0, h_1, \dots, h_{n-1}$，挑两个下标 $i < j$ 使矩形面积 $(j - i) \cdot \min(h_i, h_j)$ 最大。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>max_area</span><span class=p>(</span><span class=n>height</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;两条竖线和 x 轴围成的最大矩形面积。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span><span class=p>,</span> <span class=n>right</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>height</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>left</span> <span class=o>&lt;</span> <span class=n>right</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>height</span><span class=p>[</span><span class=n>left</span><span class=p>],</span> <span class=n>height</span><span class=p>[</span><span class=n>right</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=p>(</span><span class=n>right</span> <span class=o>-</span> <span class=n>left</span><span class=p>)</span> <span class=o>*</span> <span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 移动较短的那一边：这是唯一可能让面积变大的方向</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>height</span><span class=p>[</span><span class=n>left</span><span class=p>]</span> <span class=o>&lt;</span> <span class=n>height</span><span class=p>[</span><span class=n>right</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>right</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>贪心正确性——为什么必须移短的那一边。</strong> 不妨设当前 $h_i \le h_j$。考虑所有以 $i$ 为左端点的其他对 $(i, k)$（$k < j$）：宽度 $(k - i) < (j - i)$ 严格变小，高度 $\min(h_i, h_k) \le h_i$ 不会超过当前高度上限——所以面积不超过 $(j - i) \cdot h_i$，正好就是我们刚刚记下的那个值。结论：以 $i$ 为左端点的所有对都不可能更优，下标 $i$ 可以放心丢掉。右边对称。</p><p>值得记住的是：<strong>不是说</strong>下一对一定更大，<strong>而是说</strong>被丢掉那一端做端点的所有对都不可能更大。这就够保证贪心正确。</p><h2 id=leetcode-15--3sum>LeetCode 15 —— 3Sum</h2><p><strong>题意。</strong> 返回所有不重复三元组 <code>[a, b, c]</code>，满足 <code>a + b + c == 0</code>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>three_sum</span><span class=p>(</span><span class=n>nums</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;所有和为 0 的不重复三元组。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>nums</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>                                <span class=c1># O(n log n)，为对撞指针铺路</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>nums</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>out</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span> <span class=o>-</span> <span class=mi>2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 剪枝 1：当前最小值已经为正，三个非负数不可能和为 0</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>nums</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 第一位去重</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>i</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=ow>and</span> <span class=n>nums</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>==</span> <span class=n>nums</span><span class=p>[</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>            <span class=k>continue</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>left</span><span class=p>,</span> <span class=n>right</span> <span class=o>=</span> <span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n</span> <span class=o>-</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>target</span> <span class=o>=</span> <span class=o>-</span><span class=n>nums</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=n>left</span> <span class=o>&lt;</span> <span class=n>right</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>s</span> <span class=o>=</span> <span class=n>nums</span><span class=p>[</span><span class=n>left</span><span class=p>]</span> <span class=o>+</span> <span class=n>nums</span><span class=p>[</span><span class=n>right</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>s</span> <span class=o>==</span> <span class=n>target</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>out</span><span class=o>.</span><span class=n>append</span><span class=p>([</span><span class=n>nums</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>left</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>right</span><span class=p>]])</span>
+</span></span><span class=line><span class=cl>                <span class=c1># 命中之后，再对第二、三位去重</span>
+</span></span><span class=line><span class=cl>                <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                <span class=n>right</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                <span class=k>while</span> <span class=n>left</span> <span class=o>&lt;</span> <span class=n>right</span> <span class=ow>and</span> <span class=n>nums</span><span class=p>[</span><span class=n>left</span><span class=p>]</span> <span class=o>==</span> <span class=n>nums</span><span class=p>[</span><span class=n>left</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                <span class=k>while</span> <span class=n>left</span> <span class=o>&lt;</span> <span class=n>right</span> <span class=ow>and</span> <span class=n>nums</span><span class=p>[</span><span class=n>right</span><span class=p>]</span> <span class=o>==</span> <span class=n>nums</span><span class=p>[</span><span class=n>right</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>right</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=k>elif</span> <span class=n>s</span> <span class=o>&lt;</span> <span class=n>target</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>right</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>out</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>三处去重，缺一不可。</strong> 排序把重复值聚到一起；算法在每个槽位选值时，都得<strong>走过</strong>这段重复区间：</p><ul><li><strong>第一位。</strong> <code>if i > 0 and nums[i] == nums[i - 1]: continue</code> —— 同一个外层值不重复处理。</li><li><strong>第二位。</strong> 命中之后，把 <code>left</code> 往右推过所有等于刚用过那个值的位置。</li><li><strong>第三位。</strong> 同理在右边推 <code>right</code>。</li></ul><p>任何一处漏掉，在 <code>[-2, 0, 0, 2, 2]</code> 这类输入上都会输出重复三元组。当然也可以全用 <code>set</code> 兜底，但每次插入要多 $O(\log n)$，而且把算法本身的结构盖住了。</p><p><strong>复杂度。</strong> 排序 $O(n \log n)$，外层 $O(n)$，内层对撞 $O(n)$，合计 $O(n^2)$ 时间，$O(\log n)$ 排序栈空间。</p><h1 id=模式二--快慢指针floyd-龟兔赛跑>模式二 —— 快慢指针（Floyd 龟兔赛跑）</h1><h2 id=不变量-1>不变量</h2><p>两个指针沿同一条序列前进，速度不同（经典是慢 1 步、快 2 步）。维护的不变量是：</p><blockquote><p>若有环，快指针必然在环内追上慢指针；若无环，快指针先到达终点。</p></blockquote><p>机制纯粹是算术：进入环之后，每一轮快慢指针的相对距离精确地减 1，所以最多 $\lambda$ 轮（环长）必然相遇。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig2_fast_slow_cycle.png alt=快慢指针检测链表环 loading=lazy decoding=async></figure></p><h2 id=leetcode-141--环形链表>LeetCode 141 —— 环形链表</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>ListNode</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>val</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=nb>next</span><span class=p>:</span> <span class=s2>&#34;ListNode | None&#34;</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>val</span> <span class=o>=</span> <span class=n>val</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>next</span> <span class=o>=</span> <span class=nb>next</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>has_cycle</span><span class=p>(</span><span class=n>head</span><span class=p>:</span> <span class=n>ListNode</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;链表是否有环。O(1) 额外空间。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>slow</span> <span class=o>=</span> <span class=n>fast</span> <span class=o>=</span> <span class=n>head</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>fast</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=ow>and</span> <span class=n>fast</span><span class=o>.</span><span class=n>next</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>slow</span> <span class=o>=</span> <span class=n>slow</span><span class=o>.</span><span class=n>next</span>
+</span></span><span class=line><span class=cl>        <span class=n>fast</span> <span class=o>=</span> <span class=n>fast</span><span class=o>.</span><span class=n>next</span><span class=o>.</span><span class=n>next</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>slow</span> <span class=ow>is</span> <span class=n>fast</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=kc>False</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>为什么相遇是必然的。</strong> 设入环前的尾巴长度为 $\mu$，环长为 $\lambda$。两指针都进入环之后，<code>fast</code> 相对 <code>slow</code> 在环上的偏移（模 $\lambda$）每轮严格减 1。从任意非零偏移 $d \in \{1, 2, \dots, \lambda - 1\}$ 出发，$d$ 轮后偏移归零。所以总轮数 $\le \mu + \lambda$，时间 $O(n)$，空间 $O(1)$。</p><p><strong>为什么是 1 vs 2，不是 1 vs 3 或 1 vs 5？</strong> 任意速度对 $(a, b)$ 只要满足 $a < b$ 且 $\gcd(b - a, \lambda) = 1$ 就能保证必然相遇。$(1, 2)$ 的特别之处在于 $b - a = 1$ 永远整除 $\lambda$——<strong>和环长无关</strong>，没有数论上的踩雷。</p><h2 id=找环入口leetcode-142>找环入口（LeetCode 142）</h2><p><code>slow</code> 和 <code>fast</code> 在环内某节点 <code>m</code> 相遇之后，把其中一个指针重置回 <code>head</code>，两个指针都按 1 步走，再次相遇的位置就是环入口。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>detect_cycle</span><span class=p>(</span><span class=n>head</span><span class=p>:</span> <span class=n>ListNode</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>ListNode</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;返回环的入口节点，若无环返回 None。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>slow</span> <span class=o>=</span> <span class=n>fast</span> <span class=o>=</span> <span class=n>head</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>fast</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=ow>and</span> <span class=n>fast</span><span class=o>.</span><span class=n>next</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>slow</span> <span class=o>=</span> <span class=n>slow</span><span class=o>.</span><span class=n>next</span>
+</span></span><span class=line><span class=cl>        <span class=n>fast</span> <span class=o>=</span> <span class=n>fast</span><span class=o>.</span><span class=n>next</span><span class=o>.</span><span class=n>next</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>slow</span> <span class=ow>is</span> <span class=n>fast</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># 第二阶段：从 head 派一个新指针，和 slow 同速前进</span>
+</span></span><span class=line><span class=cl>            <span class=n>entry</span> <span class=o>=</span> <span class=n>head</span>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=n>entry</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>slow</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>entry</span> <span class=o>=</span> <span class=n>entry</span><span class=o>.</span><span class=n>next</span>
+</span></span><span class=line><span class=cl>                <span class=n>slow</span> <span class=o>=</span> <span class=n>slow</span><span class=o>.</span><span class=n>next</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>entry</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=kc>None</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>入口结论的一行证明��</strong> 相遇时，慢指针走了 $\mu + k$ 步（$0 \le k < \lambda$），快指针正好两倍 $2(\mu + k)$，二者落在同一节点 ⇒ 差值 $\mu + k$ 是 $\lambda$ 的整数倍。所以从 <code>head</code> 再走 $\mu$ 步，从相遇点再走 $\mu$ 步，都会落在环入口——它们在那里第二次相遇。</p><h1 id=模式三--滑动窗口>模式三 —— 滑动窗口</h1><h2 id=不变量-2>不变量</h2><p>数组或字符串上的窗口 $[l, r]$ 满足某个约束（无重复字符、和 $\ge k$、包含所有必需字符等）就算<strong>合法</strong>。滑动窗口起作用的前提是合法性<strong>关于窗口内容单调</strong>：</p><blockquote><p>$[l, r]$ 不合法 ⇒ 任何包含它的更大窗口 $[l, r']$（$r' \ge r$）也不合法（或反之亦然）。</p></blockquote><p>正因为单调，<code>left</code> 才能一直向前推、永不回头。每个下标最多被 <code>right</code> 摸一次、被 <code>left</code> 摸一次，总功 $O(n)$。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig3_sliding_window.png alt=滑动窗口：右扩、遇到重复时左缩 loading=lazy decoding=async></figure></p><h2 id=leetcode-3--无重复字符的最长子串>LeetCode 3 —— 无重复字符的最长子串</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>length_of_longest_substring</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;s 中所有字符互不相同的最长子串长度。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>last_seen</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>     <span class=c1># 字符 -&gt; 它在 s 中最近出现的下标</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 只有当这个字符的上次出现还在窗口内时，才需要把 left 跳过去。</span>
+</span></span><span class=line><span class=cl>        <span class=c1># max(...) 不能省：之前别的重复可能已经把 left 推到更右。</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>last_seen</span> <span class=ow>and</span> <span class=n>last_seen</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>&gt;=</span> <span class=n>left</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>=</span> <span class=n>last_seen</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>last_seen</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>=</span> <span class=n>right</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>right</span> <span class=o>-</span> <span class=n>left</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>用 <code>"abba"</code> 演示 <code>>= left</code> 这一道防线。</strong> <code>right = 2</code>（第二个 <code>b</code>）时，<code>left</code> 推到 2。<code>right = 3</code>（第二个 <code>a</code>）时，<code>last_seen['a'] = 0</code> 已经在当前窗口 <code>[2, 3]</code> <strong>之外</strong>。如果不加 <code>>= left</code> 这层判断，<code>left</code> 就会倒退回 1，违反"永不回头"的不变量，结果直接错。</p><p><strong>复杂度。</strong> 时间 $O(n)$（每个字符进出各一次），空间 $O(\min(n, |\Sigma|))$。</p><h1 id=模式四--分区指针k-路>模式四 —— 分区指针（k 路）</h1><h2 id=不变量-3>不变量</h2><p>在同一个数组里维护 $k$ 个区域。$k = 3$ 是经典的荷兰国旗问题，三指针 <code>lo</code>、<code>mid</code>、<code>hi</code> 把数组切成：</p><blockquote><p><code>[0, lo)</code> 是已经放好的"低"值；<code>[lo, mid)</code> 是已经放好的"中"值；<code>[mid, hi]</code> 是未处理；<code>(hi, n)</code> 是已经放好的"高"值。</p></blockquote><p>每一步处理 <code>arr[mid]</code>，要么换到低区、要么留在中区、要么换到高区——同时维持上述切分。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/02-%E5%8F%8C%E6%8C%87%E9%92%88%E6%8A%80%E5%B7%A7/fig4_partition_pointers.png alt="荷兰国旗：三指针把数组分成 0/1/2 三个区域" loading=lazy decoding=async></figure></p><h2 id=leetcode-75--颜色排序荷兰国旗>LeetCode 75 —— 颜色排序（荷兰国旗）</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>sort_colors</span><span class=p>(</span><span class=n>nums</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;原地排序仅含 0/1/2 的数组，时间 O(n)，空间 O(1)。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>lo</span><span class=p>,</span> <span class=n>mid</span><span class=p>,</span> <span class=n>hi</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>nums</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>mid</span> <span class=o>&lt;=</span> <span class=n>hi</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>v</span> <span class=o>=</span> <span class=n>nums</span><span class=p>[</span><span class=n>mid</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>v</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>nums</span><span class=p>[</span><span class=n>lo</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>mid</span><span class=p>]</span> <span class=o>=</span> <span class=n>nums</span><span class=p>[</span><span class=n>mid</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>lo</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>lo</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=n>mid</span> <span class=o>+=</span> <span class=mi>1</span>                  <span class=c1># 换上来的值原本在 [lo, mid)，按不变量已经是 1</span>
+</span></span><span class=line><span class=cl>        <span class=k>elif</span> <span class=n>v</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>nums</span><span class=p>[</span><span class=n>mid</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>hi</span><span class=p>]</span> <span class=o>=</span> <span class=n>nums</span><span class=p>[</span><span class=n>hi</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>mid</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>hi</span> <span class=o>-=</span> <span class=mi>1</span>                   <span class=c1># 注意：mid 不前进，换上来的值还没看过</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>                          <span class=c1># v == 1</span>
+</span></span><span class=line><span class=cl>            <span class=n>mid</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>0 分支和 2 分支的不对称是最容易写错的地方。</strong> 当你把元素换到<strong>低</strong>区时，被换出来的那个值原本住在 <code>[lo, mid)</code>，按不变量它<strong>已经是 1</strong>，可以放心跳过；当你把元素换到<strong>高</strong>区时，被换出来的值原本住在 <code>[mid+1, hi]</code>，<strong>还没分类</strong>，下一轮必须再看一次，所以 <code>mid</code> 不动。</p><h2 id=leetcode-283--移动零k--2-的退化版>LeetCode 283 —— 移动零（k = 2 的退化版）</h2><p>两区域版本：<code>[0, write)</code> 是按原顺序排列的非零值，<code>[write, n)</code> 是其余。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>move_zeroes</span><span class=p>(</span><span class=n>nums</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;把所有 0 移到数组末尾，保持非零元素的相对顺序。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>write</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>read</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>nums</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>nums</span><span class=p>[</span><span class=n>read</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>nums</span><span class=p>[</span><span class=n>write</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>read</span><span class=p>]</span> <span class=o>=</span> <span class=n>nums</span><span class=p>[</span><span class=n>read</span><span class=p>],</span> <span class=n>nums</span><span class=p>[</span><span class=n>write</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>write</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span></code></pre></td></tr></table></div></div><p>这里用 <code>swap</code> 而不是直接赋值，是因为要保证第二段始终是 0：每次往前拉一个非零值，留下的那一格必然是 0——位置 <code>[write, read)</code> 全是 0，这一点可以归纳出来。</p><h1 id=哈希表-vs-双指针到底要不要排序>哈希表 vs 双指针：到底要不要排序？</h1><p>把大家想看但很少写清楚的对照表列出来：</p><table><thead><tr><th>问题</th><th>哈希表</th><th>双指针</th></tr></thead><tbody><tr><td>找一对和为 $T$（不要求原下标）</td><td>$O(n)$ 时间，$O(n)$ 空间</td><td>$O(n \log n) + O(n)$，$O(1)$ 额外空间</td></tr><tr><td>找一对，必须返回原下标</td><td>哈希表更省事</td><td>排序时带上原下标数组，多 $O(n)$ 空间</td></tr><tr><td>找所有对/三元组/四元组</td><td>去重很烦</td><td>$O(n^{k-1})$，跳重复段的去重很干净</td></tr><tr><td>检测链表环</td><td>$O(n)$ 额外空间</td><td>$O(1)$ —— Floyd</td></tr><tr><td>最长合法连续区间</td><td>通常不必</td><td>滑动窗口几乎是标准答案</td></tr></tbody></table><p><strong>取舍准则。</strong> 需要原下标、或数组无序且不允许排序，用哈希表；结构本身已经有序（或可排序）、答案是连续的、或者必须 $O(1)$ 额外空间，用双指针。</p><h1 id=五种常见翻车以及怎么躲开>五种常见翻车（以及怎么躲开）</h1><p>模式识别其实不难，写对循环才是真正的难点。下面这些坑足以毁掉一场面试：</p><p><strong>1. 平手时移错指针。</strong> 盛最多水的容器里如果移<strong>高</strong>的那一边，高度上限不变、宽度变窄，必然变小。要么移短的一边，要么平手时随便选一边。</p><p><strong>2. 命中后忘了推进。</strong> 3Sum 命中三元组之后必须同时推 <code>left</code> 和 <code>right</code>；否则同一对会被反复命中陷入死循环。这一对推进要和去重 <code>while</code> 配套使用。</p><p><strong>3. 滑动窗口里 <code>left</code> 倒退。</strong> <code>left = last_seen[ch] + 1</code> 不加 <code>max(left, ...)</code> 防线，在 <code>"abba"</code> 这类输入上就错。要么用 <code>max</code> 兜底，要么 <code>left</code> 走过的字符显式从计数里删掉。</p><p><strong>4. <code>fast.next</code> 没判空。</strong> <code>fast.next.next</code> 要求 <code>fast</code> 和 <code>fast.next</code> 都非空。只判 <code>fast</code> 会在两节点链表上崩。务必两个一起判。</p><p><strong>5. 荷兰国旗里 <code>mid</code> 在 2 分支误前进。</strong> 分区指针最常翻的车。死记一句话：<strong>low 分支推 mid，high 分支不推。</strong></p><h1 id=面试沟通>面试沟通</h1><p>下面这套话术能拿到任意双指针题的 80% 分：</p><blockquote><p>&ldquo;数组是有序的 / 答案是连续窗口 / 这是链表环检测，我倾向用 <strong>&lt;某种模式></strong>。暴力是 $O(n^2)$，双指针能压到 $O(n)$，因为每次比较能砍掉一整行/一整列/一整段前缀，而不是一个候选。我维护的不变量是 <strong>&lt;把不变量说出来></strong>。需要先处理的边界：空输入、单元素、所有元素相等。&rdquo;</p></blockquote><p>写代码之前<strong>先把不变量讲清楚</strong>，是区分"理解技术"和"背模板"最可靠的信号——面试官的反应非常一致。</p><h1 id=推荐练习按难度>推荐练习（按难度）</h1><table><thead><tr><th>LeetCode #</th><th>题目</th><th>模式</th><th>难度</th></tr></thead><tbody><tr><td>167</td><td>两数之和 II - 输入有序数组</td><td>对撞指针</td><td>Easy</td></tr><tr><td>283</td><td>移动零</td><td>分区（k=2）</td><td>Easy</td></tr><tr><td>141</td><td>环形链表</td><td>快慢指针</td><td>Easy</td></tr><tr><td>11</td><td>盛最多水的容器</td><td>对撞 + 贪心</td><td>Medium</td></tr><tr><td>15</td><td>三数之和</td><td>排序 + 对撞</td><td>Medium</td></tr><tr><td>75</td><td>颜色分类</td><td>分区（k=3）</td><td>Medium</td></tr><tr><td>142</td><td>环形链表 II</td><td>快慢 + 数论</td><td>Medium</td></tr><tr><td>3</td><td>无重复字符的最长子串</td><td>滑动窗口</td><td>Medium</td></tr><tr><td>209</td><td>长度最小的子数组</td><td>滑动窗口</td><td>Medium</td></tr><tr><td>76</td><td>最小覆盖子串</td><td>滑动窗口</td><td>Hard</td></tr></tbody></table><h1 id=延伸阅读>延伸阅读</h1><ul><li>Robert Floyd, <em>Nondeterministic Algorithms</em>, J. ACM 14(4), 1967 —— 环检测算法的原始论文。</li><li>Cormen 等, <em>算法导论</em>, 第 8 章 —— 快排和荷兰国旗的分区论述基础。</li><li>Donald Knuth, <em>TAOCP</em> Vol. 2, §3.1 —— rho 算法（&ldquo;龟兔赛跑"最早的应用）。</li></ul><h1 id=下一篇预告>下一篇预告</h1><p><strong>第三篇：链表操作</strong>里同样的快慢指针机制会换一种面孔出现——找中点、为归并排序对半切、k 个一组反转。对撞指针的思路也能直接迁移到链表回文判断。让一切顺起来的关键技巧是<strong>虚拟头节点</strong>——下一篇见。</p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#不变量>不变量</a></li><li><a href=#leetcode-167--two-sum-ii>LeetCode 167 —— Two Sum II</a></li><li><a href=#leetcode-11--盛最多水的容器>LeetCode 11 —— 盛最多水的容器</a></li><li><a href=#leetcode-15--3sum>LeetCode 15 —— 3Sum</a></li></ul><ul><li><a href=#不变量-1>不变量</a></li><li><a href=#leetcode-141--环形链表>LeetCode 141 —— 环形链表</a></li><li><a href=#找环入口leetcode-142>找环入口（LeetCode 142）</a></li></ul><ul><li><a href=#不变量-2>不变量</a></li><li><a href=#leetcode-3--无重复字符的最长子串>LeetCode 3 —— 无重复字符的最长子串</a></li></ul><ul><li><a href=#不变量-3>不变量</a></li><li><a href=#leetcode-75--颜色排序荷兰国旗>LeetCode 75 —— 颜色排序（荷兰国旗）</a></li><li><a href=#leetcode-283--移动零k--2-的退化版>LeetCode 283 —— 移动零（k = 2 的退化版）</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5306</strong></div><div class=row><span>Published</span><strong>May 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

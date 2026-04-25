@@ -1,677 +1,176 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Lipschitz 连续性、强凸性与加速梯度下降 · Chen Kai Blog</title>
-<meta name="description" content="用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Lipschitz 连续性、强凸性与加速梯度下降">
-<meta property="og:description" content="用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>Lipschitz 连续性、强凸性与加速梯度下降</h1>
-      <p class="deck">用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-02-11">February 11, 2023</time> · 11 min read · 5400 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/ml/" class="tag">#ML</a><a href="/zh/tags/optimization/" class="tag">#Optimization</a><a href="/zh/tags/convex-analysis/" class="tag">#Convex Analysis</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>很多优化&quot;玄学&quot;其实都能被三个概念讲清楚：</p>
-<ul>
-<li><strong>梯度有多陡</strong> —— Lipschitz 光滑性（$L$-smoothness）决定了步长的上限。</li>
-<li><strong>谷底有多硬</strong> —— 强凸性（$\mu$-strong convexity）决定了收敛能有多快、解是否唯一。</li>
-<li><strong>能不能更快到达谷底</strong> —— Nesterov 加速与重启策略，在不牺牲稳定性的前提下把每代价 $\kappa$ 的对数收敛压成 $\sqrt{\kappa}$。</li>
-</ul>
-<p>本文把它们放在同一条逻辑链上：先用最小必要的定义和不等式把直觉钉牢，再给出关键定理与证明，最后用最小二乘实验对比 GD、Heavy Ball 与 Nesterov 的收敛行为。目标不是堆公式，而是让你在面对一个新问题时，能用这三件事快速判断&quot;该用多大步长、预期什么收敛速度、加速是否值得&quot;。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li>Lipschitz 连续性的几何含义：每一点周围都有一个&quot;斜率锥&quot;约束着函数图像。</li>
-<li>$L$-smoothness 的等价刻画：函数被一族二次曲面从上方包住（descent lemma）。</li>
-<li>强凸性的等价刻画：函数被一族二次曲面从下方托住，唯一极小存在性自然出现。</li>
-<li>条件数 $\kappa = L/\mu$ 如何决定 GD 的迭代复杂度，以及为什么 Nesterov 把它换成了 $\sqrt{\kappa}$。</li>
-<li>重启策略为何对强凸函数仍然必要，以及在最小二乘问题上的实测对比。</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>多元微积分（梯度、Hessian、Taylor 展开）。</li>
-<li>凸函数的基本定义与一阶条件。</li>
-</ul>
-<hr>
-<h1 id="1-lipschitz-连续性与梯度光滑性">1. Lipschitz 连续性与梯度光滑性</h1>
-<h2 id="11-lipschitz-连续性的几何直觉">1.1 Lipschitz 连续性的几何直觉</h2>
-<p><strong>定义（Lipschitz 连续）</strong>：函数 $f:\mathbb{R}^n\to\mathbb{R}$ 是 $L$-Lipschitz 连续的，如果存在常数 $L\ge 0$，使得对任意 $x, y$，</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Lipschitz 连续性、强凸性与加速梯度下降 · Chen Kai Blog</title>
+<meta name=description content="用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/><meta property="og:type" content="article"><meta property="og:title" content="Lipschitz 连续性、强凸性与加速梯度下降"><meta property="og:description" content="用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>Lipschitz 连续性、强凸性与加速梯度下降</h1><p class=deck>用三个核心概念理清优化直觉：Lipschitz 光滑性决定步长上限，强凸性决定收敛速度与解的唯一性，Nesterov 加速在不牺牲稳定性的前提下加速到达。含关键定理证明与最小二乘实验对比。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-02-11>February 11, 2023</time> · 11 min read · 5313 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/convex-analysis/ class=tag>#Convex Analysis</a></div></div></header><div class=prose><p>很多优化"玄学"其实都能被三个概念讲清楚：</p><ul><li><strong>梯度有多陡</strong> —— Lipschitz 光滑性（$L$-smoothness）决定了步长的上限。</li><li><strong>谷底有多硬</strong> —— 强凸性（$\mu$-strong convexity）决定了收敛能有多快、解是否唯一。</li><li><strong>能不能更快到达谷底</strong> —— Nesterov 加速与重启策略，在不牺牲稳定性的前提下把每代价 $\kappa$ 的对数收敛压成 $\sqrt{\kappa}$。</li></ul><p>本文把它们放在同一条逻辑链上：先用最小必要的定义和不等式把直觉钉牢，再给出关键定理与证明，最后用最小二乘实验对比 GD、Heavy Ball 与 Nesterov 的收敛行为。目标不是堆公式，而是让你在面对一个新问题时，能用这三件事快速判断"该用多大步长、预期什么收敛速度、加速是否值得"。</p><h2 id=你将学到>你将学到</h2><ul><li>Lipschitz 连续性的几何含义：每一点周围都有一个"斜率锥"约束着函数图像。</li><li>$L$-smoothness 的等价刻画：函数被一族二次曲面从上方包住（descent lemma）。</li><li>强凸性的等价刻画：函数被一族二次曲面从下方托住，唯一极小存在性自然出现。</li><li>条件数 $\kappa = L/\mu$ 如何决定 GD 的迭代复杂度，以及为什么 Nesterov 把它换成了 $\sqrt{\kappa}$。</li><li>重启策略为何对强凸函数仍然必要，以及在最小二乘问题上的实测对比。</li></ul><h2 id=前置知识>前置知识</h2><ul><li>多元微积分（梯度、Hessian、Taylor 展开）。</li><li>凸函数的基本定义与一阶条件。</li></ul><hr><h1 id=1-lipschitz-连续性与梯度光滑性>1. Lipschitz 连续性与梯度光滑性</h1><h2 id=11-lipschitz-连续性的几何直觉>1.1 Lipschitz 连续性的几何直觉</h2><p><strong>定义（Lipschitz 连续）</strong>：函数 $f:\mathbb{R}^n\to\mathbb{R}$ 是 $L$-Lipschitz 连续的，如果存在常数 $L\ge 0$，使得对任意 $x, y$，</p>$$
 |f(y) - f(x)| \le L\,\|y - x\|.
-$$<p>几何上看，这是一个<strong>双向锥约束</strong>：以任一点 $(x_0, f(x_0))$ 为顶点，斜率为 $\pm L$ 的双向锥必须包住整张函数图。一旦在某一点出现&quot;近乎竖直&quot;的切线（如 $\sqrt{|x|}$ 在 $x=0$ 附近），就找不到任何有限的 $L$ 能容纳函数，函数就不再 Lipschitz。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig1_lipschitz_geometry.png" alt="Lipschitz 锥包住整张函数图；含 vertical-tangent 的函数无法被任何有限 L 容纳" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图：$\sin x$ 是 1-Lipschitz 的，每个橙色锥体都不被函数图穿出。右图：$\mathrm{sign}(x)\sqrt{|x|}$ 在原点附近导数发散，红色区域显示候选斜率 $L=2$ 的锥体在 $x=0$ 附近被函数破坏。</p>
-<p><strong>两条立刻能用的性质</strong>：</p>
-<ol>
-<li><strong>一致连续</strong>：Lipschitz $\Rightarrow$ 一致连续。证明只需令 $\delta = \varepsilon/L$。</li>
-<li><strong>闭合性</strong>：Lipschitz 函数族对加法、数乘、复合（Lipschitz 常数相乘）封闭，方便我们把复杂模型拆成已知 Lipschitz 块。</li>
-</ol>
-<h2 id="12-梯度-lipschitz--l-smoothness">1.2 梯度 Lipschitz = $L$-smoothness</h2>
-<p>工程中我们更关心<strong>梯度的 Lipschitz 性</strong>——它直接决定步长上限：</p>
-$$
+$$<p>几何上看，这是一个<strong>双向锥约束</strong>：以任一点 $(x_0, f(x_0))$ 为顶点，斜率为 $\pm L$ 的双向锥必须包住整张函数图。一旦在某一点出现"近乎竖直"的切线（如 $\sqrt{|x|}$ 在 $x=0$ 附近），就找不到任何有限的 $L$ 能容纳函数，函数就不再 Lipschitz。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig1_lipschitz_geometry.png alt="Lipschitz 锥包住整张函数图；含 vertical-tangent 的函数无法被任何有限 L 容纳" loading=lazy decoding=async></figure></p><p>左图：$\sin x$ 是 1-Lipschitz 的，每个橙色锥体都不被函数图穿出。右图：$\mathrm{sign}(x)\sqrt{|x|}$ 在原点附近导数发散，红色区域显示候选斜率 $L=2$ 的锥体在 $x=0$ 附近被函数破坏。</p><p><strong>两条立刻能用的性质</strong>：</p><ol><li><strong>一致连续</strong>：Lipschitz $\Rightarrow$ 一致连续。证明只需令 $\delta = \varepsilon/L$。</li><li><strong>闭合性</strong>：Lipschitz 函数族对加法、数乘、复合（Lipschitz 常数相乘）封闭，方便我们把复杂模型拆成已知 Lipschitz 块。</li></ol><h2 id=12-梯度-lipschitz--l-smoothness>1.2 梯度 Lipschitz = $L$-smoothness</h2><p>工程中我们更关心<strong>梯度的 Lipschitz 性</strong>——它直接决定步长上限：</p>$$
 \|\nabla f(y) - \nabla f(x)\| \le L\,\|y - x\|.
-$$<p>满足这条的可微函数称为 <strong>$L$-光滑（$L$-smooth）</strong>。它有一个比定义本身更好用的等价表述，称为<strong>下降引理（descent lemma）</strong>：</p>
-$$
+$$<p>满足这条的可微函数称为 <strong>$L$-光滑（$L$-smooth）</strong>。它有一个比定义本身更好用的等价表述，称为<strong>下降引理（descent lemma）</strong>：</p>$$
 \boxed{\,f(y) \le f(x) + \langle \nabla f(x), y - x\rangle + \frac{L}{2}\,\|y - x\|^2.\,}
-$$<p>也就是：<strong>$f$ 永远被一族开口向上、曲率为 $L$ 的二次曲面从上方包住</strong>——切线只是最差的下界，二次曲面才是真正的上界。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig2_l_smooth_quadratic.png" alt="L-smooth 函数被开口为 L 的二次抛物面从上方包住" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>图中蓝色曲线是 $f(x) = \tfrac{1}{2}\sin(2x) + \tfrac{1}{2}x^2$，三个锚点处的虚线是各自的二次上界 $f(x_0) + f'(x_0)(x-x_0) + \tfrac{L}{2}(x-x_0)^2$，而点线则是普通切线。可以清楚看到，二次上界确实从上方包住了 $f$，而切线只在凸的部分才托住函数。</p>
-<p><strong>为什么这条不等式对优化特别重要？</strong> 在 $y = x - \eta\nabla f(x)$ 上代入得</p>
-$$
+$$<p>也就是：<strong>$f$ 永远被一族开口向上、曲率为 $L$ 的二次曲面从上方包住</strong>——切线只是最差的下界，二次曲面才是真正的上界。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig2_l_smooth_quadratic.png alt="L-smooth 函数被开口为 L 的二次抛物面从上方包住" loading=lazy decoding=async></figure></p><p>图中蓝色曲线是 $f(x) = \tfrac{1}{2}\sin(2x) + \tfrac{1}{2}x^2$，三个锚点处的虚线是各自的二次上界 $f(x_0) + f'(x_0)(x-x_0) + \tfrac{L}{2}(x-x_0)^2$，而点线则是普通切线。可以清楚看到，二次上界确实从上方包住了 $f$，而切线只在凸的部分才托住函数。</p><p><strong>为什么这条不等式对优化特别重要？</strong> 在 $y = x - \eta\nabla f(x)$ 上代入得</p>$$
 f(y) \le f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|\nabla f(x)\|^2.
-$$<p>只要 $\eta \le 1/L$，括号项 $\ge 1/2$，<strong>每一步都严格下降</strong>，且下降量被梯度范数平方控制。这就是&quot;步长不要超过 $1/L$&ldquo;的硬来源——不是经验之谈，而是 descent lemma 的直接推论。</p>
-<h2 id="13-三个例子算一遍">1.3 三个例子算一遍</h2>
-<table>
-  <thead>
-      <tr>
-          <th>函数</th>
-          <th>梯度</th>
-          <th>Hessian 谱范数</th>
-          <th>$L$</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\tfrac{1}{2}\|x\|^2$</td>
-          <td>$x$</td>
-          <td>$1$</td>
-          <td>$1$</td>
-      </tr>
-      <tr>
-          <td>$\tfrac{1}{2}\|Ax-b\|^2$</td>
-          <td>$A^\top(Ax-b)$</td>
-          <td>$\lambda_{\max}(A^\top A)$</td>
-          <td>$\lambda_{\max}(A^\top A)$</td>
-      </tr>
-      <tr>
-          <td>Logistic $\log(1 + e^{-y\,\theta^\top x})$（单样本）</td>
-          <td>$-y\,\sigma(-y\theta^\top x)\,x$</td>
-          <td>$\sigma(\cdot)\sigma(-\cdot)\,xx^\top$</td>
-          <td>$\tfrac{1}{4}\|x\|^2$</td>
-      </tr>
-  </tbody>
-</table>
-<p>第三行给出了 logistic 回归常用的 $L = \tfrac{1}{4}\sum_i\|x_i\|^2 / n$，其中 $\sigma(\cdot)\sigma(-\cdot)\le 1/4$ 是关键。</p>
-<h2 id="14-判别准则通过-hessian-给-l">1.4 判别准则：通过 Hessian 给 L</h2>
-<p><strong>定理 1（Hessian 谱范数 $\Rightarrow$ 梯度 Lipschitz）</strong>：若 $f$ 二阶可微且 $\sup_x \|\nabla^2 f(x)\|_2 \le L$，则 $\nabla f$ 是 $L$-Lipschitz 的。</p>
-<p><strong>证明</strong>：对任意 $x, y$，由 Newton-Leibniz 与链式法则，</p>
-$$
+$$<p>只要 $\eta \le 1/L$，括号项 $\ge 1/2$，<strong>每一步都严格下降</strong>，且下降量被梯度范数平方控制。这就是"步长不要超过 $1/L$&ldquo;的硬来源——不是经验之谈，而是 descent lemma 的直接推论。</p><h2 id=13-三个例子算一遍>1.3 三个例子算一遍</h2><table><thead><tr><th>函数</th><th>梯度</th><th>Hessian 谱范数</th><th>$L$</th></tr></thead><tbody><tr><td>$\tfrac{1}{2}\|x\|^2$</td><td>$x$</td><td>$1$</td><td>$1$</td></tr><tr><td>$\tfrac{1}{2}\|Ax-b\|^2$</td><td>$A^\top(Ax-b)$</td><td>$\lambda_{\max}(A^\top A)$</td><td>$\lambda_{\max}(A^\top A)$</td></tr><tr><td>Logistic $\log(1 + e^{-y\,\theta^\top x})$（单样本）</td><td>$-y\,\sigma(-y\theta^\top x)\,x$</td><td>$\sigma(\cdot)\sigma(-\cdot)\,xx^\top$</td><td>$\tfrac{1}{4}\|x\|^2$</td></tr></tbody></table><p>第三行给出了 logistic 回归常用的 $L = \tfrac{1}{4}\sum_i\|x_i\|^2 / n$，其中 $\sigma(\cdot)\sigma(-\cdot)\le 1/4$ 是关键。</p><h2 id=14-判别准则通过-hessian-给-l>1.4 判别准则：通过 Hessian 给 L</h2><p><strong>定理 1（Hessian 谱范数 $\Rightarrow$ 梯度 Lipschitz）</strong>：若 $f$ 二阶可微且 $\sup_x \|\nabla^2 f(x)\|_2 \le L$，则 $\nabla f$ 是 $L$-Lipschitz 的。</p><p><strong>证明</strong>：对任意 $x, y$，由 Newton-Leibniz 与链式法则，</p>$$
 \nabla f(y) - \nabla f(x) = \int_0^1 \nabla^2 f(x + t(y-x))\,(y-x)\,\mathrm dt.
-$$<p>两边取 2-范数：</p>
-$$
+$$<p>两边取 2-范数：</p>$$
 \|\nabla f(y) - \nabla f(x)\| \le \int_0^1 \|\nabla^2 f(\cdot)\|_2\,\|y-x\|\,\mathrm dt \le L\,\|y-x\|.\quad\blacksquare
-$$<p><strong>实用推论</strong>：对二次函数 $f(x) = \tfrac{1}{2}x^\top H x$，最优步长直接来自 $H$ 的最大特征值——这条结论对任何 $L$-光滑函数都给出&quot;局部二次近似&quot;的步长上限。</p>
-<hr>
-<h1 id="2-强凸性极小存在唯一且远离原点的代价二次增长">2. 强凸性：极小存在、唯一、且远离原点的代价二次增长</h1>
-<h2 id="21-定义与三种等价刻画">2.1 定义与三种等价刻画</h2>
-<p><strong>定义（$\mu$-强凸）</strong>：可微函数 $f$ 是 $\mu$-强凸的（$\mu>0$），如果对任意 $x, y$，</p>
-$$
+$$<p><strong>实用推论</strong>：对二次函数 $f(x) = \tfrac{1}{2}x^\top H x$，最优步长直接来自 $H$ 的最大特征值——这条结论对任何 $L$-光滑函数都给出"局部二次近似"的步长上限。</p><hr><h1 id=2-强凸性极小存在唯一且远离原点的代价二次增长>2. 强凸性：极小存在、唯一、且远离原点的代价二次增长</h1><h2 id=21-定义与三种等价刻画>2.1 定义与三种等价刻画</h2><p><strong>定义（$\mu$-强凸）</strong>：可微函数 $f$ 是 $\mu$-强凸的（$\mu>0$），如果对任意 $x, y$，</p>$$
 f(y) \ge f(x) + \langle \nabla f(x), y - x\rangle + \frac{\mu}{2}\,\|y - x\|^2.
-$$<p>它有三个完全等价的描述，每一个都在不同的场合更顺手：</p>
-<ol>
-<li><strong>二次下界</strong>（上式本身）：函数被一族开口向上、曲率为 $\mu$ 的二次曲面<strong>从下方托住</strong>。</li>
-<li><strong>$f - \tfrac{\mu}{2}\|x\|^2$ 是凸函数</strong>：把&quot;超出 $\mu$-曲率&quot;的部分扣掉之后还是凸的。</li>
-<li><strong>二阶条件</strong>（若 $f$ 二次可微）：$\nabla^2 f(x) \succeq \mu I$。</li>
-</ol>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig3_strong_convexity.png" alt="强凸函数被开口为 mu 的二次抛物面从下方托住；凸但非强凸的情形（mu=0）" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图：强凸函数在每一点处都被一条曲率为 $\mu$ 的二次曲线托住。右图：$f(x) = 0.05\,x^4$ 是凸的但<strong>不是强凸的</strong>——在 $x=0$ 附近 $f$ 太平，没有任何 $\mu>0$ 的抛物线能贴在下面，这是为什么在这种函数上不可能得到线性收敛速率。</p>
-<h2 id="22-极小存在性与唯一性">2.2 极小存在性与唯一性</h2>
-<p><strong>定理 2（极小存在性）</strong>：若 $f$ 下半连续，且存在某个 $\alpha$ 使子水平集 $\{x : f(x)\le\alpha\}$ 非空且有界，则 $f$ 在该子水平集上达到极小。</p>
-<p>证明就是 Weierstrass：有界 + 闭 = 紧，下半连续函数在紧集上必有极小。</p>
-<p><strong>定理 3（强凸 $\Rightarrow$ 极小唯一）</strong>：$\mu$-强凸函数（$\mu > 0$）在 $\mathbb{R}^n$ 上至多有一个全局极小点。</p>
-<p><strong>证明</strong>：设 $x^\star, y^\star$ 都是全局极小，则 $\nabla f(x^\star) = 0$。在二次下界中代入 $x = x^\star, y = y^\star$：</p>
-$$
+$$<p>它有三个完全等价的描述，每一个都在不同的场合更顺手：</p><ol><li><strong>二次下界</strong>（上式本身）：函数被一族开口向上、曲率为 $\mu$ 的二次曲面<strong>从下方托住</strong>。</li><li><strong>$f - \tfrac{\mu}{2}\|x\|^2$ 是凸函数</strong>：把"超出 $\mu$-曲率"的部分扣掉之后还是凸的。</li><li><strong>二阶条件</strong>（若 $f$ 二次可微）：$\nabla^2 f(x) \succeq \mu I$。</li></ol><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig3_strong_convexity.png alt="强凸函数被开口为 mu 的二次抛物面从下方托住；凸但非强凸的情形（mu=0）" loading=lazy decoding=async></figure></p><p>左图：强凸函数在每一点处都被一条曲率为 $\mu$ 的二次曲线托住。右图：$f(x) = 0.05\,x^4$ 是凸的但<strong>不是强凸的</strong>——在 $x=0$ 附近 $f$ 太平，没有任何 $\mu>0$ 的抛物线能贴在下面，这是为什么在这种函数上不可能得到线性收敛速率。</p><h2 id=22-极小存在性与唯一性>2.2 极小存在性与唯一性</h2><p><strong>定理 2（极小存在性）</strong>：若 $f$ 下半连续，且存在某个 $\alpha$ 使子水平集 $\{x : f(x)\le\alpha\}$ 非空且有界，则 $f$ 在该子水平集上达到极小。</p><p>证明就是 Weierstrass：有界 + 闭 = 紧，下半连续函数在紧集上必有极小。</p><p><strong>定理 3（强凸 $\Rightarrow$ 极小唯一）</strong>：$\mu$-强凸函数（$\mu > 0$）在 $\mathbb{R}^n$ 上至多有一个全局极小点。</p><p><strong>证明</strong>：设 $x^\star, y^\star$ 都是全局极小，则 $\nabla f(x^\star) = 0$。在二次下界中代入 $x = x^\star, y = y^\star$：</p>$$
 f(y^\star) \ge f(x^\star) + 0 + \frac{\mu}{2}\|y^\star - x^\star\|^2.
-$$<p>由于 $f(y^\star) = f(x^\star)$，必有 $\|y^\star - x^\star\| = 0$，即 $x^\star = y^\star$。$\blacksquare$</p>
-<p><strong>推论（PL / 二次增长）</strong>：把上式以 $x = x^\star$ 重写一遍，得</p>
-$$
+$$<p>由于 $f(y^\star) = f(x^\star)$，必有 $\|y^\star - x^\star\| = 0$，即 $x^\star = y^\star$。$\blacksquare$</p><p><strong>推论（PL / 二次增长）</strong>：把上式以 $x = x^\star$ 重写一遍，得</p>$$
 f(y) - f^\star \ge \frac{\mu}{2}\|y - x^\star\|^2,
-$$<p>也就是<strong>离最优点越远，代价至少二次增长</strong>。这是后面收敛性证明里&quot;用次优值反过来界定迭代点距离&quot;的关键。</p>
-<h2 id="23-同时-l-smooth-且-mu-strongly-convex条件数登场">2.3 同时 $L$-smooth 且 $\mu$-strongly convex：条件数登场</h2>
-<p>如果 $f$ 同时满足</p>
-$$
+$$<p>也就是<strong>离最优点越远，代价至少二次增长</strong>。这是后面收敛性证明里"用次优值反过来界定迭代点距离"的关键。</p><h2 id=23-同时-l-smooth-且-mu-strongly-convex条件数登场>2.3 同时 $L$-smooth 且 $\mu$-strongly convex：条件数登场</h2><p>如果 $f$ 同时满足</p>$$
 \mu I \preceq \nabla^2 f(x) \preceq L I,
-$$<p>那么所有方向上的曲率都被夹在 $[\mu, L]$ 之间。比值</p>
-$$
+$$<p>那么所有方向上的曲率都被夹在 $[\mu, L]$ 之间。比值</p>$$
 \boxed{\,\kappa := \frac{L}{\mu} \ge 1\,}
-$$<p>称为<strong>条件数</strong>，是后续所有收敛速率的核心量。$\kappa$ 越大，函数&quot;长且窄&rdquo;，最陡方向已经接近发散、最缓方向却几乎没有信号——这是优化困难的本质来源。</p>
-<hr>
-<h1 id="3-加速梯度下降从-kappa-到-sqrtkappa">3. 加速梯度下降：从 $\kappa$ 到 $\sqrt{\kappa}$</h1>
-<h2 id="31-普通梯度下降的两条上界">3.1 普通梯度下降的两条上界</h2>
-<p><strong>定理 4（GD 在凸 + $L$-smooth 下的次线性率）</strong>：取 $\eta = 1/L$，则</p>
-$$
+$$<p>称为<strong>条件数</strong>，是后续所有收敛速率的核心量。$\kappa$ 越大，函数"长且窄&rdquo;，最陡方向已经接近发散、最缓方向却几乎没有信号——这是优化困难的本质来源。</p><hr><h1 id=3-加速梯度下降从-kappa-到-sqrtkappa>3. 加速梯度下降：从 $\kappa$ 到 $\sqrt{\kappa}$</h1><h2 id=31-普通梯度下降的两条上界>3.1 普通梯度下降的两条上界</h2><p><strong>定理 4（GD 在凸 + $L$-smooth 下的次线性率）</strong>：取 $\eta = 1/L$，则</p>$$
 f(x_t) - f^\star \le \frac{L\,\|x_0 - x^\star\|^2}{2t} = \mathcal O(1/t).
-$$<p><strong>定理 5（GD 在 $\mu$-强凸 + $L$-smooth 下的线性率）</strong>：取 $\eta = 1/L$，则</p>
-$$
+$$<p><strong>定理 5（GD 在 $\mu$-强凸 + $L$-smooth 下的线性率）</strong>：取 $\eta = 1/L$，则</p>$$
 \|x_t - x^\star\|^2 \le \Big(1 - \frac{1}{\kappa}\Big)^t \|x_0 - x^\star\|^2.
-$$<p>要把误差缩到 $\varepsilon$，迭代次数 $t = \mathcal O(\kappa\log(1/\varepsilon))$。<strong>条件数线性进入复杂度</strong>——在 $\kappa = 10^4$ 的最小二乘上意味着每次精度提升十倍要再跑约 $2\times 10^4$ 步。</p>
-<h2 id="32-nesterov-加速用一个前瞻点换-sqrtkappa">3.2 Nesterov 加速：用一个&quot;前瞻点&quot;换 $\sqrt{\kappa}$</h2>
-<p>经典动量（Polyak Heavy Ball）的更新是</p>
-$$
+$$<p>要把误差缩到 $\varepsilon$，迭代次数 $t = \mathcal O(\kappa\log(1/\varepsilon))$。<strong>条件数线性进入复杂度</strong>——在 $\kappa = 10^4$ 的最小二乘上意味着每次精度提升十倍要再跑约 $2\times 10^4$ 步。</p><h2 id=32-nesterov-加速用一个前瞻点换-sqrtkappa>3.2 Nesterov 加速：用一个"前瞻点"换 $\sqrt{\kappa}$</h2><p>经典动量（Polyak Heavy Ball）的更新是</p>$$
 x_{t+1} = x_t - \alpha\nabla f(x_t) + \beta(x_t - x_{t-1}),
-$$<p>它在严格凸二次型上确实达到 $\sqrt{\kappa}$ 的速率，但<strong>对一般强凸函数无法保证全局加速</strong>——几个反例就能让它发散。Nesterov 的关键改动是<strong>把梯度评估搬到动量更新之后的&quot;前瞻点&quot;</strong>：</p>
-$$
+$$<p>它在严格凸二次型上确实达到 $\sqrt{\kappa}$ 的速率，但<strong>对一般强凸函数无法保证全局加速</strong>——几个反例就能让它发散。Nesterov 的关键改动是<strong>把梯度评估搬到动量更新之后的"前瞻点"</strong>：</p>$$
 \begin{aligned}
 y_t &= x_t + \beta_t (x_t - x_{t-1}), \\
 x_{t+1} &= y_t - \eta\,\nabla f(y_t).
 \end{aligned}
-$$<p>直觉上：先按动量&quot;瞄一眼&quot;未来位置 $y_t$，再用那里的梯度修正方向。这一点点前瞻信息让它在所有 $L$-smooth 凸函数上都能保住加速率。</p>
-<p><strong>定理 6（Nesterov 凸情形 $\mathcal O(1/t^2)$）</strong>：对 $L$-smooth 凸函数，取 $\eta = 1/L$ 与经典权重序列 $\beta_t = (t-1)/(t+2)$，</p>
-$$
+$$<p>直觉上：先按动量"瞄一眼"未来位置 $y_t$，再用那里的梯度修正方向。这一点点前瞻信息让它在所有 $L$-smooth 凸函数上都能保住加速率。</p><p><strong>定理 6（Nesterov 凸情形 $\mathcal O(1/t^2)$）</strong>：对 $L$-smooth 凸函数，取 $\eta = 1/L$ 与经典权重序列 $\beta_t = (t-1)/(t+2)$，</p>$$
 f(x_t) - f^\star \le \frac{2L\,\|x_0 - x^\star\|^2}{(t+1)^2}.
-$$<p><strong>定理 7（Nesterov 强凸情形 $\mathcal O((1 - 1/\sqrt{\kappa})^t)$）</strong>：对 $\mu$-强凸 + $L$-smooth 函数，取 $\eta = 1/L$ 与常数动量</p>
-$$
+$$<p><strong>定理 7（Nesterov 强凸情形 $\mathcal O((1 - 1/\sqrt{\kappa})^t)$）</strong>：对 $\mu$-强凸 + $L$-smooth 函数，取 $\eta = 1/L$ 与常数动量</p>$$
 \beta = \frac{1 - \sqrt{1/\kappa}}{1 + \sqrt{1/\kappa}},
-$$<p>则 $f(x_t) - f^\star \le \big(1 - \sqrt{1/\kappa}\big)^t (f(x_0) - f^\star)$，对应 $t = \mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig4_convergence_rates.png" alt="GD vs Heavy Ball vs Nesterov 在强凸二次型上的收敛曲线" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图（$\kappa=100$）：在严格 log 坐标下，三条算法都呈线性下降，但 Nesterov（紫色）和 Heavy Ball（橙色）的斜率明显比 GD（蓝色）陡——这正是 $\sqrt{\kappa}$ vs $\kappa$ 的差距。虚线是理论速率包络，与实测拟合得很好。右图：把前 80 代放大，可见 Nesterov <strong>不严格单调</strong>——它会沿&quot;低谷&quot;震荡，但震荡始终被理论下界包住，这是加速法的典型行为。</p>
-<h2 id="33-重启策略解决加速副作用">3.3 重启策略：解决&quot;加速副作用&quot;</h2>
-<p>加速法的代价是<strong>非单调</strong>——某些迭代步函数值会回升。这在两种情形下尤其讨厌：</p>
-<ul>
-<li><strong>强凸参数 $\mu$ 未知</strong>：定理 7 的最优 $\beta$ 需要 $\sqrt{1/\kappa}$，估错就退化。</li>
-<li><strong>局部强凸</strong>：函数全局只是凸，但在最优点附近强凸；用凸版 Nesterov 收敛会变慢。</li>
-</ul>
-<p><strong>自适应重启（O&rsquo;Donoghue &amp; Candès, 2015）</strong>：每当观察到<strong>梯度方向反转</strong>（$\langle\nabla f(y_t), x_{t+1}-x_t\rangle > 0$）或<strong>函数值上升</strong>，就把动量清零、$t$ 归零，重新开始。</p>
-<p><strong>定理 8（重启 Nesterov 在强凸下达到最优率）</strong>：对 $\mu$-强凸 + $L$-smooth 函数，重启 Nesterov 仍达到 $\mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$ 复杂度，且<strong>不需要预先知道 $\mu$</strong>。</p>
-<p>证明思路：在两次重启之间，跑的是凸版 Nesterov，$\mathcal O(1/k^2)$ 的误差结合二次增长 $f - f^\star \ge \tfrac{\mu}{2}\|x - x^\star\|^2$ 得到&quot;每次重启误差至少减半&quot;，几何减半 $\log(1/\varepsilon)$ 次后达成目标。每段长度 $\sim \sqrt{\kappa}$，总迭代数 $\sim \sqrt{\kappa}\log(1/\varepsilon)$。</p>
-<h2 id="34-条件数到底带来多少差距">3.4 条件数到底带来多少差距</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig5_condition_number.png" alt="条件数 kappa 对迭代次数的影响：GD 线性增长，Nesterov 平方根增长" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图（双对数）：在最小二乘合成数据上，GD 达到 $10^{-6}$ 相对精度所需迭代数严格沿 $\kappa$ 直线增长，Nesterov 沿 $\sqrt{\kappa}$ 增长。右图：加速比 = $T_{\text{GD}}/T_{\text{AGD}}$ 与 $\sqrt{\kappa}$ 几乎重合：$\kappa = 10^4$ 时加速 100 倍，$\kappa = 100$ 时加速 10 倍——条件数越差，加速法越值。</p>
-<h2 id="35-选择决策表">3.5 选择决策表</h2>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>推荐</th>
-          <th>理由</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\kappa$ 小（$\le 50$），代码要简单</td>
-          <td>GD</td>
-          <td>加速带来的复杂度收益不显著</td>
-      </tr>
-      <tr>
-          <td>$\kappa$ 大且 $\mu$ 已知</td>
-          <td>常数动量 Nesterov（定理 7）</td>
-          <td>闭式最优 $\beta$</td>
-      </tr>
-      <tr>
-          <td>$\kappa$ 大但 $\mu$ 未知/局部强凸</td>
-          <td>自适应重启 Nesterov</td>
-          <td>自适应 $\mu$ 同时获得最优率</td>
-      </tr>
-      <tr>
-          <td>严格凸二次型（如最小二乘）</td>
-          <td>共轭梯度 (CG) 优先</td>
-          <td>在 $\le n$ 步内有限终止，比 Nesterov 还快</td>
-      </tr>
-      <tr>
-          <td>非凸但局部接近凸（深度网络）</td>
-          <td>带预热和余弦衰减的动量 / Adam</td>
-          <td>理论速率不再可证，工程经验主导</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h1 id="4-最小二乘实验">4. 最小二乘实验</h1>
-<h2 id="41-问题与数学性质">4.1 问题与数学性质</h2>
-<p>考虑最小二乘问题</p>
-$$
+$$<p>则 $f(x_t) - f^\star \le \big(1 - \sqrt{1/\kappa}\big)^t (f(x_0) - f^\star)$，对应 $t = \mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig4_convergence_rates.png alt="GD vs Heavy Ball vs Nesterov 在强凸二次型上的收敛曲线" loading=lazy decoding=async></figure></p><p>左图（$\kappa=100$）：在严格 log 坐标下，三条算法都呈线性下降，但 Nesterov（紫色）和 Heavy Ball（橙色）的斜率明显比 GD（蓝色）陡——这正是 $\sqrt{\kappa}$ vs $\kappa$ 的差距。虚线是理论速率包络，与实测拟合得很好。右图：把前 80 代放大，可见 Nesterov <strong>不严格单调</strong>——它会沿"低谷"震荡，但震荡始终被理论下界包住，这是加速法的典型行为。</p><h2 id=33-重启策略解决加速副作用>3.3 重启策略：解决"加速副作用"</h2><p>加速法的代价是<strong>非单调</strong>——某些迭代步函数值会回升。这在两种情形下尤其讨厌：</p><ul><li><strong>强凸参数 $\mu$ 未知</strong>：定理 7 的最优 $\beta$ 需要 $\sqrt{1/\kappa}$，估错就退化。</li><li><strong>局部强凸</strong>：函数全局只是凸，但在最优点附近强凸；用凸版 Nesterov 收敛会变慢。</li></ul><p><strong>自适应重启（O&rsquo;Donoghue & Candès, 2015）</strong>：每当观察到<strong>梯度方向反转</strong>（$\langle\nabla f(y_t), x_{t+1}-x_t\rangle > 0$）或<strong>函数值上升</strong>，就把动量清零、$t$ 归零，重新开始。</p><p><strong>定理 8（重启 Nesterov 在强凸下达到最优率）</strong>：对 $\mu$-强凸 + $L$-smooth 函数，重启 Nesterov 仍达到 $\mathcal O(\sqrt{\kappa}\log(1/\varepsilon))$ 复杂度，且<strong>不需要预先知道 $\mu$</strong>。</p><p>证明思路：在两次重启之间，跑的是凸版 Nesterov，$\mathcal O(1/k^2)$ 的误差结合二次增长 $f - f^\star \ge \tfrac{\mu}{2}\|x - x^\star\|^2$ 得到"每次重启误差至少减半"，几何减半 $\log(1/\varepsilon)$ 次后达成目标。每段长度 $\sim \sqrt{\kappa}$，总迭代数 $\sim \sqrt{\kappa}\log(1/\varepsilon)$。</p><h2 id=34-条件数到底带来多少差距>3.4 条件数到底带来多少差距</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E6%B7%B1%E5%85%A5%E8%A7%A3%E6%9E%90%E9%9D%9E%E7%BA%BF%E6%80%A7%E4%BC%98%E5%8C%96%E4%B8%AD%E7%9A%84lipschitz%E8%BF%9E%E7%BB%AD%E6%80%A7-%E5%BC%BA%E5%87%B8%E6%80%A7%E4%B8%8E%E5%8A%A0%E9%80%9F%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E7%AE%97%E6%B3%95/fig5_condition_number.png alt="条件数 kappa 对迭代次数的影响：GD 线性增长，Nesterov 平方根增长" loading=lazy decoding=async></figure></p><p>左图（双对数）：在最小二乘合成数据上，GD 达到 $10^{-6}$ 相对精度所需迭代数严格沿 $\kappa$ 直线增长，Nesterov 沿 $\sqrt{\kappa}$ 增长。右图：加速比 = $T_{\text{GD}}/T_{\text{AGD}}$ 与 $\sqrt{\kappa}$ 几乎重合：$\kappa = 10^4$ 时加速 100 倍，$\kappa = 100$ 时加速 10 倍——条件数越差，加速法越值。</p><h2 id=35-选择决策表>3.5 选择决策表</h2><table><thead><tr><th>场景</th><th>推荐</th><th>理由</th></tr></thead><tbody><tr><td>$\kappa$ 小（$\le 50$），代码要简单</td><td>GD</td><td>加速带来的复杂度收益不显著</td></tr><tr><td>$\kappa$ 大且 $\mu$ 已知</td><td>常数动量 Nesterov（定理 7）</td><td>闭式最优 $\beta$</td></tr><tr><td>$\kappa$ 大但 $\mu$ 未知/局部强凸</td><td>自适应重启 Nesterov</td><td>自适应 $\mu$ 同时获得最优率</td></tr><tr><td>严格凸二次型（如最小二乘）</td><td>共轭梯度 (CG) 优先</td><td>在 $\le n$ 步内有限终止，比 Nesterov 还快</td></tr><tr><td>非凸但局部接近凸（深度网络）</td><td>带预热和余弦衰减的动量 / Adam</td><td>理论速率不再可证，工程经验主导</td></tr></tbody></table><hr><h1 id=4-最小二乘实验>4. 最小二乘实验</h1><h2 id=41-问题与数学性质>4.1 问题与数学性质</h2><p>考虑最小二乘问题</p>$$
 \min_{x\in\mathbb{R}^n} f(x) = \frac{1}{2}\|Ax - b\|^2, \qquad A\in\mathbb{R}^{m\times n},\; b\in\mathbb{R}^m.
-$$<p>直接求导：</p>
-$$
+$$<p>直接求导：</p>$$
 \nabla f(x) = A^\top(Ax - b), \qquad \nabla^2 f(x) = A^\top A.
-$$<p>于是</p>
-$$
+$$<p>于是</p>$$
 L = \lambda_{\max}(A^\top A), \qquad \mu = \lambda_{\min}(A^\top A), \qquad \kappa = \kappa(A^\top A) = \kappa(A)^2.
-$$<p><strong>注意</strong>：条件数是 $A$ 的条件数的<strong>平方</strong>——这就是为什么&quot;看起来还行&quot;的 $A$（$\kappa(A) = 100$）在最小二乘里会变成 $\kappa = 10^4$ 的硬骨头。</p>
-<h2 id="42-算法实现要点">4.2 算法实现要点</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">gd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Gradient descent with step 1/L.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">A</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span> <span class="ow">or</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hist</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iter</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">g</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">-=</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">hist</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">nesterov_strongconvex</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Nesterov AGD using known mu, L (constant momentum form).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">eigs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">A</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">L</span><span class="p">,</span> <span class="n">mu</span> <span class="o">=</span> <span class="n">eigs</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="nb">max</span><span class="p">(</span><span class="n">eigs</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="mf">1e-12</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">eta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="n">sk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mu</span> <span class="o">/</span> <span class="n">L</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">beta</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">sk</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">sk</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x_prev</span> <span class="o">=</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hist</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iter</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_prev</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">g</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">y</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x</span> <span class="o">-</span> <span class="n">b</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x_prev</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">hist</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">nesterov_restart</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Adaptive-restart Nesterov: reset momentum on function-value uptick.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">A</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">eta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x_prev</span> <span class="o">=</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="n">f_prev</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hist</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_iter</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">beta</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_prev</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">g</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">y</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x_new</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">        <span class="n">f_new</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x_new</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">f_new</span> <span class="o">&gt;</span> <span class="n">f_prev</span><span class="p">:</span>               <span class="c1"># restart trigger</span>
-</span></span><span class="line"><span class="cl">            <span class="n">t</span> <span class="o">=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x_new</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">eta</span> <span class="o">*</span> <span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">f_new</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x_new</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x_new</span> <span class="o">-</span> <span class="n">b</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x_prev</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">f_prev</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_new</span><span class="p">,</span> <span class="n">f_new</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">hist</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="43-实测结论">4.3 实测结论</h2>
-<p>在 $m = 200, n = 100$、$\kappa(A) \approx 100$ 即 $\kappa(A^\top A) \approx 10^4$ 的合成实例上：</p>
-<ul>
-<li><strong>GD</strong>：$10^{-6}$ 相对梯度范数需 $\sim 4\times 10^4$ 步；曲线平滑但慢。</li>
-<li><strong>Nesterov（常数动量）</strong>：$\sim 400$ 步；曲线沿&quot;低谷&quot;周期震荡，与图 4 右图一致。</li>
-<li><strong>重启 Nesterov</strong>：$\sim 500$ 步，几乎完全单调，鲁棒性最好。</li>
-</ul>
-<p>加速比与图 5 的 $\sqrt{\kappa}$ 预测吻合（$10^4 \to 100\times$）。</p>
-<hr>
-<h1 id="5-总结与延伸">5. 总结与延伸</h1>
-<h2 id="51-核心定理一图流">5.1 核心定理一图流</h2>
-<table>
-  <thead>
-      <tr>
-          <th>假设</th>
-          <th>算法</th>
-          <th>收敛速率</th>
-          <th>步长</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$L$-smooth, 凸</td>
-          <td>GD</td>
-          <td>$\mathcal O(1/t)$</td>
-          <td>$\eta = 1/L$</td>
-      </tr>
-      <tr>
-          <td>$L$-smooth, $\mu$-strongly convex</td>
-          <td>GD</td>
-          <td>$\big(1 - 1/\kappa\big)^t$</td>
-          <td>$\eta = 1/L$</td>
-      </tr>
-      <tr>
-          <td>$L$-smooth, 凸</td>
-          <td>Nesterov</td>
-          <td>$\mathcal O(1/t^2)$</td>
-          <td>$\eta = 1/L,\ \beta_t = (t-1)/(t+2)$</td>
-      </tr>
-      <tr>
-          <td>$L$-smooth, $\mu$-strongly convex</td>
-          <td>Nesterov</td>
-          <td>$\big(1 - 1/\sqrt{\kappa}\big)^t$</td>
-          <td>$\eta = 1/L,\ \beta = (1-\sqrt{1/\kappa})/(1+\sqrt{1/\kappa})$</td>
-      </tr>
-      <tr>
-          <td>同上，$\mu$ 未知</td>
-          <td>重启 Nesterov</td>
-          <td>$\big(1 - 1/\sqrt{\kappa}\big)^t$</td>
-          <td>自适应</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="52-三个判断-reflex">5.2 三个判断 reflex</h2>
-<p>新问题摆上桌时，按这个顺序回答：</p>
-<ol>
-<li><strong>梯度有多陡？</strong> 估 $L$（最大特征值或 backtracking line search），它直接给出步长上限。</li>
-<li><strong>谷底有多硬？</strong> 估 $\mu$（最小特征值或 PL 常数），它决定能否拿到线性收敛。</li>
-<li><strong>加速值不值？</strong> 看 $\kappa = L/\mu$：$\kappa < 50$ 用 GD，$\kappa \in [50, 10^4]$ 用 Nesterov，$\kappa > 10^4$ 考虑预条件 / 二阶法。</li>
-</ol>
-<h2 id="53-延伸阅读">5.3 延伸阅读</h2>
-<ul>
-<li><strong>非凸 + PL 条件</strong>：放弃强凸，只要 $\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$，GD 仍然线性收敛——这是深度学习中&quot;过参数化为何能线性收敛&quot;的理论起点（Karimi et al., 2016）。</li>
-<li><strong>加速 + 噪声</strong>：Nesterov 对随机梯度并不天然鲁棒。SAG / SVRG / Katyusha 等方差缩减方法把强凸下的随机收敛重新拉回 $\sqrt{\kappa}$ 级别。</li>
-<li><strong>二阶加速</strong>：Sophia、Shampoo 用对角或块对角 Hessian 预条件，等价于把有效条件数 $\kappa$ 直接改写——这是 2024 年大模型预训练的活跃方向。</li>
-</ul>
-<p><strong>参考文献</strong>：</p>
-<ol>
-<li>Nesterov, Y. (1983). <em>A method of solving a convex programming problem with convergence rate $\mathcal O(1/k^2)$.</em> Soviet Mathematics Doklady, 27(2), 372–376.</li>
-<li>Boyd, S., &amp; Vandenberghe, L. (2004). <em>Convex Optimization.</em> Cambridge University Press.</li>
-<li>Bubeck, S. (2015). <em>Convex Optimization: Algorithms and Complexity.</em> Foundations and Trends in Machine Learning, 8(3-4), 231–357.</li>
-<li>O&rsquo;Donoghue, B., &amp; Candès, E. (2015). <em>Adaptive restart for accelerated gradient schemes.</em> Foundations of Computational Mathematics, 15(3), 715–732.</li>
-<li>Karimi, H., Nutini, J., &amp; Schmidt, M. (2016). <em>Linear convergence of gradient and proximal-gradient methods under the Polyak-Łojasiewicz condition.</em> ECML-PKDD.</li>
-</ol>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#11-lipschitz-连续性的几何直觉">1.1 Lipschitz 连续性的几何直觉</a></li>
-    <li><a href="#12-梯度-lipschitz--l-smoothness">1.2 梯度 Lipschitz = -smoothness</a></li>
-    <li><a href="#13-三个例子算一遍">1.3 三个例子算一遍</a></li>
-    <li><a href="#14-判别准则通过-hessian-给-l">1.4 判别准则：通过 Hessian 给 L</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#21-定义与三种等价刻画">2.1 定义与三种等价刻画</a></li>
-    <li><a href="#22-极小存在性与唯一性">2.2 极小存在性与唯一性</a></li>
-    <li><a href="#23-同时-l-smooth-且-mu-strongly-convex条件数登场">2.3 同时 -smooth 且 -strongly convex：条件数登场</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#31-普通梯度下降的两条上界">3.1 普通梯度下降的两条上界</a></li>
-    <li><a href="#32-nesterov-加速用一个前瞻点换-sqrtkappa">3.2 Nesterov 加速：用一个&quot;前瞻点&quot;换 </a></li>
-    <li><a href="#33-重启策略解决加速副作用">3.3 重启策略：解决&quot;加速副作用&quot;</a></li>
-    <li><a href="#34-条件数到底带来多少差距">3.4 条件数到底带来多少差距</a></li>
-    <li><a href="#35-选择决策表">3.5 选择决策表</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#41-问题与数学性质">4.1 问题与数学性质</a></li>
-    <li><a href="#42-算法实现要点">4.2 算法实现要点</a></li>
-    <li><a href="#43-实测结论">4.3 实测结论</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#51-核心定理一图流">5.1 核心定理一图流</a></li>
-    <li><a href="#52-三个判断-reflex">5.2 三个判断 reflex</a></li>
-    <li><a href="#53-延伸阅读">5.3 延伸阅读</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5400</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p><strong>注意</strong>：条件数是 $A$ 的条件数的<strong>平方</strong>——这就是为什么"看起来还行"的 $A$（$\kappa(A) = 100$）在最小二乘里会变成 $\kappa = 10^4$ 的硬骨头。</p><h2 id=42-算法实现要点>4.2 算法实现要点</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>gd</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>b</span><span class=p>,</span> <span class=n>n_iter</span><span class=p>,</span> <span class=n>eta</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Gradient descent with step 1/L.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>A</span><span class=p>)</span><span class=o>.</span><span class=n>max</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>eta</span> <span class=o>=</span> <span class=n>eta</span> <span class=ow>or</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>hist</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_iter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>g</span> <span class=o>=</span> <span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x</span> <span class=o>-</span> <span class=n>b</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>hist</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>g</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>-=</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span><span class=p>,</span> <span class=n>hist</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>nesterov_strongconvex</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>b</span><span class=p>,</span> <span class=n>n_iter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Nesterov AGD using known mu, L (constant momentum form).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>eigs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>A</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span><span class=p>,</span> <span class=n>mu</span> <span class=o>=</span> <span class=n>eigs</span><span class=o>.</span><span class=n>max</span><span class=p>(),</span> <span class=nb>max</span><span class=p>(</span><span class=n>eigs</span><span class=o>.</span><span class=n>min</span><span class=p>(),</span> <span class=mf>1e-12</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>eta</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=n>sk</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>mu</span> <span class=o>/</span> <span class=n>L</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>beta</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>sk</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>sk</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>x_prev</span> <span class=o>=</span> <span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>hist</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_iter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=n>beta</span> <span class=o>*</span> <span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>x_prev</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>g</span> <span class=o>=</span> <span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>y</span> <span class=o>-</span> <span class=n>b</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>hist</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x</span> <span class=o>-</span> <span class=n>b</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_prev</span><span class=p>,</span> <span class=n>x</span> <span class=o>=</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>-</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span><span class=p>,</span> <span class=n>hist</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>nesterov_restart</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>b</span><span class=p>,</span> <span class=n>n_iter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Adaptive-restart Nesterov: reset momentum on function-value uptick.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>A</span><span class=p>)</span><span class=o>.</span><span class=n>max</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>eta</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=n>x_prev</span> <span class=o>=</span> <span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=n>f_prev</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x</span> <span class=o>-</span> <span class=n>b</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>    <span class=n>hist</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_iter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>beta</span> <span class=o>=</span> <span class=p>(</span><span class=n>t</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>t</span> <span class=o>+</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=n>beta</span> <span class=o>*</span> <span class=p>(</span><span class=n>x</span> <span class=o>-</span> <span class=n>x_prev</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>g</span> <span class=o>=</span> <span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>y</span> <span class=o>-</span> <span class=n>b</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_new</span> <span class=o>=</span> <span class=n>y</span> <span class=o>-</span> <span class=n>eta</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>        <span class=n>f_new</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x_new</span> <span class=o>-</span> <span class=n>b</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>f_new</span> <span class=o>&gt;</span> <span class=n>f_prev</span><span class=p>:</span>               <span class=c1># restart trigger</span>
+</span></span><span class=line><span class=cl>            <span class=n>t</span> <span class=o>=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=n>x_new</span> <span class=o>=</span> <span class=n>x</span> <span class=o>-</span> <span class=n>eta</span> <span class=o>*</span> <span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x</span> <span class=o>-</span> <span class=n>b</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>f_new</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x_new</span> <span class=o>-</span> <span class=n>b</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>t</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>hist</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>x_new</span> <span class=o>-</span> <span class=n>b</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_prev</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f_prev</span> <span class=o>=</span> <span class=n>x</span><span class=p>,</span> <span class=n>x_new</span><span class=p>,</span> <span class=n>f_new</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span><span class=p>,</span> <span class=n>hist</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=43-实测结论>4.3 实测结论</h2><p>在 $m = 200, n = 100$、$\kappa(A) \approx 100$ 即 $\kappa(A^\top A) \approx 10^4$ 的合成实例上：</p><ul><li><strong>GD</strong>：$10^{-6}$ 相对梯度范数需 $\sim 4\times 10^4$ 步；曲线平滑但慢。</li><li><strong>Nesterov（常数动量）</strong>：$\sim 400$ 步；曲线沿"低谷"周期震荡，与图 4 右图一致。</li><li><strong>重启 Nesterov</strong>：$\sim 500$ 步，几乎完全单调，鲁棒性最好。</li></ul><p>加速比与图 5 的 $\sqrt{\kappa}$ 预测吻合（$10^4 \to 100\times$）。</p><hr><h1 id=5-总结与延伸>5. 总结与延伸</h1><h2 id=51-核心定理一图流>5.1 核心定理一图流</h2><table><thead><tr><th>假设</th><th>算法</th><th>收敛速率</th><th>步长</th></tr></thead><tbody><tr><td>$L$-smooth, 凸</td><td>GD</td><td>$\mathcal O(1/t)$</td><td>$\eta = 1/L$</td></tr><tr><td>$L$-smooth, $\mu$-strongly convex</td><td>GD</td><td>$\big(1 - 1/\kappa\big)^t$</td><td>$\eta = 1/L$</td></tr><tr><td>$L$-smooth, 凸</td><td>Nesterov</td><td>$\mathcal O(1/t^2)$</td><td>$\eta = 1/L,\ \beta_t = (t-1)/(t+2)$</td></tr><tr><td>$L$-smooth, $\mu$-strongly convex</td><td>Nesterov</td><td>$\big(1 - 1/\sqrt{\kappa}\big)^t$</td><td>$\eta = 1/L,\ \beta = (1-\sqrt{1/\kappa})/(1+\sqrt{1/\kappa})$</td></tr><tr><td>同上，$\mu$ 未知</td><td>重启 Nesterov</td><td>$\big(1 - 1/\sqrt{\kappa}\big)^t$</td><td>自适应</td></tr></tbody></table><h2 id=52-三个判断-reflex>5.2 三个判断 reflex</h2><p>新问题摆上桌时，按这个顺序回答：</p><ol><li><strong>梯度有多陡？</strong> 估 $L$（最大特征值或 backtracking line search），它直接给出步长上限。</li><li><strong>谷底有多硬？</strong> 估 $\mu$（最小特征值或 PL 常数），它决定能否拿到线性收敛。</li><li><strong>加速值不值？</strong> 看 $\kappa = L/\mu$：$\kappa < 50$ 用 GD，$\kappa \in [50, 10^4]$ 用 Nesterov，$\kappa > 10^4$ 考虑预条件 / 二阶法。</li></ol><h2 id=53-延伸阅读>5.3 延伸阅读</h2><ul><li><strong>非凸 + PL 条件</strong>：放弃强凸，只要 $\tfrac{1}{2}\|\nabla f\|^2 \ge \mu(f - f^\star)$，GD 仍然线性收敛——这是深度学习中"过参数化为何能线性收敛"的理论起点（Karimi et al., 2016）。</li><li><strong>加速 + 噪声</strong>：Nesterov 对随机梯度并不天然鲁棒。SAG / SVRG / Katyusha 等方差缩减方法把强凸下的随机收敛重新拉回 $\sqrt{\kappa}$ 级别。</li><li><strong>二阶加速</strong>：Sophia、Shampoo 用对角或块对角 Hessian 预条件，等价于把有效条件数 $\kappa$ 直接改写——这是 2024 年大模型预训练的活跃方向。</li></ul><p><strong>参考文献</strong>：</p><ol><li>Nesterov, Y. (1983). <em>A method of solving a convex programming problem with convergence rate $\mathcal O(1/k^2)$.</em> Soviet Mathematics Doklady, 27(2), 372–376.</li><li>Boyd, S., & Vandenberghe, L. (2004). <em>Convex Optimization.</em> Cambridge University Press.</li><li>Bubeck, S. (2015). <em>Convex Optimization: Algorithms and Complexity.</em> Foundations and Trends in Machine Learning, 8(3-4), 231–357.</li><li>O&rsquo;Donoghue, B., & Candès, E. (2015). <em>Adaptive restart for accelerated gradient schemes.</em> Foundations of Computational Mathematics, 15(3), 715–732.</li><li>Karimi, H., Nutini, J., & Schmidt, M. (2016). <em>Linear convergence of gradient and proximal-gradient methods under the Polyak-Łojasiewicz condition.</em> ECML-PKDD.</li></ol></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li></ul><ul><li><a href=#11-lipschitz-连续性的几何直觉>1.1 Lipschitz 连续性的几何直觉</a></li><li><a href=#12-梯度-lipschitz--l-smoothness>1.2 梯度 Lipschitz = -smoothness</a></li><li><a href=#13-三个例子算一遍>1.3 三个例子算一遍</a></li><li><a href=#14-判别准则通过-hessian-给-l>1.4 判别准则：通过 Hessian 给 L</a></li></ul><ul><li><a href=#21-定义与三种等价刻画>2.1 定义与三种等价刻画</a></li><li><a href=#22-极小存在性与唯一性>2.2 极小存在性与唯一性</a></li><li><a href=#23-同时-l-smooth-且-mu-strongly-convex条件数登场>2.3 同时 -smooth 且 -strongly convex：条件数登场</a></li></ul><ul><li><a href=#31-普通梯度下降的两条上界>3.1 普通梯度下降的两条上界</a></li><li><a href=#32-nesterov-加速用一个前瞻点换-sqrtkappa>3.2 Nesterov 加速：用一个"前瞻点"换</a></li><li><a href=#33-重启策略解决加速副作用>3.3 重启策略：解决"加速副作用"</a></li><li><a href=#34-条件数到底带来多少差距>3.4 条件数到底带来多少差距</a></li><li><a href=#35-选择决策表>3.5 选择决策表</a></li></ul><ul><li><a href=#41-问题与数学性质>4.1 问题与数学性质</a></li><li><a href=#42-算法实现要点>4.2 算法实现要点</a></li><li><a href=#43-实测结论>4.3 实测结论</a></li></ul><ul><li><a href=#51-核心定理一图流>5.1 核心定理一图流</a></li><li><a href=#52-三个判断-reflex>5.2 三个判断 reflex</a></li><li><a href=#53-延伸阅读>5.3 延伸阅读</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5313</strong></div><div class=row><span>Published</span><strong>Feb 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

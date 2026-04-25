@@ -1,736 +1,152 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>机器学习数学推导（八）：支持向量机 · Chen Kai Blog</title>
-<meta name="description" content="从最大间隔到核技巧，完整推导 SVM 的理论框架——拉格朗日对偶、KKT 条件、SMO 算法与核函数构造。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="机器学习数学推导（八）：支持向量机">
-<meta property="og:description" content="从最大间隔到核技巧，完整推导 SVM 的理论框架——拉格朗日对偶、KKT 条件、SMO 算法与核函数构造。">
-<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
-         · Chapter 8
-      </div>
-      <h1>机器学习数学推导（八）：支持向量机</h1>
-      <p class="deck">从最大间隔到核技巧，完整推导 SVM 的理论框架——拉格朗日对偶、KKT 条件、SMO 算法与核函数构造。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-01-27">January 27, 2026</time> · 12 min read · 5600 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/" class="tag">#支持向量机</a><a href="/zh/tags/svm/" class="tag">#SVM</a><a href="/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/" class="tag">#核方法</a><a href="/zh/tags/kkt%E6%9D%A1%E4%BB%B6/" class="tag">#KKT条件</a><a href="/zh/tags/%E5%AF%B9%E5%81%B6%E9%97%AE%E9%A2%98/" class="tag">#对偶问题</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <blockquote>
-<p><strong>引子。</strong> 两团点，能把它们分开的直线有无穷多条，&ldquo;哪一条最好&rdquo;？SVM 给出的答案出奇地几何：站在两个类之间最宽的&quot;无人走廊&quot;正中央的那一条。把这一个想法塞进拉格朗日对偶里，会自动跑出三件礼物——稀疏的模型（只有走廊壁上的点重要）、有全局最优解的二次规划、以及核技巧（同一套线性机器可以在无限维空间里画出弯曲的边界）。</p>
-</blockquote>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>&ldquo;最宽走廊&quot;如何变成一个带线性约束的凸二次规划</li>
-<li>为什么对偶问题比原问题更好用，KKT 条件如何强制稀疏</li>
-<li>软间隔、参数 $C$ 真正控制的是什么</li>
-<li>核技巧：用 $K(x, z)$ 替换 $\phi(x)^\top \phi(z)$，永远不去构造 $\phi$</li>
-<li>Mercer 条件，以及标准核函数家族（线性 / 多项式 / RBF / sigmoid）</li>
-<li>SMO 算法：为什么一次两个变量、裁剪如何工作、为何收敛</li>
-<li>Hinge 损失——SVM 通向其它监督学习模型的桥梁</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>线性代数：内积、超平面、投影</li>
-<li>微积分：拉格朗日乘子、偏导数</li>
-<li>凸对偶性的基本概念有帮助但非必需</li>
-<li>对 <a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b8%83-%e5%86%b3%e7%ad%96%e6%a0%91/">第 7 篇：决策树</a>
- 有印象</li>
-</ul>
-<hr>
-<h2 id="1-硬间隔-svm">1. 硬间隔 SVM</h2>
-<h3 id="11-函数间隔与几何间隔">1.1 函数间隔与几何间隔</h3>
-<p>考虑二分类，标签 $y_i \in \{-1, +1\}$，线性决策规则 $\hat{y} = \operatorname{sign}(w^\top x + b)$。&ldquo;离边界多远&quot;有两种说法：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>机器学习数学推导（八）：支持向量机 · Chen Kai Blog</title>
+<meta name=description content="从最大间隔到核技巧，完整推导 SVM 的理论框架——拉格朗日对偶、KKT 条件、SMO 算法与核函数构造。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/><meta property="og:type" content="article"><meta property="og:title" content="机器学习数学推导（八）：支持向量机"><meta property="og:description" content="从最大间隔到核技巧，完整推导 SVM 的理论框架——拉格朗日对偶、KKT 条件、SMO 算法与核函数构造。"><meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>机器学习数学推导</a>
+· Chapter 8</div><h1>机器学习数学推导（八）：支持向量机</h1><p class=deck>从最大间隔到核技巧，完整推导 SVM 的理论框架——拉格朗日对偶、KKT 条件、SMO 算法与核函数构造。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-27>January 27, 2026</time> · 12 min read · 5560 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/ class=tag>#机器学习</a><a href=/zh/tags/%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/ class=tag>#支持向量机</a><a href=/zh/tags/svm/ class=tag>#SVM</a><a href=/zh/tags/%E6%A0%B8%E6%96%B9%E6%B3%95/ class=tag>#核方法</a><a href=/zh/tags/kkt%E6%9D%A1%E4%BB%B6/ class=tag>#KKT条件</a><a href=/zh/tags/%E5%AF%B9%E5%81%B6%E9%97%AE%E9%A2%98/ class=tag>#对偶问题</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/ class=tag>#数学推导</a></div></div></header><div class=prose><blockquote><p><strong>引子。</strong> 两团点，能把它们分开的直线有无穷多条，&ldquo;哪一条最好&rdquo;？SVM 给出的答案出奇地几何：站在两个类之间最宽的"无人走廊"正中央的那一条。把这一个想法塞进拉格朗日对偶里，会自动跑出三件礼物——稀疏的模型（只有走廊壁上的点重要）、有全局最优解的二次规划、以及核技巧（同一套线性机器可以在无限维空间里画出弯曲的边界）。</p></blockquote><h2 id=你将学到什么>你将学到什么</h2><ul><li>&ldquo;最宽走廊"如何变成一个带线性约束的凸二次规划</li><li>为什么对偶问题比原问题更好用，KKT 条件如何强制稀疏</li><li>软间隔、参数 $C$ 真正控制的是什么</li><li>核技巧：用 $K(x, z)$ 替换 $\phi(x)^\top \phi(z)$，永远不去构造 $\phi$</li><li>Mercer 条件，以及标准核函数家族（线性 / 多项式 / RBF / sigmoid）</li><li>SMO 算法：为什么一次两个变量、裁剪如何工作、为何收敛</li><li>Hinge 损失——SVM 通向其它监督学习模型的桥梁</li></ul><h2 id=前置知识>前置知识</h2><ul><li>线性代数：内积、超平面、投影</li><li>微积分：拉格朗日乘子、偏导数</li><li>凸对偶性的基本概念有帮助但非必需</li><li>对 <a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b8%83-%e5%86%b3%e7%ad%96%e6%a0%91/>第 7 篇：决策树</a>
+有印象</li></ul><hr><h2 id=1-硬间隔-svm>1. 硬间隔 SVM</h2><h3 id=11-函数间隔与几何间隔>1.1 函数间隔与几何间隔</h3><p>考虑二分类，标签 $y_i \in \{-1, +1\}$，线性决策规则 $\hat{y} = \operatorname{sign}(w^\top x + b)$。&ldquo;离边界多远"有两种说法：</p>$$
 \hat{\gamma}_i \;=\; y_i\,(w^\top x_i + b)
 \qquad\text{（函数间隔）}
 $$$$
 \gamma_i \;=\; \frac{y_i\,(w^\top x_i + b)}{\lVert w \rVert}
 \qquad\text{（几何间隔）}
-$$<p>函数间隔在分类正确时为正，但<strong>不是尺度无关</strong>的——把 $(w, b)$ 翻倍，函数间隔也翻倍。几何间隔才是 $x_i$ 到超平面的真实欧氏距离（带上标签的符号），它不随 $(w, b)$ 的缩放变化。这种尺度无关性是优化能良定的关键，否则&quot;让间隔更大&quot;是个开口子：缩小 $\lVert w \rVert$ 就行了。</p>
-<p><em>这个公式怎么来的？</em> 任意点 $x_0$ 在超平面 $w^\top x + b = 0$ 上的最近点是它的正交投影，位移向量是 $-(w^\top x_0 + b)/\lVert w \rVert^2 \cdot w$，模长是 $\lvert w^\top x_0 + b\rvert / \lVert w \rVert$。乘 $y_i$ 让分类正确时为正。</p>
-<h3 id="12-最大间隔规划">1.2 最大间隔规划</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig1_max_margin.png" alt="硬间隔 SVM：最大间隔超平面与支持向量" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>我们要让<strong>最坏情况</strong>的几何间隔最大：</p>
-$$
+$$<p>函数间隔在分类正确时为正，但<strong>不是尺度无关</strong>的——把 $(w, b)$ 翻倍，函数间隔也翻倍。几何间隔才是 $x_i$ 到超平面的真实欧氏距离（带上标签的符号），它不随 $(w, b)$ 的缩放变化。这种尺度无关性是优化能良定的关键，否则"让间隔更大"是个开口子：缩小 $\lVert w \rVert$ 就行了。</p><p><em>这个公式怎么来的？</em> 任意点 $x_0$ 在超平面 $w^\top x + b = 0$ 上的最近点是它的正交投影，位移向量是 $-(w^\top x_0 + b)/\lVert w \rVert^2 \cdot w$，模长是 $\lvert w^\top x_0 + b\rvert / \lVert w \rVert$。乘 $y_i$ 让分类正确时为正。</p><h3 id=12-最大间隔规划>1.2 最大间隔规划</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig1_max_margin.png alt="硬间隔 SVM：最大间隔超平面与支持向量" loading=lazy decoding=async></figure></p><p>我们要让<strong>最坏情况</strong>的几何间隔最大：</p>$$
 \max_{w, b}\; \min_i\; \frac{y_i\,(w^\top x_i + b)}{\lVert w \rVert}.
-$$<p>这里 $(w, b)$ 只在正比例下才唯一，所以钉一个尺度：要求最近点的函数间隔恰好为 $1$。等价地写成</p>
-$$
+$$<p>这里 $(w, b)$ 只在正比例下才唯一，所以钉一个尺度：要求最近点的函数间隔恰好为 $1$。等价地写成</p>$$
 \boxed{\;\min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2
 \quad \text{s.t.} \quad y_i(w^\top x_i + b) \;\ge\; 1, \quad i = 1, \dots, N.\;}
-$$<p>这是带线性约束的<strong>凸二次规划</strong>。目标严格凸，最优 $w^\*$ 唯一；只要数据中两个类都出现，$b^\*$ 也唯一。</p>
-<p>约束取等号的样本（$y_i(w^\top x_i + b) = 1$）就是<strong>支持向量</strong>。几何上它们落在边界两侧的两条平行间隔线上；代数上，它们是唯一决定 $w^\*$ 的点。</p>
-<h3 id="13-用拉格朗日导对偶">1.3 用拉格朗日导对偶</h3>
-<p>给每条约束附上乘子 $\alpha_i \ge 0$：</p>
-$$
+$$<p>这是带线性约束的<strong>凸二次规划</strong>。目标严格凸，最优 $w^\*$ 唯一；只要数据中两个类都出现，$b^\*$ 也唯一。</p><p>约束取等号的样本（$y_i(w^\top x_i + b) = 1$）就是<strong>支持向量</strong>。几何上它们落在边界两侧的两条平行间隔线上；代数上，它们是唯一决定 $w^\*$ 的点。</p><h3 id=13-用拉格朗日导对偶>1.3 用拉格朗日导对偶</h3><p>给每条约束附上乘子 $\alpha_i \ge 0$：</p>$$
 L(w, b, \alpha) \;=\; \tfrac{1}{2}\lVert w \rVert^2 \;-\; \sum_{i=1}^N \alpha_i \bigl[\,y_i(w^\top x_i + b) - 1\,\bigr].
-$$<p><strong>第一步——对 $w$ 与 $b$ 求极小。</strong> 令 $\partial_w L = 0$、$\partial_b L = 0$：</p>
-$$
+$$<p><strong>第一步——对 $w$ 与 $b$ 求极小。</strong> 令 $\partial_w L = 0$、$\partial_b L = 0$：</p>$$
 w^\* \;=\; \sum_{i=1}^N \alpha_i y_i x_i,
 \qquad
 \sum_{i=1}^N \alpha_i y_i \;=\; 0.
-$$<p><strong>第二步——回代。</strong> 把 $w^\* = \sum_i \alpha_i y_i x_i$ 代回 $L$：</p>
-$$
+$$<p><strong>第二步——回代。</strong> 把 $w^\* = \sum_i \alpha_i y_i x_i$ 代回 $L$：</p>$$
 W(\alpha) \;=\; \sum_{i=1}^N \alpha_i \;-\; \tfrac{1}{2} \sum_{i, j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j.
-$$<p>得到对偶规划：</p>
-$$
+$$<p>得到对偶规划：</p>$$
 \boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j
 \quad \text{s.t.} \quad \alpha_i \ge 0, \;\; \sum_i \alpha_i y_i = 0.\;}
-$$<p>两个性质在此处做了所有关键工作：</p>
-<ol>
-<li>数据只通过内积 $x_i^\top x_j$ 出现。把它换成 $K(x_i, x_j)$，整套推导原封不动——核技巧在还没正式登场时就已经被准备好了。</li>
-<li>对偶问题有 $N$ 个标量变量、一条等式约束。当特征维度 $d \gg N$ 时，对偶比原问题小得多。</li>
-</ol>
-<h3 id="14-kkt-条件与稀疏性">1.4 KKT 条件与稀疏性</h3>
-<p>原问题凸、约束仿射，Slater 条件成立，<strong>强对偶</strong>成立。最优 $(w^\*, b^\*, \alpha^\*)$ 必然满足：</p>
-<ul>
-<li><strong>原始可行：</strong> $y_i(w^{\*\top} x_i + b^\*) \ge 1$。</li>
-<li><strong>对偶可行：</strong> $\alpha_i^\* \ge 0$。</li>
-<li><strong>稳定性：</strong> $w^\* = \sum_i \alpha_i^\* y_i x_i$，$\sum_i \alpha_i^\* y_i = 0$。</li>
-<li><strong>互补松弛：</strong> $\alpha_i^\* \cdot \bigl[\, y_i(w^{\*\top} x_i + b^\*) - 1 \,\bigr] = 0$。</li>
-</ul>
-<p>最后一行是这一节的全部精华。对每个 $i$，下面两件事<strong>只能成立一个</strong>：</p>
-<ul>
-<li>$\alpha_i^\* = 0$——点严格在间隔带之外，对 $w^\*$ 没有任何贡献。</li>
-<li>$y_i(w^{\*\top} x_i + b^\*) = 1$——点恰好落在间隔线上，$\alpha_i^\* > 0$ 才允许。</li>
-</ul>
-<p>最优分类器只由第二组支撑：</p>
-$$
+$$<p>两个性质在此处做了所有关键工作：</p><ol><li>数据只通过内积 $x_i^\top x_j$ 出现。把它换成 $K(x_i, x_j)$，整套推导原封不动——核技巧在还没正式登场时就已经被准备好了。</li><li>对偶问题有 $N$ 个标量变量、一条等式约束。当特征维度 $d \gg N$ 时，对偶比原问题小得多。</li></ol><h3 id=14-kkt-条件与稀疏性>1.4 KKT 条件与稀疏性</h3><p>原问题凸、约束仿射，Slater 条件成立，<strong>强对偶</strong>成立。最优 $(w^\*, b^\*, \alpha^\*)$ 必然满足：</p><ul><li><strong>原始可行：</strong> $y_i(w^{\*\top} x_i + b^\*) \ge 1$。</li><li><strong>对偶可行：</strong> $\alpha_i^\* \ge 0$。</li><li><strong>稳定性：</strong> $w^\* = \sum_i \alpha_i^\* y_i x_i$，$\sum_i \alpha_i^\* y_i = 0$。</li><li><strong>互补松弛：</strong> $\alpha_i^\* \cdot \bigl[\, y_i(w^{\*\top} x_i + b^\*) - 1 \,\bigr] = 0$。</li></ul><p>最后一行是这一节的全部精华。对每个 $i$，下面两件事<strong>只能成立一个</strong>：</p><ul><li>$\alpha_i^\* = 0$——点严格在间隔带之外，对 $w^\*$ 没有任何贡献。</li><li>$y_i(w^{\*\top} x_i + b^\*) = 1$——点恰好落在间隔线上，$\alpha_i^\* > 0$ 才允许。</li></ul><p>最优分类器只由第二组支撑：</p>$$
 f(x) \;=\; \sum_{i \in \mathrm{SV}} \alpha_i^\* y_i\, x_i^\top x \;+\; b^\*.
-$$<p>预测时可以把所有非 SV 训练点扔掉。这就是 SVM 的&quot;内置稀疏&rdquo;。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="kn">import</span> <span class="n">SVC</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 一个小的线性可分例子</span>
-</span></span><span class="line"><span class="cl"><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">clf</span> <span class="o">=</span> <span class="n">SVC</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s2">&#34;linear&#34;</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">1e6</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>   <span class="c1"># C 极大 ≈ 硬间隔</span>
-</span></span><span class="line"><span class="cl"><span class="n">w</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">clf</span><span class="o">.</span><span class="n">intercept_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;w = </span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2">,  b = </span><span class="si">{</span><span class="n">b</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;#SV = </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">clf</span><span class="o">.</span><span class="n">support_</span><span class="p">)</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">clf</span><span class="o">.</span><span class="n">support_</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;  SV idx </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: y(w·x+b) = </span><span class="si">{</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">@</span> <span class="n">w</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  &#34;</span>
-</span></span><span class="line"><span class="cl">          <span class="sa">f</span><span class="s2">&#34;（应≈1）&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="2-软间隔-svm">2. 软间隔 SVM</h2>
-<h3 id="21-松弛变量与参数-c">2.1 松弛变量与参数 $C$</h3>
-<p>真实数据通常有重叠。给每个点一个非负的&quot;违规额度&rdquo; $\xi_i$：</p>
-$$
+$$<p>预测时可以把所有非 SV 训练点扔掉。这就是 SVM 的"内置稀疏&rdquo;。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.svm</span> <span class=kn>import</span> <span class=n>SVC</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 一个小的线性可分例子</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>],</span> <span class=p>[</span><span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>],</span> <span class=p>[</span><span class=mi>3</span><span class=p>,</span> <span class=mi>3</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>              <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>]],</span> <span class=n>dtype</span><span class=o>=</span><span class=nb>float</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>clf</span> <span class=o>=</span> <span class=n>SVC</span><span class=p>(</span><span class=n>kernel</span><span class=o>=</span><span class=s2>&#34;linear&#34;</span><span class=p>,</span> <span class=n>C</span><span class=o>=</span><span class=mf>1e6</span><span class=p>)</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>   <span class=c1># C 极大 ≈ 硬间隔</span>
+</span></span><span class=line><span class=cl><span class=n>w</span><span class=p>,</span> <span class=n>b</span> <span class=o>=</span> <span class=n>clf</span><span class=o>.</span><span class=n>coef_</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>clf</span><span class=o>.</span><span class=n>intercept_</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;w = </span><span class=si>{</span><span class=n>w</span><span class=si>}</span><span class=s2>,  b = </span><span class=si>{</span><span class=n>b</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;#SV = </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>clf</span><span class=o>.</span><span class=n>support_</span><span class=p>)</span><span class=si>}</span><span class=s2> / </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>clf</span><span class=o>.</span><span class=n>support_</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  SV idx </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>: y(w·x+b) = </span><span class=si>{</span><span class=n>y</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>*</span> <span class=p>(</span><span class=n>X</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>@</span> <span class=n>w</span> <span class=o>+</span> <span class=n>b</span><span class=p>)</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>          <span class=sa>f</span><span class=s2>&#34;（应≈1）&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=2-软间隔-svm>2. 软间隔 SVM</h2><h3 id=21-松弛变量与参数-c>2.1 松弛变量与参数 $C$</h3><p>真实数据通常有重叠。给每个点一个非负的"违规额度&rdquo; $\xi_i$：</p>$$
 \min_{w, b, \xi}\; \tfrac{1}{2}\lVert w \rVert^2 \;+\; C \sum_i \xi_i
 \quad \text{s.t.} \quad y_i(w^\top x_i + b) \ge 1 - \xi_i,\; \xi_i \ge 0.
-$$<p>如何读 $\xi_i$：</p>
-<ul>
-<li>$\xi_i = 0$：在间隔带外，分类正确。</li>
-<li>$0 < \xi_i \le 1$：在间隔带内，但仍在正确一侧。</li>
-<li>$\xi_i > 1$：分类错误。</li>
-</ul>
-<p>$C > 0$ 是在两件坏事之间做交易。$C$ 大——重罚松弛，间隔变窄，趋近硬间隔；$C$ 小——容许较多松弛，间隔变宽，对噪声更宽容。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig2_soft_margin_C.png" alt="三种 $C$ 下的软间隔 SVM：间隔越宽，要付出的松弛代价越大；间隔越窄，要付出的 $\lVert w \rVert$ 代价越大" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="22-对偶盒约束登场">2.2 对偶：盒约束登场</h3>
-<p>再走一遍拉格朗日。这次给间隔约束乘子 $\alpha_i \ge 0$，给 $\xi_i \ge 0$ 乘子 $\mu_i \ge 0$。令 $\partial_\xi L = 0$ 得 $\alpha_i + \mu_i = C$，故 $0 \le \alpha_i \le C$。对偶问题：</p>
-$$
+$$<p>如何读 $\xi_i$：</p><ul><li>$\xi_i = 0$：在间隔带外，分类正确。</li><li>$0 < \xi_i \le 1$：在间隔带内，但仍在正确一侧。</li><li>$\xi_i > 1$：分类错误。</li></ul><p>$C > 0$ 是在两件坏事之间做交易。$C$ 大——重罚松弛，间隔变窄，趋近硬间隔；$C$ 小——容许较多松弛，间隔变宽，对噪声更宽容。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig2_soft_margin_C.png alt="三种 $C$ 下的软间隔 SVM：间隔越宽，要付出的松弛代价越大；间隔越窄，要付出的 $\lVert w \rVert$ 代价越大" loading=lazy decoding=async></figure></p><h3 id=22-对偶盒约束登场>2.2 对偶：盒约束登场</h3><p>再走一遍拉格朗日。这次给间隔约束乘子 $\alpha_i \ge 0$，给 $\xi_i \ge 0$ 乘子 $\mu_i \ge 0$。令 $\partial_\xi L = 0$ 得 $\alpha_i + \mu_i = C$，故 $0 \le \alpha_i \le C$。对偶问题：</p>$$
 \boxed{\;\max_{\alpha}\; \sum_i \alpha_i - \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j\, x_i^\top x_j
 \quad \text{s.t.} \quad 0 \le \alpha_i \le C, \;\; \sum_i \alpha_i y_i = 0.\;}
-$$<p>与硬间隔唯一的差别是上界 $\alpha_i \le C$。KKT 条件把样本切成<strong>三种状态</strong>：</p>
-<table>
-  <thead>
-      <tr>
-          <th>状态</th>
-          <th>条件</th>
-          <th>几何含义</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>非活跃</td>
-          <td>$\alpha_i = 0$，$\xi_i = 0$</td>
-          <td>安全地落在间隔带外</td>
-      </tr>
-      <tr>
-          <td>边界 SV</td>
-          <td>$0 < \alpha_i < C$，$\xi_i = 0$</td>
-          <td>恰好在间隔线上，可用于求 $b^\*$</td>
-      </tr>
-      <tr>
-          <td>上界 SV</td>
-          <td>$\alpha_i = C$，$\xi_i > 0$</td>
-          <td>在间隔带内或被误分</td>
-      </tr>
-  </tbody>
-</table>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig6_kkt_geometry.png" alt="KKT 几何图景：互补松弛把样本分成三种状态" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>偏置由任一边界 SV 给出：$b^\* = y_i - \sum_j \alpha_j^\* y_j x_j^\top x_i$。实际操作时对所有边界 SV 取平均，数值更稳。</p>
-<h3 id="23-hinge-损失视角">2.3 Hinge 损失视角</h3>
-<p>注意到原问题中最优松弛恰好是 $\xi_i^\* = \max(0,\, 1 - y_i(w^\top x_i + b))$，把它代回去消掉 $\xi$：</p>
-$$
+$$<p>与硬间隔唯一的差别是上界 $\alpha_i \le C$。KKT 条件把样本切成<strong>三种状态</strong>：</p><table><thead><tr><th>状态</th><th>条件</th><th>几何含义</th></tr></thead><tbody><tr><td>非活跃</td><td>$\alpha_i = 0$，$\xi_i = 0$</td><td>安全地落在间隔带外</td></tr><tr><td>边界 SV</td><td>$0 < \alpha_i < C$，$\xi_i = 0$</td><td>恰好在间隔线上，可用于求 $b^\*$</td></tr><tr><td>上界 SV</td><td>$\alpha_i = C$，$\xi_i > 0$</td><td>在间隔带内或被误分</td></tr></tbody></table><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig6_kkt_geometry.png alt="KKT 几何图景：互补松弛把样本分成三种状态" loading=lazy decoding=async></figure></p><p>偏置由任一边界 SV 给出：$b^\* = y_i - \sum_j \alpha_j^\* y_j x_j^\top x_i$。实际操作时对所有边界 SV 取平均，数值更稳。</p><h3 id=23-hinge-损失视角>2.3 Hinge 损失视角</h3><p>注意到原问题中最优松弛恰好是 $\xi_i^\* = \max(0,\, 1 - y_i(w^\top x_i + b))$，把它代回去消掉 $\xi$：</p>$$
 \min_{w, b}\; \tfrac{1}{2}\lVert w \rVert^2 + C \sum_i \max\bigl(0,\, 1 - y_i(w^\top x_i + b)\bigr).
-$$<p>右边那个求和正是 <strong>hinge 损失</strong>。也就是说——软间隔 SVM 不过是&quot;L2 正则 + hinge 损失&quot;的经验风险最小化。从这个角度看，SVM 跟你认识的所有线性分类器没有结构上的差别，唯一不同的就是损失函数。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig5_loss_comparison.png" alt="margin 轴上的几种代理损失：hinge 是 0/1 损失的凸上界；平方损失会惩罚&quot;自信地正确&quot;的样本" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Hinge 在 $m = 1$ 处有个尖点，且在那之后恒为 0——这正是 SV 稀疏性的源头：自信正确的点既无梯度也无 $\alpha$。</p>
-<hr>
-<h2 id="3-核函数">3. 核函数</h2>
-<h3 id="31-核技巧">3.1 核技巧</h3>
-<p>把输入映到某个特征空间 $\phi: \mathbb{R}^d \to \mathcal{H}$，在 $\mathcal{H}$ 里跑线性 SVM。对偶目标变成</p>
-$$
+$$<p>右边那个求和正是 <strong>hinge 损失</strong>。也就是说——软间隔 SVM 不过是"L2 正则 + hinge 损失"的经验风险最小化。从这个角度看，SVM 跟你认识的所有线性分类器没有结构上的差别，唯一不同的就是损失函数。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig5_loss_comparison.png alt='margin 轴上的几种代理损失：hinge 是 0/1 损失的凸上界；平方损失会惩罚"自信地正确"的样本' loading=lazy decoding=async></figure></p><p>Hinge 在 $m = 1$ 处有个尖点，且在那之后恒为 0——这正是 SV 稀疏性的源头：自信正确的点既无梯度也无 $\alpha$。</p><hr><h2 id=3-核函数>3. 核函数</h2><h3 id=31-核技巧>3.1 核技巧</h3><p>把输入映到某个特征空间 $\phi: \mathbb{R}^d \to \mathcal{H}$，在 $\mathcal{H}$ 里跑线性 SVM。对偶目标变成</p>$$
 W(\alpha) \;=\; \sum_i \alpha_i \;-\; \tfrac{1}{2}\sum_{i,j} \alpha_i \alpha_j y_i y_j \;\phi(x_i)^\top \phi(x_j).
-$$<p>整段推导里 $\phi$ 永远只在内积里出现。把这个内积命名为<strong>核函数</strong>：</p>
-$$
+$$<p>整段推导里 $\phi$ 永远只在内积里出现。把这个内积命名为<strong>核函数</strong>：</p>$$
 K(x, z) \;=\; \phi(x)^\top \phi(z).
-$$<p>凡是出现 $x_i^\top x_j$ 的地方（不管是对偶还是预测），都换成 $K(x_i, x_j)$。我们既不构造 $\phi$、也不存储特征、$\dim \mathcal{H}$ 是不是有限的根本无关紧要。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig3_kernel_trick_3d.png" alt="核技巧：直线分不开的同心环数据，提升到 $(x_1, x_2, x_1^2 &#43; x_2^2)$ 之后被一个水平面线性分开" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>提升后的图直观解释了<strong>为什么</strong>这套招式有效。左图内外两类数据在二维里没有任何直线能分开。映射 $\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$ 把外环在第三维抬起，水平面 $x_1^2 + x_2^2 = c$ 就成了分离面。要在 $\mathbb{R}^3$ 中算这个内积，用 $K(x, z) = (1 + x^\top z)^2$ 即可，整个过程不需要把 $\phi$ 显式写出来。</p>
-<h3 id="32-常用核函数">3.2 常用核函数</h3>
-<table>
-  <thead>
-      <tr>
-          <th>核</th>
-          <th>公式</th>
-          <th>特征空间</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>线性</td>
-          <td>$K(x, z) = x^\top z$</td>
-          <td>即原始输入空间</td>
-      </tr>
-      <tr>
-          <td>多项式</td>
-          <td>$K(x, z) = (\gamma\, x^\top z + r)^p$</td>
-          <td>至 $p$ 次的所有单项式</td>
-      </tr>
-      <tr>
-          <td>RBF（高斯）</td>
-          <td>$K(x, z) = \exp(-\gamma\,\lVert x - z\rVert^2)$</td>
-          <td>无限维</td>
-      </tr>
-      <tr>
-          <td>Sigmoid</td>
-          <td>$K(x, z) = \tanh(\gamma\, x^\top z + r)$</td>
-          <td>仅在某些参数下半正定</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>RBF 直觉。</strong> 每个训练点放下一个半径约 $1/\sqrt{\gamma}$ 的&quot;鼓包&quot;。$\gamma$ 大——鼓包窄，决策边界紧紧贴着每个点（过拟合风险）；$\gamma$ 小——鼓包宽，边界平滑（欠拟合风险）。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig4_rbf_boundary.png" alt="三种 $\gamma$ 下的 RBF SVM：带宽控制每个支持向量对边界的局部影响范围" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="33-mercer-定理">3.3 Mercer 定理</h3>
-<p><strong>定理。</strong> 对称函数 $K(x, z)$ 能写成某个希尔伯特空间里的内积 $\phi(x)^\top \phi(z)$，<strong>当且仅当</strong>对任意有限点集 $\{x_i\}_{i=1}^N$，核矩阵 $\mathbf{K}_{ij} = K(x_i, x_j)$ 半正定，即</p>
-$$
+$$<p>凡是出现 $x_i^\top x_j$ 的地方（不管是对偶还是预测），都换成 $K(x_i, x_j)$。我们既不构造 $\phi$、也不存储特征、$\dim \mathcal{H}$ 是不是有限的根本无关紧要。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig3_kernel_trick_3d.png alt="核技巧：直线分不开的同心环数据，提升到 $(x_1, x_2, x_1^2 + x_2^2)$ 之后被一个水平面线性分开" loading=lazy decoding=async></figure></p><p>提升后的图直观解释了<strong>为什么</strong>这套招式有效。左图内外两类数据在二维里没有任何直线能分开。映射 $\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$ 把外环在第三维抬起，水平面 $x_1^2 + x_2^2 = c$ 就成了分离面。要在 $\mathbb{R}^3$ 中算这个内积，用 $K(x, z) = (1 + x^\top z)^2$ 即可，整个过程不需要把 $\phi$ 显式写出来。</p><h3 id=32-常用核函数>3.2 常用核函数</h3><table><thead><tr><th>核</th><th>公式</th><th>特征空间</th></tr></thead><tbody><tr><td>线性</td><td>$K(x, z) = x^\top z$</td><td>即原始输入空间</td></tr><tr><td>多项式</td><td>$K(x, z) = (\gamma\, x^\top z + r)^p$</td><td>至 $p$ 次的所有单项式</td></tr><tr><td>RBF（高斯）</td><td>$K(x, z) = \exp(-\gamma\,\lVert x - z\rVert^2)$</td><td>无限维</td></tr><tr><td>Sigmoid</td><td>$K(x, z) = \tanh(\gamma\, x^\top z + r)$</td><td>仅在某些参数下半正定</td></tr></tbody></table><p><strong>RBF 直觉。</strong> 每个训练点放下一个半径约 $1/\sqrt{\gamma}$ 的"鼓包"。$\gamma$ 大——鼓包窄，决策边界紧紧贴着每个点（过拟合风险）；$\gamma$ 小——鼓包宽，边界平滑（欠拟合风险）。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/08-%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/fig4_rbf_boundary.png alt="三种 $\gamma$ 下的 RBF SVM：带宽控制每个支持向量对边界的局部影响范围" loading=lazy decoding=async></figure></p><h3 id=33-mercer-定理>3.3 Mercer 定理</h3><p><strong>定理。</strong> 对称函数 $K(x, z)$ 能写成某个希尔伯特空间里的内积 $\phi(x)^\top \phi(z)$，<strong>当且仅当</strong>对任意有限点集 $\{x_i\}_{i=1}^N$，核矩阵 $\mathbf{K}_{ij} = K(x_i, x_j)$ 半正定，即</p>$$
 \sum_{i, j} c_i c_j\, K(x_i, x_j) \;\ge\; 0, \quad \forall\, c \in \mathbb{R}^N.
-$$<p>这条定理是核技巧的法律凭证：半正定的 $K$ <strong>就是</strong>某个内积——其底层的再生核希尔伯特空间（RKHS）从构造上保证了这一点。</p>
-<p><strong>有用的封闭性。</strong> 若 $K_1, K_2$ 是核，则 $K_1 + K_2$、$\lambda K_1$（$\lambda \ge 0$）、$K_1 \cdot K_2$、$f(x) K_1(x, z) f(z)$、$K_1$ 的非负系数多项式、$\exp(K_1)$ 都是核。RBF 实际上就是把这些封闭性反复应用到线性核上得到的。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.svm</span> <span class="kn">import</span> <span class="n">SVC</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># XOR：不可线性分，RBF 一刀就过</span>
-</span></span><span class="line"><span class="cl"><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;linear:&#34;</span><span class="p">,</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">SVC</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s2">&#34;linear&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;rbf   :&#34;</span><span class="p">,</span> <span class="n">accuracy_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">SVC</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s2">&#34;rbf&#34;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 验证 Gram 矩阵半正定</span>
-</span></span><span class="line"><span class="cl"><span class="n">gamma</span> <span class="o">=</span> <span class="mf">5.0</span>
-</span></span><span class="line"><span class="cl"><span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">X</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">eig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;特征值: </span><span class="si">{</span><span class="n">eig</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="si">}</span><span class="s2">  全部 ≥ 0: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">eig</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mf">1e-10</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="4-smo-算法">4. SMO 算法</h2>
-<h3 id="41-为什么一次两个变量">4.1 为什么一次两个变量</h3>
-<p>对偶问题是 $N$ 个变量、一条等式约束 $\sum_i \alpha_i y_i = 0$ 的 QP。通用 QP 解法时间 $O(N^3)$、空间 $O(N^2)$——上万样本就吃不消了。</p>
-<p>朴素的&quot;坐标下降&quot;——固定其它，只改一个 $\alpha_i$——是非法的：等式约束逼着任何合法移动至少改两个坐标。能在保持可行的前提下更新的最少变量数就是<strong>两个</strong>。这正是 Sequential Minimal Optimization（Platt, 1998）的全部前提：选一对、解析地解这两变量 QP、循环。</p>
-<h3 id="42-两变量子问题">4.2 两变量子问题</h3>
-<p>选 $1, 2$，冻结其它。等式约束化简为</p>
-$$
+$$<p>这条定理是核技巧的法律凭证：半正定的 $K$ <strong>就是</strong>某个内积——其底层的再生核希尔伯特空间（RKHS）从构造上保证了这一点。</p><p><strong>有用的封闭性。</strong> 若 $K_1, K_2$ 是核，则 $K_1 + K_2$、$\lambda K_1$（$\lambda \ge 0$）、$K_1 \cdot K_2$、$f(x) K_1(x, z) f(z)$、$K_1$ 的非负系数多项式、$\exp(K_1)$ 都是核。RBF 实际上就是把这些封闭性反复应用到线性核上得到的。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.svm</span> <span class=kn>import</span> <span class=n>SVC</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.metrics</span> <span class=kn>import</span> <span class=n>accuracy_score</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># XOR：不可线性分，RBF 一刀就过</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>]],</span> <span class=n>dtype</span><span class=o>=</span><span class=nb>float</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;linear:&#34;</span><span class=p>,</span> <span class=n>accuracy_score</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=n>SVC</span><span class=p>(</span><span class=n>kernel</span><span class=o>=</span><span class=s2>&#34;linear&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>X</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;rbf   :&#34;</span><span class=p>,</span> <span class=n>accuracy_score</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=n>SVC</span><span class=p>(</span><span class=n>kernel</span><span class=o>=</span><span class=s2>&#34;rbf&#34;</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>X</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 验证 Gram 矩阵半正定</span>
+</span></span><span class=line><span class=cl><span class=n>gamma</span> <span class=o>=</span> <span class=mf>5.0</span>
+</span></span><span class=line><span class=cl><span class=n>K</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=n>gamma</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>((</span><span class=n>X</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>-</span> <span class=n>X</span><span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=p>:])</span> <span class=o>**</span> <span class=mi>2</span><span class=p>,</span> <span class=n>axis</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>eig</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvalsh</span><span class=p>(</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;特征值: </span><span class=si>{</span><span class=n>eig</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span><span class=si>}</span><span class=s2>  全部 ≥ 0: </span><span class=si>{</span><span class=n>np</span><span class=o>.</span><span class=n>all</span><span class=p>(</span><span class=n>eig</span> <span class=o>&gt;=</span> <span class=o>-</span><span class=mf>1e-10</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=4-smo-算法>4. SMO 算法</h2><h3 id=41-为什么一次两个变量>4.1 为什么一次两个变量</h3><p>对偶问题是 $N$ 个变量、一条等式约束 $\sum_i \alpha_i y_i = 0$ 的 QP。通用 QP 解法时间 $O(N^3)$、空间 $O(N^2)$——上万样本就吃不消了。</p><p>朴素的"坐标下降"——固定其它，只改一个 $\alpha_i$——是非法的：等式约束逼着任何合法移动至少改两个坐标。能在保持可行的前提下更新的最少变量数就是<strong>两个</strong>。这正是 Sequential Minimal Optimization（Platt, 1998）的全部前提：选一对、解析地解这两变量 QP、循环。</p><h3 id=42-两变量子问题>4.2 两变量子问题</h3><p>选 $1, 2$，冻结其它。等式约束化简为</p>$$
 \alpha_1 y_1 + \alpha_2 y_2 \;=\; -\sum_{i \ge 3} \alpha_i y_i \;=:\; \zeta\quad\text{（常数）}.
-$$<p>故 $\alpha_1$ 由 $\alpha_2$ 决定，对偶目标退化为关于 $\alpha_2$ 的一元二次函数。求导取零得<strong>无约束更新</strong></p>
-$$
+$$<p>故 $\alpha_1$ 由 $\alpha_2$ 决定，对偶目标退化为关于 $\alpha_2$ 的一元二次函数。求导取零得<strong>无约束更新</strong></p>$$
 \alpha_2^{\text{new, unc}} \;=\; \alpha_2^{\text{old}} \;+\; \frac{y_2(E_1 - E_2)}{\eta},
-$$<p>其中</p>
-$$
+$$<p>其中</p>$$
 E_i \;=\; f(x_i) - y_i, \qquad
 \eta \;=\; K(x_1, x_1) + K(x_2, x_2) - 2K(x_1, x_2) \;\ge\; 0.
-$$<p>$\eta$ 就是特征空间中 $\lVert \phi(x_1) - \phi(x_2) \rVert^2$，自然非负。</p>
-<h3 id="43-裁剪到-l-h">4.3 裁剪到 $[L, H]$</h3>
-<p>更新后的对必须同时满足 $0 \le \alpha_1, \alpha_2 \le C$ <strong>和</strong>等式约束。两者一合并就把 $\alpha_2$ 限制在区间 $[L, H]$ 上，区间端点取决于两个标签的符号关系：</p>
-$$
+$$<p>$\eta$ 就是特征空间中 $\lVert \phi(x_1) - \phi(x_2) \rVert^2$，自然非负。</p><h3 id=43-裁剪到-l-h>4.3 裁剪到 $[L, H]$</h3><p>更新后的对必须同时满足 $0 \le \alpha_1, \alpha_2 \le C$ <strong>和</strong>等式约束。两者一合并就把 $\alpha_2$ 限制在区间 $[L, H]$ 上，区间端点取决于两个标签的符号关系：</p>$$
 \begin{cases}
 y_1 \neq y_2: & L = \max(0,\, \alpha_2^{\text{old}} - \alpha_1^{\text{old}}), \quad H = \min(C,\, C + \alpha_2^{\text{old}} - \alpha_1^{\text{old}}). \\[2pt]
 y_1 = y_2: & L = \max(0,\, \alpha_1^{\text{old}} + \alpha_2^{\text{old}} - C), \quad H = \min(C,\, \alpha_1^{\text{old}} + \alpha_2^{\text{old}}).
 \end{cases}
-$$<p>裁剪并回代：</p>
-$$
+$$<p>裁剪并回代：</p>$$
 \alpha_2^{\text{new}} \;=\; \operatorname{clip}(\alpha_2^{\text{new, unc}},\, L,\, H), \qquad
 \alpha_1^{\text{new}} \;=\; \alpha_1^{\text{old}} + y_1 y_2\,(\alpha_2^{\text{old}} - \alpha_2^{\text{new}}).
-$$<p><figure>
-  <img src="./08-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/fig7_smo_step.png" alt="SMO 一步：在 $(\alpha_1, \alpha_2)$ 平面上看可行直线、盒约束 $[0,C]^2$、无约束最优与裁剪后的结果" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="44-启发式与收敛">4.4 启发式与收敛</h3>
-<ul>
-<li><strong>外层循环：</strong> 在(a) 扫所有样本与(b) 仅扫非边界 SV（$0 < \alpha_i < C$）之间切换——已经卡在边界的坐标几乎不动。</li>
-<li><strong>第一变量：</strong> 选违反 KKT 条件超过容差的任意 $\alpha_i$。</li>
-<li><strong>第二变量：</strong> 选使 $\lvert E_1 - E_2 \rvert$ 最大的样本（近似最大步长启发）。</li>
-</ul>
-<p>只要选的对不在最优，每一步都严格改进对偶目标。配合&quot;目标有界 + 步长有限&quot;，SMO 收敛。实践中比通用 QP 快几个数量级。要让每步真正 $O(N)$ 而非 $O(N^2)$，关键工程细节是<strong>增量维护误差缓存</strong> $E_i$。</p>
-<hr>
-<h2 id="5-实践要点">5. 实践要点</h2>
-<ul>
-<li><strong>永远先标准化特征。</strong> SVM 用欧氏几何，量纲不齐时大尺度特征会主导间隔。</li>
-<li><strong>$C$ 与 $\gamma$ 一起调。</strong> 它们的&quot;乘积&quot;粗略控制模型容量。在对数尺度上做网格搜索：$C \in \{10^{-2}, \dots, 10^3\}$，$\gamma \in \{10^{-3}, \dots, 10^1\}$，配合交叉验证。</li>
-<li><strong>$N \gg 10^5$ 时优先线性 SVM（LIBLINEAR）或随机方法。</strong> 核 SVM 训练时间大致 $O(N^2)$。</li>
-<li><strong>多分类。</strong> 标准 SVM 是二分类。包成 <strong>One-vs-Rest</strong>（$K$ 个模型）或 <strong>One-vs-One</strong>（$K(K-1)/2$ 个模型 + 投票）。scikit-learn 的 <code>SVC</code> 默认 OvO。</li>
-<li><strong>概率输出。</strong> SVM 给的是距离，不是校准概率。需要概率的话用 Platt scaling（对决策值再跑一个逻辑回归）或保序回归。</li>
-</ul>
-<hr>
-<h2 id="6-练习">6. 练习</h2>
-<h3 id="练习-1--几何间隔">练习 1 — 几何间隔</h3>
-<p><strong>题目。</strong> 超平面 $w = (3, 4)^\top$，$b = -1$。点 $x_0 = (1, 1)^\top$，标签 $y = +1$。求几何间隔。</p>
-<p><strong>解答。</strong></p>
-$$
+$$<p><figure><img src=./08-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/fig7_smo_step.png alt="SMO 一步：在 $(\alpha_1, \alpha_2)$ 平面上看可行直线、盒约束 $[0,C]^2$、无约束最优与裁剪后的结果" loading=lazy decoding=async></figure></p><h3 id=44-启发式与收敛>4.4 启发式与收敛</h3><ul><li><strong>外层循环：</strong> 在(a) 扫所有样本与(b) 仅扫非边界 SV（$0 < \alpha_i < C$）之间切换——已经卡在边界的坐标几乎不动。</li><li><strong>第一变量：</strong> 选违反 KKT 条件超过容差的任意 $\alpha_i$。</li><li><strong>第二变量：</strong> 选使 $\lvert E_1 - E_2 \rvert$ 最大的样本（近似最大步长启发）。</li></ul><p>只要选的对不在最优，每一步都严格改进对偶目标。配合"目标有界 + 步长有限"，SMO 收敛。实践中比通用 QP 快几个数量级。要让每步真正 $O(N)$ 而非 $O(N^2)$，关键工程细节是<strong>增量维护误差缓存</strong> $E_i$。</p><hr><h2 id=5-实践要点>5. 实践要点</h2><ul><li><strong>永远先标准化特征。</strong> SVM 用欧氏几何，量纲不齐时大尺度特征会主导间隔。</li><li><strong>$C$ 与 $\gamma$ 一起调。</strong> 它们的"乘积"粗略控制模型容量。在对数尺度上做网格搜索：$C \in \{10^{-2}, \dots, 10^3\}$，$\gamma \in \{10^{-3}, \dots, 10^1\}$，配合交叉验证。</li><li><strong>$N \gg 10^5$ 时优先线性 SVM（LIBLINEAR）或随机方法。</strong> 核 SVM 训练时间大致 $O(N^2)$。</li><li><strong>多分类。</strong> 标准 SVM 是二分类。包成 <strong>One-vs-Rest</strong>（$K$ 个模型）或 <strong>One-vs-One</strong>（$K(K-1)/2$ 个模型 + 投票）。scikit-learn 的 <code>SVC</code> 默认 OvO。</li><li><strong>概率输出。</strong> SVM 给的是距离，不是校准概率。需要概率的话用 Platt scaling（对决策值再跑一个逻辑回归）或保序回归。</li></ul><hr><h2 id=6-练习>6. 练习</h2><h3 id=练习-1--几何间隔>练习 1 — 几何间隔</h3><p><strong>题目。</strong> 超平面 $w = (3, 4)^\top$，$b = -1$。点 $x_0 = (1, 1)^\top$，标签 $y = +1$。求几何间隔。</p><p><strong>解答。</strong></p>$$
 \gamma = \frac{y\,(w^\top x_0 + b)}{\lVert w \rVert} = \frac{1 \cdot (3 + 4 - 1)}{\sqrt{9 + 16}} = \frac{6}{5} = 1.2.
-$$<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="n">w</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="n">w</span> <span class="o">@</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>   <span class="c1"># 1.2</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="练习-2--核函数对加法封闭">练习 2 — 核函数对加法封闭</h3>
-<p><strong>题目。</strong> 证明若 $K_1, K_2$ 是有效核，则 $K = K_1 + K_2$ 也是。</p>
-<p><strong>解答。</strong> 任取有限点集 $\{x_i\}$ 与 $c \in \mathbb{R}^N$：</p>
-$$
+$$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=n>w</span><span class=p>,</span> <span class=n>b</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>]),</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>]),</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>y</span> <span class=o>*</span> <span class=p>(</span><span class=n>w</span> <span class=o>@</span> <span class=n>x</span> <span class=o>+</span> <span class=n>b</span><span class=p>)</span> <span class=o>/</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>w</span><span class=p>))</span>   <span class=c1># 1.2</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=练习-2--核函数对加法封闭>练习 2 — 核函数对加法封闭</h3><p><strong>题目。</strong> 证明若 $K_1, K_2$ 是有效核，则 $K = K_1 + K_2$ 也是。</p><p><strong>解答。</strong> 任取有限点集 $\{x_i\}$ 与 $c \in \mathbb{R}^N$：</p>$$
 \sum_{i, j} c_i c_j K(x_i, x_j) = \sum_{i, j} c_i c_j K_1(x_i, x_j) + \sum_{i, j} c_i c_j K_2(x_i, x_j) \ge 0,
-$$<p>两项都因 $K_1, K_2$ 半正定而 $\ge 0$，故 $K$ 半正定，是有效核。</p>
-<h3 id="练习-3--从-sv-个数读-c">练习 3 — 从 SV 个数读 $C$</h3>
-<p><strong>题目。</strong> 100 个训练样本：$C = 0.1$ 得到 30 个 SV；$C = 100$ 得到 15 个 SV。解释。</p>
-<p><strong>解答。</strong> $C$ 小时松弛代价低，最优解倾向于把间隔拉宽，更多点落进间隔带变成 $\alpha = C$ 的上界 SV。$C$ 大时松弛重罚，间隔被压窄，落在带内的样本变少，SV 也变少。一般规律：正则强（$C$ 小）→ 间隔宽 → SV 多。</p>
-<h3 id="练习-4--诊断-gamma">练习 4 — 诊断 $\gamma$</h3>
-<p><strong>题目。</strong> RBF：$\gamma = 0.01$ 得到训练 95 % / 测试 60 %；$\gamma = 100$ 得到训练 100 % / 测试 70 %。哪个更好？应该试什么？</p>
-<p><strong>解答。</strong> 都不好。$\gamma = 0.01$ 鼓包太宽，模型欠拟合——训练勉强、测试很差。$\gamma = 100$ 鼓包像针尖，每个训练点自成一岛，严重过拟合。和 $C$ 一起在 $\gamma \in \{0.1, 0.3, 1, 3, 10, 30\}$ 上交叉验证，最优组合会让训练/测试差距收窄。</p>
-<h3 id="练习-5--svm-vs-逻辑回归">练习 5 — SVM vs 逻辑回归</h3>
-<p><strong>题目。</strong> 何时该用哪个？</p>
-<p><strong>解答。</strong></p>
-<table>
-  <thead>
-      <tr>
-          <th>需求</th>
-          <th>更合适</th>
-          <th>理由</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>校准概率</td>
-          <td>逻辑回归</td>
-          <td>SVM 输出的是带符号距离</td>
-      </tr>
-      <tr>
-          <td>小样本 + 非线性边界</td>
-          <td>RBF SVM</td>
-          <td>核技巧，模型稀疏</td>
-      </tr>
-      <tr>
-          <td>上百万样本</td>
-          <td>线性逻辑 / 线性 SVM（SGD）</td>
-          <td>核 SVM 大致 $O(N^2)$</td>
-      </tr>
-      <tr>
-          <td>稀疏特征选择</td>
-          <td>逻辑 + L1</td>
-          <td>$w$ 上自然稀疏，而非样本上</td>
-      </tr>
-      <tr>
-          <td>对远离边界的&quot;自信正确&quot;样本鲁棒</td>
-          <td>SVM</td>
-          <td>hinge 不再惩罚已经超出间隔的样本</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="为什么要最大化间隔">为什么要最大化间隔？</h3>
-<p>几何上，间隔越宽对噪声越宽容——任何小于间隔的扰动都不会改变预测。统计上，基于间隔的泛化界（如通过 Rademacher 复杂度推出）显示泛化误差随间隔减小，所以最大化间隔等价于在隐式地正则化模型复杂度。</p>
-<h3 id="为什么用对偶">为什么用对偶？</h3>
-<p>三个理由。(1) 数据只以内积出现，可上核技巧；(2) $d \gg N$ 时对偶比原问题小得多；(3) KKT 条件保证大多数 $\alpha_i = 0$，预测高效。</p>
-<h3 id="smo-中如果-eta--0-怎么办">SMO 中如果 $\eta = 0$ 怎么办？</h3>
-<p>$\eta = \lVert \phi(x_1) - \phi(x_2) \rVert^2$，$\eta = 0$ 意味着两个点在特征空间里重合。此时目标在可行段上是关于 $\alpha_2$ 的线性函数，最优点取 $L$ 或 $H$ 中目标值更大的端点。</p>
-<h3 id="svm-能做回归吗">SVM 能做回归吗？</h3>
-<p>能——<strong>支持向量回归（SVR）</strong> 用 $\varepsilon$-不敏感损失 $\max(0, |y - f(x)| - \varepsilon)$。误差小于 $\varepsilon$ 不计代价；超出 $\varepsilon$ 的样本成为支持向量。同一套对偶机器，每个点配两个乘子（$\alpha_i, \alpha_i^\*$，对应上下两侧）。</p>
-<h3 id="为什么必须标准化">为什么必须标准化？</h3>
-<p>$\eta$ 与核矩阵都涉及 $\lVert x \rVert$。某个量纲很大的特征会压倒其它特征，把决策边界拉向坐标轴对齐。把每个特征调到零均值单位方差是一行代码就能做的事，往往同时改善速度与精度。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Cortes, C., &amp; Vapnik, V. (1995). Support-vector networks. <em>Machine Learning</em>, 20(3), 273-297.</li>
-<li>Vapnik, V. N. (1998). <em>Statistical Learning Theory</em>. Wiley.</li>
-<li>Platt, J. C. (1998). <em>Sequential Minimal Optimization: A Fast Algorithm for Training Support Vector Machines</em>. Tech. Rep. MSR-TR-98-14, Microsoft Research.</li>
-<li>Schölkopf, B., &amp; Smola, A. J. (2002). <em>Learning with Kernels</em>. MIT Press.</li>
-<li>Cristianini, N., &amp; Shawe-Taylor, J. (2000). <em>An Introduction to Support Vector Machines</em>. Cambridge University Press.</li>
-<li>Hastie, T., Tibshirani, R., &amp; Friedman, J. (2009). <em>The Elements of Statistical Learning</em> (2nd ed.). Springer. Chapter 12.</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>篇</th>
-          <th>主题</th>
-          <th>链接</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>7</td>
-          <td>决策树</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b8%83-%e5%86%b3%e7%ad%96%e6%a0%91/">&lt;&ndash; 上一篇</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>8</strong></td>
-          <td><strong>支持向量机</strong></td>
-          <td><em>当前位置</em></td>
-      </tr>
-      <tr>
-          <td>9</td>
-          <td>朴素贝叶斯</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b9%9d-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/">下一篇 &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>10</td>
-          <td>半朴素贝叶斯与贝叶斯网络</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/">前往 &ndash;&gt;</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-硬间隔-svm">1. 硬间隔 SVM</a>
-      <ul>
-        <li><a href="#11-函数间隔与几何间隔">1.1 函数间隔与几何间隔</a></li>
-        <li><a href="#12-最大间隔规划">1.2 最大间隔规划</a></li>
-        <li><a href="#13-用拉格朗日导对偶">1.3 用拉格朗日导对偶</a></li>
-        <li><a href="#14-kkt-条件与稀疏性">1.4 KKT 条件与稀疏性</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-软间隔-svm">2. 软间隔 SVM</a>
-      <ul>
-        <li><a href="#21-松弛变量与参数-c">2.1 松弛变量与参数 </a></li>
-        <li><a href="#22-对偶盒约束登场">2.2 对偶：盒约束登场</a></li>
-        <li><a href="#23-hinge-损失视角">2.3 Hinge 损失视角</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-核函数">3. 核函数</a>
-      <ul>
-        <li><a href="#31-核技巧">3.1 核技巧</a></li>
-        <li><a href="#32-常用核函数">3.2 常用核函数</a></li>
-        <li><a href="#33-mercer-定理">3.3 Mercer 定理</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-smo-算法">4. SMO 算法</a>
-      <ul>
-        <li><a href="#41-为什么一次两个变量">4.1 为什么一次两个变量</a></li>
-        <li><a href="#42-两变量子问题">4.2 两变量子问题</a></li>
-        <li><a href="#43-裁剪到-l-h">4.3 裁剪到 </a></li>
-        <li><a href="#44-启发式与收敛">4.4 启发式与收敛</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-实践要点">5. 实践要点</a></li>
-    <li><a href="#6-练习">6. 练习</a>
-      <ul>
-        <li><a href="#练习-1--几何间隔">练习 1 — 几何间隔</a></li>
-        <li><a href="#练习-2--核函数对加法封闭">练习 2 — 核函数对加法封闭</a></li>
-        <li><a href="#练习-3--从-sv-个数读-c">练习 3 — 从 SV 个数读 </a></li>
-        <li><a href="#练习-4--诊断-gamma">练习 4 — 诊断 </a></li>
-        <li><a href="#练习-5--svm-vs-逻辑回归">练习 5 — SVM vs 逻辑回归</a></li>
-      </ul>
-    </li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#为什么要最大化间隔">为什么要最大化间隔？</a></li>
-        <li><a href="#为什么用对偶">为什么用对偶？</a></li>
-        <li><a href="#smo-中如果-eta--0-怎么办">SMO 中如果  怎么办？</a></li>
-        <li><a href="#svm-能做回归吗">SVM 能做回归吗？</a></li>
-        <li><a href="#为什么必须标准化">为什么必须标准化？</a></li>
-      </ul>
-    </li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5600</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>两项都因 $K_1, K_2$ 半正定而 $\ge 0$，故 $K$ 半正定，是有效核。</p><h3 id=练习-3--从-sv-个数读-c>练习 3 — 从 SV 个数读 $C$</h3><p><strong>题目。</strong> 100 个训练样本：$C = 0.1$ 得到 30 个 SV；$C = 100$ 得到 15 个 SV。解释。</p><p><strong>解答。</strong> $C$ 小时松弛代价低，最优解倾向于把间隔拉宽，更多点落进间隔带变成 $\alpha = C$ 的上界 SV。$C$ 大时松弛重罚，间隔被压窄，落在带内的样本变少，SV 也变少。一般规律：正则强（$C$ 小）→ 间隔宽 → SV 多。</p><h3 id=练习-4--诊断-gamma>练习 4 — 诊断 $\gamma$</h3><p><strong>题目。</strong> RBF：$\gamma = 0.01$ 得到训练 95 % / 测试 60 %；$\gamma = 100$ 得到训练 100 % / 测试 70 %。哪个更好？应该试什么？</p><p><strong>解答。</strong> 都不好。$\gamma = 0.01$ 鼓包太宽，模型欠拟合——训练勉强、测试很差。$\gamma = 100$ 鼓包像针尖，每个训练点自成一岛，严重过拟合。和 $C$ 一起在 $\gamma \in \{0.1, 0.3, 1, 3, 10, 30\}$ 上交叉验证，最优组合会让训练/测试差距收窄。</p><h3 id=练习-5--svm-vs-逻辑回归>练习 5 — SVM vs 逻辑回归</h3><p><strong>题目。</strong> 何时该用哪个？</p><p><strong>解答。</strong></p><table><thead><tr><th>需求</th><th>更合适</th><th>理由</th></tr></thead><tbody><tr><td>校准概率</td><td>逻辑回归</td><td>SVM 输出的是带符号距离</td></tr><tr><td>小样本 + 非线性边界</td><td>RBF SVM</td><td>核技巧，模型稀疏</td></tr><tr><td>上百万样本</td><td>线性逻辑 / 线性 SVM（SGD）</td><td>核 SVM 大致 $O(N^2)$</td></tr><tr><td>稀疏特征选择</td><td>逻辑 + L1</td><td>$w$ 上自然稀疏，而非样本上</td></tr><tr><td>对远离边界的"自信正确"样本鲁棒</td><td>SVM</td><td>hinge 不再惩罚已经超出间隔的样本</td></tr></tbody></table><hr><h2 id=qa>Q&amp;A</h2><h3 id=为什么要最大化间隔>为什么要最大化间隔？</h3><p>几何上，间隔越宽对噪声越宽容——任何小于间隔的扰动都不会改变预测。统计上，基于间隔的泛化界（如通过 Rademacher 复杂度推出）显示泛化误差随间隔减小，所以最大化间隔等价于在隐式地正则化模型复杂度。</p><h3 id=为什么用对偶>为什么用对偶？</h3><p>三个理由。(1) 数据只以内积出现，可上核技巧；(2) $d \gg N$ 时对偶比原问题小得多；(3) KKT 条件保证大多数 $\alpha_i = 0$，预测高效。</p><h3 id=smo-中如果-eta--0-怎么办>SMO 中如果 $\eta = 0$ 怎么办？</h3><p>$\eta = \lVert \phi(x_1) - \phi(x_2) \rVert^2$，$\eta = 0$ 意味着两个点在特征空间里重合。此时目标在可行段上是关于 $\alpha_2$ 的线性函数，最优点取 $L$ 或 $H$ 中目标值更大的端点。</p><h3 id=svm-能做回归吗>SVM 能做回归吗？</h3><p>能——<strong>支持向量回归（SVR）</strong> 用 $\varepsilon$-不敏感损失 $\max(0, |y - f(x)| - \varepsilon)$。误差小于 $\varepsilon$ 不计代价；超出 $\varepsilon$ 的样本成为支持向量。同一套对偶机器，每个点配两个乘子（$\alpha_i, \alpha_i^\*$，对应上下两侧）。</p><h3 id=为什么必须标准化>为什么必须标准化？</h3><p>$\eta$ 与核矩阵都涉及 $\lVert x \rVert$。某个量纲很大的特征会压倒其它特征，把决策边界拉向坐标轴对齐。把每个特征调到零均值单位方差是一行代码就能做的事，往往同时改善速度与精度。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Cortes, C., & Vapnik, V. (1995). Support-vector networks. <em>Machine Learning</em>, 20(3), 273-297.</li><li>Vapnik, V. N. (1998). <em>Statistical Learning Theory</em>. Wiley.</li><li>Platt, J. C. (1998). <em>Sequential Minimal Optimization: A Fast Algorithm for Training Support Vector Machines</em>. Tech. Rep. MSR-TR-98-14, Microsoft Research.</li><li>Schölkopf, B., & Smola, A. J. (2002). <em>Learning with Kernels</em>. MIT Press.</li><li>Cristianini, N., & Shawe-Taylor, J. (2000). <em>An Introduction to Support Vector Machines</em>. Cambridge University Press.</li><li>Hastie, T., Tibshirani, R., & Friedman, J. (2009). <em>The Elements of Statistical Learning</em> (2nd ed.). Springer. Chapter 12.</li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>篇</th><th>主题</th><th>链接</th></tr></thead><tbody><tr><td>7</td><td>决策树</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b8%83-%e5%86%b3%e7%ad%96%e6%a0%91/>&lt;&ndash; 上一篇</a></td></tr><tr><td><strong>8</strong></td><td><strong>支持向量机</strong></td><td><em>当前位置</em></td></tr><tr><td>9</td><td>朴素贝叶斯</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b9%9d-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/>下一篇 &ndash;></a></td></tr><tr><td>10</td><td>半朴素贝叶斯与贝叶斯网络</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/>前往 &ndash;></a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-硬间隔-svm>1. 硬间隔 SVM</a><ul><li><a href=#11-函数间隔与几何间隔>1.1 函数间隔与几何间隔</a></li><li><a href=#12-最大间隔规划>1.2 最大间隔规划</a></li><li><a href=#13-用拉格朗日导对偶>1.3 用拉格朗日导对偶</a></li><li><a href=#14-kkt-条件与稀疏性>1.4 KKT 条件与稀疏性</a></li></ul></li><li><a href=#2-软间隔-svm>2. 软间隔 SVM</a><ul><li><a href=#21-松弛变量与参数-c>2.1 松弛变量与参数</a></li><li><a href=#22-对偶盒约束登场>2.2 对偶：盒约束登场</a></li><li><a href=#23-hinge-损失视角>2.3 Hinge 损失视角</a></li></ul></li><li><a href=#3-核函数>3. 核函数</a><ul><li><a href=#31-核技巧>3.1 核技巧</a></li><li><a href=#32-常用核函数>3.2 常用核函数</a></li><li><a href=#33-mercer-定理>3.3 Mercer 定理</a></li></ul></li><li><a href=#4-smo-算法>4. SMO 算法</a><ul><li><a href=#41-为什么一次两个变量>4.1 为什么一次两个变量</a></li><li><a href=#42-两变量子问题>4.2 两变量子问题</a></li><li><a href=#43-裁剪到-l-h>4.3 裁剪到</a></li><li><a href=#44-启发式与收敛>4.4 启发式与收敛</a></li></ul></li><li><a href=#5-实践要点>5. 实践要点</a></li><li><a href=#6-练习>6. 练习</a><ul><li><a href=#练习-1--几何间隔>练习 1 — 几何间隔</a></li><li><a href=#练习-2--核函数对加法封闭>练习 2 — 核函数对加法封闭</a></li><li><a href=#练习-3--从-sv-个数读-c>练习 3 — 从 SV 个数读</a></li><li><a href=#练习-4--诊断-gamma>练习 4 — 诊断</a></li><li><a href=#练习-5--svm-vs-逻辑回归>练习 5 — SVM vs 逻辑回归</a></li></ul></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#为什么要最大化间隔>为什么要最大化间隔？</a></li><li><a href=#为什么用对偶>为什么用对偶？</a></li><li><a href=#smo-中如果-eta--0-怎么办>SMO 中如果 怎么办？</a></li><li><a href=#svm-能做回归吗>SVM 能做回归吗？</a></li><li><a href=#为什么必须标准化>为什么必须标准化？</a></li></ul></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>12 min</strong></div><div class=row><span>Word count</span><strong>5560</strong></div><div class=row><span>Published</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

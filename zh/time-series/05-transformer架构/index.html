@@ -1,785 +1,204 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>时间序列模型（五）：时间序列的 Transformer 架构 · Chen Kai Blog</title>
-<meta name="description" content="时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="时间序列模型（五）：时间序列的 Transformer 架构">
-<meta property="og:description" content="时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。">
-<meta property="og:url" content="https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">时间序列模型</a>
-         · Chapter 5
-      </div>
-      <h1>时间序列模型（五）：时间序列的 Transformer 架构</h1>
-      <p class="deck">时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-10-31">October 31, 2024</time> · 11 min read · 5100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/" class="tag">#时间序列</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/transformer/" class="tag">#Transformer</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="本章要点">本章要点</h2>
-<ul>
-<li>把完整的 encoder-decoder Transformer 拆给时间序列重新讲一遍</li>
-<li>为什么必须注入位置信息，正弦 / 学习式 / 时间感知三种编码的差异</li>
-<li>多头注意力在时间序列上到底学到了什么</li>
-<li>朴素 attention 在哪儿撞墙（O(n²)），以及四类解决方案：稀疏 / 线性 / Patching / Decoder-only</li>
-<li>一份干净的 PyTorch 参考实现，附 Autoformer / FEDformer / Informer / PatchTST 的选型建议</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>自注意力与多头注意力（第 4 篇）</li>
-<li>编码器-解码器结构与 teacher forcing</li>
-<li>PyTorch 基础（<code>nn.Module</code>、训练循环）</li>
-</ul>
-<hr>
-<h2 id="1-为什么时间序列要用-transformer">1. 为什么时间序列要用 Transformer</h2>
-<p>LSTM / GRU 一步一步地处理序列，由此带来三个问题：</p>
-<ol>
-<li><strong>路径长度是 O(L)</strong>。从 $t-L$ 步的信息要传到 $t$ 步，必须穿过 $L$ 次循环——这正是梯度消失的根源。</li>
-<li><strong>训练是串行的</strong>。第 $t+1$ 步必须等第 $t$ 步算完，GPU 一半算力闲着。</li>
-<li><strong>隐状态是瓶颈</strong>。模型必须把所有可能用到的历史压进一个固定大小的向量里。</li>
-</ol>
-<p>自注意力一口气把这三件事都解决了：每个位置在 <strong>一次矩阵乘法</strong> 里就能看见其它所有位置，任意两步之间的路径长度是 $O(1)$，整条序列并行处理。代价是显存：要存 $n \times n$ 的注意力矩阵，开销是 $O(n^2)$，第 5、第 7 节会专门处理。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig1_architecture.png" alt="时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 1. 时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。</em></p>
-<h2 id="2-架构逐块拆解">2. 架构逐块拆解</h2>
-<p>时间序列的 Transformer 就是 2017 年的原版，外加三处不大但重要的改动：</p>
-<table>
-  <thead>
-      <tr>
-          <th>模块</th>
-          <th>原版 NLP</th>
-          <th>时间序列</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>输入嵌入</td>
-          <td>token embedding 查表</td>
-          <td>连续特征的<strong>线性投影</strong></td>
-      </tr>
-      <tr>
-          <td>位置信息</td>
-          <td>基于 token 索引的正弦</td>
-          <td><strong>时间感知</strong>编码（日历特征 / 不等间隔）</td>
-      </tr>
-      <tr>
-          <td>输出头</td>
-          <td>词表 softmax</td>
-          <td>输出实数预测向量的<strong>线性层</strong></td>
-      </tr>
-  </tbody>
-</table>
-<p>其余结构——多头自注意力、前馈、残差、LayerNorm、解码器 cross-attention、因果掩码——一字不改。每个 block 的四个子层是：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>时间序列模型（五）：时间序列的 Transformer 架构 · Chen Kai Blog</title>
+<meta name=description content="时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/><meta property="og:type" content="article"><meta property="og:title" content="时间序列模型（五）：时间序列的 Transformer 架构"><meta property="og:description" content="时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。"><meta property="og:url" content="https://www.chenk.top/zh/time-series/05-transformer%E6%9E%B6%E6%9E%84/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>时间序列模型</a>
+· Chapter 5</div><h1>时间序列模型（五）：时间序列的 Transformer 架构</h1><p class=deck>时间序列的 Transformer 全景：编码器-解码器结构、时序位置编码、O(n^2) 注意力瓶颈、Decoder-only 自回归预测与 Patching 策略。含 Autoformer / FEDformer / Informer / PatchTST 选型与可直接运行的实现。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-10-31>October 31, 2024</time> · 11 min read · 5040 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/ class=tag>#时间序列</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/transformer/ class=tag>#Transformer</a></div></div></header><div class=prose><h2 id=本章要点>本章要点</h2><ul><li>把完整的 encoder-decoder Transformer 拆给时间序列重新讲一遍</li><li>为什么必须注入位置信息，正弦 / 学习式 / 时间感知三种编码的差异</li><li>多头注意力在时间序列上到底学到了什么</li><li>朴素 attention 在哪儿撞墙（O(n²)），以及四类解决方案：稀疏 / 线性 / Patching / Decoder-only</li><li>一份干净的 PyTorch 参考实现，附 Autoformer / FEDformer / Informer / PatchTST 的选型建议</li></ul><h2 id=前置知识>前置知识</h2><ul><li>自注意力与多头注意力（第 4 篇）</li><li>编码器-解码器结构与 teacher forcing</li><li>PyTorch 基础（<code>nn.Module</code>、训练循环）</li></ul><hr><h2 id=1-为什么时间序列要用-transformer>1. 为什么时间序列要用 Transformer</h2><p>LSTM / GRU 一步一步地处理序列，由此带来三个问题：</p><ol><li><strong>路径长度是 O(L)</strong>。从 $t-L$ 步的信息要传到 $t$ 步，必须穿过 $L$ 次循环——这正是梯度消失的根源。</li><li><strong>训练是串行的</strong>。第 $t+1$ 步必须等第 $t$ 步算完，GPU 一半算力闲着。</li><li><strong>隐状态是瓶颈</strong>。模型必须把所有可能用到的历史压进一个固定大小的向量里。</li></ol><p>自注意力一口气把这三件事都解决了：每个位置在 <strong>一次矩阵乘法</strong> 里就能看见其它所有位置，任意两步之间的路径长度是 $O(1)$，整条序列并行处理。代价是显存：要存 $n \times n$ 的注意力矩阵，开销是 $O(n^2)$，第 5、第 7 节会专门处理。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig1_architecture.png alt="时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。" loading=lazy decoding=async></figure><em>图 1. 时间序列适配版的编码器-解码器 Transformer。编码器并行读取 lookback 窗口，解码器生成预测窗口，并通过 cross-attention 关注编码器的 memory。</em></p><h2 id=2-架构逐块拆解>2. 架构逐块拆解</h2><p>时间序列的 Transformer 就是 2017 年的原版，外加三处不大但重要的改动：</p><table><thead><tr><th>模块</th><th>原版 NLP</th><th>时间序列</th></tr></thead><tbody><tr><td>输入嵌入</td><td>token embedding 查表</td><td>连续特征的<strong>线性投影</strong></td></tr><tr><td>位置信息</td><td>基于 token 索引的正弦</td><td><strong>时间感知</strong>编码（日历特征 / 不等间隔）</td></tr><tr><td>输出头</td><td>词表 softmax</td><td>输出实数预测向量的<strong>线性层</strong></td></tr></tbody></table><p>其余结构——多头自注意力、前馈、残差、LayerNorm、解码器 cross-attention、因果掩码——一字不改。每个 block 的四个子层是：</p>$$
 \begin{aligned}
 h_1 &= \text{LayerNorm}(x + \text{MHSA}(x)) \\
 h_2 &= \text{LayerNorm}(h_1 + \text{FFN}(h_1))
 \end{aligned}
-$$<p>注意力依然是第 4 篇里的缩放点积：</p>
-$$
+$$<p>注意力依然是第 4 篇里的缩放点积：</p>$$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
-$$<h3 id="21-编码器">2.1 编码器</h3>
-<p>读 lookback 窗口 $x_{t-L+1:t}$，输出上下文向量 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。<strong>不带 mask</strong>，每个位置看所有位置。</p>
-<h3 id="22-解码器">2.2 解码器</h3>
-<p>输入是<strong>标签窗口</strong>（历史末尾的 $L_{\text{label}}$ 步）拼上 $H$ 个零占位，输出是预测 $\hat{y}_{t+1:t+H}$。每个 block 用两层 attention：</p>
-<ul>
-<li><strong>Masked self-attention</strong>，加因果 mask，第 $t+k$ 步只能看到 $\le t+k-1$ 的位置。</li>
-<li><strong>Cross-attention</strong>，Query 来自解码器，Key / Value 来自编码器 memory $M$。这是解码器唯一能看见编码器的地方。</li>
-</ul>
-<h3 id="23-标签窗口一个小技巧">2.3 标签窗口：一个小技巧</h3>
-<p>纯 encoder-decoder 经常在历史 / 预测交界处崩。Informer / Autoformer 的解法是给解码器 $L_{\text{label}}$ 步<strong>已知历史</strong> + $H$ 个零占位，让解码器从一个已知状态出发，平滑地推进到未知。</p>
-<h2 id="3-时间序列的位置编码">3. 时间序列的位置编码</h2>
-<p>自注意力是排列不变的——把输入打乱，输出不变。NLP 里这是 bug，时间序列里这是灾难。我们用正弦编码注入位置：</p>
-$$
+$$<h3 id=21-编码器>2.1 编码器</h3><p>读 lookback 窗口 $x_{t-L+1:t}$，输出上下文向量 $M \in \mathbb{R}^{L \times d_{\text{model}}}$。<strong>不带 mask</strong>，每个位置看所有位置。</p><h3 id=22-解码器>2.2 解码器</h3><p>输入是<strong>标签窗口</strong>（历史末尾的 $L_{\text{label}}$ 步）拼上 $H$ 个零占位，输出是预测 $\hat{y}_{t+1:t+H}$。每个 block 用两层 attention：</p><ul><li><strong>Masked self-attention</strong>，加因果 mask，第 $t+k$ 步只能看到 $\le t+k-1$ 的位置。</li><li><strong>Cross-attention</strong>，Query 来自解码器，Key / Value 来自编码器 memory $M$。这是解码器唯一能看见编码器的地方。</li></ul><h3 id=23-标签窗口一个小技巧>2.3 标签窗口：一个小技巧</h3><p>纯 encoder-decoder 经常在历史 / 预测交界处崩。Informer / Autoformer 的解法是给解码器 $L_{\text{label}}$ 步<strong>已知历史</strong> + $H$ 个零占位，让解码器从一个已知状态出发，平滑地推进到未知。</p><h2 id=3-时间序列的位置编码>3. 时间序列的位置编码</h2><p>自注意力是排列不变的——把输入打乱，输出不变。NLP 里这是 bug，时间序列里这是灾难。我们用正弦编码注入位置：</p>$$
 \text{PE}_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right), \qquad
 \text{PE}_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
-$$<p>每个位置 $p$ 拿到一个由几何级数频率构成的<strong>唯一签名</strong>。低维分量震荡快（编码短程位置），高维分量震荡慢（编码长程位置）。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig2_positional_encoding.png" alt="正弦位置编码。左：完整编码矩阵，每一行都是唯一签名。右：四个代表性维度，频率各不相同。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 2. 正弦位置编码。左：完整编码矩阵，每一行都是唯一签名。右：四个代表性维度，频率各不相同。</em></p>
-<p>时间序列通常需要比&quot;步索引&quot;<strong>更丰富</strong>的位置信息：</p>
-<ul>
-<li><strong>日历特征</strong>：小时、星期、月份、节假日标志，每个都给独立的可学习 embedding，加到输入上。</li>
-<li><strong>不等间隔采样</strong>：把位置 $p$ 替换成实际时间戳 $\tau_p$ 并归一化。Time2Vec、Continuous-Time Transformer 走的是这条路。</li>
-<li><strong>相对位置</strong>：把 $\tau_q - \tau_k$ 直接加到 attention score 里（T5 / TUPE 风格），更适合超长上下文。</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TemporalPositionalEncoding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;正弦 PE + 可选的日历特征 embedding。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">calendar_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">12</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># ---- 正弦部分 ------------------------------------------------------</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pe</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_len</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">div</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                        <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">10000.0</span><span class="p">)</span> <span class="o">/</span> <span class="n">d_model</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pe</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">div</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pe</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pos</span> <span class="o">*</span> <span class="n">div</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&#34;pe&#34;</span><span class="p">,</span> <span class="n">pe</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>  <span class="c1"># (1, L, d)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># ---- 日历 embedding（小时 / 星期 / 日 / 月）-----------------------</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">cal_embeds</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">calendar_sizes</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">cal</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># x: (B, L, d). cal: (B, L, 4) 整型日历特征。</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">cal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emb</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cal_embeds</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">emb</span><span class="p">(</span><span class="n">cal</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="4-多头注意力到底学到了什么">4. 多头注意力到底学到了什么</h2>
-<p>单头只能建模一种关系。多头把模型切成 $h$ 路并行注意力，每路在 $d_k = d_{\text{model}} / h$ 维上算完再拼起来。在时间序列上，不同的头通常会专门化：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig3_multihead_patterns.png" alt="训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 3. 训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。</em></p>
-<table>
-  <thead>
-      <tr>
-          <th>头的模式</th>
-          <th>模型在做什么</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>局部</strong>（对角线）</td>
-          <td>基本就是自回归滑动平均</td>
-      </tr>
-      <tr>
-          <td><strong>周期条纹</strong></td>
-          <td>锁定某个已知周期（24 小时 / 周）</td>
-      </tr>
-      <tr>
-          <td><strong>长程弥散</strong></td>
-          <td>拉取慢速趋势</td>
-      </tr>
-      <tr>
-          <td><strong>锚定带</strong></td>
-          <td>抓住某个具体的过去事件（峰值、状态切换）</td>
-      </tr>
-  </tbody>
-</table>
-<p>这也是 Transformer <strong>可解释性</strong> 的来源：把最后一层的 attention 在头维度上平均，就能看出预测到底依赖于哪几步历史。</p>
-<h2 id="5-on-瓶颈">5. O(n²) 瓶颈</h2>
-<p>朴素 attention 每层每个头都要存一张 $n \times n$ 的 score 矩阵。fp16 + 8 头时，每层注意力的显存是</p>
-$$
+$$<p>每个位置 $p$ 拿到一个由几何级数频率构成的<strong>唯一签名</strong>。低维分量震荡快（编码短程位置），高维分量震荡慢（编码长程位置）。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig2_positional_encoding.png alt=正弦位置编码。左：完整编码矩阵，每一行都是唯一签名。右：四个代表性维度，频率各不相同。 loading=lazy decoding=async></figure><em>图 2. 正弦位置编码。左：完整编码矩阵，每一行都是唯一签名。右：四个代表性维度，频率各不相同。</em></p><p>时间序列通常需要比"步索引"<strong>更丰富</strong>的位置信息：</p><ul><li><strong>日历特征</strong>：小时、星期、月份、节假日标志，每个都给独立的可学习 embedding，加到输入上。</li><li><strong>不等间隔采样</strong>：把位置 $p$ 替换成实际时间戳 $\tau_p$ 并归一化。Time2Vec、Continuous-Time Transformer 走的是这条路。</li><li><strong>相对位置</strong>：把 $\tau_q - \tau_k$ 直接加到 attention score 里（T5 / TUPE 风格），更适合超长上下文。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>math</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TemporalPositionalEncoding</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;正弦 PE + 可选的日历特征 embedding。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>d_model</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>max_len</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5000</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>calendar_sizes</span><span class=o>=</span><span class=p>(</span><span class=mi>24</span><span class=p>,</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>31</span><span class=p>,</span> <span class=mi>12</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># ---- 正弦部分 ------------------------------------------------------</span>
+</span></span><span class=line><span class=cl>        <span class=n>pe</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>max_len</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pos</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>max_len</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>div</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>d_model</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                        <span class=o>*</span> <span class=p>(</span><span class=o>-</span><span class=n>math</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=mf>10000.0</span><span class=p>)</span> <span class=o>/</span> <span class=n>d_model</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>pe</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>::</span><span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>pos</span> <span class=o>*</span> <span class=n>div</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pe</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>::</span><span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>pos</span> <span class=o>*</span> <span class=n>div</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>register_buffer</span><span class=p>(</span><span class=s2>&#34;pe&#34;</span><span class=p>,</span> <span class=n>pe</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>))</span>  <span class=c1># (1, L, d)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># ---- 日历 embedding（小时 / 星期 / 日 / 月）-----------------------</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>cal_embeds</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ModuleList</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>calendar_sizes</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>cal</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># x: (B, L, d). cal: (B, L, 4) 整型日历特征。</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>pe</span><span class=p>[:,</span> <span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>cal</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>emb</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>cal_embeds</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>out</span> <span class=o>=</span> <span class=n>out</span> <span class=o>+</span> <span class=n>emb</span><span class=p>(</span><span class=n>cal</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n>i</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=4-多头注意力到底学到了什么>4. 多头注意力到底学到了什么</h2><p>单头只能建模一种关系。多头把模型切成 $h$ 路并行注意力，每路在 $d_k = d_{\text{model}} / h$ 维上算完再拼起来。在时间序列上，不同的头通常会专门化：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig3_multihead_patterns.png alt="训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。" loading=lazy decoding=async></figure><em>图 3. 训练好的 Transformer 在 48 步窗口上的四个头，每个学到不同的时间模式。注意因果 mask：对角线之上没有任何权重。</em></p><table><thead><tr><th>头的模式</th><th>模型在做什么</th></tr></thead><tbody><tr><td><strong>局部</strong>（对角线）</td><td>基本就是自回归滑动平均</td></tr><tr><td><strong>周期条纹</strong></td><td>锁定某个已知周期（24 小时 / 周）</td></tr><tr><td><strong>长程弥散</strong></td><td>拉取慢速趋势</td></tr><tr><td><strong>锚定带</strong></td><td>抓住某个具体的过去事件（峰值、状态切换）</td></tr></tbody></table><p>这也是 Transformer <strong>可解释性</strong> 的来源：把最后一层的 attention 在头维度上平均，就能看出预测到底依赖于哪几步历史。</p><h2 id=5-on-瓶颈>5. O(n²) 瓶颈</h2><p>朴素 attention 每层每个头都要存一张 $n \times n$ 的 score 矩阵。fp16 + 8 头时，每层注意力的显存是</p>$$
 M_{\text{attn}} = h \cdot n^2 \cdot 2 \;\text{bytes}.
-$$<p>$n=512$ 时 4 MB（无所谓）；$n=4096$ 时 256 MB（开始难受）；$n=16384$ 时单层就要 4 GB+ 仅放注意力矩阵。计算量同样是 $O(n^2 d_{\text{model}})$ FLOPs。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig5_quadratic_bottleneck.png" alt="注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步之后就跑不动了；稀疏 / 线性 / Patching 三类方案能把开销压回可接受范围。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 5. 注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步之后就跑不动了；稀疏 / 线性 / Patching 三类方案能把开销压回可接受范围。</em></p>
-<p>四类解法，按&quot;对模型改动多少&quot;递增排序：</p>
-<ol>
-<li><strong>稀疏注意力</strong>（Longformer、BigBird、Informer 的 ProbSparse）：只算 $(q, k)$ 对的稀疏子集。开销 $O(n \cdot w)$，$w$ 是窗口或选中的 key 数。</li>
-<li><strong>线性注意力</strong>（Performer、Linformer、Nystromformer）：把 softmax 换成可分解的核函数，attention 降到 $O(n \cdot d^2)$。</li>
-<li><strong>Patching</strong>（PatchTST、Autoformer 风格的序列分解）：直接把序列<strong>变短</strong>，把连续的几步合成一个 patch。第 7 节专讲。</li>
-<li><strong>Decoder-only + KV cache</strong>（第 6 节）：训练仍是 $O(n^2)$，但推理可以增量化。</li>
-</ol>
-<p>实战经验：lookback 在 2k 以内、horizon 在几百步以内时，朴素 attention 完全够用。再长就上 patching——<strong>性价比最高的一招</strong>，往往<strong>还能顺手提精度</strong>。</p>
-<h2 id="6-decoder-only-自回归预测">6. Decoder-only 自回归预测</h2>
-<p>GPT 风格的 decoder-only 在 NLP 里基本赢麻了。同样的套路也能用于预测：去掉编码器，只训练一个带因果 mask 的 stack，然后一步一步把预测 roll 出来。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig6_decoder_only_forecast.png" alt="Decoder-only 自回归预测与因果 mask。每一步把目前为止生成的全部内容喂回模型，问&quot;下一步是什么&quot;。右图是 mask：蓝色可见，灰色被屏蔽。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 6. Decoder-only 自回归预测与因果 mask。每一步把目前为止生成的全部内容喂回模型，问&quot;下一步是什么&quot;。右图是 mask：蓝色可见，灰色被屏蔽。</em></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">autoregressive_forecast</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">history</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">horizon</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;history: (B, L, d)，返回 (B, horizon, d)。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">seq</span> <span class="o">=</span> <span class="n">history</span>
-</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">horizon</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">seq</span><span class="p">)[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>   <span class="c1"># 最后一步即&#34;下一步&#34;的预测</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">seq</span><span class="p">,</span> <span class="n">pred</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>与 encoder-decoder 的取舍</strong>：</p>
-<table>
-  <thead>
-      <tr>
-          <th>维度</th>
-          <th>Encoder-decoder</th>
-          <th>Decoder-only</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>训练成本</td>
-          <td>两个 stack</td>
-          <td>一个 stack</td>
-      </tr>
-      <tr>
-          <td>推理延迟</td>
-          <td>一次前向出 $H$ 步</td>
-          <td>$H$ 次前向（带 KV cache 时便宜很多）</td>
-      </tr>
-      <tr>
-          <td>暴露偏差</td>
-          <td>teacher forcing 缓解</td>
-          <td>必须配 scheduled sampling 才能压住</td>
-      </tr>
-      <tr>
-          <td>预训练迁移</td>
-          <td>不顺手</td>
-          <td>天然——TimesFM、Lag-Llama、Chronos 都是这套</td>
-      </tr>
-  </tbody>
-</table>
-<p>要做&quot;一个基础模型打天下&quot;，decoder-only 现在是主流。</p>
-<h2 id="7-patching性价比最高的提速">7. Patching：性价比最高的提速</h2>
-<p>PatchTST（Nie et al., ICLR 2023）一句话戳破了真相：<strong>时间步不是合适的 token</strong>。一段长度 512 的小时级序列，token 数远超普通 NLP 句子，但每个&quot;token&quot;几乎不携带信息。把它们按 $P$ 步一组打 patch，token 数就降到 $\lceil L / P \rceil$，每个都是一段有意义的小波形。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig7_patching.png" alt="Patching 策略。上：把长度 96 的序列切成 8 个 size 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：patch size 越大，attention 相对开销越小（O(n²) 的好处）。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 7. Patching 策略。上：把长度 96 的序列切成 8 个 size 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：patch size 越大，attention 相对开销越小（O(n²) 的好处）。</em></p>
-<p>为什么 patching 这么有用：</p>
-<ul>
-<li><strong>注意力开销直接除以 $P^2$</strong>。$P=16$、$L=512$ 时，每头注意力条目从 26 万降到约 1 千。</li>
-<li><strong>每个 token 都有意义</strong>。12 个小时合一个 patch 是半天的有效单位；单个小时不是。</li>
-<li><strong>天然引入局部性偏置</strong>。patch 内部的局部模式由线性投影负责，attention 只用建模 patch 之间的（更长程的）关系。</li>
-<li><strong>通道独立</strong>。PatchTST 把每个变量当独立序列、共享权重，避免了训练初期的伪通道关联。</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PatchEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span> <span class="o">=</span> <span class="n">patch_size</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">patch_size</span> <span class="o">*</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>                <span class="c1"># x: (B, L, C)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
-</span></span><span class="line"><span class="cl">        <span class="n">P</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_size</span>
-</span></span><span class="line"><span class="cl">        <span class="n">L_trim</span> <span class="o">=</span> <span class="p">(</span><span class="n">L</span> <span class="o">//</span> <span class="n">P</span><span class="p">)</span> <span class="o">*</span> <span class="n">P</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">L_trim</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">L_trim</span> <span class="o">//</span> <span class="n">P</span><span class="p">,</span> <span class="n">P</span> <span class="o">*</span> <span class="n">C</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># (B, L/P, d_model)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="8-参考实现">8. 参考实现</h2>
-<p>用 <code>nn.Transformer</code> 把上面所有要素拼起来：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TimeSeriesTransformer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">n_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">n_enc</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_dec</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">d_ff</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">lookback</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span> <span class="n">patch</span><span class="o">=</span><span class="mi">16</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span> <span class="o">=</span> <span class="n">PatchEmbedding</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">n_tokens</span> <span class="o">=</span> <span class="n">lookback</span> <span class="o">//</span> <span class="n">patch</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">TemporalPositionalEncoding</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="n">n_tokens</span> <span class="o">+</span> <span class="n">horizon</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">enc_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoderLayer</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">norm_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">&#34;gelu&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dec_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerDecoderLayer</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">d_ff</span><span class="p">,</span> <span class="n">dropout</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">norm_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">&#34;gelu&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">enc_layer</span><span class="p">,</span> <span class="n">n_enc</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">TransformerDecoder</span><span class="p">(</span><span class="n">dec_layer</span><span class="p">,</span> <span class="n">n_dec</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_features</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">horizon</span> <span class="o">=</span> <span class="n">horizon</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># src: (B, L, C). tgt: (B, H, C) —— 训练时用 teacher forcing。</span>
-</span></span><span class="line"><span class="cl">        <span class="n">memory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span><span class="p">(</span><span class="n">src</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">tgt_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_embed</span><span class="p">(</span><span class="n">tgt</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">L_tgt</span> <span class="o">=</span> <span class="n">tgt_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">causal</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Transformer</span><span class="o">.</span><span class="n">generate_square_subsequent_mask</span><span class="p">(</span><span class="n">L_tgt</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">tgt_emb</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="o">=</span><span class="n">causal</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>            <span class="c1"># (B, L_tgt, C)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>几条工程经验：</p>
-<ul>
-<li><strong><code>norm_first=True</code></strong>（pre-LN）对深层 stack 更稳；原版 post-LN 通常需要 warm-up 才肯收敛。</li>
-<li>FFN 用 <strong>GELU</strong> 而不是 ReLU——BERT 之后就是标配，时间序列上也一致更好。</li>
-<li><strong>永远先按序列做 z-score 归一化</strong>，输出端再反归一化。漏掉这一步是 Transformer &ldquo;训不出来&rdquo; 最常见的原因。</li>
-</ul>
-<h2 id="9-变体与选型">9. 变体与选型</h2>
-<table>
-  <thead>
-      <tr>
-          <th>变体</th>
-          <th>核心想法</th>
-          <th>何时选它</th>
-          <th>年份</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Vanilla</strong></td>
-          <td>编码器-解码器 + 正弦 PE</td>
-          <td>lookback &lt; 1k，先打个基线</td>
-          <td>2017</td>
-      </tr>
-      <tr>
-          <td><strong>Informer</strong></td>
-          <td>ProbSparse 注意力 + 标签窗口</td>
-          <td>很长的 lookback（5k-10k）</td>
-          <td>2021</td>
-      </tr>
-      <tr>
-          <td><strong>Autoformer</strong></td>
-          <td>序列分解 + 用 auto-correlation 替代 self-attn</td>
-          <td>周期清晰强烈</td>
-          <td>2021</td>
-      </tr>
-      <tr>
-          <td><strong>FEDformer</strong></td>
-          <td>频域注意力</td>
-          <td>周期数据，长 horizon</td>
-          <td>2022</td>
-      </tr>
-      <tr>
-          <td><strong>PatchTST</strong></td>
-          <td>Patching + 通道独立</td>
-          <td>大多数多元预测任务</td>
-          <td>2023</td>
-      </tr>
-      <tr>
-          <td><strong>iTransformer</strong></td>
-          <td>把每个变量当一个 token，跨变量做 attention</td>
-          <td>多个相关通道</td>
-          <td>2024</td>
-      </tr>
-  </tbody>
-</table>
-<p>如果在 2024-2025 年从零开始，我们的默认推荐是 <strong>PatchTST 或 iTransformer</strong>：在 ETT / Electricity / Traffic 等标准 benchmark 上都打过老变体，而且实现更简单、训练更快。</p>
-<h2 id="10-性能与工程">10. 性能与工程</h2>
-<h3 id="101-预测质量">10.1 预测质量</h3>
-<p>我们在一个带日 / 周双周期 + 随机峰值的合成信号上做 96 步预测。Transformer 把两个周期都干净地抓住，LSTM 锁住了主导的日周期，但在周周期上漂移。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig4_lstm_vs_transformer.png" alt="日 &#43; 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图 4. 日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。</em></p>
-<h3 id="102-训练食谱决定能不能训出来的细节">10.2 训练食谱（决定能不能训出来的细节）</h3>
-<ul>
-<li><strong>优化器</strong>：AdamW，$\beta = (0.9, 0.95)$（GPT-3 用的设置——默认的 0.999 对时间序列偏迟钝）。</li>
-<li><strong>学习率调度</strong>：前 5-10% 步线性 warm-up，之后余弦退火到 0。没有 warm-up，深层 Transformer 会发散。</li>
-<li><strong>学习率</strong>：$d_{\text{model}}=128$ 时从 $1\text{e-}4$ 起步，模型更大就调小。</li>
-<li><strong>梯度裁剪</strong>：$\|g\| \le 1.0$，没得商量。</li>
-<li><strong>batch size</strong>：能放多大放多大，Transformer 对大 batch 的稳定性收益巨大。</li>
-<li><strong>混合精度</strong>（<code>torch.cuda.amp</code> 或 <code>bfloat16</code>）：2-3 倍速，几乎无精度损失。</li>
-<li><strong>耐心</strong>：预测用 Transformer 通常要 100-300 epoch；语言模型那种 3-10 epoch 在这里不成立。</li>
-</ul>
-<h3 id="103-上线服务成本与-revin">10.3 上线：服务成本与 RevIN</h3>
-<ul>
-<li>用 <strong><code>torch.compile</code></strong>（PyTorch 2.x）：1.5-2 倍延迟优化，免费。</li>
-<li>decoder-only 部署一定要 <strong>缓存 K、V</strong>：每多一步从 $O(n^2)$ 降到 $O(n)$。</li>
-<li><strong>可逆实例归一化</strong>（RevIN，ICLR 2022）：推理时按序列做归一化，输出端反归一化。一行代码改动，专治&quot;训练用的历史和上线后数据漂移&quot;那个老问题。</li>
-</ul>
-<h2 id="11-常见踩坑">11. 常见踩坑</h2>
-<table>
-  <thead>
-      <tr>
-          <th>现象</th>
-          <th>大概率原因</th>
-          <th>修复</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Loss 平在数据方差附近</td>
-          <td>输入没归一化</td>
-          <td>按序列 z-score，输出反归一化</td>
-      </tr>
-      <tr>
-          <td>几百步后 loss 发散</td>
-          <td>没 warm-up；post-LN 配大 LR</td>
-          <td>线性 warm-up + <code>norm_first=True</code></td>
-      </tr>
-      <tr>
-          <td>验证集塌成常数</td>
-          <td>解码器 mask 错了，未来漏了进来</td>
-          <td>确认 <code>tgt_mask</code> 是严格上三角</td>
-      </tr>
-      <tr>
-          <td>lookback &gt; 1024 就 OOM</td>
-          <td>朴素 attention</td>
-          <td>先上 patching，仍不够再上稀疏 / 线性</td>
-      </tr>
-      <tr>
-          <td>预测只跟着最近值，趋势忽略不计</td>
-          <td>位置没注入，或 PE 被特征数值规模盖过</td>
-          <td>缩放 PE 到特征量级；加上日历特征</td>
-      </tr>
-      <tr>
-          <td>&ldquo;Transformer 还不如 LSTM&rdquo;</td>
-          <td>数据集不到 1 万样本，正则不够</td>
-          <td>缩小模型、dropout 0.2-0.3、加 weight decay</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="12-总结">12. 总结</h2>
-<p>Transformer 不是魔法——它是<strong>让每个时间步都能并行直接看到其它任何时间步</strong>的最简单架构。时间序列上有三件事最重要：</p>
-<ol>
-<li><strong>位置就是输入</strong>——没有好的位置信息，Transformer 分不清星期一和星期五。用正弦 PE + 日历特征（不等间隔就用相对位置）。</li>
-<li><strong>朴素 attention 是 O(n²)</strong>——但只有几千步以上才是真问题。最便宜的修复是 <strong>Patching</strong>，而且通常<strong>还顺手提精度</strong>。</li>
-<li><strong>按数据挑变体</strong>——大多数多元预测用 PatchTST 或 iTransformer；周期清晰的用 FEDformer / Autoformer；要做&quot;基础模型迁移&quot;风格则用 decoder-only。</li>
-</ol>
-<p>不管怎么变，注意力公式不变：</p>
-$$
+$$<p>$n=512$ 时 4 MB（无所谓）；$n=4096$ 时 256 MB（开始难受）；$n=16384$ 时单层就要 4 GB+ 仅放注意力矩阵。计算量同样是 $O(n^2 d_{\text{model}})$ FLOPs。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig5_quadratic_bottleneck.png alt="注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步之后就跑不动了；稀疏 / 线性 / Patching 三类方案能把开销压回可接受范围。" loading=lazy decoding=async></figure><em>图 5. 注意力的显存与 FLOPs 随序列长度的变化。朴素 O(n²) 在几千步之后就跑不动了；稀疏 / 线性 / Patching 三类方案能把开销压回可接受范围。</em></p><p>四类解法，按"对模型改动多少"递增排序：</p><ol><li><strong>稀疏注意力</strong>（Longformer、BigBird、Informer 的 ProbSparse）：只算 $(q, k)$ 对的稀疏子集。开销 $O(n \cdot w)$，$w$ 是窗口或选中的 key 数。</li><li><strong>线性注意力</strong>（Performer、Linformer、Nystromformer）：把 softmax 换成可分解的核函数，attention 降到 $O(n \cdot d^2)$。</li><li><strong>Patching</strong>（PatchTST、Autoformer 风格的序列分解）：直接把序列<strong>变短</strong>，把连续的几步合成一个 patch。第 7 节专讲。</li><li><strong>Decoder-only + KV cache</strong>（第 6 节）：训练仍是 $O(n^2)$，但推理可以增量化。</li></ol><p>实战经验：lookback 在 2k 以内、horizon 在几百步以内时，朴素 attention 完全够用。再长就上 patching——<strong>性价比最高的一招</strong>，往往<strong>还能顺手提精度</strong>。</p><h2 id=6-decoder-only-自回归预测>6. Decoder-only 自回归预测</h2><p>GPT 风格的 decoder-only 在 NLP 里基本赢麻了。同样的套路也能用于预测：去掉编码器，只训练一个带因果 mask 的 stack，然后一步一步把预测 roll 出来。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig6_decoder_only_forecast.png alt='Decoder-only 自回归预测与因果 mask。每一步把目前为止生成的全部内容喂回模型，问"下一步是什么"。右图是 mask：蓝色可见，灰色被屏蔽。' loading=lazy decoding=async></figure><em>图 6. Decoder-only 自回归预测与因果 mask。每一步把目前为止生成的全部内容喂回模型，问"下一步是什么"。右图是 mask：蓝色可见，灰色被屏蔽。</em></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>autoregressive_forecast</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>history</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>horizon</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;history: (B, L, d)，返回 (B, horizon, d)。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>seq</span> <span class=o>=</span> <span class=n>history</span>
+</span></span><span class=line><span class=cl>    <span class=n>out</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>horizon</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>pred</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>seq</span><span class=p>)[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>:,</span> <span class=p>:]</span>   <span class=c1># 最后一步即&#34;下一步&#34;的预测</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>pred</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>seq</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>seq</span><span class=p>,</span> <span class=n>pred</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>(</span><span class=n>out</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>与 encoder-decoder 的取舍</strong>：</p><table><thead><tr><th>维度</th><th>Encoder-decoder</th><th>Decoder-only</th></tr></thead><tbody><tr><td>训练成本</td><td>两个 stack</td><td>一个 stack</td></tr><tr><td>推理延迟</td><td>一次前向出 $H$ 步</td><td>$H$ 次前向（带 KV cache 时便宜很多）</td></tr><tr><td>暴露偏差</td><td>teacher forcing 缓解</td><td>必须配 scheduled sampling 才能压住</td></tr><tr><td>预训练迁移</td><td>不顺手</td><td>天然——TimesFM、Lag-Llama、Chronos 都是这套</td></tr></tbody></table><p>要做"一个基础模型打天下"，decoder-only 现在是主流。</p><h2 id=7-patching性价比最高的提速>7. Patching：性价比最高的提速</h2><p>PatchTST（Nie et al., ICLR 2023）一句话戳破了真相：<strong>时间步不是合适的 token</strong>。一段长度 512 的小时级序列，token 数远超普通 NLP 句子，但每个"token"几乎不携带信息。把它们按 $P$ 步一组打 patch，token 数就降到 $\lceil L / P \rceil$，每个都是一段有意义的小波形。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig7_patching.png alt="Patching 策略。上：把长度 96 的序列切成 8 个 size 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：patch size 越大，attention 相对开销越小（O(n²) 的好处）。" loading=lazy decoding=async></figure><em>图 7. Patching 策略。上：把长度 96 的序列切成 8 个 size 12 的 patch。下：每个 patch 通过线性投影变成一个 token。右：patch size 越大，attention 相对开销越小（O(n²) 的好处）。</em></p><p>为什么 patching 这么有用：</p><ul><li><strong>注意力开销直接除以 $P^2$</strong>。$P=16$、$L=512$ 时，每头注意力条目从 26 万降到约 1 千。</li><li><strong>每个 token 都有意义</strong>。12 个小时合一个 patch 是半天的有效单位；单个小时不是。</li><li><strong>天然引入局部性偏置</strong>。patch 内部的局部模式由线性投影负责，attention 只用建模 patch 之间的（更长程的）关系。</li><li><strong>通道独立</strong>。PatchTST 把每个变量当独立序列、共享权重，避免了训练初期的伪通道关联。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>PatchEmbedding</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>patch_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>d_model</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>in_channels</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>patch_size</span> <span class=o>=</span> <span class=n>patch_size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>proj</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>patch_size</span> <span class=o>*</span> <span class=n>in_channels</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>                <span class=c1># x: (B, L, C)</span>
+</span></span><span class=line><span class=cl>        <span class=n>B</span><span class=p>,</span> <span class=n>L</span><span class=p>,</span> <span class=n>C</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=n>P</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>patch_size</span>
+</span></span><span class=line><span class=cl>        <span class=n>L_trim</span> <span class=o>=</span> <span class=p>(</span><span class=n>L</span> <span class=o>//</span> <span class=n>P</span><span class=p>)</span> <span class=o>*</span> <span class=n>P</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:,</span> <span class=p>:</span><span class=n>L_trim</span><span class=p>,</span> <span class=p>:]</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>L_trim</span> <span class=o>//</span> <span class=n>P</span><span class=p>,</span> <span class=n>P</span> <span class=o>*</span> <span class=n>C</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>proj</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>              <span class=c1># (B, L/P, d_model)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=8-参考实现>8. 参考实现</h2><p>用 <code>nn.Transformer</code> 把上面所有要素拼起来：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>TimeSeriesTransformer</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_features</span><span class=p>,</span> <span class=n>d_model</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span> <span class=n>n_heads</span><span class=o>=</span><span class=mi>8</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>n_enc</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>n_dec</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>d_ff</span><span class=o>=</span><span class=mi>512</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>lookback</span><span class=o>=</span><span class=mi>512</span><span class=p>,</span> <span class=n>horizon</span><span class=o>=</span><span class=mi>96</span><span class=p>,</span> <span class=n>patch</span><span class=o>=</span><span class=mi>16</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>patch_embed</span> <span class=o>=</span> <span class=n>PatchEmbedding</span><span class=p>(</span><span class=n>patch</span><span class=p>,</span> <span class=n>d_model</span><span class=p>,</span> <span class=n>n_features</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>n_tokens</span> <span class=o>=</span> <span class=n>lookback</span> <span class=o>//</span> <span class=n>patch</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>pos</span> <span class=o>=</span> <span class=n>TemporalPositionalEncoding</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>max_len</span><span class=o>=</span><span class=n>n_tokens</span> <span class=o>+</span> <span class=n>horizon</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>enc_layer</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>TransformerEncoderLayer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>d_model</span><span class=p>,</span> <span class=n>n_heads</span><span class=p>,</span> <span class=n>d_ff</span><span class=p>,</span> <span class=n>dropout</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>norm_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>activation</span><span class=o>=</span><span class=s2>&#34;gelu&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>dec_layer</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>TransformerDecoderLayer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>d_model</span><span class=p>,</span> <span class=n>n_heads</span><span class=p>,</span> <span class=n>d_ff</span><span class=p>,</span> <span class=n>dropout</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>norm_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>activation</span><span class=o>=</span><span class=s2>&#34;gelu&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>TransformerEncoder</span><span class=p>(</span><span class=n>enc_layer</span><span class=p>,</span> <span class=n>n_enc</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>TransformerDecoder</span><span class=p>(</span><span class=n>dec_layer</span><span class=p>,</span> <span class=n>n_dec</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>n_features</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>horizon</span> <span class=o>=</span> <span class=n>horizon</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>src</span><span class=p>,</span> <span class=n>tgt</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># src: (B, L, C). tgt: (B, H, C) —— 训练时用 teacher forcing。</span>
+</span></span><span class=line><span class=cl>        <span class=n>memory</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>pos</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>patch_embed</span><span class=p>(</span><span class=n>src</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=n>tgt_emb</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>pos</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>patch_embed</span><span class=p>(</span><span class=n>tgt</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>L_tgt</span> <span class=o>=</span> <span class=n>tgt_emb</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>causal</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Transformer</span><span class=o>.</span><span class=n>generate_square_subsequent_mask</span><span class=p>(</span><span class=n>L_tgt</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>src</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span><span class=p>(</span><span class=n>tgt_emb</span><span class=p>,</span> <span class=n>memory</span><span class=p>,</span> <span class=n>tgt_mask</span><span class=o>=</span><span class=n>causal</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>out</span><span class=p>)</span>            <span class=c1># (B, L_tgt, C)</span>
+</span></span></code></pre></td></tr></table></div></div><p>几条工程经验：</p><ul><li><strong><code>norm_first=True</code></strong>（pre-LN）对深层 stack 更稳；原版 post-LN 通常需要 warm-up 才肯收敛。</li><li>FFN 用 <strong>GELU</strong> 而不是 ReLU——BERT 之后就是标配，时间序列上也一致更好。</li><li><strong>永远先按序列做 z-score 归一化</strong>，输出端再反归一化。漏掉这一步是 Transformer &ldquo;训不出来&rdquo; 最常见的原因。</li></ul><h2 id=9-变体与选型>9. 变体与选型</h2><table><thead><tr><th>变体</th><th>核心想法</th><th>何时选它</th><th>年份</th></tr></thead><tbody><tr><td><strong>Vanilla</strong></td><td>编码器-解码器 + 正弦 PE</td><td>lookback &lt; 1k，先打个基线</td><td>2017</td></tr><tr><td><strong>Informer</strong></td><td>ProbSparse 注意力 + 标签窗口</td><td>很长的 lookback（5k-10k）</td><td>2021</td></tr><tr><td><strong>Autoformer</strong></td><td>序列分解 + 用 auto-correlation 替代 self-attn</td><td>周期清晰强烈</td><td>2021</td></tr><tr><td><strong>FEDformer</strong></td><td>频域注意力</td><td>周期数据，长 horizon</td><td>2022</td></tr><tr><td><strong>PatchTST</strong></td><td>Patching + 通道独立</td><td>大多数多元预测任务</td><td>2023</td></tr><tr><td><strong>iTransformer</strong></td><td>把每个变量当一个 token，跨变量做 attention</td><td>多个相关通道</td><td>2024</td></tr></tbody></table><p>如果在 2024-2025 年从零开始，我们的默认推荐是 <strong>PatchTST 或 iTransformer</strong>：在 ETT / Electricity / Traffic 等标准 benchmark 上都打过老变体，而且实现更简单、训练更快。</p><h2 id=10-性能与工程>10. 性能与工程</h2><h3 id=101-预测质量>10.1 预测质量</h3><p>我们在一个带日 / 周双周期 + 随机峰值的合成信号上做 96 步预测。Transformer 把两个周期都干净地抓住，LSTM 锁住了主导的日周期，但在周周期上漂移。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/05-Transformer%E6%9E%B6%E6%9E%84/fig4_lstm_vs_transformer.png alt="日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。" loading=lazy decoding=async></figure><em>图 4. 日 + 周双周期信号上的预测质量。Transformer 锁住两个周期，LSTM 抓住主导日周期但周周期漂移。右：各架构 MAE 对比。</em></p><h3 id=102-训练食谱决定能不能训出来的细节>10.2 训练食谱（决定能不能训出来的细节）</h3><ul><li><strong>优化器</strong>：AdamW，$\beta = (0.9, 0.95)$（GPT-3 用的设置——默认的 0.999 对时间序列偏迟钝）。</li><li><strong>学习率调度</strong>：前 5-10% 步线性 warm-up，之后余弦退火到 0。没有 warm-up，深层 Transformer 会发散。</li><li><strong>学习率</strong>：$d_{\text{model}}=128$ 时从 $1\text{e-}4$ 起步，模型更大就调小。</li><li><strong>梯度裁剪</strong>：$\|g\| \le 1.0$，没得商量。</li><li><strong>batch size</strong>：能放多大放多大，Transformer 对大 batch 的稳定性收益巨大。</li><li><strong>混合精度</strong>（<code>torch.cuda.amp</code> 或 <code>bfloat16</code>）：2-3 倍速，几乎无精度损失。</li><li><strong>耐心</strong>：预测用 Transformer 通常要 100-300 epoch；语言模型那种 3-10 epoch 在这里不成立。</li></ul><h3 id=103-上线服务成本与-revin>10.3 上线：服务成本与 RevIN</h3><ul><li>用 <strong><code>torch.compile</code></strong>（PyTorch 2.x）：1.5-2 倍延迟优化，免费。</li><li>decoder-only 部署一定要 <strong>缓存 K、V</strong>：每多一步从 $O(n^2)$ 降到 $O(n)$。</li><li><strong>可逆实例归一化</strong>（RevIN，ICLR 2022）：推理时按序列做归一化，输出端反归一化。一行代码改动，专治"训练用的历史和上线后数据漂移"那个老问题。</li></ul><h2 id=11-常见踩坑>11. 常见踩坑</h2><table><thead><tr><th>现象</th><th>大概率原因</th><th>修复</th></tr></thead><tbody><tr><td>Loss 平在数据方差附近</td><td>输入没归一化</td><td>按序列 z-score，输出反归一化</td></tr><tr><td>几百步后 loss 发散</td><td>没 warm-up；post-LN 配大 LR</td><td>线性 warm-up + <code>norm_first=True</code></td></tr><tr><td>验证集塌成常数</td><td>解码器 mask 错了，未来漏了进来</td><td>确认 <code>tgt_mask</code> 是严格上三角</td></tr><tr><td>lookback > 1024 就 OOM</td><td>朴素 attention</td><td>先上 patching，仍不够再上稀疏 / 线性</td></tr><tr><td>预测只跟着最近值，趋势忽略不计</td><td>位置没注入，或 PE 被特征数值规模盖过</td><td>缩放 PE 到特征量级；加上日历特征</td></tr><tr><td>&ldquo;Transformer 还不如 LSTM&rdquo;</td><td>数据集不到 1 万样本，正则不够</td><td>缩小模型、dropout 0.2-0.3、加 weight decay</td></tr></tbody></table><h2 id=12-总结>12. 总结</h2><p>Transformer 不是魔法——它是<strong>让每个时间步都能并行直接看到其它任何时间步</strong>的最简单架构。时间序列上有三件事最重要：</p><ol><li><strong>位置就是输入</strong>——没有好的位置信息，Transformer 分不清星期一和星期五。用正弦 PE + 日历特征（不等间隔就用相对位置）。</li><li><strong>朴素 attention 是 O(n²)</strong>——但只有几千步以上才是真问题。最便宜的修复是 <strong>Patching</strong>，而且通常<strong>还顺手提精度</strong>。</li><li><strong>按数据挑变体</strong>——大多数多元预测用 PatchTST 或 iTransformer；周期清晰的用 FEDformer / Autoformer；要做"基础模型迁移"风格则用 decoder-only。</li></ol><p>不管怎么变，注意力公式不变：</p>$$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
-$$<p>本文剩下的全部内容，都是它上面的工程。</p>
-<h2 id="延伸阅读">延伸阅读</h2>
-<ul>
-<li>Vaswani et al., <em>Attention Is All You Need</em>, NeurIPS 2017</li>
-<li>Zhou et al., <em>Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting</em>, AAAI 2021</li>
-<li>Wu et al., <em>Autoformer: Decomposition Transformers with Auto-Correlation</em>, NeurIPS 2021</li>
-<li>Zhou et al., <em>FEDformer: Frequency Enhanced Decomposed Transformer</em>, ICML 2022</li>
-<li>Nie et al., <em>A Time Series is Worth 64 Words: Long-term Forecasting with Transformers (PatchTST)</em>, ICLR 2023</li>
-<li>Liu et al., <em>iTransformer: Inverted Transformers Are Effective for Time Series Forecasting</em>, ICLR 2024</li>
-<li>Kim et al., <em>Reversible Instance Normalization for Accurate Time-Series Forecasting against Distribution Shift</em>, ICLR 2022</li>
-</ul>
-<hr>
-<p><strong>系列导航</strong></p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#本章要点">本章要点</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-为什么时间序列要用-transformer">1. 为什么时间序列要用 Transformer</a></li>
-    <li><a href="#2-架构逐块拆解">2. 架构逐块拆解</a>
-      <ul>
-        <li><a href="#21-编码器">2.1 编码器</a></li>
-        <li><a href="#22-解码器">2.2 解码器</a></li>
-        <li><a href="#23-标签窗口一个小技巧">2.3 标签窗口：一个小技巧</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-时间序列的位置编码">3. 时间序列的位置编码</a></li>
-    <li><a href="#4-多头注意力到底学到了什么">4. 多头注意力到底学到了什么</a></li>
-    <li><a href="#5-on-瓶颈">5. O(n²) 瓶颈</a></li>
-    <li><a href="#6-decoder-only-自回归预测">6. Decoder-only 自回归预测</a></li>
-    <li><a href="#7-patching性价比最高的提速">7. Patching：性价比最高的提速</a></li>
-    <li><a href="#8-参考实现">8. 参考实现</a></li>
-    <li><a href="#9-变体与选型">9. 变体与选型</a></li>
-    <li><a href="#10-性能与工程">10. 性能与工程</a>
-      <ul>
-        <li><a href="#101-预测质量">10.1 预测质量</a></li>
-        <li><a href="#102-训练食谱决定能不能训出来的细节">10.2 训练食谱（决定能不能训出来的细节）</a></li>
-        <li><a href="#103-上线服务成本与-revin">10.3 上线：服务成本与 RevIN</a></li>
-      </ul>
-    </li>
-    <li><a href="#11-常见踩坑">11. 常见踩坑</a></li>
-    <li><a href="#12-总结">12. 总结</a></li>
-    <li><a href="#延伸阅读">延伸阅读</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">时间序列模型</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5100</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>本文剩下的全部内容，都是它上面的工程。</p><h2 id=延伸阅读>延伸阅读</h2><ul><li>Vaswani et al., <em>Attention Is All You Need</em>, NeurIPS 2017</li><li>Zhou et al., <em>Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting</em>, AAAI 2021</li><li>Wu et al., <em>Autoformer: Decomposition Transformers with Auto-Correlation</em>, NeurIPS 2021</li><li>Zhou et al., <em>FEDformer: Frequency Enhanced Decomposed Transformer</em>, ICML 2022</li><li>Nie et al., <em>A Time Series is Worth 64 Words: Long-term Forecasting with Transformers (PatchTST)</em>, ICLR 2023</li><li>Liu et al., <em>iTransformer: Inverted Transformers Are Effective for Time Series Forecasting</em>, ICLR 2024</li><li>Kim et al., <em>Reversible Instance Normalization for Accurate Time-Series Forecasting against Distribution Shift</em>, ICLR 2022</li></ul><hr><p><strong>系列导航</strong></p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#本章要点>本章要点</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-为什么时间序列要用-transformer>1. 为什么时间序列要用 Transformer</a></li><li><a href=#2-架构逐块拆解>2. 架构逐块拆解</a><ul><li><a href=#21-编码器>2.1 编码器</a></li><li><a href=#22-解码器>2.2 解码器</a></li><li><a href=#23-标签窗口一个小技巧>2.3 标签窗口：一个小技巧</a></li></ul></li><li><a href=#3-时间序列的位置编码>3. 时间序列的位置编码</a></li><li><a href=#4-多头注意力到底学到了什么>4. 多头注意力到底学到了什么</a></li><li><a href=#5-on-瓶颈>5. O(n²) 瓶颈</a></li><li><a href=#6-decoder-only-自回归预测>6. Decoder-only 自回归预测</a></li><li><a href=#7-patching性价比最高的提速>7. Patching：性价比最高的提速</a></li><li><a href=#8-参考实现>8. 参考实现</a></li><li><a href=#9-变体与选型>9. 变体与选型</a></li><li><a href=#10-性能与工程>10. 性能与工程</a><ul><li><a href=#101-预测质量>10.1 预测质量</a></li><li><a href=#102-训练食谱决定能不能训出来的细节>10.2 训练食谱（决定能不能训出来的细节）</a></li><li><a href=#103-上线服务成本与-revin>10.3 上线：服务成本与 RevIN</a></li></ul></li><li><a href=#11-常见踩坑>11. 常见踩坑</a></li><li><a href=#12-总结>12. 总结</a></li><li><a href=#延伸阅读>延伸阅读</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5040</strong></div><div class=row><span>Published</span><strong>Oct 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

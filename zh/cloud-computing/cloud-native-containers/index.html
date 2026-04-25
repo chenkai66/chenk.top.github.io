@@ -1,1299 +1,495 @@
-<!doctype html>
-<html lang="zh" data-translation="/en/cloud-computing/cloud-native-containers/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>云原生与容器技术 · Chen Kai Blog</title>
-<meta name="description" content="从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/cloud-computing/cloud-native-containers/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/cloud-computing/cloud-native-containers/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/cloud-computing/cloud-native-containers/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/cloud-computing/cloud-native-containers/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="云原生与容器技术">
-<meta property="og:description" content="从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。">
-<meta property="og:url" content="https://www.chenk.top/zh/cloud-computing/cloud-native-containers/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">云计算</a>
-         · Chapter 3
-      </div>
-      <h1>云原生与容器技术</h1>
-      <p class="deck">从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-03-11">March 11, 2023</time> · 16 min read · 8000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" class="tag">#云原生</a><a href="/zh/tags/docker/" class="tag">#Docker</a><a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" class="tag">#微服务</a><a href="/zh/tags/kubernetes/" class="tag">#Kubernetes</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/en/cloud-computing/cloud-native-containers/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>从单体架构到云原生，是过去十年软件工程最重要的范式转变。容器和 Kubernetes 这个标题广为人知，但更值得讲的是：<strong>为什么是这套技术栈赢了？每一层究竟在做什么？哪些接缝决定了你的平台是丝滑还是迷宫？</strong></p>
-<p>本文按层级走完整个云原生栈。从背后的架构动因开始，深入容器在 Linux 内核层面的真实形态，向上到 Kubernetes 编排，剖析 Service Mesh 在何时值得它的复杂度，最后讲清 Helm 打包与 GitOps 交付。所有示例都是生产可用的：可直接复用的 Dockerfile、真实 manifest，以及在生产环境中真正重要的取舍。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li>12 要素应用方法论，以及<strong>每条要素背后的设计动机</strong></li>
-<li>从内部理解容器：namespace、cgroup、union 文件系统、镜像分层</li>
-<li>Docker 生产实践：多阶段构建、安全加固、Compose 用于本地开发</li>
-<li>Kubernetes 架构：控制平面如何通过协调循环驱动 Worker 节点</li>
-<li>工作负载原语：Pod、Service、Deployment、StatefulSet、DaemonSet、Job</li>
-<li>网络：CNI 插件、NetworkPolicy、Ingress，以及 Istio 何时真正回本</li>
-<li>存储：PV/PVC 动态供给，以及 <code>ReadWriteMany</code> 的真实代价</li>
-<li>Helm 打包、Release 历史、回滚的真实工作机制</li>
-<li>微服务模式：熔断、Saga、API 网关</li>
-<li>基于 ArgoCD 的 GitOps 交付与它强制带来的运维纪律</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>熟悉 Linux 命令行与基础网络（路由、 DNS 、 TCP）</li>
-<li>理解 HTTP/REST 与 Web 应用、数据库的协作方式</li>
-<li>推荐先读本系列前 6 篇，特别是<a href="/zh/cloud-computing-virtualization/">虚拟化</a>
-、<a href="/zh/cloud-computing-networking-sdn/">网络</a>
-、<a href="/zh/cloud-computing-operations-devops/">运维与 DevOps</a>
-</li>
-</ul>
-<hr>
-<h2 id="云原生变了什么为什么变">云原生：变了什么、为什么变</h2>
-<p>云原生不等于&quot;把东西放到云上跑&quot;。一台被 lift-and-shift 上云的虚拟机在云上，但并不&quot;云原生&quot;。CNCF 的定义说得很精确：</p>
-<blockquote>
-<p>云原生技术使组织能够在公有云、私有云和混合云这类现代动态环境中构建和运行可扩展应用。容器、服务网格、微服务、不可变基础设施和声明式 API 是其代表性技术。</p>
-</blockquote>
-<p>这句话背后真正在起作用的是三个理念：</p>
-<ol>
-<li><strong>不可变基础设施。</strong> 服务器不是要打补丁照看的宠物，而是可以替换的牲口。新版本永远是新镜像，绝不在原地修改。这一刀切掉了所有的&quot;配置漂移&quot;，而配置漂移是生产事故的最大来源之一。</li>
-<li><strong>声明式 API。</strong> 你描述<strong>期望状态</strong>（&ldquo;我要 3 个 v1.4 副本，每个 500 MB 内存&rdquo;），平台负责让现实匹配期望。反面是命令式脚本——&ldquo;先做第一步，再做第二步&rdquo;——一旦现实和脚本的假设不一致就会断裂。</li>
-<li><strong>每一层都松耦合。</strong> 服务独立、部署独立、故障独立、扩缩容独立。代价是更多移动部件；收益是没有任何单一部件能拖垮全局。</li>
-</ol>
-<h3 id="单体-vs-微服务把取舍摆在桌面上">单体 vs 微服务：把取舍摆在桌面上</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig1_microservices_vs_monolith.png" alt="单体 vs 微服务架构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图展示了结构差异，但真正的故事在这四个数字里：</p>
-<table>
-  <thead>
-      <tr>
-          <th>维度</th>
-          <th>单体</th>
-          <th>微服务</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>部署单元</strong></td>
-          <td>1 个二进制</td>
-          <td>N 个独立服务</td>
-      </tr>
-      <tr>
-          <td><strong>扩缩容单元</strong></td>
-          <td>整个应用</td>
-          <td>每个服务独立</td>
-      </tr>
-      <tr>
-          <td><strong>技术栈</strong></td>
-          <td>单一语言/运行时</td>
-          <td>多语言按服务选</td>
-      </tr>
-      <tr>
-          <td><strong>故障爆炸半径</strong></td>
-          <td>100%</td>
-          <td>1 个服务（配合熔断）</td>
-      </tr>
-  </tbody>
-</table>
-<p>微服务并不绝对更好，它用简单性换取独立性：你付出分布式系统的复杂度（网络故障、最终一致性、分布式追踪、契约版本管理），换来部署、扩缩容、故障隔离的自由。<strong>判断标准</strong>：如果团队小到能用两个披萨喂饱、发布节奏是按月计的，<strong>写一个结构良好的单体几乎肯定是更对的选择</strong>。引入微服务的临界点是：团队之间的协调成本开始主导工程时间。</p>
-<h3 id="12-要素应用一份生存指南">12 要素应用：一份生存指南</h3>
-<p><a href="https://12factor.net/" target="_blank" rel="noopener noreferrer">12 要素方法论 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-（Heroku ， 2011 ）早于 Kubernetes ，但已经成为容器化服务被默认期待遵守的运维契约。每一条要素都是为了让某种特定的故障模式<strong>变得不可能</strong>：</p>
-<table>
-  <thead>
-      <tr>
-          <th>编号</th>
-          <th>要素</th>
-          <th>为什么重要</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><strong>代码库</strong> &ndash; 一份代码、多种部署</td>
-          <td>同一份代码、不同配置 ⇒ 可靠的环境晋升路径</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><strong>依赖</strong> &ndash; 显式声明并隔离</td>
-          <td>&ldquo;在我机器上能跑&quot;成为不可能</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><strong>配置</strong> &ndash; 存于环境变量</td>
-          <td>同一镜像跑遍 dev/staging/prod</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><strong>后端服务</strong> &ndash; 视为附加资源</td>
-          <td>换数据库只改 URL ，不重构代码</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><strong>构建/发布/运行</strong> &ndash; 严格分离</td>
-          <td>Release 不可变、可回滚</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><strong>进程</strong> &ndash; 无状态、无共享</td>
-          <td>任意副本都能服务任意请求</td>
-      </tr>
-      <tr>
-          <td>7</td>
-          <td><strong>端口绑定</strong> &ndash; 自包含</td>
-          <td>无需依赖外部服务器（Tomcat 、 IIS）</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td><strong>并发</strong> &ndash; 通过进程模型扩展</td>
-          <td>默认水平扩缩容</td>
-      </tr>
-      <tr>
-          <td>9</td>
-          <td><strong>易处理</strong> &ndash; 快速启动、优雅关闭</td>
-          <td>自动扩缩容与滚动更新可用</td>
-      </tr>
-      <tr>
-          <td>10</td>
-          <td><strong>开发/生产对等</strong> &ndash; 环境尽量一致</td>
-          <td>缩小生产惊喜面</td>
-      </tr>
-      <tr>
-          <td>11</td>
-          <td><strong>日志</strong> &ndash; 写到 stdout 的事件流</td>
-          <td>平台聚合，应用不直接写文件</td>
-      </tr>
-      <tr>
-          <td>12</td>
-          <td><strong>管理进程</strong> &ndash; 一次性，同环境</td>
-          <td>数据库迁移不另起一套栈</td>
-      </tr>
-  </tbody>
-</table>
-<p>违反某条要素有时是对的（要素 6 在有状态系统中真的很难），但<strong>每次违反都是你应该清楚自己背上的债</strong>。</p>
-<h2 id="容器到底是什么">容器：到底是什么</h2>
-<p>常见的心智模型是&quot;容器就是轻量虚拟机&rdquo;。这个模型在重要细节上<strong>是错的</strong>。<strong>容器不是虚拟化，是进程隔离。</strong> 一个容器就是一个 Linux 进程（或进程树），只不过内核被指示去对它撒谎，让它以为系统长成另一个样子。</p>
-<p>干这件事的是三个 Linux 内核特性：</p>
-<ol>
-<li><strong>namespace（命名空间）</strong> &ndash; 给进程一份独立的资源视图（PID 、 network 、 mount 、 UTS 、 IPC 、 user 、 cgroup）。在 PID namespace 内，容器看见自己是 PID 1 ，看不见 namespace 外的进程。</li>
-<li><strong>cgroups（v2）</strong> &ndash; 强制资源配额（CPU 、内存、 IO 、 PID 数）。设了 <code>--memory=512m</code> ，超限时内核就杀掉进程。</li>
-<li><strong>联合文件系统</strong>（今天默认是 overlay2） &ndash; 把只读镜像层堆叠起来，在最上面挂一个每容器独有的可写薄层，实现写时复制语义。</li>
-</ol>
-<p>仅此而已。<strong>容器共享宿主机内核</strong>，没有 hypervisor ，没有第二个操作系统。代价是：启动 ~50 ms（虚机要 ~30 s），开销 ~5 MB（虚机要 ~500 MB），单机密度上百（虚机几十）。</p>
-<h3 id="镜像分层让构建变快的缓存">镜像分层：让构建变快的缓存</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig2_docker_layers.png" alt="Docker 镜像分层" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>每条 Dockerfile 指令产生一个新层。层通过 union FS 堆叠；相同层在镜像之间、宿主机之间会被去重。<strong>这就是为什么两个共享同一基础的良好结构镜像，最终大小可能只差几兆，即使基础镜像有几个 G 。</strong></p>
-<p>由此衍生两条实战准则：</p>
-<p><strong>1. 按缓存复用顺序写 Dockerfile 。</strong> 几乎不变的（系统包、语言运行时）放最前；每次提交都变的（应用代码）放最后。命中缓存的构建是秒级，冷构建是分钟级。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> python:3.12-slim</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># 第 1 层：系统依赖（约一月一变）</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> apt-get update <span class="o">&amp;&amp;</span> apt-get install -y --no-install-recommends <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>        libpq-dev gcc <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># 第 2 层：Python 依赖（约一周一变）</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> requirements.txt .<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip install --no-cache-dir -r requirements.txt<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># 第 3 层：应用代码（每次提交都变）</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> . /app<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;gunicorn&#34;</span><span class="p">,</span> <span class="s2">&#34;-w&#34;</span><span class="p">,</span> <span class="s2">&#34;4&#34;</span><span class="p">,</span> <span class="s2">&#34;app:app&#34;</span><span class="p">]</span><span class="err">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>如果你先写 <code>COPY . .</code> ，那每次代码改动都会让依赖层失效，整个 pip install 重做一遍。出货的差距是 <strong>10 倍构建时间</strong>。</p>
-<p><strong>2. 镜像大小比你想的更重要。</strong> 小镜像拉得快、启动快、攻击面小，在 Knative 、 KEDA 这类工具下冷启动也快。多阶段构建让你在重镜像里编译，在轻镜像里出货：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="c"># Builder 阶段：完整工具链（约 800 MB）</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> golang:1.22-alpine AS builder</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /src</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> go.mod go.sum ./<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> go mod download<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> . .<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> <span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> <span class="nv">GOOS</span><span class="o">=</span>linux go build -ldflags<span class="o">=</span><span class="s2">&#34;-s -w&#34;</span> -o /out/server ./cmd/server<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="c"># Runtime 阶段：只有二进制（约 10 MB）</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">FROM</span><span class="s"> gcr.io/distroless/static-debian12</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> --from<span class="o">=</span>builder /out/server /server<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">USER</span><span class="s"> 65532:65532</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">EXPOSE</span><span class="s"> 8080</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">ENTRYPOINT</span> <span class="p">[</span><span class="s2">&#34;/server&#34;</span><span class="p">]</span><span class="err">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>最终镜像里只有编译好的二进制——没有 shell ，没有包管理器，没有源码。这是安全和运维双重收益。</p>
-<h3 id="生产级-dockerfile-实践清单">生产级 Dockerfile 实践清单</h3>
-<table>
-  <thead>
-      <tr>
-          <th>实践</th>
-          <th>为什么</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>固定 tag，永远不用 <code>latest</code></strong></td>
-          <td>可复现构建；<code>latest</code> 是会动的目标</td>
-      </tr>
-      <tr>
-          <td><strong>以非 root 身份运行</strong>（<code>USER 1000</code>）</td>
-          <td>容器逃逸难度大幅上升</td>
-      </tr>
-      <tr>
-          <td><strong>每容器一个进程</strong></td>
-          <td>用 supervisord 之类的 init 系统会向 K8s 隐藏故障</td>
-      </tr>
-      <tr>
-          <td><strong>使用 <code>.dockerignore</code></strong></td>
-          <td><code>node_modules/</code> 、 <code>.git/</code> 、 <code>.env</code> 永远不该进入构建上下文</td>
-      </tr>
-      <tr>
-          <td><strong>合并相关 <code>RUN</code></strong></td>
-          <td>每个 <code>RUN</code> 是一层；后面单独 <code>RUN</code> 清理并不会缩小镜像</td>
-      </tr>
-      <tr>
-          <td><strong>使用 <code>HEALTHCHECK</code></strong></td>
-          <td>告诉运行时进程<strong>就绪</strong>，而非仅&quot;还活着&quot;</td>
-      </tr>
-      <tr>
-          <td><strong>签名并扫描镜像</strong></td>
-          <td>CI 中用 <code>cosign</code> 签名、 <code>trivy</code>/<code>grype</code> 扫描 CVE</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="docker-compose-本地开发的正确工具">Docker Compose ：本地开发的正确工具</h3>
-<p>Compose 用于本地开发和小规模单机部署。它<strong>不是</strong>生产编排器——没有自愈、没有滚动更新、没有跨主机水平扩缩。但是用来&quot;在我的笔记本上把 API 、数据库、 Redis 都拉起来&quot;，没有比它更好的：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">services</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">web</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">build</span><span class="p">:</span><span class="w"> </span><span class="l">.</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;3000:3000&#34;</span><span class="p">]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">DATABASE_URL</span><span class="p">:</span><span class="w"> </span><span class="l">postgresql://postgres:dev@db:5432/myapp</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">REDIS_URL</span><span class="p">:</span><span class="w"> </span><span class="l">redis://redis:6379</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">db</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="l">service_healthy }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">db</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">postgres:16-alpine</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">POSTGRES_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="l">dev</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">POSTGRES_DB</span><span class="p">:</span><span class="w"> </span><span class="l">myapp</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">healthcheck</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">test</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;CMD-SHELL&#34;</span><span class="p">,</span><span class="w"> </span><span class="s2">&#34;pg_isready -U postgres&#34;</span><span class="p">]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">5s</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l">3s</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">retries</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">pgdata:/var/lib/postgresql/data]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">redis</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">redis:7-alpine</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">volumes</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">pgdata</span><span class="p">:</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>depends_on</code> 配 <code>condition: service_healthy</code> 是被低估的特性——它意味着 web 只在数据库<strong>真正可以接受连接</strong>之后才启动，而不是容器一存在就启动。</p>
-<h2 id="kubernetes-赢得编排之战的那一个">Kubernetes ：赢得编排之战的那一个</h2>
-<p>Kubernetes（ K8s ）源自 Google 内部的 Borg 系统，已经把容器编排之战赢得彻底——在大多数对话里，&ldquo;容器编排&quot;和&rdquo; Kubernetes &ldquo;已经是同义词。理解它<strong>怎么工作</strong>——而不是只会照抄 YAML ——是从&quot;会用&quot;走到&quot;能设计平台&quot;的关键。</p>
-<h3 id="架构控制平面与-worker-节点">架构：控制平面与 Worker 节点</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig3_kubernetes_architecture.png" alt="Kubernetes 架构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>控制平面</strong>是大脑。四个核心组件：</p>
-<table>
-  <thead>
-      <tr>
-          <th>组件</th>
-          <th>职责</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>kube-apiserver</strong></td>
-          <td>唯一直接与 etcd 通信的组件。其他组件都通过它访问。HTTPS 上的 REST/gRPC 。</td>
-      </tr>
-      <tr>
-          <td><strong>etcd</strong></td>
-          <td>集群唯一可信源。强一致的分布式 KV 存储。<strong>etcd 没了，集群就没了。 一定要备份。</strong></td>
-      </tr>
-      <tr>
-          <td><strong>kube-scheduler</strong></td>
-          <td>决定新 Pod 调度到哪个节点（依据资源请求、 taint 、亲和性等）。</td>
-      </tr>
-      <tr>
-          <td><strong>kube-controller-manager</strong></td>
-          <td>跑各种协调循环——Deployment 、 ReplicaSet 、 Node 等控制器。</td>
-      </tr>
-  </tbody>
-</table>
-<p>每个 <strong>Worker 节点</strong>运行：</p>
-<table>
-  <thead>
-      <tr>
-          <th>组件</th>
-          <th>职责</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>kubelet</strong></td>
-          <td>节点代理。从 API Server 接收 Pod 规约，让容器运行时跑起来，把状态汇报回去。</td>
-      </tr>
-      <tr>
-          <td><strong>kube-proxy</strong></td>
-          <td>配置 iptables/IPVS 规则，让 Service IP 路由到正确的 Pod 。</td>
-      </tr>
-      <tr>
-          <td><strong>容器运行时</strong></td>
-          <td>真正跑容器的（containerd 或 CRI-O ；现在已经不直接用 Docker）</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="协调循环kubernetes-的核心思想">协调循环：Kubernetes 的核心思想</h3>
-<p>Kubernetes 中<strong>所有</strong>控制器都是同一个循环：</p>
-<pre tabindex="0"><code>while True:
+<!doctype html><html lang=zh data-translation=/en/cloud-computing/cloud-native-containers/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>云原生与容器技术 · Chen Kai Blog</title>
+<meta name=description content="从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/cloud-computing/cloud-native-containers/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/cloud-computing/cloud-native-containers/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/cloud-computing/cloud-native-containers/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/cloud-computing/cloud-native-containers/><meta property="og:type" content="article"><meta property="og:title" content="云原生与容器技术"><meta property="og:description" content="从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。"><meta property="og:url" content="https://www.chenk.top/zh/cloud-computing/cloud-native-containers/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>云计算</a>
+· Chapter 3</div><h1>云原生与容器技术</h1><p class=deck>从第一性原理理解云原生：容器在内核层面到底做了什么、Kubernetes 怎样工作、Service Mesh 何时值得引入、整套技术栈在生产环境如何拼装。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-03-11>March 11, 2023</time> · 16 min read · 7997 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/ class=tag>#云原生</a><a href=/zh/tags/docker/ class=tag>#Docker</a><a href=/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/ class=tag>#云计算</a><a href=/zh/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/ class=tag>#微服务</a><a href=/zh/tags/kubernetes/ class=tag>#Kubernetes</a></div><a class="pill pill-outline" href=/en/cloud-computing/cloud-native-containers/>Read in English →</a></div></header><div class=prose><p>从单体架构到云原生，是过去十年软件工程最重要的范式转变。容器和 Kubernetes 这个标题广为人知，但更值得讲的是：<strong>为什么是这套技术栈赢了？每一层究竟在做什么？哪些接缝决定了你的平台是丝滑还是迷宫？</strong></p><p>本文按层级走完整个云原生栈。从背后的架构动因开始，深入容器在 Linux 内核层面的真实形态，向上到 Kubernetes 编排，剖析 Service Mesh 在何时值得它的复杂度，最后讲清 Helm 打包与 GitOps 交付。所有示例都是生产可用的：可直接复用的 Dockerfile、真实 manifest，以及在生产环境中真正重要的取舍。</p><h2 id=你将学到>你将学到</h2><ul><li>12 要素应用方法论，以及<strong>每条要素背后的设计动机</strong></li><li>从内部理解容器：namespace、cgroup、union 文件系统、镜像分层</li><li>Docker 生产实践：多阶段构建、安全加固、Compose 用于本地开发</li><li>Kubernetes 架构：控制平面如何通过协调循环驱动 Worker 节点</li><li>工作负载原语：Pod、Service、Deployment、StatefulSet、DaemonSet、Job</li><li>网络：CNI 插件、NetworkPolicy、Ingress，以及 Istio 何时真正回本</li><li>存储：PV/PVC 动态供给，以及 <code>ReadWriteMany</code> 的真实代价</li><li>Helm 打包、Release 历史、回滚的真实工作机制</li><li>微服务模式：熔断、Saga、API 网关</li><li>基于 ArgoCD 的 GitOps 交付与它强制带来的运维纪律</li></ul><h2 id=前置知识>前置知识</h2><ul><li>熟悉 Linux 命令行与基础网络（路由、 DNS 、 TCP）</li><li>理解 HTTP/REST 与 Web 应用、数据库的协作方式</li><li>推荐先读本系列前 6 篇，特别是<a href=/zh/cloud-computing-virtualization/>虚拟化</a>
+、<a href=/zh/cloud-computing-networking-sdn/>网络</a>
+、<a href=/zh/cloud-computing-operations-devops/>运维与 DevOps</a></li></ul><hr><h2 id=云原生变了什么为什么变>云原生：变了什么、为什么变</h2><p>云原生不等于"把东西放到云上跑"。一台被 lift-and-shift 上云的虚拟机在云上，但并不"云原生"。CNCF 的定义说得很精确：</p><blockquote><p>云原生技术使组织能够在公有云、私有云和混合云这类现代动态环境中构建和运行可扩展应用。容器、服务网格、微服务、不可变基础设施和声明式 API 是其代表性技术。</p></blockquote><p>这句话背后真正在起作用的是三个理念：</p><ol><li><strong>不可变基础设施。</strong> 服务器不是要打补丁照看的宠物，而是可以替换的牲口。新版本永远是新镜像，绝不在原地修改。这一刀切掉了所有的"配置漂移"，而配置漂移是生产事故的最大来源之一。</li><li><strong>声明式 API。</strong> 你描述<strong>期望状态</strong>（&ldquo;我要 3 个 v1.4 副本，每个 500 MB 内存&rdquo;），平台负责让现实匹配期望。反面是命令式脚本——&ldquo;先做第一步，再做第二步&rdquo;——一旦现实和脚本的假设不一致就会断裂。</li><li><strong>每一层都松耦合。</strong> 服务独立、部署独立、故障独立、扩缩容独立。代价是更多移动部件；收益是没有任何单一部件能拖垮全局。</li></ol><h3 id=单体-vs-微服务把取舍摆在桌面上>单体 vs 微服务：把取舍摆在桌面上</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig1_microservices_vs_monolith.png alt="单体 vs 微服务架构" loading=lazy decoding=async></figure></p><p>上图展示了结构差异，但真正的故事在这四个数字里：</p><table><thead><tr><th>维度</th><th>单体</th><th>微服务</th></tr></thead><tbody><tr><td><strong>部署单元</strong></td><td>1 个二进制</td><td>N 个独立服务</td></tr><tr><td><strong>扩缩容单元</strong></td><td>整个应用</td><td>每个服务独立</td></tr><tr><td><strong>技术栈</strong></td><td>单一语言/运行时</td><td>多语言按服务选</td></tr><tr><td><strong>故障爆炸半径</strong></td><td>100%</td><td>1 个服务（配合熔断）</td></tr></tbody></table><p>微服务并不绝对更好，它用简单性换取独立性：你付出分布式系统的复杂度（网络故障、最终一致性、分布式追踪、契约版本管理），换来部署、扩缩容、故障隔离的自由。<strong>判断标准</strong>：如果团队小到能用两个披萨喂饱、发布节奏是按月计的，<strong>写一个结构良好的单体几乎肯定是更对的选择</strong>。引入微服务的临界点是：团队之间的协调成本开始主导工程时间。</p><h3 id=12-要素应用一份生存指南>12 要素应用：一份生存指南</h3><p><a href=https://12factor.net/ target=_blank rel="noopener noreferrer">12 要素方法论 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+（Heroku ， 2011 ）早于 Kubernetes ，但已经成为容器化服务被默认期待遵守的运维契约。每一条要素都是为了让某种特定的故障模式<strong>变得不可能</strong>：</p><table><thead><tr><th>编号</th><th>要素</th><th>为什么重要</th></tr></thead><tbody><tr><td>1</td><td><strong>代码库</strong> &ndash; 一份代码、多种部署</td><td>同一份代码、不同配置 ⇒ 可靠的环境晋升路径</td></tr><tr><td>2</td><td><strong>依赖</strong> &ndash; 显式声明并隔离</td><td>&ldquo;在我机器上能跑"成为不可能</td></tr><tr><td>3</td><td><strong>配置</strong> &ndash; 存于环境变量</td><td>同一镜像跑遍 dev/staging/prod</td></tr><tr><td>4</td><td><strong>后端服务</strong> &ndash; 视为附加资源</td><td>换数据库只改 URL ，不重构代码</td></tr><tr><td>5</td><td><strong>构建/发布/运行</strong> &ndash; 严格分离</td><td>Release 不可变、可回滚</td></tr><tr><td>6</td><td><strong>进程</strong> &ndash; 无状态、无共享</td><td>任意副本都能服务任意请求</td></tr><tr><td>7</td><td><strong>端口绑定</strong> &ndash; 自包含</td><td>无需依赖外部服务器（Tomcat 、 IIS）</td></tr><tr><td>8</td><td><strong>并发</strong> &ndash; 通过进程模型扩展</td><td>默认水平扩缩容</td></tr><tr><td>9</td><td><strong>易处理</strong> &ndash; 快速启动、优雅关闭</td><td>自动扩缩容与滚动更新可用</td></tr><tr><td>10</td><td><strong>开发/生产对等</strong> &ndash; 环境尽量一致</td><td>缩小生产惊喜面</td></tr><tr><td>11</td><td><strong>日志</strong> &ndash; 写到 stdout 的事件流</td><td>平台聚合，应用不直接写文件</td></tr><tr><td>12</td><td><strong>管理进程</strong> &ndash; 一次性，同环境</td><td>数据库迁移不另起一套栈</td></tr></tbody></table><p>违反某条要素有时是对的（要素 6 在有状态系统中真的很难），但<strong>每次违反都是你应该清楚自己背上的债</strong>。</p><h2 id=容器到底是什么>容器：到底是什么</h2><p>常见的心智模型是"容器就是轻量虚拟机&rdquo;。这个模型在重要细节上<strong>是错的</strong>。<strong>容器不是虚拟化，是进程隔离。</strong> 一个容器就是一个 Linux 进程（或进程树），只不过内核被指示去对它撒谎，让它以为系统长成另一个样子。</p><p>干这件事的是三个 Linux 内核特性：</p><ol><li><strong>namespace（命名空间）</strong> &ndash; 给进程一份独立的资源视图（PID 、 network 、 mount 、 UTS 、 IPC 、 user 、 cgroup）。在 PID namespace 内，容器看见自己是 PID 1 ，看不见 namespace 外的进程。</li><li><strong>cgroups（v2）</strong> &ndash; 强制资源配额（CPU 、内存、 IO 、 PID 数）。设了 <code>--memory=512m</code> ，超限时内核就杀掉进程。</li><li><strong>联合文件系统</strong>（今天默认是 overlay2） &ndash; 把只读镜像层堆叠起来，在最上面挂一个每容器独有的可写薄层，实现写时复制语义。</li></ol><p>仅此而已。<strong>容器共享宿主机内核</strong>，没有 hypervisor ，没有第二个操作系统。代价是：启动 ~50 ms（虚机要 ~30 s），开销 ~5 MB（虚机要 ~500 MB），单机密度上百（虚机几十）。</p><h3 id=镜像分层让构建变快的缓存>镜像分层：让构建变快的缓存</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig2_docker_layers.png alt="Docker 镜像分层" loading=lazy decoding=async></figure></p><p>每条 Dockerfile 指令产生一个新层。层通过 union FS 堆叠；相同层在镜像之间、宿主机之间会被去重。<strong>这就是为什么两个共享同一基础的良好结构镜像，最终大小可能只差几兆，即使基础镜像有几个 G 。</strong></p><p>由此衍生两条实战准则：</p><p><strong>1. 按缓存复用顺序写 Dockerfile 。</strong> 几乎不变的（系统包、语言运行时）放最前；每次提交都变的（应用代码）放最后。命中缓存的构建是秒级，冷构建是分钟级。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.12-slim</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># 第 1 层：系统依赖（约一月一变）</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=o>&amp;&amp;</span> apt-get install -y --no-install-recommends <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        libpq-dev gcc <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># 第 2 层：Python 依赖（约一周一变）</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install --no-cache-dir -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># 第 3 层：应用代码（每次提交都变）</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . /app<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;gunicorn&#34;</span><span class=p>,</span> <span class=s2>&#34;-w&#34;</span><span class=p>,</span> <span class=s2>&#34;4&#34;</span><span class=p>,</span> <span class=s2>&#34;app:app&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>如果你先写 <code>COPY . .</code> ，那每次代码改动都会让依赖层失效，整个 pip install 重做一遍。出货的差距是 <strong>10 倍构建时间</strong>。</p><p><strong>2. 镜像大小比你想的更重要。</strong> 小镜像拉得快、启动快、攻击面小，在 Knative 、 KEDA 这类工具下冷启动也快。多阶段构建让你在重镜像里编译，在轻镜像里出货：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=c># Builder 阶段：完整工具链（约 800 MB）</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> golang:1.22-alpine AS builder</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /src</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> go.mod go.sum ./<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> go mod download<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> . .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> <span class=nv>CGO_ENABLED</span><span class=o>=</span><span class=m>0</span> <span class=nv>GOOS</span><span class=o>=</span>linux go build -ldflags<span class=o>=</span><span class=s2>&#34;-s -w&#34;</span> -o /out/server ./cmd/server<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=c># Runtime 阶段：只有二进制（约 10 MB）</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>FROM</span><span class=s> gcr.io/distroless/static-debian12</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> --from<span class=o>=</span>builder /out/server /server<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>USER</span><span class=s> 65532:65532</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8080</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENTRYPOINT</span> <span class=p>[</span><span class=s2>&#34;/server&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>最终镜像里只有编译好的二进制——没有 shell ，没有包管理器，没有源码。这是安全和运维双重收益。</p><h3 id=生产级-dockerfile-实践清单>生产级 Dockerfile 实践清单</h3><table><thead><tr><th>实践</th><th>为什么</th></tr></thead><tbody><tr><td><strong>固定 tag，永远不用 <code>latest</code></strong></td><td>可复现构建；<code>latest</code> 是会动的目标</td></tr><tr><td><strong>以非 root 身份运行</strong>（<code>USER 1000</code>）</td><td>容器逃逸难度大幅上升</td></tr><tr><td><strong>每容器一个进程</strong></td><td>用 supervisord 之类的 init 系统会向 K8s 隐藏故障</td></tr><tr><td><strong>使用 <code>.dockerignore</code></strong></td><td><code>node_modules/</code> 、 <code>.git/</code> 、 <code>.env</code> 永远不该进入构建上下文</td></tr><tr><td><strong>合并相关 <code>RUN</code></strong></td><td>每个 <code>RUN</code> 是一层；后面单独 <code>RUN</code> 清理并不会缩小镜像</td></tr><tr><td><strong>使用 <code>HEALTHCHECK</code></strong></td><td>告诉运行时进程<strong>就绪</strong>，而非仅"还活着"</td></tr><tr><td><strong>签名并扫描镜像</strong></td><td>CI 中用 <code>cosign</code> 签名、 <code>trivy</code>/<code>grype</code> 扫描 CVE</td></tr></tbody></table><h3 id=docker-compose-本地开发的正确工具>Docker Compose ：本地开发的正确工具</h3><p>Compose 用于本地开发和小规模单机部署。它<strong>不是</strong>生产编排器——没有自愈、没有滚动更新、没有跨主机水平扩缩。但是用来"在我的笔记本上把 API 、数据库、 Redis 都拉起来"，没有比它更好的：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>services</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>web</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>build</span><span class=p>:</span><span class=w> </span><span class=l>.</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>ports</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&#34;3000:3000&#34;</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>environment</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>DATABASE_URL</span><span class=p>:</span><span class=w> </span><span class=l>postgresql://postgres:dev@db:5432/myapp</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>REDIS_URL</span><span class=p>:</span><span class=w> </span><span class=l>redis://redis:6379</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>depends_on</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>db</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>condition</span><span class=p>:</span><span class=w> </span><span class=l>service_healthy }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>db</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class=l>postgres:16-alpine</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>environment</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>POSTGRES_PASSWORD</span><span class=p>:</span><span class=w> </span><span class=l>dev</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>POSTGRES_DB</span><span class=p>:</span><span class=w> </span><span class=l>myapp</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>healthcheck</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>test</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&#34;CMD-SHELL&#34;</span><span class=p>,</span><span class=w> </span><span class=s2>&#34;pg_isready -U postgres&#34;</span><span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>interval</span><span class=p>:</span><span class=w> </span><span class=l>5s</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>timeout</span><span class=p>:</span><span class=w> </span><span class=l>3s</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>retries</span><span class=p>:</span><span class=w> </span><span class=m>5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>volumes</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>pgdata:/var/lib/postgresql/data]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>redis</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class=l>redis:7-alpine</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>volumes</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>pgdata</span><span class=p>:</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><code>depends_on</code> 配 <code>condition: service_healthy</code> 是被低估的特性——它意味着 web 只在数据库<strong>真正可以接受连接</strong>之后才启动，而不是容器一存在就启动。</p><h2 id=kubernetes-赢得编排之战的那一个>Kubernetes ：赢得编排之战的那一个</h2><p>Kubernetes（ K8s ）源自 Google 内部的 Borg 系统，已经把容器编排之战赢得彻底——在大多数对话里，&ldquo;容器编排"和&rdquo; Kubernetes &ldquo;已经是同义词。理解它<strong>怎么工作</strong>——而不是只会照抄 YAML ——是从"会用"走到"能设计平台"的关键。</p><h3 id=架构控制平面与-worker-节点>架构：控制平面与 Worker 节点</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig3_kubernetes_architecture.png alt="Kubernetes 架构" loading=lazy decoding=async></figure></p><p><strong>控制平面</strong>是大脑。四个核心组件：</p><table><thead><tr><th>组件</th><th>职责</th></tr></thead><tbody><tr><td><strong>kube-apiserver</strong></td><td>唯一直接与 etcd 通信的组件。其他组件都通过它访问。HTTPS 上的 REST/gRPC 。</td></tr><tr><td><strong>etcd</strong></td><td>集群唯一可信源。强一致的分布式 KV 存储。<strong>etcd 没了，集群就没了。 一定要备份。</strong></td></tr><tr><td><strong>kube-scheduler</strong></td><td>决定新 Pod 调度到哪个节点（依据资源请求、 taint 、亲和性等）。</td></tr><tr><td><strong>kube-controller-manager</strong></td><td>跑各种协调循环——Deployment 、 ReplicaSet 、 Node 等控制器。</td></tr></tbody></table><p>每个 <strong>Worker 节点</strong>运行：</p><table><thead><tr><th>组件</th><th>职责</th></tr></thead><tbody><tr><td><strong>kubelet</strong></td><td>节点代理。从 API Server 接收 Pod 规约，让容器运行时跑起来，把状态汇报回去。</td></tr><tr><td><strong>kube-proxy</strong></td><td>配置 iptables/IPVS 规则，让 Service IP 路由到正确的 Pod 。</td></tr><tr><td><strong>容器运行时</strong></td><td>真正跑容器的（containerd 或 CRI-O ；现在已经不直接用 Docker）</td></tr></tbody></table><h3 id=协调循环kubernetes-的核心思想>协调循环：Kubernetes 的核心思想</h3><p>Kubernetes 中<strong>所有</strong>控制器都是同一个循环：</p><pre tabindex=0><code>while True:
     desired = read_desired_state_from_api_server()
     actual  = observe_actual_state()
     if desired != actual:
         take_action_to_close_the_gap()
-</code></pre><p>你声明要 3 个副本。 ReplicaSet 控制器观察到只有 2 个，于是再创建 1 个。某个节点挂了， 1 个 Pod 不可用。控制器观察到只有 2 个在跑，于是再创建 1 个。<strong>你从未告诉它该做什么，你只告诉它你想要什么。</strong></p>
-<p>这就是为什么 Kubernetes 感觉像在自愈——并不是有个独立的&quot;自愈&quot;功能，而是<strong>整个系统就是一个自愈循环</strong>构造出来的。这也解释了它有时为什么神秘：如果现实跟期望不一致，一定有什么地方在静默地重试。</p>
-<h3 id="pod--service--deployment-日常主力">Pod 、 Service 、 Deployment ：日常主力</h3>
-<p><strong>Pod</strong> 是最小可部署单元——一个或多个共享网络与存储的容器。<strong>实际上&quot;一个 Pod 一个容器&quot;是默认值</strong>；例外是当 sidecar （日志代理、 service mesh proxy ）需要与主应用共享网络/卷时。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">nginx:1.27-alpine</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="p">]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">resources</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;64Mi&#34;</span><span class="nt">, cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;100m&#34;</span><span class="w"> </span>}<span class="w">   </span><span class="c"># 保证值</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">limits</span><span class="p">:</span><span class="w">   </span>{<span class="w"> </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;128Mi&#34;</span><span class="nt">, cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;500m&#34;</span><span class="w"> </span>}<span class="w">  </span><span class="c"># 上限</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">readinessProbe</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">httpGet</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">path: /, port</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">livenessProbe</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">httpGet</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">path: /healthz, port</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="m">30</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>资源 requests 与 limits 是承重的区别。</strong> requests 是调度器用来选节点的、内核<strong>保证</strong>给你的；limits 是硬上限，超过就被内核杀掉（内存）或限流（CPU）。requests 设太低会导致节点过度认领，引发 OOM ；limits 设太低会引发限流，看起来像应用变慢。</p>
-<p><strong>探针决定流量与生命周期。</strong> Readiness 控制流量（&ldquo;我准备好接请求了吗？&quot;）；Liveness 控制重启（&ldquo;我是否还活着？&quot;）。<strong>很多生产事故来自配错的 liveness probe ：它不停重启一个其实没问题、只是慢了点的 Pod 。</strong></p>
-<p><strong>Service</strong> 在一组 Pod 前提供稳定的虚拟 IP 和 DNS 名。 Pod 来来去去， Service IP 不变。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Service</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">port: 80, targetPort</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="p">]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">ClusterIP   </span><span class="w"> </span><span class="c"># 仅集群内；对外用 LoadBalancer</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Deployment</strong> 管理无状态工作负载的滚动更新与回滚。它拥有一个 ReplicaSet ， ReplicaSet 拥有 Pod 。改镜像时， Deployment 创建新 ReplicaSet ，按你定义的策略迁移流量：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">apps/v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Deployment</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="m">3</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web } }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">strategy</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">RollingUpdate</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rollingUpdate</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">maxSurge: 1, maxUnavailable</span><span class="p">:</span><span class="w"> </span><span class="m">0</span><span class="w"> </span>}<span class="w">   </span><span class="c"># 零停机</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">web } }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">ghcr.io/myorg/web:v1.4.2</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="c"># ...</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>maxUnavailable: 0</code> 意为&quot;更新过程中绝不降低容量&rdquo;——更安全。<code>maxSurge: 1</code> 意为&quot;一次只多起 1 个 Pod &ldquo;——限制 rollout 的激进程度。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">kubectl <span class="nb">set</span> image deployment/web <span class="nv">web</span><span class="o">=</span>ghcr.io/myorg/web:v1.4.3
-</span></span><span class="line"><span class="cl">kubectl rollout status deployment/web        <span class="c1"># 等待 rollout 完成</span>
-</span></span><span class="line"><span class="cl">kubectl rollout <span class="nb">history</span> deployment/web       <span class="c1"># 查看所有 revision</span>
-</span></span><span class="line"><span class="cl">kubectl rollout undo deployment/web          <span class="c1"># 回滚到上一版本</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="何时需要-statefulset--daemonset--job">何时需要 StatefulSet 、 DaemonSet 、 Job</h3>
-<p>绝大多数工作负载都是 Deployment 。例外值得知道：</p>
-<ul>
-<li><strong>StatefulSet</strong> &ndash; 有序、有名的 Pod （<code>db-0</code> 、 <code>db-1</code> 、 <code>db-2</code>），带稳定的持久化卷。用于数据库、消息队列，任何需要&quot;身份&quot;的场景。更新更慢——一次一个 Pod ，按顺序。</li>
-<li><strong>DaemonSet</strong> &ndash; 每个节点一个 Pod 。用于日志采集器、监控代理、 CSI 驱动、 CNI 插件。</li>
-<li><strong>Job</strong> &ndash; 跑到完成。用于数据库迁移、批处理。</li>
-<li><strong>CronJob</strong> &ndash; 按计划跑的 Job 。用于备份、定期报表。</li>
-</ul>
-<h3 id="托管-kubernetes-理性默认选择">托管 Kubernetes ：理性默认选择</h3>
-<p>自建控制平面是可能的（<code>kubeadm</code> 、 <code>kops</code> 、 <code>kubespray</code>），但很少是对的——你要自己背上 etcd 备份、证书轮转、版本升级、安全补丁。托管服务把这些重量挑走：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># AWS EKS</span>
-</span></span><span class="line"><span class="cl">eksctl create cluster --name prod --region us-west-2 --nodes <span class="m">3</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Google GKE</span>
-</span></span><span class="line"><span class="cl">gcloud container clusters create prod --num-nodes <span class="m">3</span> --region us-central1
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Azure AKS</span>
-</span></span><span class="line"><span class="cl">az aks create --name prod --resource-group rg --node-count <span class="m">3</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>控制平面定价大约 73-150 美元/月，再加上你选的 worker 节点成本。<strong>对绝大多数组织，这点费用远小于它节省的工程时间。</strong></p>
-<h2 id="网络从-cni-到-service-mesh">网络：从 CNI 到 Service Mesh</h2>
-<p>Kubernetes 网络分三层，每层有自己的原语：</p>
-<table>
-  <thead>
-      <tr>
-          <th>关注点</th>
-          <th>原语</th>
-          <th>实现</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Pod 间连通</strong></td>
-          <td>扁平 L3 网络</td>
-          <td>CNI 插件（Calico 、 Cilium 、 Flannel）</td>
-      </tr>
-      <tr>
-          <td><strong>L4 访问策略</strong></td>
-          <td>NetworkPolicy</td>
-          <td>由 CNI 强制实施</td>
-      </tr>
-      <tr>
-          <td><strong>L7 流量管理</strong></td>
-          <td>Ingress / Service Mesh</td>
-          <td>NGINX 、 Istio 、 Linkerd</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="cni-插件如何选">CNI 插件如何选</h3>
-<p>每个 Pod 拿到自己的 IP 。让这件事真正运转起来的是 Container Network Interface （CNI）插件。</p>
-<table>
-  <thead>
-      <tr>
-          <th>插件</th>
-          <th>路线</th>
-          <th>何时选</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Flannel</strong></td>
-          <td>VXLAN overlay ，无策略</td>
-          <td>仅实验/开发</td>
-      </tr>
-      <tr>
-          <td><strong>Calico</strong></td>
-          <td>BGP 路由 + iptables 策略</td>
-          <td>生产环境的默认主力</td>
-      </tr>
-      <tr>
-          <td><strong>Cilium</strong></td>
-          <td>eBPF ，内核级策略 + L7 可见性</td>
-          <td>性能 + 安全；现代默认</td>
-      </tr>
-  </tbody>
-</table>
-<p>Cilium 越来越成为新集群的答案：它绕开 iptables（在大规模集群下会成为瓶颈）、强制 L7 策略（HTTP method/path 级），还顺带提供流量可见性。</p>
-<h3 id="networkpolicy-默认拒绝才是目标">NetworkPolicy ：默认拒绝才是目标</h3>
-<p>默认情况下，<strong>任何 Pod 都能访问任何其他 Pod 。</strong> 这很方便也很糟糕。NetworkPolicy 修复它：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.k8s.io/v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">NetworkPolicy</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name: api-policy, namespace</span><span class="p">:</span><span class="w"> </span><span class="l">prod }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">api } }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">policyTypes</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">Ingress, Egress]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ingress</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">from</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">frontend } }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">protocol: TCP, port</span><span class="p">:</span><span class="w"> </span><span class="m">8080</span><span class="w"> </span>}<span class="p">]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">egress</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">to</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l">postgres } }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">protocol: TCP, port</span><span class="p">:</span><span class="w"> </span><span class="m">5432</span><span class="w"> </span>}<span class="p">]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">to</span><span class="p">:</span><span class="w">                              </span><span class="c"># 放行 DNS</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">namespaceSelector</span><span class="p">:</span><span class="w"> </span>{}<span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">k8s-app</span><span class="p">:</span><span class="w"> </span><span class="l">kube-dns } }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">ports</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>{<span class="w"> </span><span class="nt">protocol: UDP, port</span><span class="p">:</span><span class="w"> </span><span class="m">53</span><span class="w"> </span>}<span class="p">]</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>真正回本的纪律：先在 namespace 里下一个默认拒绝策略，再显式放行。</strong> 被攻陷的 Pod 就无法再轻易扫描整个集群。</p>
-<h3 id="service-mesh-sidecar-何时值这个钱">Service Mesh ：sidecar 何时值这个钱</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig4_service_mesh_istio.png" alt="Service Mesh （Istio）" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Service Mesh （Istio 、 Linkerd）在每个 Pod 注入一个代理（Envoy）作为 sidecar 。所有服务间流量都经过代理，于是你<strong>无需改应用代码</strong>就拿到 mTLS 、重试、超时、流量切分、黄金指标可观测性。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.istio.io/v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">VirtualService</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">reviews }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hosts</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">reviews]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">http</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">route</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">destination</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">host: reviews, subset</span><span class="p">:</span><span class="w"> </span><span class="l">v1 }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">weight</span><span class="p">:</span><span class="w"> </span><span class="m">90</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="nt">destination</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">host: reviews, subset</span><span class="p">:</span><span class="w"> </span><span class="l">v2 }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">weight</span><span class="p">:</span><span class="w"> </span><span class="m">10</span><span class="w">        </span><span class="c"># 10% 流量灰度到 v2</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nn">---</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.istio.io/v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">DestinationRule</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">reviews }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">reviews</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">trafficPolicy</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">outlierDetection</span><span class="p">:</span><span class="w">        </span><span class="c"># 熔断</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">consecutive5xxErrors</span><span class="p">:</span><span class="w"> </span><span class="m">5</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">baseEjectionTime</span><span class="p">:</span><span class="w"> </span><span class="l">30s</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">subsets</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l">v1 }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">v2</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l">v2 }</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>代价：每个 Pod 多一个 sidecar （约 50 MB 内存、约 5 ms 延迟开销）、要管理一个控制平面、学习曲线更陡。<strong>诚实的经验法则</strong>：服务数 &lt; 10 个，YAML 比问题本身还复杂；服务数 50+ 、工程师在应用代码里花真金白银的时间处理重试/超时/mTLS ，则 Mesh 是明牌的胜利。</p>
-<h3 id="ingress-前门">Ingress ：前门</h3>
-<p>集群外的 HTTP 流量进来，配 Ingress （加上 NGINX 、 Traefik 或云上 ALB/GLB 之类的控制器）通常比每服务一个 LoadBalancer 简单：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">networking.k8s.io/v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Ingress</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">web</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">cert-manager.io/cluster-issuer</span><span class="p">:</span><span class="w"> </span><span class="l">letsencrypt-prod</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">tls</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">hosts</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">app.example.com]</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l">web-tls</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">rules</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l">app.example.com</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">http</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">paths</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span>- <span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">/</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">pathType</span><span class="p">:</span><span class="w"> </span><span class="l">Prefix</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="nt">backend</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name: web, port</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">number</span><span class="p">:</span><span class="w"> </span><span class="m">80</span><span class="w"> </span>}<span class="w"> </span>}<span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>配上 <code>cert-manager</code> ，证书自动续期。再加 ExternalDNS ，整套 DNS+TLS+路由都成了声明式。</p>
-<h2 id="存储把持久卷做对">存储：把持久卷做对</h2>
-<p>Pod 是短暂的，数据不是。 Kubernetes 的存储抽象把&quot;我要什么样的存储&rdquo;（PVC）、&ldquo;怎么供给&rdquo;（StorageClass）、&ldquo;底层是什么&rdquo;（provisioner）解耦：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">storage.k8s.io/v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">StorageClass</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">fast-ssd }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">provisioner</span><span class="p">:</span><span class="w"> </span><span class="l">ebs.csi.aws.com</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">parameters</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">gp3</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">encrypted</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">iops</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;3000&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">allowVolumeExpansion</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">reclaimPolicy</span><span class="p">:</span><span class="w"> </span><span class="l">Retain               </span><span class="w"> </span><span class="c"># PVC 删除时不删卷</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nn">---</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PersistentVolumeClaim</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">pgdata }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">accessModes</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;ReadWriteOnce&#34;</span><span class="p">]</span><span class="w">     </span><span class="c"># 一个节点挂载</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">storageClassName</span><span class="p">:</span><span class="w"> </span><span class="l">fast-ssd</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">requests</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">storage</span><span class="p">:</span><span class="w"> </span><span class="l">100Gi } }</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>真正重要的访问模式：</strong></p>
-<ul>
-<li><code>ReadWriteOnce</code>（RWO） &ndash; 单节点读写挂载。块存储（EBS 、 PD 、 Azure Disk）。<strong>默认且最快。</strong></li>
-<li><code>ReadWriteMany</code>（RWX） &ndash; 多节点读写挂载。需要网络文件系统（EFS 、 Filestore 、 Azure Files 、 CephFS）。更慢，且一致性模型由文件系统决定。<strong>除非你真的需要可写共享状态，否则避免。</strong></li>
-<li><code>ReadOnlyMany</code>（ROX） &ndash; 分发静态内容。</li>
-</ul>
-<p><strong><code>reclaimPolicy: Retain</code> 是生产数据的安全默认。</strong> 用 <code>Delete</code> 时，删 PVC 会<strong>静默销毁卷</strong>。用 <code>Retain</code> 时，你必须手动确认——这条规则救过无数个周五下午。</p>
-<p>数据库跑在 K8s 上，<strong>优先用 Operator</strong> （Postgres Operator 、 MongoDB Operator）而不是自己撸 StatefulSet 。它们处理了那些容易低估的失败模式（主备切换、备份、滚动升级）。</p>
-<h2 id="helm-把打包做对">Helm ：把打包做对</h2>
-<p>服务一多， manifest 就开始爆炸。 Helm 把模板化的 manifest 打成版本化、可复用、可参数化的&quot;chart&rdquo;。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig5_helm_charts.png" alt="Helm Chart 与 Release 历史" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>一个 chart 是一组模板加一份 <code>values.yaml</code> 默认值。安装时，按环境覆盖 values ：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">helm install web ./charts/web -n prod -f values.prod.yaml
-</span></span><span class="line"><span class="cl">helm upgrade web ./charts/web -n prod -f values.prod.yaml --atomic
-</span></span><span class="line"><span class="cl">helm rollback web <span class="m">3</span> -n prod                  <span class="c1"># 回到 revision 3</span>
-</span></span><span class="line"><span class="cl">helm <span class="nb">history</span> web -n prod                     <span class="c1"># 完整 release 历史</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong><code>--atomic</code> 是被严重低估的开关</strong>：升级失败（任何 post-install hook 或就绪检查没过）时， Helm 自动回滚。这一个 flag ，把 Helm 从&quot;模板&quot;提升成了&quot;事务化的发布管理&rdquo;。</p>
-<h3 id="何时不要用-helm">何时<strong>不要</strong>用 Helm</h3>
-<p>Helm 模板是 Go template + Sprig 函数。简单 chart 还行，复杂 chart 那种&quot;YAML 嵌在模板字符串里&quot;的写法会变得很痛苦（空白符 bug 、 schema 校验只在安装时才发现）。<strong>正在崛起的替代品：</strong></p>
-<ul>
-<li><strong>Kustomize</strong>（已内置 kubectl） &ndash; 不模板，靠 patch 与 overlay 。小变体场景更简单。</li>
-<li><strong>CUE / KCL / Pkl</strong> &ndash; 带真正 schema 的强类型配置语言。前期成本高，后期翻车少很多。</li>
-</ul>
-<p>发第三方软件（数据库、监控栈），Helm 是事实上的通用语言。<strong>你自己的应用</strong>，可以认真评估上述替代品。</p>
-<h2 id="在生产中存活的微服务模式">在生产中存活的微服务模式</h2>
-<p>成熟系统里反复出现的模式：</p>
-<p><strong>API 网关</strong> &ndash; 客户端的统一入口（鉴权、限流、路由、响应整形）。Kong 、 Envoy Gateway 或云上托管网关。让客户端代码简单，安全策略集中。</p>
-<p><strong>熔断（Circuit Breaker）</strong> &ndash; 下游不稳定时停止调用，让调用方快速失败，给下游恢复空间。Service Mesh （Istio outlierDetection ）透明处理；Resilience4j 、 Hystrix 这类库在进程内做。</p>
-<p><strong>Saga</strong> &ndash; 不要分布式锁的分布式事务。每一步都有补偿动作；如果第 4 步失败，按相反顺序执行 1-3 的补偿。两种风格：编排（一个 coordinator 驱动步骤）和编舞（服务发事件互相驱动）。<strong>编排更易推理；编舞更易扩展。</strong></p>
-<p><strong>Outbox 模式</strong> &ndash; &ldquo;DB 写入 + 事件发出&quot;原子化。把事件写到与业务同一事务里的 outbox 表；另一个进程读 outbox 并发出。<strong>解决了所有事件驱动系统迟早会被咬到的&quot;双写问题&rdquo;。</strong></p>
-<p><strong>每服务自有数据库</strong> &ndash; 每个服务拥有自己的数据；不共享 DB 。代价是真实的（join 变成 API 调用），但<strong>共享数据库通过 schema 把服务耦合在一起，悄无声息地把微服务的意义抹掉了</strong>。</p>
-<h2 id="cicd-与-gitops">CI/CD 与 GitOps</h2>
-<p>Kubernetes 现代交付管线长这样：</p>
-<pre tabindex="0"><code>git push -&gt; CI（测试、构建、扫描、签名、推镜像）
+</code></pre><p>你声明要 3 个副本。 ReplicaSet 控制器观察到只有 2 个，于是再创建 1 个。某个节点挂了， 1 个 Pod 不可用。控制器观察到只有 2 个在跑，于是再创建 1 个。<strong>你从未告诉它该做什么，你只告诉它你想要什么。</strong></p><p>这就是为什么 Kubernetes 感觉像在自愈——并不是有个独立的"自愈"功能，而是<strong>整个系统就是一个自愈循环</strong>构造出来的。这也解释了它有时为什么神秘：如果现实跟期望不一致，一定有什么地方在静默地重试。</p><h3 id=pod--service--deployment-日常主力>Pod 、 Service 、 Deployment ：日常主力</h3><p><strong>Pod</strong> 是最小可部署单元——一个或多个共享网络与存储的容器。<strong>实际上"一个 Pod 一个容器"是默认值</strong>；例外是当 sidecar （日志代理、 service mesh proxy ）需要与主应用共享网络/卷时。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>Pod</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>web</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>labels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>web }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>containers</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>web</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class=l>nginx:1.27-alpine</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>ports</span><span class=p>:</span><span class=w> </span><span class=p>[</span>{<span class=w> </span><span class=nt>containerPort</span><span class=p>:</span><span class=w> </span><span class=m>80</span><span class=w> </span>}<span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>resources</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>requests</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>memory</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;64Mi&#34;</span><span class=nt>, cpu</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;100m&#34;</span><span class=w> </span>}<span class=w>   </span><span class=c># 保证值</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>limits</span><span class=p>:</span><span class=w>   </span>{<span class=w> </span><span class=nt>memory</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;128Mi&#34;</span><span class=nt>, cpu</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;500m&#34;</span><span class=w> </span>}<span class=w>  </span><span class=c># 上限</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>readinessProbe</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>httpGet</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>path: /, port</span><span class=p>:</span><span class=w> </span><span class=m>80</span><span class=w> </span>}<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>periodSeconds</span><span class=p>:</span><span class=w> </span><span class=m>5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>livenessProbe</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>httpGet</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>path: /healthz, port</span><span class=p>:</span><span class=w> </span><span class=m>80</span><span class=w> </span>}<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>initialDelaySeconds</span><span class=p>:</span><span class=w> </span><span class=m>30</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>资源 requests 与 limits 是承重的区别。</strong> requests 是调度器用来选节点的、内核<strong>保证</strong>给你的；limits 是硬上限，超过就被内核杀掉（内存）或限流（CPU）。requests 设太低会导致节点过度认领，引发 OOM ；limits 设太低会引发限流，看起来像应用变慢。</p><p><strong>探针决定流量与生命周期。</strong> Readiness 控制流量（&ldquo;我准备好接请求了吗？"）；Liveness 控制重启（&ldquo;我是否还活着？"）。<strong>很多生产事故来自配错的 liveness probe ：它不停重启一个其实没问题、只是慢了点的 Pod 。</strong></p><p><strong>Service</strong> 在一组 Pod 前提供稳定的虚拟 IP 和 DNS 名。 Pod 来来去去， Service IP 不变。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>Service</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>web }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>selector</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>web }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>ports</span><span class=p>:</span><span class=w> </span><span class=p>[</span>{<span class=w> </span><span class=nt>port: 80, targetPort</span><span class=p>:</span><span class=w> </span><span class=m>80</span><span class=w> </span>}<span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>type</span><span class=p>:</span><span class=w> </span><span class=l>ClusterIP   </span><span class=w> </span><span class=c># 仅集群内；对外用 LoadBalancer</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>Deployment</strong> 管理无状态工作负载的滚动更新与回滚。它拥有一个 ReplicaSet ， ReplicaSet 拥有 Pod 。改镜像时， Deployment 创建新 ReplicaSet ，按你定义的策略迁移流量：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>apps/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>Deployment</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>web }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>replicas</span><span class=p>:</span><span class=w> </span><span class=m>3</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>selector</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>matchLabels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>web } }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>strategy</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>type</span><span class=p>:</span><span class=w> </span><span class=l>RollingUpdate</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>rollingUpdate</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>maxSurge: 1, maxUnavailable</span><span class=p>:</span><span class=w> </span><span class=m>0</span><span class=w> </span>}<span class=w>   </span><span class=c># 零停机</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>template</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>labels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>web } }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>containers</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>web</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>image</span><span class=p>:</span><span class=w> </span><span class=l>ghcr.io/myorg/web:v1.4.2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=c># ...</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><code>maxUnavailable: 0</code> 意为"更新过程中绝不降低容量&rdquo;——更安全。<code>maxSurge: 1</code> 意为"一次只多起 1 个 Pod &ldquo;——限制 rollout 的激进程度。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>kubectl <span class=nb>set</span> image deployment/web <span class=nv>web</span><span class=o>=</span>ghcr.io/myorg/web:v1.4.3
+</span></span><span class=line><span class=cl>kubectl rollout status deployment/web        <span class=c1># 等待 rollout 完成</span>
+</span></span><span class=line><span class=cl>kubectl rollout <span class=nb>history</span> deployment/web       <span class=c1># 查看所有 revision</span>
+</span></span><span class=line><span class=cl>kubectl rollout undo deployment/web          <span class=c1># 回滚到上一版本</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=何时需要-statefulset--daemonset--job>何时需要 StatefulSet 、 DaemonSet 、 Job</h3><p>绝大多数工作负载都是 Deployment 。例外值得知道：</p><ul><li><strong>StatefulSet</strong> &ndash; 有序、有名的 Pod （<code>db-0</code> 、 <code>db-1</code> 、 <code>db-2</code>），带稳定的持久化卷。用于数据库、消息队列，任何需要"身份"的场景。更新更慢——一次一个 Pod ，按顺序。</li><li><strong>DaemonSet</strong> &ndash; 每个节点一个 Pod 。用于日志采集器、监控代理、 CSI 驱动、 CNI 插件。</li><li><strong>Job</strong> &ndash; 跑到完成。用于数据库迁移、批处理。</li><li><strong>CronJob</strong> &ndash; 按计划跑的 Job 。用于备份、定期报表。</li></ul><h3 id=托管-kubernetes-理性默认选择>托管 Kubernetes ：理性默认选择</h3><p>自建控制平面是可能的（<code>kubeadm</code> 、 <code>kops</code> 、 <code>kubespray</code>），但很少是对的——你要自己背上 etcd 备份、证书轮转、版本升级、安全补丁。托管服务把这些重量挑走：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># AWS EKS</span>
+</span></span><span class=line><span class=cl>eksctl create cluster --name prod --region us-west-2 --nodes <span class=m>3</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Google GKE</span>
+</span></span><span class=line><span class=cl>gcloud container clusters create prod --num-nodes <span class=m>3</span> --region us-central1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Azure AKS</span>
+</span></span><span class=line><span class=cl>az aks create --name prod --resource-group rg --node-count <span class=m>3</span>
+</span></span></code></pre></td></tr></table></div></div><p>控制平面定价大约 73-150 美元/月，再加上你选的 worker 节点成本。<strong>对绝大多数组织，这点费用远小于它节省的工程时间。</strong></p><h2 id=网络从-cni-到-service-mesh>网络：从 CNI 到 Service Mesh</h2><p>Kubernetes 网络分三层，每层有自己的原语：</p><table><thead><tr><th>关注点</th><th>原语</th><th>实现</th></tr></thead><tbody><tr><td><strong>Pod 间连通</strong></td><td>扁平 L3 网络</td><td>CNI 插件（Calico 、 Cilium 、 Flannel）</td></tr><tr><td><strong>L4 访问策略</strong></td><td>NetworkPolicy</td><td>由 CNI 强制实施</td></tr><tr><td><strong>L7 流量管理</strong></td><td>Ingress / Service Mesh</td><td>NGINX 、 Istio 、 Linkerd</td></tr></tbody></table><h3 id=cni-插件如何选>CNI 插件如何选</h3><p>每个 Pod 拿到自己的 IP 。让这件事真正运转起来的是 Container Network Interface （CNI）插件。</p><table><thead><tr><th>插件</th><th>路线</th><th>何时选</th></tr></thead><tbody><tr><td><strong>Flannel</strong></td><td>VXLAN overlay ，无策略</td><td>仅实验/开发</td></tr><tr><td><strong>Calico</strong></td><td>BGP 路由 + iptables 策略</td><td>生产环境的默认主力</td></tr><tr><td><strong>Cilium</strong></td><td>eBPF ，内核级策略 + L7 可见性</td><td>性能 + 安全；现代默认</td></tr></tbody></table><p>Cilium 越来越成为新集群的答案：它绕开 iptables（在大规模集群下会成为瓶颈）、强制 L7 策略（HTTP method/path 级），还顺带提供流量可见性。</p><h3 id=networkpolicy-默认拒绝才是目标>NetworkPolicy ：默认拒绝才是目标</h3><p>默认情况下，<strong>任何 Pod 都能访问任何其他 Pod 。</strong> 这很方便也很糟糕。NetworkPolicy 修复它：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>networking.k8s.io/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>NetworkPolicy</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name: api-policy, namespace</span><span class=p>:</span><span class=w> </span><span class=l>prod }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>podSelector</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>matchLabels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>api } }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>policyTypes</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>Ingress, Egress]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>ingress</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>from</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span>- <span class=nt>podSelector</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>matchLabels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>frontend } }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>ports</span><span class=p>:</span><span class=w> </span><span class=p>[</span>{<span class=w> </span><span class=nt>protocol: TCP, port</span><span class=p>:</span><span class=w> </span><span class=m>8080</span><span class=w> </span>}<span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>egress</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>to</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span>- <span class=nt>podSelector</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>matchLabels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>app</span><span class=p>:</span><span class=w> </span><span class=l>postgres } }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>ports</span><span class=p>:</span><span class=w> </span><span class=p>[</span>{<span class=w> </span><span class=nt>protocol: TCP, port</span><span class=p>:</span><span class=w> </span><span class=m>5432</span><span class=w> </span>}<span class=p>]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>to</span><span class=p>:</span><span class=w>                              </span><span class=c># 放行 DNS</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span>- <span class=nt>namespaceSelector</span><span class=p>:</span><span class=w> </span>{}<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>podSelector</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>matchLabels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>k8s-app</span><span class=p>:</span><span class=w> </span><span class=l>kube-dns } }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>ports</span><span class=p>:</span><span class=w> </span><span class=p>[</span>{<span class=w> </span><span class=nt>protocol: UDP, port</span><span class=p>:</span><span class=w> </span><span class=m>53</span><span class=w> </span>}<span class=p>]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>真正回本的纪律：先在 namespace 里下一个默认拒绝策略，再显式放行。</strong> 被攻陷的 Pod 就无法再轻易扫描整个集群。</p><h3 id=service-mesh-sidecar-何时值这个钱>Service Mesh ：sidecar 何时值这个钱</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig4_service_mesh_istio.png alt="Service Mesh （Istio）" loading=lazy decoding=async></figure></p><p>Service Mesh （Istio 、 Linkerd）在每个 Pod 注入一个代理（Envoy）作为 sidecar 。所有服务间流量都经过代理，于是你<strong>无需改应用代码</strong>就拿到 mTLS 、重试、超时、流量切分、黄金指标可观测性。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>networking.istio.io/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>VirtualService</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>reviews }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>hosts</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>reviews]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>http</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>route</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span>- <span class=nt>destination</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>host: reviews, subset</span><span class=p>:</span><span class=w> </span><span class=l>v1 }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>weight</span><span class=p>:</span><span class=w> </span><span class=m>90</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span>- <span class=nt>destination</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>host: reviews, subset</span><span class=p>:</span><span class=w> </span><span class=l>v2 }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=nt>weight</span><span class=p>:</span><span class=w> </span><span class=m>10</span><span class=w>        </span><span class=c># 10% 流量灰度到 v2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nn>---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>networking.istio.io/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>DestinationRule</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>reviews }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>host</span><span class=p>:</span><span class=w> </span><span class=l>reviews</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>trafficPolicy</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>outlierDetection</span><span class=p>:</span><span class=w>        </span><span class=c># 熔断</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>consecutive5xxErrors</span><span class=p>:</span><span class=w> </span><span class=m>5</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>interval</span><span class=p>:</span><span class=w> </span><span class=l>30s</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>baseEjectionTime</span><span class=p>:</span><span class=w> </span><span class=l>30s</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>subsets</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>labels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=l>v1 }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>v2</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>labels</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=l>v2 }</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>代价：每个 Pod 多一个 sidecar （约 50 MB 内存、约 5 ms 延迟开销）、要管理一个控制平面、学习曲线更陡。<strong>诚实的经验法则</strong>：服务数 &lt; 10 个，YAML 比问题本身还复杂；服务数 50+ 、工程师在应用代码里花真金白银的时间处理重试/超时/mTLS ，则 Mesh 是明牌的胜利。</p><h3 id=ingress-前门>Ingress ：前门</h3><p>集群外的 HTTP 流量进来，配 Ingress （加上 NGINX 、 Traefik 或云上 ALB/GLB 之类的控制器）通常比每服务一个 LoadBalancer 简单：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>networking.k8s.io/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>Ingress</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>web</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>annotations</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>cert-manager.io/cluster-issuer</span><span class=p>:</span><span class=w> </span><span class=l>letsencrypt-prod</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>tls</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>hosts</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>app.example.com]</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>secretName</span><span class=p>:</span><span class=w> </span><span class=l>web-tls</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>rules</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span>- <span class=nt>host</span><span class=p>:</span><span class=w> </span><span class=l>app.example.com</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>      </span><span class=nt>http</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=nt>paths</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span>- <span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=l>/</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=nt>pathType</span><span class=p>:</span><span class=w> </span><span class=l>Prefix</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=nt>backend</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>              </span><span class=nt>service</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name: web, port</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>number</span><span class=p>:</span><span class=w> </span><span class=m>80</span><span class=w> </span>}<span class=w> </span>}<span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>配上 <code>cert-manager</code> ，证书自动续期。再加 ExternalDNS ，整套 DNS+TLS+路由都成了声明式。</p><h2 id=存储把持久卷做对>存储：把持久卷做对</h2><p>Pod 是短暂的，数据不是。 Kubernetes 的存储抽象把"我要什么样的存储&rdquo;（PVC）、&ldquo;怎么供给&rdquo;（StorageClass）、&ldquo;底层是什么&rdquo;（provisioner）解耦：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>storage.k8s.io/v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>StorageClass</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>fast-ssd }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>provisioner</span><span class=p>:</span><span class=w> </span><span class=l>ebs.csi.aws.com</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>parameters</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>type</span><span class=p>:</span><span class=w> </span><span class=l>gp3</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>encrypted</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;true&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>iops</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;3000&#34;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>allowVolumeExpansion</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>reclaimPolicy</span><span class=p>:</span><span class=w> </span><span class=l>Retain               </span><span class=w> </span><span class=c># PVC 删除时不删卷</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nn>---</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>v1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>PersistentVolumeClaim</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=l>pgdata }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>accessModes</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=s2>&#34;ReadWriteOnce&#34;</span><span class=p>]</span><span class=w>     </span><span class=c># 一个节点挂载</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>storageClassName</span><span class=p>:</span><span class=w> </span><span class=l>fast-ssd</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>resources</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>requests</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>storage</span><span class=p>:</span><span class=w> </span><span class=l>100Gi } }</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>真正重要的访问模式：</strong></p><ul><li><code>ReadWriteOnce</code>（RWO） &ndash; 单节点读写挂载。块存储（EBS 、 PD 、 Azure Disk）。<strong>默认且最快。</strong></li><li><code>ReadWriteMany</code>（RWX） &ndash; 多节点读写挂载。需要网络文件系统（EFS 、 Filestore 、 Azure Files 、 CephFS）。更慢，且一致性模型由文件系统决定。<strong>除非你真的需要可写共享状态，否则避免。</strong></li><li><code>ReadOnlyMany</code>（ROX） &ndash; 分发静态内容。</li></ul><p><strong><code>reclaimPolicy: Retain</code> 是生产数据的安全默认。</strong> 用 <code>Delete</code> 时，删 PVC 会<strong>静默销毁卷</strong>。用 <code>Retain</code> 时，你必须手动确认——这条规则救过无数个周五下午。</p><p>数据库跑在 K8s 上，<strong>优先用 Operator</strong> （Postgres Operator 、 MongoDB Operator）而不是自己撸 StatefulSet 。它们处理了那些容易低估的失败模式（主备切换、备份、滚动升级）。</p><h2 id=helm-把打包做对>Helm ：把打包做对</h2><p>服务一多， manifest 就开始爆炸。 Helm 把模板化的 manifest 打成版本化、可复用、可参数化的"chart&rdquo;。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/cloud-native-containers/fig5_helm_charts.png alt="Helm Chart 与 Release 历史" loading=lazy decoding=async></figure></p><p>一个 chart 是一组模板加一份 <code>values.yaml</code> 默认值。安装时，按环境覆盖 values ：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>helm install web ./charts/web -n prod -f values.prod.yaml
+</span></span><span class=line><span class=cl>helm upgrade web ./charts/web -n prod -f values.prod.yaml --atomic
+</span></span><span class=line><span class=cl>helm rollback web <span class=m>3</span> -n prod                  <span class=c1># 回到 revision 3</span>
+</span></span><span class=line><span class=cl>helm <span class=nb>history</span> web -n prod                     <span class=c1># 完整 release 历史</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong><code>--atomic</code> 是被严重低估的开关</strong>：升级失败（任何 post-install hook 或就绪检查没过）时， Helm 自动回滚。这一个 flag ，把 Helm 从"模板"提升成了"事务化的发布管理&rdquo;。</p><h3 id=何时不要用-helm>何时<strong>不要</strong>用 Helm</h3><p>Helm 模板是 Go template + Sprig 函数。简单 chart 还行，复杂 chart 那种"YAML 嵌在模板字符串里"的写法会变得很痛苦（空白符 bug 、 schema 校验只在安装时才发现）。<strong>正在崛起的替代品：</strong></p><ul><li><strong>Kustomize</strong>（已内置 kubectl） &ndash; 不模板，靠 patch 与 overlay 。小变体场景更简单。</li><li><strong>CUE / KCL / Pkl</strong> &ndash; 带真正 schema 的强类型配置语言。前期成本高，后期翻车少很多。</li></ul><p>发第三方软件（数据库、监控栈），Helm 是事实上的通用语言。<strong>你自己的应用</strong>，可以认真评估上述替代品。</p><h2 id=在生产中存活的微服务模式>在生产中存活的微服务模式</h2><p>成熟系统里反复出现的模式：</p><p><strong>API 网关</strong> &ndash; 客户端的统一入口（鉴权、限流、路由、响应整形）。Kong 、 Envoy Gateway 或云上托管网关。让客户端代码简单，安全策略集中。</p><p><strong>熔断（Circuit Breaker）</strong> &ndash; 下游不稳定时停止调用，让调用方快速失败，给下游恢复空间。Service Mesh （Istio outlierDetection ）透明处理；Resilience4j 、 Hystrix 这类库在进程内做。</p><p><strong>Saga</strong> &ndash; 不要分布式锁的分布式事务。每一步都有补偿动作；如果第 4 步失败，按相反顺序执行 1-3 的补偿。两种风格：编排（一个 coordinator 驱动步骤）和编舞（服务发事件互相驱动）。<strong>编排更易推理；编舞更易扩展。</strong></p><p><strong>Outbox 模式</strong> &ndash; &ldquo;DB 写入 + 事件发出"原子化。把事件写到与业务同一事务里的 outbox 表；另一个进程读 outbox 并发出。<strong>解决了所有事件驱动系统迟早会被咬到的"双写问题&rdquo;。</strong></p><p><strong>每服务自有数据库</strong> &ndash; 每个服务拥有自己的数据；不共享 DB 。代价是真实的（join 变成 API 调用），但<strong>共享数据库通过 schema 把服务耦合在一起，悄无声息地把微服务的意义抹掉了</strong>。</p><h2 id=cicd-与-gitops>CI/CD 与 GitOps</h2><p>Kubernetes 现代交付管线长这样：</p><pre tabindex=0><code>git push -&gt; CI（测试、构建、扫描、签名、推镜像）
          -&gt; CI 更新 manifest 仓（image tag bump）
          -&gt; ArgoCD 检测到差异并同步集群
-</code></pre><p>关键转变是 <strong>GitOps</strong> ：集群状态由 Git 定义。 ArgoCD （或 Flux）持续把集群与 Git 仓对齐。两个大胜利：</p>
-<ol>
-<li><strong>审计链。</strong> 每一次变更都是一次提交。&ldquo;谁在凌晨两点改了 prod ？&quot;<code>git blame</code> 。</li>
-<li><strong>灾难恢复。</strong> 集群没了？从 manifest 仓 <code>kubectl apply</code> 回来即可。</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">argoproj.io/v1alpha1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Application</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">name: web, namespace</span><span class="p">:</span><span class="w"> </span><span class="l">argocd }</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l">default</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">repoURL</span><span class="p">:</span><span class="w"> </span><span class="l">https://github.com/myorg/k8s-manifests</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">apps/web/overlays/prod</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">targetRevision</span><span class="p">:</span><span class="w"> </span><span class="l">main</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">destination</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="l">https://kubernetes.default.svc</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">prod</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">syncPolicy</span><span class="p">:</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">automated</span><span class="p">:</span><span class="w"> </span>{<span class="w"> </span><span class="nt">prune: true, selfHeal</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span>}<span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">syncOptions</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">CreateNamespace=true]</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>selfHeal: true</code> 意味着&quot;如果有人手动 <code>kubectl edit</code> 了某资源， ArgoCD 会把它改回来&rdquo;。<strong>这就是 GitOps 强制的纪律——集群状态以 Git 为准，而不是某人终端为准。</strong></p>
-<h2 id="生产环境真正用得上的命令">生产环境真正用得上的命令</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 集群概览</span>
-</span></span><span class="line"><span class="cl">kubectl cluster-info
-</span></span><span class="line"><span class="cl">kubectl get nodes -o wide
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 看什么在哪儿跑</span>
-</span></span><span class="line"><span class="cl">kubectl get pods -A -o wide
-</span></span><span class="line"><span class="cl">kubectl top pods -A                   <span class="c1"># CPU/内存实际值</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 调试故障 Pod</span>
-</span></span><span class="line"><span class="cl">kubectl describe pod &lt;name&gt; -n &lt;ns&gt;   <span class="c1"># 事件、状态、调度</span>
-</span></span><span class="line"><span class="cl">kubectl logs &lt;name&gt; -n &lt;ns&gt; -f        <span class="c1"># 实时日志</span>
-</span></span><span class="line"><span class="cl">kubectl logs &lt;name&gt; -n &lt;ns&gt; --previous  <span class="c1"># 上一个崩溃容器的日志</span>
-</span></span><span class="line"><span class="cl">kubectl <span class="nb">exec</span> -it &lt;name&gt; -n &lt;ns&gt; -- sh
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 集群最近事件（&#34;为什么会这样&#34;的金矿）</span>
-</span></span><span class="line"><span class="cl">kubectl get events -A --sort-by<span class="o">=</span><span class="s1">&#39;.lastTimestamp&#39;</span> <span class="p">|</span> tail -30
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 扩缩容与发布</span>
-</span></span><span class="line"><span class="cl">kubectl scale deploy/web --replicas<span class="o">=</span><span class="m">5</span>
-</span></span><span class="line"><span class="cl">kubectl rollout restart deploy/web    <span class="c1"># 强制重启 rollout，用来让新 Secret 生效</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>最有用的一对组合：<code>kubectl describe</code>（状态、事件、调度决策） + <code>kubectl logs --previous</code>（刚崩掉的容器里发生了什么）。</p>
-<h2 id="生产就绪检查表">生产就绪检查表</h2>
-<p>在宣布&quot;工作负载生产就绪&quot;之前：</p>
-<ul>
-<li><input disabled="" type="checkbox"> 多阶段 Dockerfile 、非 root 用户、 distroless 或最小化基础镜像</li>
-<li><input disabled="" type="checkbox"> 镜像按 digest 钉死（或至少不可变 tag），CI 中签名并扫描</li>
-<li><input disabled="" type="checkbox"> 每个容器都设置了 resource requests <strong>和</strong> limits</li>
-<li><input disabled="" type="checkbox"> Liveness <strong>和</strong> readiness 探针都有（readiness 控流量，liveness 控重启）</li>
-<li><input disabled="" type="checkbox"> 配置 PodDisruptionBudget ，集群维护不会让你跌破 <code>minAvailable</code></li>
-<li><input disabled="" type="checkbox"> 流量有变化的就配 HorizontalPodAutoscaler</li>
-<li><input disabled="" type="checkbox"> NetworkPolicy 默认拒绝 + 显式放行</li>
-<li><input disabled="" type="checkbox"> Secret 放在外部存储（Vault 、 AWS Secrets Manager 、 External Secrets Operator），而非明文 Secret</li>
-<li><input disabled="" type="checkbox"> 日志写 stdout 、结构化（JSON），聚合到中央系统</li>
-<li><input disabled="" type="checkbox"> 暴露指标（Prometheus 格式）并有监控面板</li>
-<li><input disabled="" type="checkbox"> 接入分布式追踪（OpenTelemetry）</li>
-<li><input disabled="" type="checkbox"> 备份已测试（特别是 StatefulSet）</li>
-<li><input disabled="" type="checkbox"> 常见故障模式有 runbook</li>
-</ul>
-<p>满足这套清单的工作负载并非不可破——但<strong>留下来的故障模式将是有趣的，不是丢人的</strong>。</p>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>编号</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/zh/cloud-computing-fundamentals/">基础与架构</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/zh/cloud-computing-virtualization/">虚拟化技术深入</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><a href="/zh/cloud-computing-storage-systems/">存储系统与分布式架构</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/zh/cloud-computing-networking-sdn/">网络架构与 SDN</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/zh/cloud-computing-security-privacy/">安全与隐私保护</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/zh/cloud-computing-operations-devops/">运维与 DevOps 实践</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>7</strong></td>
-          <td><strong>云原生与容器技术（你在这）</strong></td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td><a href="/zh/cloud-computing-multi-cloud-hybrid/">多云与混合云架构</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#云原生变了什么为什么变">云原生：变了什么、为什么变</a>
-      <ul>
-        <li><a href="#单体-vs-微服务把取舍摆在桌面上">单体 vs 微服务：把取舍摆在桌面上</a></li>
-        <li><a href="#12-要素应用一份生存指南">12 要素应用：一份生存指南</a></li>
-      </ul>
-    </li>
-    <li><a href="#容器到底是什么">容器：到底是什么</a>
-      <ul>
-        <li><a href="#镜像分层让构建变快的缓存">镜像分层：让构建变快的缓存</a></li>
-        <li><a href="#生产级-dockerfile-实践清单">生产级 Dockerfile 实践清单</a></li>
-        <li><a href="#docker-compose-本地开发的正确工具">Docker Compose ：本地开发的正确工具</a></li>
-      </ul>
-    </li>
-    <li><a href="#kubernetes-赢得编排之战的那一个">Kubernetes ：赢得编排之战的那一个</a>
-      <ul>
-        <li><a href="#架构控制平面与-worker-节点">架构：控制平面与 Worker 节点</a></li>
-        <li><a href="#协调循环kubernetes-的核心思想">协调循环：Kubernetes 的核心思想</a></li>
-        <li><a href="#pod--service--deployment-日常主力">Pod 、 Service 、 Deployment ：日常主力</a></li>
-        <li><a href="#何时需要-statefulset--daemonset--job">何时需要 StatefulSet 、 DaemonSet 、 Job</a></li>
-        <li><a href="#托管-kubernetes-理性默认选择">托管 Kubernetes ：理性默认选择</a></li>
-      </ul>
-    </li>
-    <li><a href="#网络从-cni-到-service-mesh">网络：从 CNI 到 Service Mesh</a>
-      <ul>
-        <li><a href="#cni-插件如何选">CNI 插件如何选</a></li>
-        <li><a href="#networkpolicy-默认拒绝才是目标">NetworkPolicy ：默认拒绝才是目标</a></li>
-        <li><a href="#service-mesh-sidecar-何时值这个钱">Service Mesh ：sidecar 何时值这个钱</a></li>
-        <li><a href="#ingress-前门">Ingress ：前门</a></li>
-      </ul>
-    </li>
-    <li><a href="#存储把持久卷做对">存储：把持久卷做对</a></li>
-    <li><a href="#helm-把打包做对">Helm ：把打包做对</a>
-      <ul>
-        <li><a href="#何时不要用-helm">何时<strong>不要</strong>用 Helm</a></li>
-      </ul>
-    </li>
-    <li><a href="#在生产中存活的微服务模式">在生产中存活的微服务模式</a></li>
-    <li><a href="#cicd-与-gitops">CI/CD 与 GitOps</a></li>
-    <li><a href="#生产环境真正用得上的命令">生产环境真正用得上的命令</a></li>
-    <li><a href="#生产就绪检查表">生产就绪检查表</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">云计算</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
-      <div class="row"><span>Word count</span><strong>8000</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>关键转变是 <strong>GitOps</strong> ：集群状态由 Git 定义。 ArgoCD （或 Flux）持续把集群与 Git 仓对齐。两个大胜利：</p><ol><li><strong>审计链。</strong> 每一次变更都是一次提交。&ldquo;谁在凌晨两点改了 prod ？"<code>git blame</code> 。</li><li><strong>灾难恢复。</strong> 集群没了？从 manifest 仓 <code>kubectl apply</code> 回来即可。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-yaml data-lang=yaml><span class=line><span class=cl><span class=nt>apiVersion</span><span class=p>:</span><span class=w> </span><span class=l>argoproj.io/v1alpha1</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class=l>Application</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>name: web, namespace</span><span class=p>:</span><span class=w> </span><span class=l>argocd }</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=nt>spec</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>project</span><span class=p>:</span><span class=w> </span><span class=l>default</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>source</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>repoURL</span><span class=p>:</span><span class=w> </span><span class=l>https://github.com/myorg/k8s-manifests</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>path</span><span class=p>:</span><span class=w> </span><span class=l>apps/web/overlays/prod</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>targetRevision</span><span class=p>:</span><span class=w> </span><span class=l>main</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>destination</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>server</span><span class=p>:</span><span class=w> </span><span class=l>https://kubernetes.default.svc</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>namespace</span><span class=p>:</span><span class=w> </span><span class=l>prod</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=nt>syncPolicy</span><span class=p>:</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>automated</span><span class=p>:</span><span class=w> </span>{<span class=w> </span><span class=nt>prune: true, selfHeal</span><span class=p>:</span><span class=w> </span><span class=kc>true</span><span class=w> </span>}<span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=nt>syncOptions</span><span class=p>:</span><span class=w> </span><span class=p>[</span><span class=l>CreateNamespace=true]</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><code>selfHeal: true</code> 意味着"如果有人手动 <code>kubectl edit</code> 了某资源， ArgoCD 会把它改回来&rdquo;。<strong>这就是 GitOps 强制的纪律——集群状态以 Git 为准，而不是某人终端为准。</strong></p><h2 id=生产环境真正用得上的命令>生产环境真正用得上的命令</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 集群概览</span>
+</span></span><span class=line><span class=cl>kubectl cluster-info
+</span></span><span class=line><span class=cl>kubectl get nodes -o wide
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 看什么在哪儿跑</span>
+</span></span><span class=line><span class=cl>kubectl get pods -A -o wide
+</span></span><span class=line><span class=cl>kubectl top pods -A                   <span class=c1># CPU/内存实际值</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 调试故障 Pod</span>
+</span></span><span class=line><span class=cl>kubectl describe pod &lt;name&gt; -n &lt;ns&gt;   <span class=c1># 事件、状态、调度</span>
+</span></span><span class=line><span class=cl>kubectl logs &lt;name&gt; -n &lt;ns&gt; -f        <span class=c1># 实时日志</span>
+</span></span><span class=line><span class=cl>kubectl logs &lt;name&gt; -n &lt;ns&gt; --previous  <span class=c1># 上一个崩溃容器的日志</span>
+</span></span><span class=line><span class=cl>kubectl <span class=nb>exec</span> -it &lt;name&gt; -n &lt;ns&gt; -- sh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 集群最近事件（&#34;为什么会这样&#34;的金矿）</span>
+</span></span><span class=line><span class=cl>kubectl get events -A --sort-by<span class=o>=</span><span class=s1>&#39;.lastTimestamp&#39;</span> <span class=p>|</span> tail -30
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 扩缩容与发布</span>
+</span></span><span class=line><span class=cl>kubectl scale deploy/web --replicas<span class=o>=</span><span class=m>5</span>
+</span></span><span class=line><span class=cl>kubectl rollout restart deploy/web    <span class=c1># 强制重启 rollout，用来让新 Secret 生效</span>
+</span></span></code></pre></td></tr></table></div></div><p>最有用的一对组合：<code>kubectl describe</code>（状态、事件、调度决策） + <code>kubectl logs --previous</code>（刚崩掉的容器里发生了什么）。</p><h2 id=生产就绪检查表>生产就绪检查表</h2><p>在宣布"工作负载生产就绪"之前：</p><ul><li><input disabled type=checkbox> 多阶段 Dockerfile 、非 root 用户、 distroless 或最小化基础镜像</li><li><input disabled type=checkbox> 镜像按 digest 钉死（或至少不可变 tag），CI 中签名并扫描</li><li><input disabled type=checkbox> 每个容器都设置了 resource requests <strong>和</strong> limits</li><li><input disabled type=checkbox> Liveness <strong>和</strong> readiness 探针都有（readiness 控流量，liveness 控重启）</li><li><input disabled type=checkbox> 配置 PodDisruptionBudget ，集群维护不会让你跌破 <code>minAvailable</code></li><li><input disabled type=checkbox> 流量有变化的就配 HorizontalPodAutoscaler</li><li><input disabled type=checkbox> NetworkPolicy 默认拒绝 + 显式放行</li><li><input disabled type=checkbox> Secret 放在外部存储（Vault 、 AWS Secrets Manager 、 External Secrets Operator），而非明文 Secret</li><li><input disabled type=checkbox> 日志写 stdout 、结构化（JSON），聚合到中央系统</li><li><input disabled type=checkbox> 暴露指标（Prometheus 格式）并有监控面板</li><li><input disabled type=checkbox> 接入分布式追踪（OpenTelemetry）</li><li><input disabled type=checkbox> 备份已测试（特别是 StatefulSet）</li><li><input disabled type=checkbox> 常见故障模式有 runbook</li></ul><p>满足这套清单的工作负载并非不可破——但<strong>留下来的故障模式将是有趣的，不是丢人的</strong>。</p><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>编号</th><th>主题</th></tr></thead><tbody><tr><td>1</td><td><a href=/zh/cloud-computing-fundamentals/>基础与架构</a></td></tr><tr><td>2</td><td><a href=/zh/cloud-computing-virtualization/>虚拟化技术深入</a></td></tr><tr><td>3</td><td><a href=/zh/cloud-computing-storage-systems/>存储系统与分布式架构</a></td></tr><tr><td>4</td><td><a href=/zh/cloud-computing-networking-sdn/>网络架构与 SDN</a></td></tr><tr><td>5</td><td><a href=/zh/cloud-computing-security-privacy/>安全与隐私保护</a></td></tr><tr><td>6</td><td><a href=/zh/cloud-computing-operations-devops/>运维与 DevOps 实践</a></td></tr><tr><td><strong>7</strong></td><td><strong>云原生与容器技术（你在这）</strong></td></tr><tr><td>8</td><td><a href=/zh/cloud-computing-multi-cloud-hybrid/>多云与混合云架构</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#云原生变了什么为什么变>云原生：变了什么、为什么变</a><ul><li><a href=#单体-vs-微服务把取舍摆在桌面上>单体 vs 微服务：把取舍摆在桌面上</a></li><li><a href=#12-要素应用一份生存指南>12 要素应用：一份生存指南</a></li></ul></li><li><a href=#容器到底是什么>容器：到底是什么</a><ul><li><a href=#镜像分层让构建变快的缓存>镜像分层：让构建变快的缓存</a></li><li><a href=#生产级-dockerfile-实践清单>生产级 Dockerfile 实践清单</a></li><li><a href=#docker-compose-本地开发的正确工具>Docker Compose ：本地开发的正确工具</a></li></ul></li><li><a href=#kubernetes-赢得编排之战的那一个>Kubernetes ：赢得编排之战的那一个</a><ul><li><a href=#架构控制平面与-worker-节点>架构：控制平面与 Worker 节点</a></li><li><a href=#协调循环kubernetes-的核心思想>协调循环：Kubernetes 的核心思想</a></li><li><a href=#pod--service--deployment-日常主力>Pod 、 Service 、 Deployment ：日常主力</a></li><li><a href=#何时需要-statefulset--daemonset--job>何时需要 StatefulSet 、 DaemonSet 、 Job</a></li><li><a href=#托管-kubernetes-理性默认选择>托管 Kubernetes ：理性默认选择</a></li></ul></li><li><a href=#网络从-cni-到-service-mesh>网络：从 CNI 到 Service Mesh</a><ul><li><a href=#cni-插件如何选>CNI 插件如何选</a></li><li><a href=#networkpolicy-默认拒绝才是目标>NetworkPolicy ：默认拒绝才是目标</a></li><li><a href=#service-mesh-sidecar-何时值这个钱>Service Mesh ：sidecar 何时值这个钱</a></li><li><a href=#ingress-前门>Ingress ：前门</a></li></ul></li><li><a href=#存储把持久卷做对>存储：把持久卷做对</a></li><li><a href=#helm-把打包做对>Helm ：把打包做对</a><ul><li><a href=#何时不要用-helm>何时<strong>不要</strong>用 Helm</a></li></ul></li><li><a href=#在生产中存活的微服务模式>在生产中存活的微服务模式</a></li><li><a href=#cicd-与-gitops>CI/CD 与 GitOps</a></li><li><a href=#生产环境真正用得上的命令>生产环境真正用得上的命令</a></li><li><a href=#生产就绪检查表>生产就绪检查表</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>16 min</strong></div><div class=row><span>Word count</span><strong>7997</strong></div><div class=row><span>Published</span><strong>Mar 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

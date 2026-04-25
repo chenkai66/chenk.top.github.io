@@ -1,918 +1,325 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>机器学习数学推导（七）：决策树 · Chen Kai Blog</title>
-<meta name="description" content="从信息熵到基尼指数，从 ID3 到 CART——系统推导决策树的数学原理：分裂准则、连续特征与缺失值处理、剪枝策略、特征重要性，所有图都用 sklearn 验证。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="机器学习数学推导（七）：决策树">
-<meta property="og:description" content="从信息熵到基尼指数，从 ID3 到 CART——系统推导决策树的数学原理：分裂准则、连续特征与缺失值处理、剪枝策略、特征重要性，所有图都用 sklearn 验证。">
-<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
-         · Chapter 7
-      </div>
-      <h1>机器学习数学推导（七）：决策树</h1>
-      <p class="deck">从信息熵到基尼指数，从 ID3 到 CART——系统推导决策树的数学原理：分裂准则、连续特征与缺失值处理、剪枝策略、特征重要性，所有图都用 sklearn 验证。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-01-26">January 26, 2026</time> · 16 min read · 7700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E5%86%B3%E7%AD%96%E6%A0%91/" class="tag">#决策树</a><a href="/zh/tags/%E4%BF%A1%E6%81%AF%E7%86%B5/" class="tag">#信息熵</a><a href="/zh/tags/%E5%9F%BA%E5%B0%BC%E6%8C%87%E6%95%B0/" class="tag">#基尼指数</a><a href="/zh/tags/%E5%89%AA%E6%9E%9D/" class="tag">#剪枝</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <blockquote>
-<p><strong>导言。</strong> 决策树模拟的是人做决定的方式：问一个问题、按答案分支、再问下一个问题。这种朴素的直觉背后藏着不少数学：信息论中的熵告诉我们<em>应该先问哪个问题</em>；基尼指数提供了一种几乎等价但更便宜的代替；代价复杂度剪枝则给出了一套有原则的方式来阻止树去记噪声。今天最强的一类表格学习器——XGBoost、LightGBM、CatBoost——本质上都是这套对象的巧妙组合，所以把基础打扎实，回报会反复显现。</p>
-</blockquote>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>决策树为什么在数学上是特征空间递归划分上的<em>分段常数</em>函数。</li>
-<li>熵、条件熵、信息增益的信息论动机，以及为什么后来又发明了<strong>信息增益率</strong>。</li>
-<li>一条 Taylor 展开就能解释为什么基尼和熵几乎总是选出同一个分裂。</li>
-<li>CART 如何用同一套贪心框架自然地处理连续特征、缺失值和类别特征。</li>
-<li>预剪枝 vs 后剪枝，以及代价复杂度阈值 $\alpha$ 的完整推导。</li>
-<li>特征重要性是如何<em>被定义</em>出来的（不仅仅是 sklearn 打印的数字），以及它在哪些场景会误导人。</li>
-</ul>
-<h2 id="决策树基础">决策树基础</h2>
-<h3 id="模型表示">模型表示</h3>
-<p>决策树把特征空间 $\mathcal{X} \subseteq \mathbb{R}^d$ 划分为 $M$ 个互不相交的区域 $R_1, \dots, R_M$，并在每个区域上指定一个常数预测 $c_m$：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>机器学习数学推导（七）：决策树 · Chen Kai Blog</title>
+<meta name=description content="从信息熵到基尼指数，从 ID3 到 CART——系统推导决策树的数学原理：分裂准则、连续特征与缺失值处理、剪枝策略、特征重要性，所有图都用 sklearn 验证。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/><meta property="og:type" content="article"><meta property="og:title" content="机器学习数学推导（七）：决策树"><meta property="og:description" content="从信息熵到基尼指数，从 ID3 到 CART——系统推导决策树的数学原理：分裂准则、连续特征与缺失值处理、剪枝策略、特征重要性，所有图都用 sklearn 验证。"><meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>机器学习数学推导</a>
+· Chapter 7</div><h1>机器学习数学推导（七）：决策树</h1><p class=deck>从信息熵到基尼指数，从 ID3 到 CART——系统推导决策树的数学原理：分裂准则、连续特征与缺失值处理、剪枝策略、特征重要性，所有图都用 sklearn 验证。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-26>January 26, 2026</time> · 16 min read · 7626 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/ class=tag>#机器学习</a><a href=/zh/tags/%E5%86%B3%E7%AD%96%E6%A0%91/ class=tag>#决策树</a><a href=/zh/tags/%E4%BF%A1%E6%81%AF%E7%86%B5/ class=tag>#信息熵</a><a href=/zh/tags/%E5%9F%BA%E5%B0%BC%E6%8C%87%E6%95%B0/ class=tag>#基尼指数</a><a href=/zh/tags/%E5%89%AA%E6%9E%9D/ class=tag>#剪枝</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/ class=tag>#数学推导</a></div></div></header><div class=prose><blockquote><p><strong>导言。</strong> 决策树模拟的是人做决定的方式：问一个问题、按答案分支、再问下一个问题。这种朴素的直觉背后藏着不少数学：信息论中的熵告诉我们<em>应该先问哪个问题</em>；基尼指数提供了一种几乎等价但更便宜的代替；代价复杂度剪枝则给出了一套有原则的方式来阻止树去记噪声。今天最强的一类表格学习器——XGBoost、LightGBM、CatBoost——本质上都是这套对象的巧妙组合，所以把基础打扎实，回报会反复显现。</p></blockquote><h2 id=你将学到什么>你将学到什么</h2><ul><li>决策树为什么在数学上是特征空间递归划分上的<em>分段常数</em>函数。</li><li>熵、条件熵、信息增益的信息论动机，以及为什么后来又发明了<strong>信息增益率</strong>。</li><li>一条 Taylor 展开就能解释为什么基尼和熵几乎总是选出同一个分裂。</li><li>CART 如何用同一套贪心框架自然地处理连续特征、缺失值和类别特征。</li><li>预剪枝 vs 后剪枝，以及代价复杂度阈值 $\alpha$ 的完整推导。</li><li>特征重要性是如何<em>被定义</em>出来的（不仅仅是 sklearn 打印的数字），以及它在哪些场景会误导人。</li></ul><h2 id=决策树基础>决策树基础</h2><h3 id=模型表示>模型表示</h3><p>决策树把特征空间 $\mathcal{X} \subseteq \mathbb{R}^d$ 划分为 $M$ 个互不相交的区域 $R_1, \dots, R_M$，并在每个区域上指定一个常数预测 $c_m$：</p>$$
 f(x) = \sum_{m=1}^{M} c_m \, \mathbb{1}[x \in R_m].
-$$<p>分类任务里 $c_m \in \{1, \dots, K\}$ 取该区域的多数类，回归任务里 $c_m \in \mathbb{R}$ 取该区域目标值的均值。这些区域是<em>与坐标轴平行</em>的超矩形——因为每个内部节点只对单个特征做阈值判断：</p>
-$$
+$$<p>分类任务里 $c_m \in \{1, \dots, K\}$ 取该区域的多数类，回归任务里 $c_m \in \mathbb{R}$ 取该区域目标值的均值。这些区域是<em>与坐标轴平行</em>的超矩形——因为每个内部节点只对单个特征做阈值判断：</p>$$
 \text{节点测试：} \quad x_j \leq \tau \quad \text{vs.} \quad x_j > \tau.
-$$<p>树本身的层次结构是：</p>
-<ul>
-<li><strong>根节点</strong>：包含全部训练样本。</li>
-<li><strong>内部节点</strong>：每个测试一个特征对一个阈值（或一个类别取值）。</li>
-<li><strong>分支</strong>：测试结果。</li>
-<li><strong>叶节点</strong>：终端区域，存放预测。</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig1_tree_structure.png" alt="决策树结构示意（Iris）" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图是在 Iris 上训练的深度为 2 的 CART：仅靠两个关于花瓣尺寸的问题就把三个物种分开。每条根到叶的路径，对应特征空间中的一个矩形。</p>
-<h3 id="决策树为什么有用又在哪里失败">决策树为什么有用——又在哪里失败</h3>
-<table>
-  <thead>
-      <tr>
-          <th>优点</th>
-          <th>缺点</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>决策路径人类可读</td>
-          <td>贪心生长可能错过全局最优</td>
-      </tr>
-      <tr>
-          <td>对特征尺度和单调变换不敏感</td>
-          <td>方差大——数据微扰会让整棵树面目全非</td>
-      </tr>
-      <tr>
-          <td>数值与类别特征统一处理</td>
-          <td>线性关系需要很多轴对齐的&quot;阶梯&quot;才能逼近</td>
-      </tr>
-      <tr>
-          <td>天然刻画特征交互</td>
-          <td>不剪枝几乎一定过拟合</td>
-      </tr>
-  </tbody>
-</table>
-<p>方差大正是 bagging（随机森林）和 boosting（GBDT、XGBoost）要解决的问题。</p>
-<h2 id="信息论基础">信息论基础</h2>
-<h3 id="熵分布的不确定性">熵：分布的不确定性</h3>
-<p>对取值在 $\{1, \dots, K\}$、概率为 $p_1, \dots, p_K$ 的离散随机变量 $Y$，<strong>Shannon 熵</strong>为</p>
-$$
+$$<p>树本身的层次结构是：</p><ul><li><strong>根节点</strong>：包含全部训练样本。</li><li><strong>内部节点</strong>：每个测试一个特征对一个阈值（或一个类别取值）。</li><li><strong>分支</strong>：测试结果。</li><li><strong>叶节点</strong>：终端区域，存放预测。</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig1_tree_structure.png alt=决策树结构示意（Iris） loading=lazy decoding=async></figure></p><p>上图是在 Iris 上训练的深度为 2 的 CART：仅靠两个关于花瓣尺寸的问题就把三个物种分开。每条根到叶的路径，对应特征空间中的一个矩形。</p><h3 id=决策树为什么有用又在哪里失败>决策树为什么有用——又在哪里失败</h3><table><thead><tr><th>优点</th><th>缺点</th></tr></thead><tbody><tr><td>决策路径人类可读</td><td>贪心生长可能错过全局最优</td></tr><tr><td>对特征尺度和单调变换不敏感</td><td>方差大——数据微扰会让整棵树面目全非</td></tr><tr><td>数值与类别特征统一处理</td><td>线性关系需要很多轴对齐的"阶梯"才能逼近</td></tr><tr><td>天然刻画特征交互</td><td>不剪枝几乎一定过拟合</td></tr></tbody></table><p>方差大正是 bagging（随机森林）和 boosting（GBDT、XGBoost）要解决的问题。</p><h2 id=信息论基础>信息论基础</h2><h3 id=熵分布的不确定性>熵：分布的不确定性</h3><p>对取值在 $\{1, \dots, K\}$、概率为 $p_1, \dots, p_K$ 的离散随机变量 $Y$，<strong>Shannon 熵</strong>为</p>$$
 H(Y) = -\sum_{k=1}^{K} p_k \log_2 p_k, \qquad 0 \log_2 0 \triangleq 0.
-$$<p>以比特为单位，$H$ 等于平均要问多少个 yes/no 问题才能识别出 $Y$。</p>
-<p><strong>反复要用的三条性质。</strong></p>
-<ol>
-<li><strong>非负性。</strong> $H(Y) \geq 0$，等号当且仅当某个 $p_k = 1$（无不确定性）成立。</li>
-<li><strong>均匀分布最大。</strong> 在 $\sum_k p_k = 1$ 约束下，用 Lagrange 乘子最大化 $-\sum_k p_k \log p_k$ 得 $p_k = 1/K$，最大值 $H_{\max} = \log_2 K$。</li>
-<li><strong>凹性。</strong> $H$ 在概率单纯形上严格凹，所以混合分布只会让熵不降。</li>
-</ol>
-<h3 id="条件熵与信息增益">条件熵与信息增益</h3>
-<p>设特征 $X$ 取值 $\{v_1, \dots, v_V\}$。<strong>条件熵</strong></p>
-$$
+$$<p>以比特为单位，$H$ 等于平均要问多少个 yes/no 问题才能识别出 $Y$。</p><p><strong>反复要用的三条性质。</strong></p><ol><li><strong>非负性。</strong> $H(Y) \geq 0$，等号当且仅当某个 $p_k = 1$（无不确定性）成立。</li><li><strong>均匀分布最大。</strong> 在 $\sum_k p_k = 1$ 约束下，用 Lagrange 乘子最大化 $-\sum_k p_k \log p_k$ 得 $p_k = 1/K$，最大值 $H_{\max} = \log_2 K$。</li><li><strong>凹性。</strong> $H$ 在概率单纯形上严格凹，所以混合分布只会让熵不降。</li></ol><h3 id=条件熵与信息增益>条件熵与信息增益</h3><p>设特征 $X$ 取值 $\{v_1, \dots, v_V\}$。<strong>条件熵</strong></p>$$
 H(Y \mid X) = \sum_{v=1}^{V} p(X = v) \, H(Y \mid X = v)
-$$<p>是已知 $X$ 后 $Y$ 的平均剩余不确定性。<strong>信息增益</strong>就是这部分不确定性的减少量：</p>
-$$
+$$<p>是已知 $X$ 后 $Y$ 的平均剩余不确定性。<strong>信息增益</strong>就是这部分不确定性的减少量：</p>$$
 IG(Y, X) \;=\; H(Y) - H(Y \mid X) \;\geq\; 0.
-$$<p>非负性来自 $H$ 的凹性（Jensen 不等式），$IG = 0$ 当且仅当 $X$ 与 $Y$ 独立。</p>
-<p>ID3 算法在每个节点选 $IG$ 最大的特征。</p>
-<h3 id="信息增益率惩罚多值特征">信息增益率：惩罚多值特征</h3>
-<p>信息增益有个臭名昭著的毛病：把&quot;样本 ID&quot;这种每个样本一个唯一值的特征拿来分裂，每个子节点恰好只剩一个样本，子节点熵全为 0，于是这个特征赢下任何分裂——但它毫无泛化价值。</p>
-<p>C4.5 通过除以特征自身的<em>固有值</em>来纠正这一点：</p>
-$$
+$$<p>非负性来自 $H$ 的凹性（Jensen 不等式），$IG = 0$ 当且仅当 $X$ 与 $Y$ 独立。</p><p>ID3 算法在每个节点选 $IG$ 最大的特征。</p><h3 id=信息增益率惩罚多值特征>信息增益率：惩罚多值特征</h3><p>信息增益有个臭名昭著的毛病：把"样本 ID"这种每个样本一个唯一值的特征拿来分裂，每个子节点恰好只剩一个样本，子节点熵全为 0，于是这个特征赢下任何分裂——但它毫无泛化价值。</p><p>C4.5 通过除以特征自身的<em>固有值</em>来纠正这一点：</p>$$
 IV(X) = -\sum_{v=1}^{V} \frac{|S_v|}{|S|} \log_2 \frac{|S_v|}{|S|},
-$$<p>它本身是分裂规模的熵。<strong>增益率</strong>为</p>
-$$
+$$<p>它本身是分裂规模的熵。<strong>增益率</strong>为</p>$$
 GR(Y, X) = \frac{IG(Y, X)}{IV(X)}.
-$$<p>多值特征 $IV$ 大，自然被惩罚。C4.5 实际的启发式是：先筛出 $IG$ 高于平均的特征，再在其中挑 $GR$ 最大的——这样可以避免把那些 $IV$ 极小但本身没什么信息量的特征也捧上去。</p>
-<h2 id="分裂准则">分裂准则</h2>
-<h3 id="基尼指数">基尼指数</h3>
-<p>CART 使用<strong>基尼指数</strong>：</p>
-$$
+$$<p>多值特征 $IV$ 大，自然被惩罚。C4.5 实际的启发式是：先筛出 $IG$ 高于平均的特征，再在其中挑 $GR$ 最大的——这样可以避免把那些 $IV$ 极小但本身没什么信息量的特征也捧上去。</p><h2 id=分裂准则>分裂准则</h2><h3 id=基尼指数>基尼指数</h3><p>CART 使用<strong>基尼指数</strong>：</p>$$
 G(S) = 1 - \sum_{k=1}^{K} p_k^2 = \sum_{k=1}^{K} p_k (1 - p_k),
-$$<p>其中 $p_k$ 是 $S$ 中第 $k$ 类的比例。它等价于&quot;从 $S$ 中独立取两个样本，类别不同的概率&quot;。和熵一样，纯节点为 0、均匀分布最大。</p>
-<p>把 $S$ 按某特征分为 $S_1, \dots, S_V$ 的<strong>基尼增益</strong>与信息增益形式一致：</p>
-$$
+$$<p>其中 $p_k$ 是 $S$ 中第 $k$ 类的比例。它等价于"从 $S$ 中独立取两个样本，类别不同的概率"。和熵一样，纯节点为 0、均匀分布最大。</p><p>把 $S$ 按某特征分为 $S_1, \dots, S_V$ 的<strong>基尼增益</strong>与信息增益形式一致：</p>$$
 \Delta G = G(S) - \sum_{v=1}^{V} \frac{|S_v|}{|S|} G(S_v).
-$$<p>CART 选 $\Delta G$ 最大的分裂。</p>
-<h3 id="基尼和熵为什么几乎等价">基尼和熵为什么几乎等价</h3>
-<p>二分类下，正类概率为 $p$ 时</p>
-$$
+$$<p>CART 选 $\Delta G$ 最大的分裂。</p><h3 id=基尼和熵为什么几乎等价>基尼和熵为什么几乎等价</h3><p>二分类下，正类概率为 $p$ 时</p>$$
 G(p) = 2p(1-p), \qquad H(p) = -p \log_2 p - (1-p) \log_2 (1-p).
-$$<p>把熵在 $p = \tfrac{1}{2}$ 处用自然对数二阶 Taylor 展开：</p>
-$$
+$$<p>把熵在 $p = \tfrac{1}{2}$ 处用自然对数二阶 Taylor 展开：</p>$$
 H_\mathrm{nat}(p) \;\approx\; \ln 2 \;-\; 2\,(p - \tfrac{1}{2})^2,
-$$<p>而基尼</p>
-$$
+$$<p>而基尼</p>$$
 G(p) = \tfrac{1}{2} - 2\,(p - \tfrac{1}{2})^2.
-$$<p>经过 $H_\mathrm{nat}/(2 \ln 2)$ 这样一个常数缩放，两者在 $p = \tfrac{1}{2}$ 附近的主导项就是同一个。实际跑 CART 时，用基尼和用熵几乎总是切到同一个分裂。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig2_impurity_curves.png" alt="三种不纯度函数与 Taylor 论证" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图同时画了基尼、熵和分类错误率 $1 - \max(p, 1-p)$。右图把 $H/2$ 叠在 $G$ 上——它们在 $p = 1/2$ 附近二阶吻合，仅在两端略有偏差。分类错误率是分段线性的、不严格凹，所以做分裂准则很糟糕：一个让两个子节点都更纯的分裂可能根本不动加权错误率，搜索就停在原地。</p>
-<h3 id="回归树的均方误差准则">回归树的均方误差准则</h3>
-<p>回归任务下，叶 $R_m$ 的预测取目标值的均值</p>
-$$
+$$<p>经过 $H_\mathrm{nat}/(2 \ln 2)$ 这样一个常数缩放，两者在 $p = \tfrac{1}{2}$ 附近的主导项就是同一个。实际跑 CART 时，用基尼和用熵几乎总是切到同一个分裂。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig2_impurity_curves.png alt="三种不纯度函数与 Taylor 论证" loading=lazy decoding=async></figure></p><p>左图同时画了基尼、熵和分类错误率 $1 - \max(p, 1-p)$。右图把 $H/2$ 叠在 $G$ 上——它们在 $p = 1/2$ 附近二阶吻合，仅在两端略有偏差。分类错误率是分段线性的、不严格凹，所以做分裂准则很糟糕：一个让两个子节点都更纯的分裂可能根本不动加权错误率，搜索就停在原地。</p><h3 id=回归树的均方误差准则>回归树的均方误差准则</h3><p>回归任务下，叶 $R_m$ 的预测取目标值的均值</p>$$
 \hat{c}_m = \frac{1}{|R_m|} \sum_{i \in R_m} y_i,
-$$<p>它最小化叶内平方损失。分裂准则选 $(j, \tau)$ 使分裂后平方误差和最小：</p>
-$$
+$$<p>它最小化叶内平方损失。分裂准则选 $(j, \tau)$ 使分裂后平方误差和最小：</p>$$
 \min_{j, \tau} \;\Big[\sum_{i: x_{ij} \leq \tau} (y_i - \hat{c}_L)^2 \;+\; \sum_{i: x_{ij} > \tau} (y_i - \hat{c}_R)^2\Big].
-$$<p>等价地，分裂准则就是<em>加权方差缩减</em>：</p>
-$$
+$$<p>等价地，分裂准则就是<em>加权方差缩减</em>：</p>$$
 \Delta = \mathrm{Var}(y_S) - \frac{|S_L|}{|S|}\mathrm{Var}(y_{S_L}) - \frac{|S_R|}{|S|}\mathrm{Var}(y_{S_R}).
-$$<h2 id="决策树算法">决策树算法</h2>
-<h3 id="id3c45cart-一图看懂">ID3、C4.5、CART 一图看懂</h3>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th>ID3 (1986)</th>
-          <th>C4.5 (1993)</th>
-          <th>CART (1984)</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>树形</td>
-          <td>多叉</td>
-          <td>多叉</td>
-          <td><strong>二叉</strong></td>
-      </tr>
-      <tr>
-          <td>准则（分类）</td>
-          <td>信息增益</td>
-          <td>增益率</td>
-          <td>基尼</td>
-      </tr>
-      <tr>
-          <td>准则（回归）</td>
-          <td>—</td>
-          <td>—</td>
-          <td>MSE</td>
-      </tr>
-      <tr>
-          <td>连续特征</td>
-          <td>预先离散化</td>
-          <td>阈值搜索</td>
-          <td>阈值搜索</td>
-      </tr>
-      <tr>
-          <td>缺失值</td>
-          <td>—</td>
-          <td>替代权重</td>
-          <td>替代分裂</td>
-      </tr>
-      <tr>
-          <td>剪枝</td>
-          <td>无</td>
-          <td>悲观后剪枝</td>
-          <td><strong>代价复杂度</strong></td>
-      </tr>
-  </tbody>
-</table>
-<p>下面的描述基于 CART，因为这是 scikit-learn 的实现。</p>
-<h3 id="贪心递归构建">贪心递归构建</h3>
-<pre tabindex="0"><code>def build_tree(S, depth):
+$$<h2 id=决策树算法>决策树算法</h2><h3 id=id3c45cart-一图看懂>ID3、C4.5、CART 一图看懂</h3><table><thead><tr><th></th><th>ID3 (1986)</th><th>C4.5 (1993)</th><th>CART (1984)</th></tr></thead><tbody><tr><td>树形</td><td>多叉</td><td>多叉</td><td><strong>二叉</strong></td></tr><tr><td>准则（分类）</td><td>信息增益</td><td>增益率</td><td>基尼</td></tr><tr><td>准则（回归）</td><td>—</td><td>—</td><td>MSE</td></tr><tr><td>连续特征</td><td>预先离散化</td><td>阈值搜索</td><td>阈值搜索</td></tr><tr><td>缺失值</td><td>—</td><td>替代权重</td><td>替代分裂</td></tr><tr><td>剪枝</td><td>无</td><td>悲观后剪枝</td><td><strong>代价复杂度</strong></td></tr></tbody></table><p>下面的描述基于 CART，因为这是 scikit-learn 的实现。</p><h3 id=贪心递归构建>贪心递归构建</h3><pre tabindex=0><code>def build_tree(S, depth):
     if stop(S, depth): return Leaf(predict(S))
     j*, tau* = argmax_{j, tau} delta_impurity(S, j, tau)
     S_L, S_R = split(S, j*, tau*)
     return Node(j*, tau*, build_tree(S_L, depth+1), build_tree(S_R, depth+1))
-</code></pre><p><code>stop</code> 通常是几个条件的组合：节点已经纯了、找不到信息量足够的分裂、达到深度上限、样本数少于 <code>min_samples_split</code>。这种贪心选择只是局部最优——找到全局最优树是 NP 难的，哪怕只对二值特征也是。</p>
-<h2 id="连续特征与缺失值">连续特征与缺失值</h2>
-<h3 id="连续特征阈值搜索">连续特征：阈值搜索</h3>
-<p>把特征 $j$ 的取值排序为 $x_{(1)} < \dots < x_{(n)}$，候选阈值取相邻两点中点 $\tau_i = (x_{(i)} + x_{(i+1)})/2$，对每个 $\tau_i$ 评估分裂准则。朴素实现每个特征 $O(n^2)$；预排序一次再增量更新不纯度计数可以降到 $O(n \log n)$。</p>
-<p>一个有用的性质：<em>最优阈值一定落在两个标签不同的相邻样本之间</em>。在标签分布不均匀时，这条性质能大幅缩小候选集。</p>
-<h3 id="缺失值">缺失值</h3>
-<p>C4.5 和 CART 都不需要先填缺失值。</p>
-<p><strong>训练阶段。</strong> 评估特征 $j$ 时，只用观测到 $x_j$ 的样本。信息增益再乘以<em>观测样本占比</em></p>
-$$
+</code></pre><p><code>stop</code> 通常是几个条件的组合：节点已经纯了、找不到信息量足够的分裂、达到深度上限、样本数少于 <code>min_samples_split</code>。这种贪心选择只是局部最优——找到全局最优树是 NP 难的，哪怕只对二值特征也是。</p><h2 id=连续特征与缺失值>连续特征与缺失值</h2><h3 id=连续特征阈值搜索>连续特征：阈值搜索</h3><p>把特征 $j$ 的取值排序为 $x_{(1)} < \dots < x_{(n)}$，候选阈值取相邻两点中点 $\tau_i = (x_{(i)} + x_{(i+1)})/2$，对每个 $\tau_i$ 评估分裂准则。朴素实现每个特征 $O(n^2)$；预排序一次再增量更新不纯度计数可以降到 $O(n \log n)$。</p><p>一个有用的性质：<em>最优阈值一定落在两个标签不同的相邻样本之间</em>。在标签分布不均匀时，这条性质能大幅缩小候选集。</p><h3 id=缺失值>缺失值</h3><p>C4.5 和 CART 都不需要先填缺失值。</p><p><strong>训练阶段。</strong> 评估特征 $j$ 时，只用观测到 $x_j$ 的样本。信息增益再乘以<em>观测样本占比</em></p>$$
 IG_\text{adj}(Y, X_j) = \frac{|S_\text{obs}|}{|S|} \cdot IG(Y_\text{obs}, X_j),
-$$<p>于是缺失多的特征自动被打折。</p>
-<p><strong>样本路由。</strong> 当一个 $x_j$ 缺失的样本走到一个按 $j$ 分裂的节点时，按观测样本的左右比例<em>同时</em>分到两个子节点：</p>
-$$
+$$<p>于是缺失多的特征自动被打折。</p><p><strong>样本路由。</strong> 当一个 $x_j$ 缺失的样本走到一个按 $j$ 分裂的节点时，按观测样本的左右比例<em>同时</em>分到两个子节点：</p>$$
 w_L = \frac{|S_L^\text{obs}|}{|S^\text{obs}|}, \qquad w_R = \frac{|S_R^\text{obs}|}{|S^\text{obs}|}.
-$$<p>CART 还在每个节点存<strong>替代分裂</strong>——能在主分裂特征缺失时近似主分裂结果的备用特征——预测时主特征缺失就启用最佳替代。</p>
-<h3 id="类别特征">类别特征</h3>
-<p>无序类别有 $K$ 个取值时，穷举二分要试 $2^{K-1} - 1$ 种子集划分。但二分类（或平方损失下的回归）有一个漂亮的捷径（Fisher 1958，Breiman 1984）：按&quot;该类别下的目标均值&quot;排序，最优二分一定沿这个序去切。这把搜索从指数级降到线性级。</p>
-<h2 id="把分裂当信息看">把分裂当信息看</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig4_information_gain.png" alt="两种对比鲜明的分裂下的信息增益" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图在同一个父节点（$H = 1$ 比特）上展示了两次合成分裂。左边是信息量大的特征：两个子节点都接近纯，几乎把父节点的不确定性吃掉。右边是几乎没用的特征：加权子熵几乎等于父熵，$IG$ 接近 0。CART 选的是这种&quot;柱子&quot;最高的特征/阈值组合。</p>
-<h2 id="二维空间中的决策边界">二维空间中的决策边界</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig3_decision_boundary.png" alt="CART 在深度 1、3、6 时的决策边界" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>这组图把树的<em>分段常数</em>本质画得非常直观。深度 1 就是一刀，树退化成一维阈值。深度 3 大致勾勒出双月。深度 6 边界就开始变得锯齿——每个小矩形都在追一两个训练点，这是噪声数据上典型的过拟合特征。</p>
-<h2 id="剪枝控制方差">剪枝：控制方差</h2>
-<h3 id="不剪枝为什么会过拟合">不剪枝为什么会过拟合</h3>
-<p>完全长成的树训练误差为 0：每个叶要么只剩一个类，要么只剩一个样本。模型把训练集（包括其中的噪声）背了下来。两个结构性原因：</p>
-<ul>
-<li><strong>深度。</strong> 树越深表达的特征交互越细，最终把噪声也学进去。</li>
-<li><strong>微小的叶。</strong> 一个样本数为 3 的叶里类别比例毫无统计意义。</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig5_overfitting_curve.png" alt="max_depth 增长下的偏差–方差权衡" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>这就是决策树过拟合的标准曲线，数据是带噪声的双月，深度从 1 扫到 20。训练精度单调爬向 1.0，而测试精度在中等深度处达到峰值后下滑。次轴上的灰点线是叶节点数——它在最佳点之后近乎指数增长，这就是测试曲线为之付出代价的方差。</p>
-<h3 id="预剪枝">预剪枝</h3>
-<p>提前停。常用旋钮：</p>
-<ul>
-<li><code>max_depth</code></li>
-<li><code>min_samples_split</code>（样本太少就不分裂）</li>
-<li><code>min_samples_leaf</code>（每片叶必须至少这么多样本）</li>
-<li><code>min_impurity_decrease</code>（要求最小增益）</li>
-<li><code>max_leaf_nodes</code>（按&quot;最佳增益&quot;贪心地控制叶数上限）</li>
-</ul>
-<p>预剪枝快——根本不会去构建完整的树——但短视：现在看似无用的分裂可能在它下面孕育出两个极佳的分裂，预剪枝直接把这种可能性堵死了。</p>
-<h3 id="后剪枝代价复杂度">后剪枝：代价复杂度</h3>
-<p>CART 经典的解法是<strong>代价复杂度剪枝</strong>（也叫<em>最小代价复杂度剪枝</em>或<em>最弱链剪枝</em>）。对一棵树 $T$，定义</p>
-$$
+$$<p>CART 还在每个节点存<strong>替代分裂</strong>——能在主分裂特征缺失时近似主分裂结果的备用特征——预测时主特征缺失就启用最佳替代。</p><h3 id=类别特征>类别特征</h3><p>无序类别有 $K$ 个取值时，穷举二分要试 $2^{K-1} - 1$ 种子集划分。但二分类（或平方损失下的回归）有一个漂亮的捷径（Fisher 1958，Breiman 1984）：按"该类别下的目标均值"排序，最优二分一定沿这个序去切。这把搜索从指数级降到线性级。</p><h2 id=把分裂当信息看>把分裂当信息看</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig4_information_gain.png alt=两种对比鲜明的分裂下的信息增益 loading=lazy decoding=async></figure></p><p>上图在同一个父节点（$H = 1$ 比特）上展示了两次合成分裂。左边是信息量大的特征：两个子节点都接近纯，几乎把父节点的不确定性吃掉。右边是几乎没用的特征：加权子熵几乎等于父熵，$IG$ 接近 0。CART 选的是这种"柱子"最高的特征/阈值组合。</p><h2 id=二维空间中的决策边界>二维空间中的决策边界</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig3_decision_boundary.png alt="CART 在深度 1、3、6 时的决策边界" loading=lazy decoding=async></figure></p><p>这组图把树的<em>分段常数</em>本质画得非常直观。深度 1 就是一刀，树退化成一维阈值。深度 3 大致勾勒出双月。深度 6 边界就开始变得锯齿——每个小矩形都在追一两个训练点，这是噪声数据上典型的过拟合特征。</p><h2 id=剪枝控制方差>剪枝：控制方差</h2><h3 id=不剪枝为什么会过拟合>不剪枝为什么会过拟合</h3><p>完全长成的树训练误差为 0：每个叶要么只剩一个类，要么只剩一个样本。模型把训练集（包括其中的噪声）背了下来。两个结构性原因：</p><ul><li><strong>深度。</strong> 树越深表达的特征交互越细，最终把噪声也学进去。</li><li><strong>微小的叶。</strong> 一个样本数为 3 的叶里类别比例毫无统计意义。</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig5_overfitting_curve.png alt="max_depth 增长下的偏差–方差权衡" loading=lazy decoding=async></figure></p><p>这就是决策树过拟合的标准曲线，数据是带噪声的双月，深度从 1 扫到 20。训练精度单调爬向 1.0，而测试精度在中等深度处达到峰值后下滑。次轴上的灰点线是叶节点数——它在最佳点之后近乎指数增长，这就是测试曲线为之付出代价的方差。</p><h3 id=预剪枝>预剪枝</h3><p>提前停。常用旋钮：</p><ul><li><code>max_depth</code></li><li><code>min_samples_split</code>（样本太少就不分裂）</li><li><code>min_samples_leaf</code>（每片叶必须至少这么多样本）</li><li><code>min_impurity_decrease</code>（要求最小增益）</li><li><code>max_leaf_nodes</code>（按"最佳增益"贪心地控制叶数上限）</li></ul><p>预剪枝快——根本不会去构建完整的树——但短视：现在看似无用的分裂可能在它下面孕育出两个极佳的分裂，预剪枝直接把这种可能性堵死了。</p><h3 id=后剪枝代价复杂度>后剪枝：代价复杂度</h3><p>CART 经典的解法是<strong>代价复杂度剪枝</strong>（也叫<em>最小代价复杂度剪枝</em>或<em>最弱链剪枝</em>）。对一棵树 $T$，定义</p>$$
 R_\alpha(T) = R(T) + \alpha \, |T|,
-$$<p>其中 $R(T)$ 是训练风险（叶不纯度按叶内样本数加权之和），$|T|$ 是叶数。$\alpha$ 越大越偏好简单树。</p>
-<p><strong>关键推导。</strong> 考虑非叶节点 $t$ 及以它为根的子树 $T_t$。把 $T_t$ 折成 $t$ 这一片叶后代价是 $R(t) + \alpha$，保留子树时代价是 $R(T_t) + \alpha |T_t|$。两者相等的<em>临界 alpha</em> 为</p>
-$$
+$$<p>其中 $R(T)$ 是训练风险（叶不纯度按叶内样本数加权之和），$|T|$ 是叶数。$\alpha$ 越大越偏好简单树。</p><p><strong>关键推导。</strong> 考虑非叶节点 $t$ 及以它为根的子树 $T_t$。把 $T_t$ 折成 $t$ 这一片叶后代价是 $R(t) + \alpha$，保留子树时代价是 $R(T_t) + \alpha |T_t|$。两者相等的<em>临界 alpha</em> 为</p>$$
 \boxed{\;\alpha_\text{eff}(t) \;=\; \frac{R(t) - R(T_t)}{|T_t| - 1}\;}
-$$<p>当 $\alpha$ 超过这个阈值，折叠该子树会严格降低 $R_\alpha$。从 $\alpha = 0$ 起逐步抬高 $\alpha$，每次折叠<em>最弱链</em>（$\alpha_\text{eff}$ 最小的节点），就能得到一个有限的、嵌套的树序列 $T_0 \supset T_1 \supset \dots \supset T_\text{root}$。这些 $\alpha$ 值正好就是 sklearn <code>cost_complexity_pruning_path</code> 返回的内容。</p>
-<p>最终的 $\alpha$ 在训练集上用交叉验证选出。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig6_pruning.png" alt="预剪枝 vs 后剪枝" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图与中图分别展示两种策略最终的决策区域：预剪枝（<code>max_depth=4</code>）切出整齐的大块；后剪枝先长完再折叠最弱链，在这份数据上叶数往往<em>更少</em>但泛化更好。右图是剪枝路径：随着 $\alpha$ 增大，训练精度平滑下滑，测试精度先升后降——树被剪太狠就崩了。</p>
-<h2 id="决策树的理论性质">决策树的理论性质</h2>
-<h3 id="vc-维">VC 维</h3>
-<p>对 $d$ 个连续特征上的二叉树，当叶数为 $L$ 时</p>
-$$
+$$<p>当 $\alpha$ 超过这个阈值，折叠该子树会严格降低 $R_\alpha$。从 $\alpha = 0$ 起逐步抬高 $\alpha$，每次折叠<em>最弱链</em>（$\alpha_\text{eff}$ 最小的节点），就能得到一个有限的、嵌套的树序列 $T_0 \supset T_1 \supset \dots \supset T_\text{root}$。这些 $\alpha$ 值正好就是 sklearn <code>cost_complexity_pruning_path</code> 返回的内容。</p><p>最终的 $\alpha$ 在训练集上用交叉验证选出。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig6_pruning.png alt="预剪枝 vs 后剪枝" loading=lazy decoding=async></figure></p><p>左图与中图分别展示两种策略最终的决策区域：预剪枝（<code>max_depth=4</code>）切出整齐的大块；后剪枝先长完再折叠最弱链，在这份数据上叶数往往<em>更少</em>但泛化更好。右图是剪枝路径：随着 $\alpha$ 增大，训练精度平滑下滑，测试精度先升后降——树被剪太狠就崩了。</p><h2 id=决策树的理论性质>决策树的理论性质</h2><h3 id=vc-维>VC 维</h3><p>对 $d$ 个连续特征上的二叉树，当叶数为 $L$ 时</p>$$
 \text{VCdim} = O(L \log L).
-$$<p>经典的 PAC 风格泛化界说，以至少 $1 - \delta$ 的概率有</p>
-$$
+$$<p>经典的 PAC 风格泛化界说，以至少 $1 - \delta$ 的概率有</p>$$
 R(T) \leq \hat{R}(T) + \mathcal{O}\!\left(\sqrt{\frac{L \log L \cdot \log n + \log(1/\delta)}{n}}\right).
-$$<p>复杂度项就是叶数 $L$——这恰好是代价复杂度剪枝在正则化的对象。</p>
-<h3 id="决策树为什么不稳定">决策树为什么不稳定</h3>
-<p>如果根节点上两个特征的信息增益差不多，任意微小的扰动都可能翻转选择，并把这种差异级联放大到下面整棵树。形式化一下：设两个增益为 $g_1, g_2$ 且 $g_1 - g_2 = \epsilon$；任何让某个子节点不纯度变化超过 $\epsilon$ 的扰动都可能反转这个序。这种高方差恰好是 bagging 多棵自助采样树（即随机森林）有效的原因：把多棵误差相对去相关的树取平均，方差大致按树数比例下降。</p>
-<h3 id="特征交互与树深">特征交互与树深</h3>
-<p>一条长度为 $d$ 的根到叶路径表示一个 $d$ 元交互：</p>
-$$
+$$<p>复杂度项就是叶数 $L$——这恰好是代价复杂度剪枝在正则化的对象。</p><h3 id=决策树为什么不稳定>决策树为什么不稳定</h3><p>如果根节点上两个特征的信息增益差不多，任意微小的扰动都可能翻转选择，并把这种差异级联放大到下面整棵树。形式化一下：设两个增益为 $g_1, g_2$ 且 $g_1 - g_2 = \epsilon$；任何让某个子节点不纯度变化超过 $\epsilon$ 的扰动都可能反转这个序。这种高方差恰好是 bagging 多棵自助采样树（即随机森林）有效的原因：把多棵误差相对去相关的树取平均，方差大致按树数比例下降。</p><h3 id=特征交互与树深>特征交互与树深</h3><p>一条长度为 $d$ 的根到叶路径表示一个 $d$ 元交互：</p>$$
 [x_{j_1} \leq \tau_1] \wedge [x_{j_2} \leq \tau_2] \wedge \dots \wedge [x_{j_d} \leq \tau_d].
-$$<p>所以深度为 $d$ 的树最多表达 $d$ 阶交互。这也是为什么哪怕浅树，在两个特征&quot;必须一起出现才有预测力&quot;的数据上都能击败线性模型。</p>
-<h2 id="实现一份最小可用的-cart">实现：一份最小可用的 CART</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">  1
-</span><span class="lnt">  2
-</span><span class="lnt">  3
-</span><span class="lnt">  4
-</span><span class="lnt">  5
-</span><span class="lnt">  6
-</span><span class="lnt">  7
-</span><span class="lnt">  8
-</span><span class="lnt">  9
-</span><span class="lnt"> 10
-</span><span class="lnt"> 11
-</span><span class="lnt"> 12
-</span><span class="lnt"> 13
-</span><span class="lnt"> 14
-</span><span class="lnt"> 15
-</span><span class="lnt"> 16
-</span><span class="lnt"> 17
-</span><span class="lnt"> 18
-</span><span class="lnt"> 19
-</span><span class="lnt"> 20
-</span><span class="lnt"> 21
-</span><span class="lnt"> 22
-</span><span class="lnt"> 23
-</span><span class="lnt"> 24
-</span><span class="lnt"> 25
-</span><span class="lnt"> 26
-</span><span class="lnt"> 27
-</span><span class="lnt"> 28
-</span><span class="lnt"> 29
-</span><span class="lnt"> 30
-</span><span class="lnt"> 31
-</span><span class="lnt"> 32
-</span><span class="lnt"> 33
-</span><span class="lnt"> 34
-</span><span class="lnt"> 35
-</span><span class="lnt"> 36
-</span><span class="lnt"> 37
-</span><span class="lnt"> 38
-</span><span class="lnt"> 39
-</span><span class="lnt"> 40
-</span><span class="lnt"> 41
-</span><span class="lnt"> 42
-</span><span class="lnt"> 43
-</span><span class="lnt"> 44
-</span><span class="lnt"> 45
-</span><span class="lnt"> 46
-</span><span class="lnt"> 47
-</span><span class="lnt"> 48
-</span><span class="lnt"> 49
-</span><span class="lnt"> 50
-</span><span class="lnt"> 51
-</span><span class="lnt"> 52
-</span><span class="lnt"> 53
-</span><span class="lnt"> 54
-</span><span class="lnt"> 55
-</span><span class="lnt"> 56
-</span><span class="lnt"> 57
-</span><span class="lnt"> 58
-</span><span class="lnt"> 59
-</span><span class="lnt"> 60
-</span><span class="lnt"> 61
-</span><span class="lnt"> 62
-</span><span class="lnt"> 63
-</span><span class="lnt"> 64
-</span><span class="lnt"> 65
-</span><span class="lnt"> 66
-</span><span class="lnt"> 67
-</span><span class="lnt"> 68
-</span><span class="lnt"> 69
-</span><span class="lnt"> 70
-</span><span class="lnt"> 71
-</span><span class="lnt"> 72
-</span><span class="lnt"> 73
-</span><span class="lnt"> 74
-</span><span class="lnt"> 75
-</span><span class="lnt"> 76
-</span><span class="lnt"> 77
-</span><span class="lnt"> 78
-</span><span class="lnt"> 79
-</span><span class="lnt"> 80
-</span><span class="lnt"> 81
-</span><span class="lnt"> 82
-</span><span class="lnt"> 83
-</span><span class="lnt"> 84
-</span><span class="lnt"> 85
-</span><span class="lnt"> 86
-</span><span class="lnt"> 87
-</span><span class="lnt"> 88
-</span><span class="lnt"> 89
-</span><span class="lnt"> 90
-</span><span class="lnt"> 91
-</span><span class="lnt"> 92
-</span><span class="lnt"> 93
-</span><span class="lnt"> 94
-</span><span class="lnt"> 95
-</span><span class="lnt"> 96
-</span><span class="lnt"> 97
-</span><span class="lnt"> 98
-</span><span class="lnt"> 99
-</span><span class="lnt">100
-</span><span class="lnt">101
-</span><span class="lnt">102
-</span><span class="lnt">103
-</span><span class="lnt">104
-</span><span class="lnt">105
-</span><span class="lnt">106
-</span><span class="lnt">107
-</span><span class="lnt">108
-</span><span class="lnt">109
-</span><span class="lnt">110
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="kn">import</span> <span class="n">load_iris</span><span class="p">,</span> <span class="n">fetch_california_housing</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span><span class="p">,</span> <span class="n">mean_squared_error</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Node</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">left</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">feature</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">feature</span><span class="p">,</span> <span class="n">threshold</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">left</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">right</span> <span class="o">=</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>           <span class="c1"># value 非 None 即为叶</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CARTBase</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_samples_split</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">min_samples_leaf</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="n">max_depth</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">min_samples_split</span> <span class="o">=</span> <span class="n">min_samples_split</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">min_samples_leaf</span> <span class="o">=</span> <span class="n">min_samples_leaf</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_impurity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_leaf_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_best_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">n</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_samples_split</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_impurity</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best_gain</span><span class="p">,</span> <span class="n">best_j</span><span class="p">,</span> <span class="n">best_t</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">xs</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">xs_sorted</span><span class="p">,</span> <span class="n">ys_sorted</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="n">order</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">xs_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">xs_sorted</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_samples_leaf</span> <span class="ow">or</span> <span class="n">n</span> <span class="o">-</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_samples_leaf</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="k">continue</span>
-</span></span><span class="line"><span class="cl">                <span class="n">t</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xs_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">xs_sorted</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">                <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">ys_sorted</span><span class="p">[:</span><span class="n">i</span><span class="p">],</span> <span class="n">ys_sorted</span><span class="p">[</span><span class="n">i</span><span class="p">:]</span>
-</span></span><span class="line"><span class="cl">                <span class="n">gain</span> <span class="o">=</span> <span class="n">parent</span> <span class="o">-</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_impurity</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                                 <span class="o">+</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_impurity</span><span class="p">(</span><span class="n">right</span><span class="p">))</span> <span class="o">/</span> <span class="n">n</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">gain</span> <span class="o">&gt;</span> <span class="n">best_gain</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">best_gain</span><span class="p">,</span> <span class="n">best_j</span><span class="p">,</span> <span class="n">best_t</span> <span class="o">=</span> <span class="n">gain</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">t</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">best_j</span><span class="p">,</span> <span class="n">best_t</span><span class="p">,</span> <span class="n">best_gain</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">depth</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span><span class="p">)</span> \
-</span></span><span class="line"><span class="cl">                <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_samples_split</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">Node</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_leaf_value</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">j</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_best_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">gain</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">Node</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_leaf_value</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mask</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">t</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">Node</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">],</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_predict_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">value</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">left</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">feature</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">node</span><span class="o">.</span><span class="n">threshold</span> <span class="k">else</span> <span class="n">node</span><span class="o">.</span><span class="n">right</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_one</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">nxt</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_predict_one</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">X</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CARTClassifier</span><span class="p">(</span><span class="n">CARTBase</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_impurity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>           <span class="c1"># Gini</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">_</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="n">c</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_leaf_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CARTRegressor</span><span class="p">(</span><span class="n">CARTBase</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_impurity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>           <span class="c1"># 方差</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_leaf_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># --- 与 sklearn 对照 ---</span>
-</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_iris</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Xtr</span><span class="p">,</span> <span class="n">Xte</span><span class="p">,</span> <span class="n">ytr</span><span class="p">,</span> <span class="n">yte</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                          <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">clf</span> <span class="o">=</span> <span class="n">CARTClassifier</span><span class="p">(</span><span class="n">max_depth</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">ytr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Iris  准确率: </span><span class="si">{</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">yte</span><span class="p">,</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Xte</span><span class="p">))</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">Xb</span><span class="p">,</span> <span class="n">yb</span> <span class="o">=</span> <span class="n">fetch_california_housing</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Xtr</span><span class="p">,</span> <span class="n">Xte</span><span class="p">,</span> <span class="n">ytr</span><span class="p">,</span> <span class="n">yte</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">Xb</span><span class="p">[:</span><span class="mi">2000</span><span class="p">],</span> <span class="n">yb</span><span class="p">[:</span><span class="mi">2000</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                                          <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">reg</span> <span class="o">=</span> <span class="n">CARTRegressor</span><span class="p">(</span><span class="n">max_depth</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">ytr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Housing MSE:  </span><span class="si">{</span><span class="n">mean_squared_error</span><span class="p">(</span><span class="n">yte</span><span class="p">,</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Xte</span><span class="p">))</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="特征重要性">特征重要性</h2>
-<p>对每个按特征 $j$ 分裂的内部节点 $t$，归到该节点头上的<strong>不纯度平均下降量</strong>（MDI）为</p>
-$$
+$$<p>所以深度为 $d$ 的树最多表达 $d$ 阶交互。这也是为什么哪怕浅树，在两个特征"必须一起出现才有预测力"的数据上都能击败线性模型。</p><h2 id=实现一份最小可用的-cart>实现：一份最小可用的 CART</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.datasets</span> <span class=kn>import</span> <span class=n>load_iris</span><span class=p>,</span> <span class=n>fetch_california_housing</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.metrics</span> <span class=kn>import</span> <span class=n>accuracy_score</span><span class=p>,</span> <span class=n>mean_squared_error</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.model_selection</span> <span class=kn>import</span> <span class=n>train_test_split</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Node</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>feature</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>threshold</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>left</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>right</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>value</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>feature</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>threshold</span> <span class=o>=</span> <span class=n>feature</span><span class=p>,</span> <span class=n>threshold</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>left</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>right</span> <span class=o>=</span> <span class=n>left</span><span class=p>,</span> <span class=n>right</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=n>value</span>           <span class=c1># value 非 None 即为叶</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CARTBase</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>max_depth</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>min_samples_split</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>min_samples_leaf</span><span class=o>=</span><span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_depth</span> <span class=o>=</span> <span class=n>max_depth</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>min_samples_split</span> <span class=o>=</span> <span class=n>min_samples_split</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>min_samples_leaf</span> <span class=o>=</span> <span class=n>min_samples_leaf</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>root</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_impurity</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=ne>NotImplementedError</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_leaf_value</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=ne>NotImplementedError</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_best_split</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>n</span><span class=p>,</span> <span class=n>d</span> <span class=o>=</span> <span class=n>X</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>n</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_samples_split</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=n>parent</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_impurity</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>best_gain</span><span class=p>,</span> <span class=n>best_j</span><span class=p>,</span> <span class=n>best_t</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>d</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>xs</span> <span class=o>=</span> <span class=n>X</span><span class=p>[:,</span> <span class=n>j</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>order</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>argsort</span><span class=p>(</span><span class=n>xs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>xs_sorted</span><span class=p>,</span> <span class=n>ys_sorted</span> <span class=o>=</span> <span class=n>xs</span><span class=p>[</span><span class=n>order</span><span class=p>],</span> <span class=n>y</span><span class=p>[</span><span class=n>order</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>n</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>xs_sorted</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>==</span> <span class=n>xs_sorted</span><span class=p>[</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>continue</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_samples_leaf</span> <span class=ow>or</span> <span class=n>n</span> <span class=o>-</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_samples_leaf</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>continue</span>
+</span></span><span class=line><span class=cl>                <span class=n>t</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>xs_sorted</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+</span> <span class=n>xs_sorted</span><span class=p>[</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=n>left</span><span class=p>,</span> <span class=n>right</span> <span class=o>=</span> <span class=n>ys_sorted</span><span class=p>[:</span><span class=n>i</span><span class=p>],</span> <span class=n>ys_sorted</span><span class=p>[</span><span class=n>i</span><span class=p>:]</span>
+</span></span><span class=line><span class=cl>                <span class=n>gain</span> <span class=o>=</span> <span class=n>parent</span> <span class=o>-</span> <span class=p>(</span><span class=n>i</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>_impurity</span><span class=p>(</span><span class=n>left</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                                 <span class=o>+</span> <span class=p>(</span><span class=n>n</span> <span class=o>-</span> <span class=n>i</span><span class=p>)</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>_impurity</span><span class=p>(</span><span class=n>right</span><span class=p>))</span> <span class=o>/</span> <span class=n>n</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>gain</span> <span class=o>&gt;</span> <span class=n>best_gain</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>best_gain</span><span class=p>,</span> <span class=n>best_j</span><span class=p>,</span> <span class=n>best_t</span> <span class=o>=</span> <span class=n>gain</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=n>t</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>best_j</span><span class=p>,</span> <span class=n>best_t</span><span class=p>,</span> <span class=n>best_gain</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_build</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>depth</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>max_depth</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=ow>and</span> <span class=n>depth</span> <span class=o>&gt;=</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_depth</span><span class=p>)</span> \
+</span></span><span class=line><span class=cl>                <span class=ow>or</span> <span class=nb>len</span><span class=p>(</span><span class=n>y</span><span class=p>)</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_samples_split</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>Node</span><span class=p>(</span><span class=n>value</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>_leaf_value</span><span class=p>(</span><span class=n>y</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>j</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>gain</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_best_split</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>j</span> <span class=ow>is</span> <span class=kc>None</span> <span class=ow>or</span> <span class=n>gain</span> <span class=o>&lt;=</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>Node</span><span class=p>(</span><span class=n>value</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>_leaf_value</span><span class=p>(</span><span class=n>y</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>mask</span> <span class=o>=</span> <span class=n>X</span><span class=p>[:,</span> <span class=n>j</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>t</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>Node</span><span class=p>(</span><span class=n>j</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>_build</span><span class=p>(</span><span class=n>X</span><span class=p>[</span><span class=n>mask</span><span class=p>],</span> <span class=n>y</span><span class=p>[</span><span class=n>mask</span><span class=p>],</span> <span class=n>depth</span> <span class=o>+</span> <span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>_build</span><span class=p>(</span><span class=n>X</span><span class=p>[</span><span class=o>~</span><span class=n>mask</span><span class=p>],</span> <span class=n>y</span><span class=p>[</span><span class=o>~</span><span class=n>mask</span><span class=p>],</span> <span class=n>depth</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>fit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>root</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_build</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>asarray</span><span class=p>(</span><span class=n>X</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>asarray</span><span class=p>(</span><span class=n>y</span><span class=p>),</span> <span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_predict_one</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>node</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>node</span><span class=o>.</span><span class=n>value</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>node</span><span class=o>.</span><span class=n>value</span>
+</span></span><span class=line><span class=cl>        <span class=n>nxt</span> <span class=o>=</span> <span class=n>node</span><span class=o>.</span><span class=n>left</span> <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>node</span><span class=o>.</span><span class=n>feature</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>node</span><span class=o>.</span><span class=n>threshold</span> <span class=k>else</span> <span class=n>node</span><span class=o>.</span><span class=n>right</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_predict_one</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>nxt</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=bp>self</span><span class=o>.</span><span class=n>_predict_one</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>root</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>X</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CARTClassifier</span><span class=p>(</span><span class=n>CARTBase</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_impurity</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>           <span class=c1># Gini</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>y</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=n>_</span><span class=p>,</span> <span class=n>c</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=n>return_counts</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=n>c</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mf>1.0</span> <span class=o>-</span> <span class=n>np</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>p</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_leaf_value</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>bincount</span><span class=p>(</span><span class=n>y</span><span class=p>)</span><span class=o>.</span><span class=n>argmax</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CARTRegressor</span><span class=p>(</span><span class=n>CARTBase</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_impurity</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>           <span class=c1># 方差</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>var</span><span class=p>(</span><span class=n>y</span><span class=p>))</span> <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>y</span><span class=p>)</span> <span class=k>else</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_leaf_value</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>y</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># --- 与 sklearn 对照 ---</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>load_iris</span><span class=p>(</span><span class=n>return_X_y</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>Xtr</span><span class=p>,</span> <span class=n>Xte</span><span class=p>,</span> <span class=n>ytr</span><span class=p>,</span> <span class=n>yte</span> <span class=o>=</span> <span class=n>train_test_split</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>test_size</span><span class=o>=</span><span class=mf>0.2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                          <span class=n>random_state</span><span class=o>=</span><span class=mi>42</span><span class=p>,</span> <span class=n>stratify</span><span class=o>=</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>clf</span> <span class=o>=</span> <span class=n>CARTClassifier</span><span class=p>(</span><span class=n>max_depth</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>Xtr</span><span class=p>,</span> <span class=n>ytr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Iris  准确率: </span><span class=si>{</span><span class=n>accuracy_score</span><span class=p>(</span><span class=n>yte</span><span class=p>,</span> <span class=n>clf</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>Xte</span><span class=p>))</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>Xb</span><span class=p>,</span> <span class=n>yb</span> <span class=o>=</span> <span class=n>fetch_california_housing</span><span class=p>(</span><span class=n>return_X_y</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>Xtr</span><span class=p>,</span> <span class=n>Xte</span><span class=p>,</span> <span class=n>ytr</span><span class=p>,</span> <span class=n>yte</span> <span class=o>=</span> <span class=n>train_test_split</span><span class=p>(</span><span class=n>Xb</span><span class=p>[:</span><span class=mi>2000</span><span class=p>],</span> <span class=n>yb</span><span class=p>[:</span><span class=mi>2000</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                                          <span class=n>test_size</span><span class=o>=</span><span class=mf>0.2</span><span class=p>,</span> <span class=n>random_state</span><span class=o>=</span><span class=mi>42</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>reg</span> <span class=o>=</span> <span class=n>CARTRegressor</span><span class=p>(</span><span class=n>max_depth</span><span class=o>=</span><span class=mi>6</span><span class=p>)</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>Xtr</span><span class=p>,</span> <span class=n>ytr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Housing MSE:  </span><span class=si>{</span><span class=n>mean_squared_error</span><span class=p>(</span><span class=n>yte</span><span class=p>,</span> <span class=n>reg</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>Xte</span><span class=p>))</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=特征重要性>特征重要性</h2><p>对每个按特征 $j$ 分裂的内部节点 $t$，归到该节点头上的<strong>不纯度平均下降量</strong>（MDI）为</p>$$
 \Delta I(t) \;=\; \frac{N_t}{N} \left( I(t) - \frac{N_{t,L}}{N_t} I(t_L) - \frac{N_{t,R}}{N_t} I(t_R) \right).
-$$<p>特征 $j$ 的重要性即所有按 $j$ 分裂的节点 $\Delta I(t)$ 之和，再做归一化使所有重要性求和为 1。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig7_feature_importance.png" alt="Iris 上的特征重要性" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>在 Iris 上，花瓣长度和花瓣宽度遥遥领先——和我们在前面画的深度 2 树一致：仅这两个特征就能区分三个物种。这张图直接调用 sklearn 的 <code>feature_importances_</code>，与图注里的公式一一对应。</p>
-<p><strong>几个需要注意的坑。</strong></p>
-<ul>
-<li>MDI <em>偏向连续和高基数特征</em>——它们更容易被选作候选分裂。</li>
-<li>单棵树上的重要性不稳定。聚合到随机森林（或者用<strong>置换重要性</strong>）能给出更可靠的排序。</li>
-<li>重要性 ≠ 因果。一个特征&quot;很重要&quot;可能只是因为它和真正的因果变量高度相关。</li>
-</ul>
-<h2 id="多变量决策树">多变量决策树</h2>
-<p>标准分裂只用一个特征，所以边界与坐标轴对齐。<strong>斜分裂</strong>（oblique）允许</p>
-$$
+$$<p>特征 $j$ 的重要性即所有按 $j$ 分裂的节点 $\Delta I(t)$ 之和，再做归一化使所有重要性求和为 1。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/07-%E5%86%B3%E7%AD%96%E6%A0%91/fig7_feature_importance.png alt="Iris 上的特征重要性" loading=lazy decoding=async></figure></p><p>在 Iris 上，花瓣长度和花瓣宽度遥遥领先——和我们在前面画的深度 2 树一致：仅这两个特征就能区分三个物种。这张图直接调用 sklearn 的 <code>feature_importances_</code>，与图注里的公式一一对应。</p><p><strong>几个需要注意的坑。</strong></p><ul><li>MDI <em>偏向连续和高基数特征</em>——它们更容易被选作候选分裂。</li><li>单棵树上的重要性不稳定。聚合到随机森林（或者用<strong>置换重要性</strong>）能给出更可靠的排序。</li><li>重要性 ≠ 因果。一个特征"很重要"可能只是因为它和真正的因果变量高度相关。</li></ul><h2 id=多变量决策树>多变量决策树</h2><p>标准分裂只用一个特征，所以边界与坐标轴对齐。<strong>斜分裂</strong>（oblique）允许</p>$$
 \text{节点测试：} \quad w^\top x \leq \tau,
-$$<p>即特征空间里的一个超平面。一根斜线只需一个节点就能表达，省去几十次轴对齐的&quot;阶梯&quot;。代价是：</p>
-<ul>
-<li>一般情况下找最优 $w$ 是 NP 难的（启发式：线性判别、感知机、软优化）。</li>
-<li>可解释性下降：每个节点变成一个小线性模型，而不再是一个阈值。</li>
-</ul>
-<h2 id="精选-qa">精选 Q&amp;A</h2>
-<p><strong>Q1：决策树为什么能建模非线性？</strong>
-单次分裂确实是线性的，但<em>组合</em>起来的轴对齐分裂构成的是特征空间递归划分上的分段常数函数。任意有界可积的连续函数都能被这样的分段常数在 $L^1$ 上任意逼近——所以树是有界可积函数的万能逼近器。</p>
-<p><strong>Q2：信息增益为什么偏好多值特征？</strong>
-机制上：更细的划分天然更纯。极端情况下每个子节点只有一个样本，子节点熵全为 0，增益等于父节点熵。但这与泛化能力毫无关系。C4.5 用增益率除以 $IV(X)$（本身也是个熵）来抵消这个机械效应。</p>
-<p><strong>Q3：基尼和熵到底哪个好？</strong>
-基本无所谓。两者在 $p = 1/2$ 附近的二阶 Taylor 展开一致，实测里两套树的分裂只在少数节点上不同。基尼略快（无对数），是 sklearn CART 的默认。</p>
-<p><strong>Q4：怎么处理类别特征？</strong>
-三种做法：(i) one-hot，让树对每个指示变量分别分裂；(ii) 多叉分裂，每个取值一个分支（ID3/C4.5 的做法）；(iii) 最优二分——二分类下按&quot;该类别下的目标均值&quot;排序，最优二分一定沿这个序切，把搜索从 $O(2^K)$ 降到 $O(K)$。</p>
-<p><strong>Q5：树能做多输出吗？</strong>
-可以。多输出回归时叶里存均值向量，不纯度取叶内协方差矩阵的迹。多标签分类时叶里存类别概率向量，不纯度取每个标签基尼的平均。sklearn 都原生支持。</p>
-<p><strong>Q6：预剪枝还是后剪枝？</strong>
-预剪枝快，适合原型阶段。后剪枝（代价复杂度）更准，因为它先看到完整的树再决定剪哪里，但代价更高。实际上很多人只调 <code>max_depth</code> 和 <code>min_samples_leaf</code>，因为树通常套在集成里——剩下的方差由集成消化。</p>
-<p><strong>Q7：树为什么对尺度不敏感？</strong>
-分裂只比较 $x_j \leq \tau$——只用到<em>序</em>。对特征做任意单调变换都不会改变树。这也是为什么 one-hot 后无须再做任何预处理。</p>
-<p><strong>Q8：怎么可视化一棵树？</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.tree</span> <span class="kn">import</span> <span class="n">plot_tree</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-</span></span><span class="line"><span class="cl"><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">plot_tree</span><span class="p">(</span><span class="n">clf</span><span class="p">,</span> <span class="n">feature_names</span><span class="o">=</span><span class="n">iris</span><span class="o">.</span><span class="n">feature_names</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="n">class_names</span><span class="o">=</span><span class="n">iris</span><span class="o">.</span><span class="n">target_names</span><span class="p">,</span> <span class="n">filled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rounded</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Q9：树能做特征选择吗？</strong>
-可以——按 <code>feature_importances_</code> 排序、设阈值即可。但单棵树上的排序不稳定。生产中用随机森林或置换重要性。</p>
-<p><strong>Q10：树训练能并行吗？</strong>
-单棵树按节点是串行的。同一节点内不同特征的分裂搜索是天然并行的；森林里不同树彼此独立，也是并行的。XGBoost/LightGBM 还在分裂搜索中用直方图按特征桶做流水线。</p>
-<p><strong>Q11：<code>max_depth</code> 怎么选？</strong>
-表格数据、$n$ 在千量级时一个常用范围是 $3 \leq d \leq 12$。交叉验证。集成里一般用更浅的树——boosting 里典型的是 4–8。</p>
-<p><strong>Q12：树能处理高维数据吗？</strong>
-理论上能，但单节点分裂搜索是 $O(d \cdot n \log n)$，且高维下大部分特征是噪声。$d$ 很大时优先考虑带正则的线性模型，或者每节点做特征采样的随机森林（由 <code>max_features</code> 控制）。</p>
-<h2 id="变体与扩展">变体与扩展</h2>
-<ul>
-<li><strong>代价敏感树。</strong> 把分类错误率换成不对称损失 $L(y, \hat{y})$——在假阴比假阳代价高的场景（医疗诊断、欺诈检测）很有用。</li>
-<li><strong>模糊/软树。</strong> 每次分裂把样本按比例分到左右两边，让训练可微，可以用梯度下降。</li>
-<li><strong>增量树。</strong> <em>Hoeffding 树</em>（Domingos &amp; Hulten, 2000）用 Hoeffding 不等式判断&quot;已经攒够样本可以可信地分裂&quot;，从而支持流式训练。</li>
-<li><strong>斜树。</strong> 上面提到的线性组合分裂（CART-LC、OC1）。</li>
-</ul>
-<h2 id="练习题">练习题</h2>
-<p><strong>练习 1：手算信息增益。</strong>
-14 个样本中 9 正 5 负。特征 $X$ 取两个值：$X = a$ 时 8 个样本（6 正 2 负），$X = b$ 时 6 个样本（3 正 3 负）。计算 $H(Y)$、$H(Y \mid X)$、$IG$、$IV(X)$、$GR$。</p>
-<p><em>解答。</em> $H(Y) = -\tfrac{9}{14}\log_2 \tfrac{9}{14} - \tfrac{5}{14}\log_2\tfrac{5}{14} \approx 0.940$。条件熵：$H(Y \mid X=a) = -\tfrac{6}{8}\log_2\tfrac{6}{8} - \tfrac{2}{8}\log_2\tfrac{2}{8} \approx 0.811$，$H(Y \mid X=b) = 1.000$。所以 $H(Y \mid X) = \tfrac{8}{14}(0.811) + \tfrac{6}{14}(1.000) \approx 0.892$，$IG \approx 0.048$。$IV(X) = -\tfrac{8}{14}\log_2\tfrac{8}{14} - \tfrac{6}{14}\log_2\tfrac{6}{14} \approx 0.985$，$GR \approx 0.049$。</p>
-<p><strong>练习 2：基尼 ≈ 熵 / 2。</strong>
-证明二分类下用自然对数时，$H_\mathrm{nat}(p) \approx 2\,G(p) \cdot \ln 2$ 在 $p = \tfrac{1}{2}$ 附近二阶成立。</p>
-<p><em>解答。</em> 把 $H_\mathrm{nat}(p) = -p \ln p - (1-p)\ln(1-p)$ 在 $p_0 = \tfrac{1}{2}$ 处展开。一阶导在 $p_0$ 处为 0（极大值），二阶导为 $-1/p_0 - 1/(1-p_0) = -4$，所以 $H_\mathrm{nat}(p) \approx \ln 2 - 2(p - \tfrac{1}{2})^2$。同理 $G(p) = 2p(1-p) = \tfrac{1}{2} - 2(p - \tfrac{1}{2})^2$。两者二阶项形状一致，常数项相差恰好就是把 nat 转成 bit 的 $\ln 2$。</p>
-<p><strong>练习 3：临界 alpha。</strong>
-某子树 $T_t$ 有 4 个叶，训练误差 0.10；折成单叶后误差 0.25。算 $\alpha_\text{eff}(t)$，并判断 $\alpha = 0.06$ 时是否应剪。</p>
-$$
+$$<p>即特征空间里的一个超平面。一根斜线只需一个节点就能表达，省去几十次轴对齐的"阶梯"。代价是：</p><ul><li>一般情况下找最优 $w$ 是 NP 难的（启发式：线性判别、感知机、软优化）。</li><li>可解释性下降：每个节点变成一个小线性模型，而不再是一个阈值。</li></ul><h2 id=精选-qa>精选 Q&amp;A</h2><p><strong>Q1：决策树为什么能建模非线性？</strong>
+单次分裂确实是线性的，但<em>组合</em>起来的轴对齐分裂构成的是特征空间递归划分上的分段常数函数。任意有界可积的连续函数都能被这样的分段常数在 $L^1$ 上任意逼近——所以树是有界可积函数的万能逼近器。</p><p><strong>Q2：信息增益为什么偏好多值特征？</strong>
+机制上：更细的划分天然更纯。极端情况下每个子节点只有一个样本，子节点熵全为 0，增益等于父节点熵。但这与泛化能力毫无关系。C4.5 用增益率除以 $IV(X)$（本身也是个熵）来抵消这个机械效应。</p><p><strong>Q3：基尼和熵到底哪个好？</strong>
+基本无所谓。两者在 $p = 1/2$ 附近的二阶 Taylor 展开一致，实测里两套树的分裂只在少数节点上不同。基尼略快（无对数），是 sklearn CART 的默认。</p><p><strong>Q4：怎么处理类别特征？</strong>
+三种做法：(i) one-hot，让树对每个指示变量分别分裂；(ii) 多叉分裂，每个取值一个分支（ID3/C4.5 的做法）；(iii) 最优二分——二分类下按"该类别下的目标均值"排序，最优二分一定沿这个序切，把搜索从 $O(2^K)$ 降到 $O(K)$。</p><p><strong>Q5：树能做多输出吗？</strong>
+可以。多输出回归时叶里存均值向量，不纯度取叶内协方差矩阵的迹。多标签分类时叶里存类别概率向量，不纯度取每个标签基尼的平均。sklearn 都原生支持。</p><p><strong>Q6：预剪枝还是后剪枝？</strong>
+预剪枝快，适合原型阶段。后剪枝（代价复杂度）更准，因为它先看到完整的树再决定剪哪里，但代价更高。实际上很多人只调 <code>max_depth</code> 和 <code>min_samples_leaf</code>，因为树通常套在集成里——剩下的方差由集成消化。</p><p><strong>Q7：树为什么对尺度不敏感？</strong>
+分裂只比较 $x_j \leq \tau$——只用到<em>序</em>。对特征做任意单调变换都不会改变树。这也是为什么 one-hot 后无须再做任何预处理。</p><p><strong>Q8：怎么可视化一棵树？</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.tree</span> <span class=kn>import</span> <span class=n>plot_tree</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>matplotlib.pyplot</span> <span class=k>as</span> <span class=nn>plt</span>
+</span></span><span class=line><span class=cl><span class=n>plt</span><span class=o>.</span><span class=n>figure</span><span class=p>(</span><span class=n>figsize</span><span class=o>=</span><span class=p>(</span><span class=mi>20</span><span class=p>,</span> <span class=mi>10</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>plot_tree</span><span class=p>(</span><span class=n>clf</span><span class=p>,</span> <span class=n>feature_names</span><span class=o>=</span><span class=n>iris</span><span class=o>.</span><span class=n>feature_names</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=n>class_names</span><span class=o>=</span><span class=n>iris</span><span class=o>.</span><span class=n>target_names</span><span class=p>,</span> <span class=n>filled</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>rounded</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Q9：树能做特征选择吗？</strong>
+可以——按 <code>feature_importances_</code> 排序、设阈值即可。但单棵树上的排序不稳定。生产中用随机森林或置换重要性。</p><p><strong>Q10：树训练能并行吗？</strong>
+单棵树按节点是串行的。同一节点内不同特征的分裂搜索是天然并行的；森林里不同树彼此独立，也是并行的。XGBoost/LightGBM 还在分裂搜索中用直方图按特征桶做流水线。</p><p><strong>Q11：<code>max_depth</code> 怎么选？</strong>
+表格数据、$n$ 在千量级时一个常用范围是 $3 \leq d \leq 12$。交叉验证。集成里一般用更浅的树——boosting 里典型的是 4–8。</p><p><strong>Q12：树能处理高维数据吗？</strong>
+理论上能，但单节点分裂搜索是 $O(d \cdot n \log n)$，且高维下大部分特征是噪声。$d$ 很大时优先考虑带正则的线性模型，或者每节点做特征采样的随机森林（由 <code>max_features</code> 控制）。</p><h2 id=变体与扩展>变体与扩展</h2><ul><li><strong>代价敏感树。</strong> 把分类错误率换成不对称损失 $L(y, \hat{y})$——在假阴比假阳代价高的场景（医疗诊断、欺诈检测）很有用。</li><li><strong>模糊/软树。</strong> 每次分裂把样本按比例分到左右两边，让训练可微，可以用梯度下降。</li><li><strong>增量树。</strong> <em>Hoeffding 树</em>（Domingos & Hulten, 2000）用 Hoeffding 不等式判断"已经攒够样本可以可信地分裂"，从而支持流式训练。</li><li><strong>斜树。</strong> 上面提到的线性组合分裂（CART-LC、OC1）。</li></ul><h2 id=练习题>练习题</h2><p><strong>练习 1：手算信息增益。</strong>
+14 个样本中 9 正 5 负。特征 $X$ 取两个值：$X = a$ 时 8 个样本（6 正 2 负），$X = b$ 时 6 个样本（3 正 3 负）。计算 $H(Y)$、$H(Y \mid X)$、$IG$、$IV(X)$、$GR$。</p><p><em>解答。</em> $H(Y) = -\tfrac{9}{14}\log_2 \tfrac{9}{14} - \tfrac{5}{14}\log_2\tfrac{5}{14} \approx 0.940$。条件熵：$H(Y \mid X=a) = -\tfrac{6}{8}\log_2\tfrac{6}{8} - \tfrac{2}{8}\log_2\tfrac{2}{8} \approx 0.811$，$H(Y \mid X=b) = 1.000$。所以 $H(Y \mid X) = \tfrac{8}{14}(0.811) + \tfrac{6}{14}(1.000) \approx 0.892$，$IG \approx 0.048$。$IV(X) = -\tfrac{8}{14}\log_2\tfrac{8}{14} - \tfrac{6}{14}\log_2\tfrac{6}{14} \approx 0.985$，$GR \approx 0.049$。</p><p><strong>练习 2：基尼 ≈ 熵 / 2。</strong>
+证明二分类下用自然对数时，$H_\mathrm{nat}(p) \approx 2\,G(p) \cdot \ln 2$ 在 $p = \tfrac{1}{2}$ 附近二阶成立。</p><p><em>解答。</em> 把 $H_\mathrm{nat}(p) = -p \ln p - (1-p)\ln(1-p)$ 在 $p_0 = \tfrac{1}{2}$ 处展开。一阶导在 $p_0$ 处为 0（极大值），二阶导为 $-1/p_0 - 1/(1-p_0) = -4$，所以 $H_\mathrm{nat}(p) \approx \ln 2 - 2(p - \tfrac{1}{2})^2$。同理 $G(p) = 2p(1-p) = \tfrac{1}{2} - 2(p - \tfrac{1}{2})^2$。两者二阶项形状一致，常数项相差恰好就是把 nat 转成 bit 的 $\ln 2$。</p><p><strong>练习 3：临界 alpha。</strong>
+某子树 $T_t$ 有 4 个叶，训练误差 0.10；折成单叶后误差 0.25。算 $\alpha_\text{eff}(t)$，并判断 $\alpha = 0.06$ 时是否应剪。</p>$$
 \alpha_\text{eff} = \frac{0.25 - 0.10}{4 - 1} = 0.05.
-$$<p>
-$\alpha = 0.06 > 0.05$，保留子树的代价已超过收益，应<strong>剪枝</strong>：$R_\alpha(\text{leaf}) = 0.25 + 0.06 = 0.31$ vs $R_\alpha(T_t) = 0.10 + 4(0.06) = 0.34$。</p>
-<p><strong>练习 4：缺失值的增益打折。</strong>
-100 个样本中特征 $X$ 缺失 20 个。在 80 个观测样本上 $H(Y) = 0.94$，$H(Y \mid X) = 0.60$。算修正后的信息增益。</p>
-<p><em>解答。</em> 观测占比为 $80/100 = 0.8$，所以 $IG_\text{adj} = 0.8 \cdot (0.94 - 0.60) = 0.272$ 比特。缺失率翻倍，相同的观测增益就只能拿到一半的信用。</p>
-<p><strong>练习 5：逼近一条对角线要多少次分裂？</strong>
-在 $[0, 1]^2$ 上，二叉树用轴对齐分裂逼近 $y = x$ 到 $L^\infty$ 误差 $\epsilon$ 内最少需要多少次分裂？</p>
-<p><em>解答。</em> 用 $n$ 个等宽 $1/n$ 的矩形阶梯，单步高度 $1/n$，误差 $\Theta(1/n)$。要 $1/n \leq \epsilon$ 即 $n = \lceil 1/\epsilon \rceil$ 块矩形——$\Theta(1/\epsilon)$ 个叶。而斜树用 $y - x \leq 0$ 这一个分裂就能精确表示，0 误差。这正是轴对齐对角线上的代价。</p>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li><strong>Quinlan, J. R.</strong> (1986). Induction of decision trees. <em>Machine Learning</em>, 1(1), 81–106.</li>
-<li><strong>Quinlan, J. R.</strong> (1993). <em>C4.5: Programs for Machine Learning</em>. Morgan Kaufmann.</li>
-<li><strong>Breiman, L., Friedman, J., Stone, C. J., &amp; Olshen, R. A.</strong> (1984). <em>Classification and Regression Trees</em>. Wadsworth.</li>
-<li><strong>Hastie, T., Tibshirani, R., &amp; Friedman, J.</strong> (2009). <em>The Elements of Statistical Learning</em> (2nd ed.). Springer. Chapter 9.</li>
-<li><strong>Mitchell, T. M.</strong> (1997). <em>Machine Learning</em>. McGraw-Hill. Chapter 3.</li>
-<li><strong>Breiman, L.</strong> (2001). Random forests. <em>Machine Learning</em>, 45(1), 5–32.</li>
-<li><strong>Loh, W. Y.</strong> (2011). Classification and regression trees. <em>WIREs Data Mining and Knowledge Discovery</em>, 1(1), 14–23.</li>
-<li><strong>Domingos, P., &amp; Hulten, G.</strong> (2000). Mining high-speed data streams. <em>KDD</em>.</li>
-</ul>
-<p>决策树是当今最强表格学习器的基本构件。把熵、基尼指数和代价复杂度剪枝吃透，是后面理解随机森林、GBDT、XGBoost、LightGBM 的前提——后续章节都直接建立在本章打下的这套机器之上。</p>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>篇</th>
-          <th>主题</th>
-          <th>链接</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>6</td>
-          <td>逻辑回归与分类</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ad-%e9%80%bb%e8%be%91%e5%9b%9e%e5%bd%92%e4%b8%8e%e5%88%86%e7%b1%bb/">&lt;&ndash; 上一篇</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>7</strong></td>
-          <td><strong>决策树</strong></td>
-          <td><em>当前位置</em></td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td>支持向量机</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ab-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/">下一篇 &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>9</td>
-          <td>朴素贝叶斯</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b9%9d-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/">前往 &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>10</td>
-          <td>半朴素贝叶斯与贝叶斯网络</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/">前往 &ndash;&gt;</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#决策树基础">决策树基础</a>
-      <ul>
-        <li><a href="#模型表示">模型表示</a></li>
-        <li><a href="#决策树为什么有用又在哪里失败">决策树为什么有用——又在哪里失败</a></li>
-      </ul>
-    </li>
-    <li><a href="#信息论基础">信息论基础</a>
-      <ul>
-        <li><a href="#熵分布的不确定性">熵：分布的不确定性</a></li>
-        <li><a href="#条件熵与信息增益">条件熵与信息增益</a></li>
-        <li><a href="#信息增益率惩罚多值特征">信息增益率：惩罚多值特征</a></li>
-      </ul>
-    </li>
-    <li><a href="#分裂准则">分裂准则</a>
-      <ul>
-        <li><a href="#基尼指数">基尼指数</a></li>
-        <li><a href="#基尼和熵为什么几乎等价">基尼和熵为什么几乎等价</a></li>
-        <li><a href="#回归树的均方误差准则">回归树的均方误差准则</a></li>
-      </ul>
-    </li>
-    <li><a href="#决策树算法">决策树算法</a>
-      <ul>
-        <li><a href="#id3c45cart-一图看懂">ID3、C4.5、CART 一图看懂</a></li>
-        <li><a href="#贪心递归构建">贪心递归构建</a></li>
-      </ul>
-    </li>
-    <li><a href="#连续特征与缺失值">连续特征与缺失值</a>
-      <ul>
-        <li><a href="#连续特征阈值搜索">连续特征：阈值搜索</a></li>
-        <li><a href="#缺失值">缺失值</a></li>
-        <li><a href="#类别特征">类别特征</a></li>
-      </ul>
-    </li>
-    <li><a href="#把分裂当信息看">把分裂当信息看</a></li>
-    <li><a href="#二维空间中的决策边界">二维空间中的决策边界</a></li>
-    <li><a href="#剪枝控制方差">剪枝：控制方差</a>
-      <ul>
-        <li><a href="#不剪枝为什么会过拟合">不剪枝为什么会过拟合</a></li>
-        <li><a href="#预剪枝">预剪枝</a></li>
-        <li><a href="#后剪枝代价复杂度">后剪枝：代价复杂度</a></li>
-      </ul>
-    </li>
-    <li><a href="#决策树的理论性质">决策树的理论性质</a>
-      <ul>
-        <li><a href="#vc-维">VC 维</a></li>
-        <li><a href="#决策树为什么不稳定">决策树为什么不稳定</a></li>
-        <li><a href="#特征交互与树深">特征交互与树深</a></li>
-      </ul>
-    </li>
-    <li><a href="#实现一份最小可用的-cart">实现：一份最小可用的 CART</a></li>
-    <li><a href="#特征重要性">特征重要性</a></li>
-    <li><a href="#多变量决策树">多变量决策树</a></li>
-    <li><a href="#精选-qa">精选 Q&amp;A</a></li>
-    <li><a href="#变体与扩展">变体与扩展</a></li>
-    <li><a href="#练习题">练习题</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
-      <div class="row"><span>Word count</span><strong>7700</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>$\alpha = 0.06 > 0.05$，保留子树的代价已超过收益，应<strong>剪枝</strong>：$R_\alpha(\text{leaf}) = 0.25 + 0.06 = 0.31$ vs $R_\alpha(T_t) = 0.10 + 4(0.06) = 0.34$。</p><p><strong>练习 4：缺失值的增益打折。</strong>
+100 个样本中特征 $X$ 缺失 20 个。在 80 个观测样本上 $H(Y) = 0.94$，$H(Y \mid X) = 0.60$。算修正后的信息增益。</p><p><em>解答。</em> 观测占比为 $80/100 = 0.8$，所以 $IG_\text{adj} = 0.8 \cdot (0.94 - 0.60) = 0.272$ 比特。缺失率翻倍，相同的观测增益就只能拿到一半的信用。</p><p><strong>练习 5：逼近一条对角线要多少次分裂？</strong>
+在 $[0, 1]^2$ 上，二叉树用轴对齐分裂逼近 $y = x$ 到 $L^\infty$ 误差 $\epsilon$ 内最少需要多少次分裂？</p><p><em>解答。</em> 用 $n$ 个等宽 $1/n$ 的矩形阶梯，单步高度 $1/n$，误差 $\Theta(1/n)$。要 $1/n \leq \epsilon$ 即 $n = \lceil 1/\epsilon \rceil$ 块矩形——$\Theta(1/\epsilon)$ 个叶。而斜树用 $y - x \leq 0$ 这一个分裂就能精确表示，0 误差。这正是轴对齐对角线上的代价。</p><h2 id=参考文献>参考文献</h2><ul><li><strong>Quinlan, J. R.</strong> (1986). Induction of decision trees. <em>Machine Learning</em>, 1(1), 81–106.</li><li><strong>Quinlan, J. R.</strong> (1993). <em>C4.5: Programs for Machine Learning</em>. Morgan Kaufmann.</li><li><strong>Breiman, L., Friedman, J., Stone, C. J., & Olshen, R. A.</strong> (1984). <em>Classification and Regression Trees</em>. Wadsworth.</li><li><strong>Hastie, T., Tibshirani, R., & Friedman, J.</strong> (2009). <em>The Elements of Statistical Learning</em> (2nd ed.). Springer. Chapter 9.</li><li><strong>Mitchell, T. M.</strong> (1997). <em>Machine Learning</em>. McGraw-Hill. Chapter 3.</li><li><strong>Breiman, L.</strong> (2001). Random forests. <em>Machine Learning</em>, 45(1), 5–32.</li><li><strong>Loh, W. Y.</strong> (2011). Classification and regression trees. <em>WIREs Data Mining and Knowledge Discovery</em>, 1(1), 14–23.</li><li><strong>Domingos, P., & Hulten, G.</strong> (2000). Mining high-speed data streams. <em>KDD</em>.</li></ul><p>决策树是当今最强表格学习器的基本构件。把熵、基尼指数和代价复杂度剪枝吃透，是后面理解随机森林、GBDT、XGBoost、LightGBM 的前提——后续章节都直接建立在本章打下的这套机器之上。</p><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>篇</th><th>主题</th><th>链接</th></tr></thead><tbody><tr><td>6</td><td>逻辑回归与分类</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ad-%e9%80%bb%e8%be%91%e5%9b%9e%e5%bd%92%e4%b8%8e%e5%88%86%e7%b1%bb/>&lt;&ndash; 上一篇</a></td></tr><tr><td><strong>7</strong></td><td><strong>决策树</strong></td><td><em>当前位置</em></td></tr><tr><td>8</td><td>支持向量机</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ab-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/>下一篇 &ndash;></a></td></tr><tr><td>9</td><td>朴素贝叶斯</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%b9%9d-%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af/>前往 &ndash;></a></td></tr><tr><td>10</td><td>半朴素贝叶斯与贝叶斯网络</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/>前往 &ndash;></a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#决策树基础>决策树基础</a><ul><li><a href=#模型表示>模型表示</a></li><li><a href=#决策树为什么有用又在哪里失败>决策树为什么有用——又在哪里失败</a></li></ul></li><li><a href=#信息论基础>信息论基础</a><ul><li><a href=#熵分布的不确定性>熵：分布的不确定性</a></li><li><a href=#条件熵与信息增益>条件熵与信息增益</a></li><li><a href=#信息增益率惩罚多值特征>信息增益率：惩罚多值特征</a></li></ul></li><li><a href=#分裂准则>分裂准则</a><ul><li><a href=#基尼指数>基尼指数</a></li><li><a href=#基尼和熵为什么几乎等价>基尼和熵为什么几乎等价</a></li><li><a href=#回归树的均方误差准则>回归树的均方误差准则</a></li></ul></li><li><a href=#决策树算法>决策树算法</a><ul><li><a href=#id3c45cart-一图看懂>ID3、C4.5、CART 一图看懂</a></li><li><a href=#贪心递归构建>贪心递归构建</a></li></ul></li><li><a href=#连续特征与缺失值>连续特征与缺失值</a><ul><li><a href=#连续特征阈值搜索>连续特征：阈值搜索</a></li><li><a href=#缺失值>缺失值</a></li><li><a href=#类别特征>类别特征</a></li></ul></li><li><a href=#把分裂当信息看>把分裂当信息看</a></li><li><a href=#二维空间中的决策边界>二维空间中的决策边界</a></li><li><a href=#剪枝控制方差>剪枝：控制方差</a><ul><li><a href=#不剪枝为什么会过拟合>不剪枝为什么会过拟合</a></li><li><a href=#预剪枝>预剪枝</a></li><li><a href=#后剪枝代价复杂度>后剪枝：代价复杂度</a></li></ul></li><li><a href=#决策树的理论性质>决策树的理论性质</a><ul><li><a href=#vc-维>VC 维</a></li><li><a href=#决策树为什么不稳定>决策树为什么不稳定</a></li><li><a href=#特征交互与树深>特征交互与树深</a></li></ul></li><li><a href=#实现一份最小可用的-cart>实现：一份最小可用的 CART</a></li><li><a href=#特征重要性>特征重要性</a></li><li><a href=#多变量决策树>多变量决策树</a></li><li><a href=#精选-qa>精选 Q&amp;A</a></li><li><a href=#变体与扩展>变体与扩展</a></li><li><a href=#练习题>练习题</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>16 min</strong></div><div class=row><span>Word count</span><strong>7626</strong></div><div class=row><span>Published</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

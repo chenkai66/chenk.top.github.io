@@ -1,853 +1,233 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>强化学习（四）：探索策略与好奇心驱动学习 · Chen Kai Blog</title>
-<meta name="description" content="在几乎没有奖励反馈的环境中，智能体如何发现回报？从计数型方法到 ICM、RND、NGU——好奇心驱动探索的完整脉络与工程实践。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="强化学习（四）：探索策略与好奇心驱动学习">
-<meta property="og:description" content="在几乎没有奖励反馈的环境中，智能体如何发现回报？从计数型方法到 ICM、RND、NGU——好奇心驱动探索的完整脉络与工程实践。">
-<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
-         · Chapter 4
-      </div>
-      <h1>强化学习（四）：探索策略与好奇心驱动学习</h1>
-      <p class="deck">在几乎没有奖励反馈的环境中，智能体如何发现回报？从计数型方法到 ICM、RND、NGU——好奇心驱动探索的完整脉络与工程实践。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-08-16">August 16, 2025</time> · 16 min read · 7700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5/" class="tag">#探索策略</a><a href="/zh/tags/%E5%86%85%E5%9C%A8%E5%A5%96%E5%8A%B1/" class="tag">#内在奖励</a><a href="/zh/tags/%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/" class="tag">#好奇心驱动学习</a><a href="/zh/tags/icm/" class="tag">#ICM</a><a href="/zh/tags/rnd/" class="tag">#RND</a><a href="/zh/tags/ngu/" class="tag">#NGU</a><a href="/zh/tags/%E8%AE%A1%E6%95%B0%E5%9E%8B%E6%8E%A2%E7%B4%A2/" class="tag">#计数型探索</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>把一个新出生的 Agent 丢进 Atari 游戏《蒙特祖玛的复仇》。要拿到游戏中的第一分，它必须向右走、跳过头骨、抓住绳子、再跳到台子上、最后捡起钥匙——大约 <strong>一百个连续动作不能错</strong>。在钥匙到手之前，环境给出的奖励一直是 0。</p>
-<p>按教科书的标准 DQN，$\varepsilon = 0.1$，凑齐这一百个动作的概率大约是 $0.1^{100} \approx 10^{-100}$。也就是说：<strong>普通 DQN 在这局游戏上永远是 0 分</strong>——不是&quot;分数低&quot;，而是字面意义的零分，从训练开始到训练结束。</p>
-<p>这就是 <strong>稀疏奖励问题（Sparse Reward Problem）</strong>。它揭示了一个残酷的事实：再漂亮的 Bellman 备份，碰不到非零奖励都白搭。深度强化学习的算法上限，几乎完全由它的探索策略决定。本文要讲的，就是从最朴素的随机探索一路走到 <strong>好奇心驱动学习（Curiosity-Driven Learning）</strong> 的完整路径——让 Agent 自己给自己造奖励，从而对&quot;新东西&quot;产生兴趣。</p>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>为什么 $\varepsilon$-greedy、Boltzmann、甚至 UCB 在高维环境中都会失效</li>
-<li><strong>计数型方法（count-based）</strong> 与基于密度模型的伪计数（pseudo-count）</li>
-<li><strong>ICM（内在好奇心模块）</strong>：在学到的特征空间中以预测误差作为新奇性信号</li>
-<li><strong>RND（随机网络蒸馏）</strong>：能在工业级环境中真正 work 的最简单的好奇心信号</li>
-<li><strong>NGU（Never Give Up）</strong>：用情景记忆解决&quot;需要反复回到同一状态&quot;的任务</li>
-<li>PPO + 好奇心的工程实战配方、超参与常见踩坑</li>
-</ul>
-<p><strong>前置阅读：</strong> <a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">第 1-3 部分</a>
-（MDP、DQN、Policy Gradient、PPO 基础）。</p>
-<hr>
-<h2 id="1-探索为什么这么难">1. 探索为什么这么难</h2>
-<h3 id="11-经典-ε-greedy朴素到一眼能看穿的弱点">1.1 经典 ε-greedy：朴素到一眼能看穿的弱点</h3>
-<p>每本入门书都会先讲 <strong>$\varepsilon$-greedy</strong>：以概率 $\varepsilon$ 随机选一个动作，否则选当前 Q 值最大的那个。公式不难，难的是 <strong>schedule</strong>：训练越久，$\varepsilon$ 应该怎么衰减？</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig1_epsilon_greedy_decay.png" alt="ε-greedy 三种衰减策略与对应的动作概率分布" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图左侧是三种最常用的 schedule（线性、指数、阶梯式），右侧是线性衰减下、4 个可选动作的实际概率构成。三个值得记住的细节：</p>
-<ol>
-<li><strong>不同的衰减曲线对应非常不同的&quot;探索预算&quot;。</strong> 指数衰减把绝大多数随机动作集中在前 20k 步；线性衰减更均匀；阶梯式更像是给 Agent 排了一个粗粒度的课程。</li>
-<li><strong>即便 $\varepsilon = 0.05$，仍然有约 1/4 的&quot;随机动作&quot;恰好打到了 greedy 动作上</strong>（$1 - \varepsilon + \varepsilon/|\mathcal{A}|$）。很多人误以为 5% 的 ε 就意味着 5% 的 off-policy 行为，其实并不是。</li>
-<li><strong>整个过程没有任何一处看了状态。</strong> 探索仅仅是训练步数的函数。这正是它最大的弱点，也是后面所有方法要攻破的地方。</li>
-</ol>
-<p>数学定义为：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>强化学习（四）：探索策略与好奇心驱动学习 · Chen Kai Blog</title>
+<meta name=description content="在几乎没有奖励反馈的环境中，智能体如何发现回报？从计数型方法到 ICM、RND、NGU——好奇心驱动探索的完整脉络与工程实践。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/><meta property="og:type" content="article"><meta property="og:title" content="强化学习（四）：探索策略与好奇心驱动学习"><meta property="og:description" content="在几乎没有奖励反馈的环境中，智能体如何发现回报？从计数型方法到 ICM、RND、NGU——好奇心驱动探索的完整脉络与工程实践。"><meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>强化学习</a>
+· Chapter 4</div><h1>强化学习（四）：探索策略与好奇心驱动学习</h1><p class=deck>在几乎没有奖励反馈的环境中，智能体如何发现回报？从计数型方法到 ICM、RND、NGU——好奇心驱动探索的完整脉络与工程实践。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-08-16>August 16, 2025</time> · 16 min read · 7617 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/ class=tag>#强化学习</a><a href=/zh/tags/%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5/ class=tag>#探索策略</a><a href=/zh/tags/%E5%86%85%E5%9C%A8%E5%A5%96%E5%8A%B1/ class=tag>#内在奖励</a><a href=/zh/tags/%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/ class=tag>#好奇心驱动学习</a><a href=/zh/tags/icm/ class=tag>#ICM</a><a href=/zh/tags/rnd/ class=tag>#RND</a><a href=/zh/tags/ngu/ class=tag>#NGU</a><a href=/zh/tags/%E8%AE%A1%E6%95%B0%E5%9E%8B%E6%8E%A2%E7%B4%A2/ class=tag>#计数型探索</a></div></div></header><div class=prose><p>把一个新出生的 Agent 丢进 Atari 游戏《蒙特祖玛的复仇》。要拿到游戏中的第一分，它必须向右走、跳过头骨、抓住绳子、再跳到台子上、最后捡起钥匙——大约 <strong>一百个连续动作不能错</strong>。在钥匙到手之前，环境给出的奖励一直是 0。</p><p>按教科书的标准 DQN，$\varepsilon = 0.1$，凑齐这一百个动作的概率大约是 $0.1^{100} \approx 10^{-100}$。也就是说：<strong>普通 DQN 在这局游戏上永远是 0 分</strong>——不是"分数低"，而是字面意义的零分，从训练开始到训练结束。</p><p>这就是 <strong>稀疏奖励问题（Sparse Reward Problem）</strong>。它揭示了一个残酷的事实：再漂亮的 Bellman 备份，碰不到非零奖励都白搭。深度强化学习的算法上限，几乎完全由它的探索策略决定。本文要讲的，就是从最朴素的随机探索一路走到 <strong>好奇心驱动学习（Curiosity-Driven Learning）</strong> 的完整路径——让 Agent 自己给自己造奖励，从而对"新东西"产生兴趣。</p><h2 id=你将学到什么>你将学到什么</h2><ul><li>为什么 $\varepsilon$-greedy、Boltzmann、甚至 UCB 在高维环境中都会失效</li><li><strong>计数型方法（count-based）</strong> 与基于密度模型的伪计数（pseudo-count）</li><li><strong>ICM（内在好奇心模块）</strong>：在学到的特征空间中以预测误差作为新奇性信号</li><li><strong>RND（随机网络蒸馏）</strong>：能在工业级环境中真正 work 的最简单的好奇心信号</li><li><strong>NGU（Never Give Up）</strong>：用情景记忆解决"需要反复回到同一状态"的任务</li><li>PPO + 好奇心的工程实战配方、超参与常见踩坑</li></ul><p><strong>前置阅读：</strong> <a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/>第 1-3 部分</a>
+（MDP、DQN、Policy Gradient、PPO 基础）。</p><hr><h2 id=1-探索为什么这么难>1. 探索为什么这么难</h2><h3 id=11-经典-ε-greedy朴素到一眼能看穿的弱点>1.1 经典 ε-greedy：朴素到一眼能看穿的弱点</h3><p>每本入门书都会先讲 <strong>$\varepsilon$-greedy</strong>：以概率 $\varepsilon$ 随机选一个动作，否则选当前 Q 值最大的那个。公式不难，难的是 <strong>schedule</strong>：训练越久，$\varepsilon$ 应该怎么衰减？</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig1_epsilon_greedy_decay.png alt="ε-greedy 三种衰减策略与对应的动作概率分布" loading=lazy decoding=async></figure></p><p>上图左侧是三种最常用的 schedule（线性、指数、阶梯式），右侧是线性衰减下、4 个可选动作的实际概率构成。三个值得记住的细节：</p><ol><li><strong>不同的衰减曲线对应非常不同的"探索预算"。</strong> 指数衰减把绝大多数随机动作集中在前 20k 步；线性衰减更均匀；阶梯式更像是给 Agent 排了一个粗粒度的课程。</li><li><strong>即便 $\varepsilon = 0.05$，仍然有约 1/4 的"随机动作"恰好打到了 greedy 动作上</strong>（$1 - \varepsilon + \varepsilon/|\mathcal{A}|$）。很多人误以为 5% 的 ε 就意味着 5% 的 off-policy 行为，其实并不是。</li><li><strong>整个过程没有任何一处看了状态。</strong> 探索仅仅是训练步数的函数。这正是它最大的弱点，也是后面所有方法要攻破的地方。</li></ol><p>数学定义为：</p>$$
 \pi_\varepsilon(a \mid s) = \begin{cases}
 1 - \varepsilon + \dfrac{\varepsilon}{|\mathcal{A}|} & a = \arg\max_{a'} Q(s, a') \\[4pt]
 \dfrac{\varepsilon}{|\mathcal{A}|} & \text{其他}
 \end{cases}
-$$<h3 id="12-boltzmannsoftmax探索略有改善的同门兄弟">1.2 Boltzmann（softmax）探索：略有改善的同门兄弟</h3>
-<p>不再是粗暴的&quot;全有或全无&quot;，<strong>Boltzmann</strong> 把动作概率按 Q 值加权：</p>
-$$
+$$<h3 id=12-boltzmannsoftmax探索略有改善的同门兄弟>1.2 Boltzmann（softmax）探索：略有改善的同门兄弟</h3><p>不再是粗暴的"全有或全无"，<strong>Boltzmann</strong> 把动作概率按 Q 值加权：</p>$$
 \pi_\tau(a \mid s) = \frac{\exp(Q(s,a)/\tau)}{\sum_{a'} \exp(Q(s,a')/\tau)}.
-$$<p>温度 $\tau$ 取代了 $\varepsilon$：$\tau \to 0$ 时策略变 greedy，$\tau \to \infty$ 时变成均匀分布。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig2_boltzmann_softmax.png" alt="不同温度下的 Boltzmann 动作分布与策略熵" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>右侧那张图画了策略熵 $H(\pi_\tau) = -\sum_a \pi_\tau(a) \log \pi_\tau(a)$ 随温度的变化。注意它<strong>饱和得非常快</strong>：$\tau = 2$ 时已经达到了最大熵 $\ln |\mathcal{A}|$ 的 90%。这其实就是 PPO、SAC 中常用的 <strong>熵正则项（entropy bonus）</strong> 的本质——把 Boltzmann 探索包装成了一项加在策略网络上的正则。</p>
-<p>但 Boltzmann 与 $\varepsilon$-greedy 共享同一个致命缺陷：它根据 <strong>当前的 Q 估计</strong> 分配概率，而完全不参考 Agent 已经在哪些状态附近转悠过多少次。两个 Agent 从未见过的状态，依然会得到一样的 softmax。</p>
-<h3 id="13-ucb理论漂亮规模上栽跟头">1.3 UCB：理论漂亮，规模上栽跟头</h3>
-<p>在多臂赌博机问题里，<strong>UCB1</strong> 准则是出了名的&quot;接近最优&quot;：</p>
-$$
+$$<p>温度 $\tau$ 取代了 $\varepsilon$：$\tau \to 0$ 时策略变 greedy，$\tau \to \infty$ 时变成均匀分布。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig2_boltzmann_softmax.png alt="不同温度下的 Boltzmann 动作分布与策略熵" loading=lazy decoding=async></figure></p><p>右侧那张图画了策略熵 $H(\pi_\tau) = -\sum_a \pi_\tau(a) \log \pi_\tau(a)$ 随温度的变化。注意它<strong>饱和得非常快</strong>：$\tau = 2$ 时已经达到了最大熵 $\ln |\mathcal{A}|$ 的 90%。这其实就是 PPO、SAC 中常用的 <strong>熵正则项（entropy bonus）</strong> 的本质——把 Boltzmann 探索包装成了一项加在策略网络上的正则。</p><p>但 Boltzmann 与 $\varepsilon$-greedy 共享同一个致命缺陷：它根据 <strong>当前的 Q 估计</strong> 分配概率，而完全不参考 Agent 已经在哪些状态附近转悠过多少次。两个 Agent 从未见过的状态，依然会得到一样的 softmax。</p><h3 id=13-ucb理论漂亮规模上栽跟头>1.3 UCB：理论漂亮，规模上栽跟头</h3><p>在多臂赌博机问题里，<strong>UCB1</strong> 准则是出了名的"接近最优"：</p>$$
 a_t = \arg\max_a \left[ \hat Q(a) + c \sqrt{\frac{\ln t}{N(a)}} \right].
-$$<p>第一项负责利用，第二项负责探索——拉过越少次数的臂，得到的不确定性奖励越大。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig3_ucb_bandit.png" alt="5 臂赌博机上 UCB1 的得分构成与拉臂统计" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>观察上面这张图。$t = 50$ 时，橙色的 UCB bonus 占主导，所有臂看起来都&quot;值得一试&quot;，拉臂数被均匀地分散开。$t = 1000$ 时，最优臂 3 已经被拉了几百次，它的 bonus 已经掉得很低，但其它臂的 bonus 仍较高，于是算法稳定在&quot;主要拉 3，偶尔抽查其它&quot;的模式上。这才是真正合理的探索——它<strong>由数据驱动</strong>，而不是由一个写死的 schedule 决定。</p>
-<p>那为什么我们不在所有任务里都用 UCB？<strong>因为 $N(s, a)$ 在高维状态空间里毫无意义。</strong> Atari 一帧画面是 $84 \times 84 \times 4 = 28{,}224$ 个像素，Agent 几乎不可能见到完全相同的两帧。$N(s, a) = 1$ 对任何遇到的 $(s, a)$ 都成立，这个 bonus 项就退化成一个常数。</p>
-<h3 id="14-thompson-采样贝叶斯版本的-ucb">1.4 Thompson 采样：贝叶斯版本的 UCB</h3>
-<p>UCB 的近亲是 <strong>Thompson 采样</strong>：为每个臂维护一个奖励参数的后验，每一步从后验里抽一个&quot;假想世界&quot;，按照在这个世界里最优的动作执行。Bernoulli 臂 + Beta 先验时，更新规则极其简单——成功就 $\alpha + 1$，失败就 $\beta + 1$。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig4_thompson_sampling.png" alt="3 个 Bernoulli 臂经过 10、50、300 次拉臂后的 Beta 后验" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>从图里可以看到后验在向真实奖励率（虚线）逐渐&quot;收紧&quot;。10 次后算法几乎没下结论；300 次时，最优臂 2（$\mu = 0.75$）的后验已经是一根细峰，而表现差的臂仍然保留了足够的方差，不会被立刻排除。Thompson 采样在实践中往往与 UCB 持平甚至更好，<strong>推荐系统中的 contextual bandit 几乎是它的天下</strong>。但要把它原封不动地搬到深度 RL，会遇到和 UCB 同样的问题：在 $10^{60}$ 维状态空间里维护一个后验是不现实的；<strong>Bootstrapped DQN</strong>、<strong>Bayes by Backprop</strong> 等贝叶斯深度 RL 方法只能部分还原这种思想。</p>
-<h3 id="15-深度-rl-中探索难的四个维度">1.5 深度 RL 中&quot;探索难&quot;的四个维度</h3>
-<p>把上面的观察拼起来，可以总结出深度 RL 里探索难度同时来自四个方向：</p>
-<ol>
-<li><strong>奖励稀疏</strong>：成百上千个正确动作之后才有一次反馈，随机探索是大海捞针。</li>
-<li><strong>状态空间组合爆炸</strong>：$256^{28224}$ 种 Atari 帧，根本不可能&quot;统计访问次数&quot;。</li>
-<li><strong>局部最优陷阱</strong>：死胡同里那枚硬币会让 Agent 永远忘记还有一道更难的门后藏着大奖。</li>
-<li><strong>噪声电视（Noisy-TV）问题</strong>：如果用朴素的&quot;新奇性&quot;信号，房间里一台播放静态雪花的电视会被永远当作&quot;新内容&quot;，Agent 会盯着它看到训练结束。</li>
-</ol>
-<p>现代探索方法的核心思路转变是：<strong>不再把探索当成训练步数的函数，而是当成 Agent 自身经验的函数。</strong> 婴儿就是这样——他们玩的总是新玩具，不是旧的。</p>
-<hr>
-<h2 id="2-好奇心的统一框架内在奖励">2. 好奇心的统一框架：内在奖励</h2>
-<p>接下来要讲的所有现代方法，都遵循同一个套路——在环境奖励之上加一个 <strong>内在奖励</strong> $r^{\text{int}}_t$：</p>
-$$
+$$<p>第一项负责利用，第二项负责探索——拉过越少次数的臂，得到的不确定性奖励越大。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig3_ucb_bandit.png alt="5 臂赌博机上 UCB1 的得分构成与拉臂统计" loading=lazy decoding=async></figure></p><p>观察上面这张图。$t = 50$ 时，橙色的 UCB bonus 占主导，所有臂看起来都"值得一试"，拉臂数被均匀地分散开。$t = 1000$ 时，最优臂 3 已经被拉了几百次，它的 bonus 已经掉得很低，但其它臂的 bonus 仍较高，于是算法稳定在"主要拉 3，偶尔抽查其它"的模式上。这才是真正合理的探索——它<strong>由数据驱动</strong>，而不是由一个写死的 schedule 决定。</p><p>那为什么我们不在所有任务里都用 UCB？<strong>因为 $N(s, a)$ 在高维状态空间里毫无意义。</strong> Atari 一帧画面是 $84 \times 84 \times 4 = 28{,}224$ 个像素，Agent 几乎不可能见到完全相同的两帧。$N(s, a) = 1$ 对任何遇到的 $(s, a)$ 都成立，这个 bonus 项就退化成一个常数。</p><h3 id=14-thompson-采样贝叶斯版本的-ucb>1.4 Thompson 采样：贝叶斯版本的 UCB</h3><p>UCB 的近亲是 <strong>Thompson 采样</strong>：为每个臂维护一个奖励参数的后验，每一步从后验里抽一个"假想世界"，按照在这个世界里最优的动作执行。Bernoulli 臂 + Beta 先验时，更新规则极其简单——成功就 $\alpha + 1$，失败就 $\beta + 1$。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig4_thompson_sampling.png alt="3 个 Bernoulli 臂经过 10、50、300 次拉臂后的 Beta 后验" loading=lazy decoding=async></figure></p><p>从图里可以看到后验在向真实奖励率（虚线）逐渐"收紧"。10 次后算法几乎没下结论；300 次时，最优臂 2（$\mu = 0.75$）的后验已经是一根细峰，而表现差的臂仍然保留了足够的方差，不会被立刻排除。Thompson 采样在实践中往往与 UCB 持平甚至更好，<strong>推荐系统中的 contextual bandit 几乎是它的天下</strong>。但要把它原封不动地搬到深度 RL，会遇到和 UCB 同样的问题：在 $10^{60}$ 维状态空间里维护一个后验是不现实的；<strong>Bootstrapped DQN</strong>、<strong>Bayes by Backprop</strong> 等贝叶斯深度 RL 方法只能部分还原这种思想。</p><h3 id=15-深度-rl-中探索难的四个维度>1.5 深度 RL 中"探索难"的四个维度</h3><p>把上面的观察拼起来，可以总结出深度 RL 里探索难度同时来自四个方向：</p><ol><li><strong>奖励稀疏</strong>：成百上千个正确动作之后才有一次反馈，随机探索是大海捞针。</li><li><strong>状态空间组合爆炸</strong>：$256^{28224}$ 种 Atari 帧，根本不可能"统计访问次数"。</li><li><strong>局部最优陷阱</strong>：死胡同里那枚硬币会让 Agent 永远忘记还有一道更难的门后藏着大奖。</li><li><strong>噪声电视（Noisy-TV）问题</strong>：如果用朴素的"新奇性"信号，房间里一台播放静态雪花的电视会被永远当作"新内容"，Agent 会盯着它看到训练结束。</li></ol><p>现代探索方法的核心思路转变是：<strong>不再把探索当成训练步数的函数，而是当成 Agent 自身经验的函数。</strong> 婴儿就是这样——他们玩的总是新玩具，不是旧的。</p><hr><h2 id=2-好奇心的统一框架内在奖励>2. 好奇心的统一框架：内在奖励</h2><p>接下来要讲的所有现代方法，都遵循同一个套路——在环境奖励之上加一个 <strong>内在奖励</strong> $r^{\text{int}}_t$：</p>$$
 r^{\text{total}}_t = r^{\text{ext}}_t + \beta \cdot r^{\text{int}}_t.
-$$<p>然后用任意你喜欢的 RL 算法（DQN、PPO、IMPALA…）在 $r^{\text{total}}$ 上训练。所有的设计精力，都集中在一个问题上：</p>
-<blockquote>
-<p><strong>如何定义 $r^{\text{int}}_t$，让它对真正新奇的体验给出大值，对老生常谈给出小值——而且不能要求我们去数像素？</strong></p>
-</blockquote>
-<p>下面的三个答案，越往后越优雅。</p>
-<hr>
-<h2 id="3-计数型方法计数还能用的时候">3. 计数型方法：计数还能用的时候</h2>
-<p>最干净的&quot;新奇性&quot;定义就是&quot;我访问得越少，越新奇&quot;。在表格 MDP 上，这给出 MBIE-EB 奖励：</p>
-$$
+$$<p>然后用任意你喜欢的 RL 算法（DQN、PPO、IMPALA…）在 $r^{\text{total}}$ 上训练。所有的设计精力，都集中在一个问题上：</p><blockquote><p><strong>如何定义 $r^{\text{int}}_t$，让它对真正新奇的体验给出大值，对老生常谈给出小值——而且不能要求我们去数像素？</strong></p></blockquote><p>下面的三个答案，越往后越优雅。</p><hr><h2 id=3-计数型方法计数还能用的时候>3. 计数型方法：计数还能用的时候</h2><p>最干净的"新奇性"定义就是"我访问得越少，越新奇"。在表格 MDP 上，这给出 MBIE-EB 奖励：</p>$$
 r^{\text{int}}(s) = \frac{\beta}{\sqrt{N(s)}},
-$$<p>它有与 UCB 一致的理论保证。问题在于，对像素环境而言，几乎所有状态都满足 $N(s) = 0$。</p>
-<p>Bellemare 等（2016）用一个密度模型 $\rho(s)$ 推出&quot;伪计数（pseudo-count）&ldquo;绕开了这个困难：</p>
-$$
+$$<p>它有与 UCB 一致的理论保证。问题在于，对像素环境而言，几乎所有状态都满足 $N(s) = 0$。</p><p>Bellemare 等（2016）用一个密度模型 $\rho(s)$ 推出"伪计数（pseudo-count）&ldquo;绕开了这个困难：</p>$$
 \hat N(s) = \frac{\rho(s)\bigl(1 - \rho_{\text{new}}(s)\bigr)}{\rho_{\text{new}}(s) - \rho(s)},
-$$<p>其中 $\rho_{\text{new}}$ 是把 $s$ 多观察一次后模型的密度。它假装 $\rho$ 来自一个巨大的计数器、然后把计数器反推出来。配合强力的密度模型（PixelCNN 等），它在《蒙特祖玛的复仇》上拿到了第一个非平凡的分数。但密度模型训练昂贵且脆弱，<strong>噪声电视问题</strong> 仍然完全没解决——随机像素噪声密度低、被估计为高新奇性、被疯狂奖励。后来主流逐渐放弃了 pseudo-count，转向更鲁棒的&quot;预测误差&quot;思路。</p>
-<hr>
-<h2 id="4-icm以预测误差衡量好奇心">4. ICM：以预测误差衡量好奇心</h2>
-<p><strong>Intrinsic Curiosity Module（ICM）</strong>（Pathak 等, ICML 2017）把&quot;我有没有见过这个状态&quot;换成了&quot;我能不能预测接下来会发生什么&rdquo;。直觉是：</p>
-<ul>
-<li>如果环境对我动作的反应是 <strong>可预测的</strong>，说明我已经懂了——内在奖励小。</li>
-<li>如果反应让我 <strong>吃惊</strong>，说明我的模型还不能解释它——内在奖励大。</li>
-</ul>
-<p>但直接预测原始像素不行——电视雪花永远不可预测、却毫无意义。ICM 的关键操作是：<strong>在一个学出来的特征空间 $\phi$ 里做预测</strong>，而这个特征空间只编码 <strong>Agent 自身动作能影响到的信息</strong>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig5_icm_rnd_architecture.png" alt="ICM 与 RND 架构对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图左半部分展示了 ICM 的三个组件：</p>
-<ol>
-<li><strong>编码器 $\phi$</strong>（CNN）把原始观测 $s_t$ 映射到特征向量 $\phi(s_t)$。</li>
-<li><strong>前向模型 $\hat f$</strong> 根据当前特征和动作预测下一刻特征：$\hat\phi_{t+1} = \hat f(\phi(s_t), a_t)$。它的平方误差
+$$<p>其中 $\rho_{\text{new}}$ 是把 $s$ 多观察一次后模型的密度。它假装 $\rho$ 来自一个巨大的计数器、然后把计数器反推出来。配合强力的密度模型（PixelCNN 等），它在《蒙特祖玛的复仇》上拿到了第一个非平凡的分数。但密度模型训练昂贵且脆弱，<strong>噪声电视问题</strong> 仍然完全没解决——随机像素噪声密度低、被估计为高新奇性、被疯狂奖励。后来主流逐渐放弃了 pseudo-count，转向更鲁棒的"预测误差"思路。</p><hr><h2 id=4-icm以预测误差衡量好奇心>4. ICM：以预测误差衡量好奇心</h2><p><strong>Intrinsic Curiosity Module（ICM）</strong>（Pathak 等, ICML 2017）把"我有没有见过这个状态"换成了"我能不能预测接下来会发生什么&rdquo;。直觉是：</p><ul><li>如果环境对我动作的反应是 <strong>可预测的</strong>，说明我已经懂了——内在奖励小。</li><li>如果反应让我 <strong>吃惊</strong>，说明我的模型还不能解释它——内在奖励大。</li></ul><p>但直接预测原始像素不行——电视雪花永远不可预测、却毫无意义。ICM 的关键操作是：<strong>在一个学出来的特征空间 $\phi$ 里做预测</strong>，而这个特征空间只编码 <strong>Agent 自身动作能影响到的信息</strong>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig5_icm_rnd_architecture.png alt="ICM 与 RND 架构对比" loading=lazy decoding=async></figure></p><p>上图左半部分展示了 ICM 的三个组件：</p><ol><li><strong>编码器 $\phi$</strong>（CNN）把原始观测 $s_t$ 映射到特征向量 $\phi(s_t)$。</li><li><strong>前向模型 $\hat f$</strong> 根据当前特征和动作预测下一刻特征：$\hat\phi_{t+1} = \hat f(\phi(s_t), a_t)$。它的平方误差
 $$r^{\text{int}}_t = \eta \,\bigl\| \hat\phi_{t+1} - \phi(s_{t+1}) \bigr\|^2$$
-<strong>就是</strong> 内在奖励。</li>
-<li><strong>逆向模型 $g$</strong> 反过来，根据连续两帧的特征预测动作：$\hat a_t = g(\phi(s_t), \phi(s_{t+1}))$，它的损失会回传到 $\phi$ 上。</li>
-</ol>
-<p>第三步是关键。逆向模型只有在 $\phi$ 保留了&quot;两帧之间会随动作变化的信息&quot;时才能成功；与此无关的背景噪点、电视雪花等都会被 $\phi$ 自动丢掉，因为它们对预测 $a_t$ 没有帮助。这些被丢掉的东西自然也就不会被前向模型当成&quot;新奇性&quot;。</p>
-<h3 id="参考实现">参考实现</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ICM</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;内在好奇心模块（Pathak 等, 2017）。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs_channels</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">feature_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 特征编码器（Atari 风格 CNN）</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">obs_channels</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 前向模型：(phi_t, a_t) -&gt; phi_{t+1}</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">forward_model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span> <span class="o">+</span> <span class="n">action_dim</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 逆向模型：(phi_t, phi_{t+1}) -&gt; a_t</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">inverse_model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">feature_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">next_obs</span><span class="p">,</span> <span class="n">action_onehot</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">phi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">phi_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">next_obs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 前向预测误差 = 内在奖励</span>
-</span></span><span class="line"><span class="cl">        <span class="n">phi_next_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_model</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">phi</span><span class="p">,</span> <span class="n">action_onehot</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">forward_err</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">phi_next_pred</span><span class="p">,</span> <span class="n">phi_next</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;none&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">intrinsic_reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">*</span> <span class="n">forward_err</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 逆向模型损失 —— 强迫编码器只保留与动作相关的信息</span>
-</span></span><span class="line"><span class="cl">        <span class="n">action_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inverse_model</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">phi</span><span class="p">,</span> <span class="n">phi_next</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">inverse_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">action_pred</span><span class="p">,</span> <span class="n">action_onehot</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">intrinsic_reward</span><span class="p">,</span> <span class="n">forward_err</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">inverse_loss</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="实测效果">实测效果</h3>
-<p>《蒙特祖玛的复仇》上，ICM + A3C 在 25M 帧内能跑到约 <strong>6,600 分</strong>（vanilla DQN 永远是 0）。更惊人的是：把外在奖励完全去掉，<strong>只留下 ICM 的内在奖励</strong>，Agent 仍然能学会在前几个房间里穿梭、躲避敌人、捡起钥匙——只因为做这些事能让它的前向模型保持忙碌。</p>
-<h3 id="icm-的局限">ICM 的局限</h3>
-<ul>
-<li><strong>依赖环境的确定性。</strong> 如果环境里有真正随机的&quot;老虎机&quot;，前向模型永远预测不了它，Agent 会沉迷于拉杆。逆向模型能过滤&quot;动作无关&quot;的随机性，但&quot;动作相关&quot;的随机性依然致命。</li>
-<li><strong>算力开销。</strong> 三套额外网络（编码器、前向、逆向），训练成本通常是 vanilla PPO 的 2 倍左右。</li>
-</ul>
-<hr>
-<h2 id="5-rnd简单到不可思议的替代方案">5. RND：简单到不可思议的替代方案</h2>
-<p><strong>Random Network Distillation（随机网络蒸馏，RND）</strong>（Burda 等, ICLR 2019）把 ICM 的整套前向/逆向机器换成一句话：</p>
-<blockquote>
-<p><em>把一个固定的随机网络蒸馏出来，预测器误差大的地方，就是 Agent 还没访问够的地方。</em></p>
-</blockquote>
-<p>具体做法（架构图右半部分）：</p>
-<ul>
-<li><strong>目标网络 $f$</strong>：随机权重，<strong>整个训练过程都不更新</strong>。</li>
-<li><strong>预测网络 $\hat f$</strong>：用梯度下降学着把观测 $s$ 上的输出 $\hat f(s)$ 拟合到 $f(s)$。</li>
-</ul>
-<p>内在奖励就是预测残差：</p>
-$$
+<strong>就是</strong> 内在奖励。</li><li><strong>逆向模型 $g$</strong> 反过来，根据连续两帧的特征预测动作：$\hat a_t = g(\phi(s_t), \phi(s_{t+1}))$，它的损失会回传到 $\phi$ 上。</li></ol><p>第三步是关键。逆向模型只有在 $\phi$ 保留了"两帧之间会随动作变化的信息"时才能成功；与此无关的背景噪点、电视雪花等都会被 $\phi$ 自动丢掉，因为它们对预测 $a_t$ 没有帮助。这些被丢掉的东西自然也就不会被前向模型当成"新奇性"。</p><h3 id=参考实现>参考实现</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ICM</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;内在好奇心模块（Pathak 等, 2017）。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obs_channels</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=n>feature_dim</span><span class=o>=</span><span class=mi>256</span><span class=p>,</span> <span class=n>eta</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>eta</span> <span class=o>=</span> <span class=n>eta</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 特征编码器（Atari 风格 CNN）</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>obs_channels</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>8</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>4</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>2</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>64</span> <span class=o>*</span> <span class=mi>7</span> <span class=o>*</span> <span class=mi>7</span><span class=p>,</span> <span class=n>feature_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 前向模型：(phi_t, a_t) -&gt; phi_{t+1}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>forward_model</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>feature_dim</span> <span class=o>+</span> <span class=n>action_dim</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>256</span><span class=p>,</span> <span class=n>feature_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 逆向模型：(phi_t, phi_{t+1}) -&gt; a_t</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>inverse_model</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>feature_dim</span> <span class=o>*</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>256</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obs</span><span class=p>,</span> <span class=n>next_obs</span><span class=p>,</span> <span class=n>action_onehot</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>phi</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>obs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>phi_next</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>next_obs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 前向预测误差 = 内在奖励</span>
+</span></span><span class=line><span class=cl>        <span class=n>phi_next_pred</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>forward_model</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>phi</span><span class=p>,</span> <span class=n>action_onehot</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>forward_err</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>mse_loss</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>phi_next_pred</span><span class=p>,</span> <span class=n>phi_next</span><span class=o>.</span><span class=n>detach</span><span class=p>(),</span> <span class=n>reduction</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>intrinsic_reward</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>eta</span> <span class=o>*</span> <span class=n>forward_err</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 逆向模型损失 —— 强迫编码器只保留与动作相关的信息</span>
+</span></span><span class=line><span class=cl>        <span class=n>action_pred</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>inverse_model</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>phi</span><span class=p>,</span> <span class=n>phi_next</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>inverse_loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>cross_entropy</span><span class=p>(</span><span class=n>action_pred</span><span class=p>,</span> <span class=n>action_onehot</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>intrinsic_reward</span><span class=p>,</span> <span class=n>forward_err</span><span class=o>.</span><span class=n>mean</span><span class=p>(),</span> <span class=n>inverse_loss</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=实测效果>实测效果</h3><p>《蒙特祖玛的复仇》上，ICM + A3C 在 25M 帧内能跑到约 <strong>6,600 分</strong>（vanilla DQN 永远是 0）。更惊人的是：把外在奖励完全去掉，<strong>只留下 ICM 的内在奖励</strong>，Agent 仍然能学会在前几个房间里穿梭、躲避敌人、捡起钥匙——只因为做这些事能让它的前向模型保持忙碌。</p><h3 id=icm-的局限>ICM 的局限</h3><ul><li><strong>依赖环境的确定性。</strong> 如果环境里有真正随机的"老虎机"，前向模型永远预测不了它，Agent 会沉迷于拉杆。逆向模型能过滤"动作无关"的随机性，但"动作相关"的随机性依然致命。</li><li><strong>算力开销。</strong> 三套额外网络（编码器、前向、逆向），训练成本通常是 vanilla PPO 的 2 倍左右。</li></ul><hr><h2 id=5-rnd简单到不可思议的替代方案>5. RND：简单到不可思议的替代方案</h2><p><strong>Random Network Distillation（随机网络蒸馏，RND）</strong>（Burda 等, ICLR 2019）把 ICM 的整套前向/逆向机器换成一句话：</p><blockquote><p><em>把一个固定的随机网络蒸馏出来，预测器误差大的地方，就是 Agent 还没访问够的地方。</em></p></blockquote><p>具体做法（架构图右半部分）：</p><ul><li><strong>目标网络 $f$</strong>：随机权重，<strong>整个训练过程都不更新</strong>。</li><li><strong>预测网络 $\hat f$</strong>：用梯度下降学着把观测 $s$ 上的输出 $\hat f(s)$ 拟合到 $f(s)$。</li></ul><p>内在奖励就是预测残差：</p>$$
 r^{\text{int}}(s) = \bigl\| \hat f(s) - f(s) \bigr\|^2.
-$$<p>对预测器看过很多次的状态，loss 早被驱动到接近 0——奖励小。对从未见过的状态，预测器没有训练过，输出是随机的，残差很大——奖励大。冻结的目标网络相当于一个确定性的哈希函数，结构相似的状态映射到相似的目标，<strong>泛化能力是免费送的</strong>。</p>
-<p>同样的机制能搞定噪声电视：随机雪花虽然像素差异巨大，但在一张随机 CNN 看来 <strong>结构高度相似</strong>，预测器只需要几次更新就能匹配，奖励迅速衰减到零。所以 ICM 和 RND 解决&quot;噪声电视&quot;用的是完全不同的机制——ICM 在 <strong>特征层面</strong> 过滤，RND 利用 <strong>随机映射的一致性</strong>。</p>
-<h3 id="参考实现-1">参考实现</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RND</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;随机网络蒸馏（Burda 等, 2019）。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs_channels</span><span class="p">,</span> <span class="n">output_dim</span><span class="o">=</span><span class="mi">512</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 目标网络：随机权重，永不更新</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">obs_channels</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 预测网络：被训练去拟合目标</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">obs_channels</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 滑动统计量，用于奖励归一化</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">compute_reward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">(</span><span class="n">obs</span><span class="p">))</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">r</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">obs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">loss</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">normalise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 关键：把内在奖励控制在稳定的尺度</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span> <span class="o">=</span> <span class="mf">0.99</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">r</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.99</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">r</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_std</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="头条战绩">头条战绩</h3>
-<ul>
-<li><strong>《蒙特祖玛的复仇》</strong>：平均 8,152 分——<strong>首个超过人类专家基准 7,385 的算法</strong>。</li>
-<li><strong>《Pitfall!》</strong>：70.4 分（之前最好成绩是确切的 0）。</li>
-<li>在很长一段时间里，RND 在所有&quot;硬探索（hard exploration）&ldquo;的 Atari 游戏上都是 SOTA。</li>
-</ul>
-<p>让 RND 真正 work 的两个非显然的工程技巧：(i) 策略网络配 <strong>两个独立的 value head</strong>，分别对 $r^{\text{ext}}$ 与 $r^{\text{int}}$ 估值，并用不同的折扣因子；(ii) 用 <strong>滑动标准差</strong> 对内在奖励做 per-environment 归一化。如果不做归一化，内在奖励的尺度会失控、把外在奖励淹没，训练立刻崩。</p>
-<hr>
-<h2 id="6-ngu永不放弃任何状态">6. NGU：永不放弃任何状态</h2>
-<p>RND 有一个隐含假设——一个状态的预测器误差被压到零之后，它就再也&quot;不新奇&quot;了。绝大多数情况下没问题。但有两类重要场景会被这个假设干掉：</p>
-<ul>
-<li><strong>钥匙-门类任务。</strong> Agent 死亡后重生，需要 <strong>再次</strong> 去捡那把钥匙。但 RND 已经认为钥匙位置很无聊了，Agent 不会再回去拿。</li>
-<li><strong>回溯探索（Backtracking）。</strong> 探索完地图右半边，Agent 必须从起点回到左半边继续探索。但起点已经被走过几千次，RND 不会奖励它再次穿过那里。</li>
-</ul>
-<p><strong>Never Give Up（NGU）</strong>（Badia 等, ICLR 2020）的方案是把两种新奇性信号 <strong>乘</strong> 起来：</p>
-$$
+$$<p>对预测器看过很多次的状态，loss 早被驱动到接近 0——奖励小。对从未见过的状态，预测器没有训练过，输出是随机的，残差很大——奖励大。冻结的目标网络相当于一个确定性的哈希函数，结构相似的状态映射到相似的目标，<strong>泛化能力是免费送的</strong>。</p><p>同样的机制能搞定噪声电视：随机雪花虽然像素差异巨大，但在一张随机 CNN 看来 <strong>结构高度相似</strong>，预测器只需要几次更新就能匹配，奖励迅速衰减到零。所以 ICM 和 RND 解决"噪声电视"用的是完全不同的机制——ICM 在 <strong>特征层面</strong> 过滤，RND 利用 <strong>随机映射的一致性</strong>。</p><h3 id=参考实现-1>参考实现</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>RND</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;随机网络蒸馏（Burda 等, 2019）。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obs_channels</span><span class=p>,</span> <span class=n>output_dim</span><span class=o>=</span><span class=mi>512</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 目标网络：随机权重，永不更新</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>target</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>obs_channels</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>8</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>4</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>LeakyReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>2</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>LeakyReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>LeakyReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>64</span> <span class=o>*</span> <span class=mi>7</span> <span class=o>*</span> <span class=mi>7</span><span class=p>,</span> <span class=n>output_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>target</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 预测网络：被训练去拟合目标</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>predictor</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>obs_channels</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>8</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>4</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>LeakyReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>2</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>LeakyReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>stride</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>LeakyReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>64</span> <span class=o>*</span> <span class=mi>7</span> <span class=o>*</span> <span class=mi>7</span><span class=p>,</span> <span class=mi>512</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>512</span><span class=p>,</span> <span class=n>output_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 滑动统计量，用于奖励归一化</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>r_mean</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>r_std</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span> <span class=mf>1.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>compute_reward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>r</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>predictor</span><span class=p>(</span><span class=n>obs</span><span class=p>)</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>target</span><span class=p>(</span><span class=n>obs</span><span class=p>))</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>r</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>mse_loss</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>predictor</span><span class=p>(</span><span class=n>obs</span><span class=p>),</span> <span class=bp>self</span><span class=o>.</span><span class=n>target</span><span class=p>(</span><span class=n>obs</span><span class=p>)</span><span class=o>.</span><span class=n>detach</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>loss</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>normalise</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>r</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 关键：把内在奖励控制在稳定的尺度</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>r_mean</span> <span class=o>=</span> <span class=mf>0.99</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>r_mean</span> <span class=o>+</span> <span class=mf>0.01</span> <span class=o>*</span> <span class=n>r</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>r_std</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mf>0.99</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>r_std</span> <span class=o>+</span> <span class=mf>0.01</span> <span class=o>*</span> <span class=n>r</span><span class=o>.</span><span class=n>std</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>(),</span> <span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>r</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>r_mean</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>r_std</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=头条战绩>头条战绩</h3><ul><li><strong>《蒙特祖玛的复仇》</strong>：平均 8,152 分——<strong>首个超过人类专家基准 7,385 的算法</strong>。</li><li><strong>《Pitfall!》</strong>：70.4 分（之前最好成绩是确切的 0）。</li><li>在很长一段时间里，RND 在所有"硬探索（hard exploration）&ldquo;的 Atari 游戏上都是 SOTA。</li></ul><p>让 RND 真正 work 的两个非显然的工程技巧：(i) 策略网络配 <strong>两个独立的 value head</strong>，分别对 $r^{\text{ext}}$ 与 $r^{\text{int}}$ 估值，并用不同的折扣因子；(ii) 用 <strong>滑动标准差</strong> 对内在奖励做 per-environment 归一化。如果不做归一化，内在奖励的尺度会失控、把外在奖励淹没，训练立刻崩。</p><hr><h2 id=6-ngu永不放弃任何状态>6. NGU：永不放弃任何状态</h2><p>RND 有一个隐含假设——一个状态的预测器误差被压到零之后，它就再也"不新奇"了。绝大多数情况下没问题。但有两类重要场景会被这个假设干掉：</p><ul><li><strong>钥匙-门类任务。</strong> Agent 死亡后重生，需要 <strong>再次</strong> 去捡那把钥匙。但 RND 已经认为钥匙位置很无聊了，Agent 不会再回去拿。</li><li><strong>回溯探索（Backtracking）。</strong> 探索完地图右半边，Agent 必须从起点回到左半边继续探索。但起点已经被走过几千次，RND 不会奖励它再次穿过那里。</li></ul><p><strong>Never Give Up（NGU）</strong>（Badia 等, ICLR 2020）的方案是把两种新奇性信号 <strong>乘</strong> 起来：</p>$$
 r^{\text{int}}_t = r^{\text{episodic}}_t \cdot \min\bigl(r^{\text{lifetime}}_t,\; L\bigr).
-$$<ul>
-<li><strong>情景新奇性 $r^{\text{episodic}}$</strong>：维护一个 <strong>只属于当前 episode</strong> 的状态嵌入记忆库。当前状态在嵌入空间中距离记忆库越远，奖励越大。关键在于这个记忆库 <strong>每个新 episode 都会清空</strong>——一个被全局访问过千百万次的状态，在新一局开局时仍然算&quot;新奇&rdquo;。</li>
-<li><strong>生命周期新奇性 $r^{\text{lifetime}}$</strong>：经典的 RND 信号，并加一个上限 $L$ 防止失控。</li>
-</ul>
-<p>乘法保证两者都要高才能给出大奖励：状态既要&quot;在本局新鲜&quot;又要&quot;在全局尚未走腻&quot;。NGU 还引入了 <strong>多策略并行训练</strong>（不同 $\beta$ 的策略族）以及 <strong>directed exploration</strong> 机制，但情景-生命周期分解才是它思想的内核。</p>
-<p>后续的 <strong>Agent57</strong>（Badia 等, 2020）在 NGU 之上再加一个 meta-controller 来动态选择当前用哪条探索策略，是史上 <strong>第一个在全部 57 个 Atari 游戏上都超过人类基线</strong> 的单一算法。</p>
-<h3 id="关键得分对比">关键得分对比</h3>
-<table>
-  <thead>
-      <tr>
-          <th>游戏</th>
-          <th style="text-align: right">DQN（ε-greedy）</th>
-          <th style="text-align: right">RND</th>
-          <th style="text-align: right">NGU</th>
-          <th style="text-align: right">人类专家</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>蒙特祖玛的复仇</td>
-          <td style="text-align: right">0</td>
-          <td style="text-align: right">8,152</td>
-          <td style="text-align: right">11,000+</td>
-          <td style="text-align: right">7,385</td>
-      </tr>
-      <tr>
-          <td>Pitfall!</td>
-          <td style="text-align: right">0</td>
-          <td style="text-align: right">70</td>
-          <td style="text-align: right">5,000+</td>
-          <td style="text-align: right">6,464</td>
-      </tr>
-      <tr>
-          <td>Private Eye</td>
-          <td style="text-align: right">0</td>
-          <td style="text-align: right">8,800</td>
-          <td style="text-align: right">69,000</td>
-          <td style="text-align: right">69,571</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="7-直观对比随机-vs-好奇">7. 直观对比：随机 vs 好奇</h2>
-<p>把&quot;随机&quot;和&quot;好奇&quot;两种探索拿到一个最小问题上看一眼，差距会非常震撼。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig7_trajectory_comparison.png" alt="ε-greedy 与好奇心驱动 Agent 在 25x25 网格上的访问热力图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上面两幅图展示了同一个 Agent 从中心白星出发、在 25x25 GridWorld 中走 1500 步的访问分布。蓝色 Agent 是均匀随机游走；紫色 Agent 按照 $1/\sqrt{N(s')}$ 的概率从邻居中采样下一步——这是最朴素的计数型好奇心奖励。同样步数后：随机游走者只覆盖了 <strong>65.6%</strong> 的格子，最热门格子被踩了 <strong>19</strong> 次；好奇心 Agent 覆盖了 <strong>80%</strong>，最高重访次数只有 <strong>11</strong>。右侧那张按访问数排序的对数曲线传递了同样的信息：好奇心把&quot;头部&quot;压平（不再有过度访问的格子），把&quot;尾部&quot;抬起（不再有被冷落的格子）。</p>
-<p>把这种效应放大到 $10^8$ 帧、状态空间大如系外行星的 Atari，你就明白为什么&quot;好奇心&quot;是 0 分和 11000 分之间的鸿沟了。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig6_sparse_reward_montezuma.png" alt="Montezuma&rsquo;s Revenge 上不同方法的得分曲线与&quot;首次拿到奖励&quot;耗时" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图把同一个故事放到了大场景里。Vanilla DQN 一直锁死在 0——它从来没找到过哪怕一次奖励。从 count-based 到 ICM、RND、再到 NGU，每一代好奇心方法都把&quot;首次拿到奖励&quot;的时间往前压、把渐进得分往上抬。NGU 是第一个站到人类专家虚线之上的方法。</p>
-<hr>
-<h2 id="8-工程配方ppo--好奇心如何上线">8. 工程配方：PPO + 好奇心如何上线</h2>
-<h3 id="起手超参">起手超参</h3>
-<table>
-  <thead>
-      <tr>
-          <th>参数</th>
-          <th>起始值</th>
-          <th>备注</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>内在奖励系数 $\beta$</td>
-          <td>0.01</td>
-          <td>极稀疏奖励环境可推到 0.1</td>
-      </tr>
-      <tr>
-          <td>奖励归一化</td>
-          <td><strong>必须开</strong>，$r^{\text{ext}}$ 和 $r^{\text{int}}$ 分开做</td>
-          <td>否则 RND/ICM 会淹没任务奖励</td>
-      </tr>
-      <tr>
-          <td>折扣 $\gamma_{\text{int}}$</td>
-          <td>0.99</td>
-          <td>经常 <strong>比</strong> $\gamma_{\text{ext}}$ 更小，鼓励局部探索</td>
-      </tr>
-      <tr>
-          <td>双 value head</td>
-          <td>是</td>
-          <td>一个 head 一种奖励，永远比混在一起好</td>
-      </tr>
-      <tr>
-          <td>Frame skip / stack</td>
-          <td>4 / 4</td>
-          <td>Atari 标配</td>
-      </tr>
-      <tr>
-          <td>梯度裁剪</td>
-          <td>0.5</td>
-          <td>ICM/RND 梯度尾部很厚</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="训练应该看到的进度">训练应该看到的进度</h3>
-<p>PPO + RND，Montezuma&rsquo;s Revenge，单张现代 GPU：</p>
-<table>
-  <thead>
-      <tr>
-          <th>帧数</th>
-          <th>期望里程碑</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>10M</td>
-          <td>稳定通过第一个房间（≈100 分）</td>
-      </tr>
-      <tr>
-          <td>30M</td>
-          <td>拿到钥匙，开门（≈400 分）</td>
-      </tr>
-      <tr>
-          <td>100M</td>
-          <td>平均回报 6000+，偶尔 8000+</td>
-      </tr>
-  </tbody>
-</table>
-<p>如果跑到 20M 帧仍然过不了第一个里程碑，<strong>踩坑排序</strong> 通常是：忘了归一化 $r^{\text{int}}$、用了单 value head、$\beta$ 设得过低。</p>
-<h3 id="怎么选方法">怎么选方法</h3>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>推荐探索策略</th>
-          <th>原因</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>奖励密集，低维状态</td>
-          <td>$\varepsilon$-greedy 线性衰减</td>
-          <td>便宜、够用</td>
-      </tr>
-      <tr>
-          <td>连续控制（MuJoCo、机器人）</td>
-          <td>SAC 熵奖励 / 参数噪声</td>
-          <td>平滑动作空间需要平滑探索</td>
-      </tr>
-      <tr>
-          <td>单个稀疏奖励 Atari 游戏</td>
-          <td><strong>PPO + RND</strong></td>
-          <td>简洁与性能的最佳折中</td>
-      </tr>
-      <tr>
-          <td>需要反复回到同一状态的稀疏奖励任务</td>
-          <td><strong>NGU</strong></td>
-          <td>情景记忆解决&quot;再做一次同样的事&quot;</td>
-      </tr>
-      <tr>
-          <td>全 Atari、研究级 SOTA</td>
-          <td>Agent57 / Go-Explore</td>
-          <td>顶尖性能，但工程复杂度陡升</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="9-小结与下一步">9. 小结与下一步</h2>
-<p>探索是横亘在&quot;玩具 RL&quot;与&quot;通用智能&quot;之间最大的瓶颈。随机探索按理论也能 cover 所有状态，但它的缩放规律实在太糟——状态空间远比均匀采样能覆盖的范围庞大。</p>
-<p>所有现代探索方法的共同思想可以浓缩成一句话：</p>
-<blockquote>
-<p><strong>把好奇心当成一个可学习的奖励。</strong> 用某种可计算的方式定义&quot;新奇性&quot;——访问次数低、预测误差大、蒸馏残差高、距离情景记忆远——再让 Agent 同时最大化它和任务奖励。</p>
-</blockquote>
-<p>我们看了四个具体实例：</p>
-<ul>
-<li><strong>计数型 / 伪计数</strong>：表格 MDP 上漂亮，像素世界里脆弱。</li>
-<li><strong>ICM</strong>：在学到的、动作相关的特征空间里以预测误差为新奇性。</li>
-<li><strong>RND</strong>：以一个随机网络的蒸馏残差为新奇性，简洁到尴尬，效果好到尴尬。</li>
-<li><strong>NGU / Agent57</strong>：把情景新奇与生命周期新奇相乘，专治&quot;会忘记应该回去做某事&quot;的任务。</li>
-</ul>
-<p>但探索问题远未解决。当前主流方法仍然需要 $10^8 \sim 10^9$ 量级的环境帧；人脑解决《蒙特祖玛的复仇》只需要几小时。当前活跃的研究方向包括 <strong>技能发现（skill discovery）</strong>、<strong>语言锚定的探索（language-grounded exploration）</strong>、<strong>从人类示范中学习探索策略</strong>。</p>
-<p><strong>下一篇预告：</strong> <a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/">第 5 部分</a>
- 进入 <strong>Model-Based RL 与世界模型</strong>——学一个可微的环境模拟器，让 Agent 在&quot;想象&quot;中预演成千上万条轨迹，从而把真实交互的需求降低一两个数量级。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Pathak, D., Agrawal, P., Efros, A. A., &amp; Darrell, T. (2017). Curiosity-driven exploration by self-supervised prediction. <em>ICML</em>. <a href="https://arxiv.org/abs/1705.05363" target="_blank" rel="noopener noreferrer">arXiv:1705.05363 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Burda, Y., Edwards, H., Storkey, A., &amp; Klimov, O. (2019). Exploration by random network distillation. <em>ICLR</em>. <a href="https://arxiv.org/abs/1810.12894" target="_blank" rel="noopener noreferrer">arXiv:1810.12894 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Badia, A. P., Sprechmann, P., Vitvitskyi, A., et al. (2020). Never Give Up: learning directed exploration strategies. <em>ICLR</em>. <a href="https://arxiv.org/abs/2002.06038" target="_blank" rel="noopener noreferrer">arXiv:2002.06038 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Badia, A. P., Piot, B., Kapturowski, S., et al. (2020). Agent57: outperforming the Atari human benchmark. <em>ICML</em>. <a href="https://arxiv.org/abs/2003.13350" target="_blank" rel="noopener noreferrer">arXiv:2003.13350 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Bellemare, M. G., Srinivasan, S., Ostrovski, G., Schaul, T., Saxton, D., &amp; Munos, R. (2016). Unifying count-based exploration and intrinsic motivation. <em>NeurIPS</em>. <a href="https://arxiv.org/abs/1606.01868" target="_blank" rel="noopener noreferrer">arXiv:1606.01868 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ecoffet, A., Huizinga, J., Lehman, J., Stanley, K. O., &amp; Clune, J. (2021). First return, then explore. <em>Nature</em>, 590, 580-586. <a href="https://arxiv.org/abs/2004.12919" target="_blank" rel="noopener noreferrer">arXiv:2004.12919 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Auer, P., Cesa-Bianchi, N., &amp; Fischer, P. (2002). Finite-time analysis of the multi-armed bandit problem. <em>Machine Learning</em>, 47, 235-256.</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>部分</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">基础与核心概念</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/">Q-Learning 与深度 Q 网络</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/">Policy Gradient 与 Actor-Critic</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>4</strong></td>
-          <td><strong>探索策略与好奇心驱动学习（本文）</strong></td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/">Model-Based 强化学习与世界模型</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">PPO 与 TRPO：信任域策略优化</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#1-探索为什么这么难">1. 探索为什么这么难</a>
-      <ul>
-        <li><a href="#11-经典-ε-greedy朴素到一眼能看穿的弱点">1.1 经典 ε-greedy：朴素到一眼能看穿的弱点</a></li>
-        <li><a href="#12-boltzmannsoftmax探索略有改善的同门兄弟">1.2 Boltzmann（softmax）探索：略有改善的同门兄弟</a></li>
-        <li><a href="#13-ucb理论漂亮规模上栽跟头">1.3 UCB：理论漂亮，规模上栽跟头</a></li>
-        <li><a href="#14-thompson-采样贝叶斯版本的-ucb">1.4 Thompson 采样：贝叶斯版本的 UCB</a></li>
-        <li><a href="#15-深度-rl-中探索难的四个维度">1.5 深度 RL 中&quot;探索难&quot;的四个维度</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-好奇心的统一框架内在奖励">2. 好奇心的统一框架：内在奖励</a></li>
-    <li><a href="#3-计数型方法计数还能用的时候">3. 计数型方法：计数还能用的时候</a></li>
-    <li><a href="#4-icm以预测误差衡量好奇心">4. ICM：以预测误差衡量好奇心</a>
-      <ul>
-        <li><a href="#参考实现">参考实现</a></li>
-        <li><a href="#实测效果">实测效果</a></li>
-        <li><a href="#icm-的局限">ICM 的局限</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-rnd简单到不可思议的替代方案">5. RND：简单到不可思议的替代方案</a>
-      <ul>
-        <li><a href="#参考实现-1">参考实现</a></li>
-        <li><a href="#头条战绩">头条战绩</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-ngu永不放弃任何状态">6. NGU：永不放弃任何状态</a>
-      <ul>
-        <li><a href="#关键得分对比">关键得分对比</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-直观对比随机-vs-好奇">7. 直观对比：随机 vs 好奇</a></li>
-    <li><a href="#8-工程配方ppo--好奇心如何上线">8. 工程配方：PPO + 好奇心如何上线</a>
-      <ul>
-        <li><a href="#起手超参">起手超参</a></li>
-        <li><a href="#训练应该看到的进度">训练应该看到的进度</a></li>
-        <li><a href="#怎么选方法">怎么选方法</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-小结与下一步">9. 小结与下一步</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
-      <div class="row"><span>Word count</span><strong>7700</strong></div>
-      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<ul><li><strong>情景新奇性 $r^{\text{episodic}}$</strong>：维护一个 <strong>只属于当前 episode</strong> 的状态嵌入记忆库。当前状态在嵌入空间中距离记忆库越远，奖励越大。关键在于这个记忆库 <strong>每个新 episode 都会清空</strong>——一个被全局访问过千百万次的状态，在新一局开局时仍然算"新奇&rdquo;。</li><li><strong>生命周期新奇性 $r^{\text{lifetime}}$</strong>：经典的 RND 信号，并加一个上限 $L$ 防止失控。</li></ul><p>乘法保证两者都要高才能给出大奖励：状态既要"在本局新鲜"又要"在全局尚未走腻"。NGU 还引入了 <strong>多策略并行训练</strong>（不同 $\beta$ 的策略族）以及 <strong>directed exploration</strong> 机制，但情景-生命周期分解才是它思想的内核。</p><p>后续的 <strong>Agent57</strong>（Badia 等, 2020）在 NGU 之上再加一个 meta-controller 来动态选择当前用哪条探索策略，是史上 <strong>第一个在全部 57 个 Atari 游戏上都超过人类基线</strong> 的单一算法。</p><h3 id=关键得分对比>关键得分对比</h3><table><thead><tr><th>游戏</th><th style=text-align:right>DQN（ε-greedy）</th><th style=text-align:right>RND</th><th style=text-align:right>NGU</th><th style=text-align:right>人类专家</th></tr></thead><tbody><tr><td>蒙特祖玛的复仇</td><td style=text-align:right>0</td><td style=text-align:right>8,152</td><td style=text-align:right>11,000+</td><td style=text-align:right>7,385</td></tr><tr><td>Pitfall!</td><td style=text-align:right>0</td><td style=text-align:right>70</td><td style=text-align:right>5,000+</td><td style=text-align:right>6,464</td></tr><tr><td>Private Eye</td><td style=text-align:right>0</td><td style=text-align:right>8,800</td><td style=text-align:right>69,000</td><td style=text-align:right>69,571</td></tr></tbody></table><hr><h2 id=7-直观对比随机-vs-好奇>7. 直观对比：随机 vs 好奇</h2><p>把"随机"和"好奇"两种探索拿到一个最小问题上看一眼，差距会非常震撼。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig7_trajectory_comparison.png alt="ε-greedy 与好奇心驱动 Agent 在 25x25 网格上的访问热力图" loading=lazy decoding=async></figure></p><p>上面两幅图展示了同一个 Agent 从中心白星出发、在 25x25 GridWorld 中走 1500 步的访问分布。蓝色 Agent 是均匀随机游走；紫色 Agent 按照 $1/\sqrt{N(s')}$ 的概率从邻居中采样下一步——这是最朴素的计数型好奇心奖励。同样步数后：随机游走者只覆盖了 <strong>65.6%</strong> 的格子，最热门格子被踩了 <strong>19</strong> 次；好奇心 Agent 覆盖了 <strong>80%</strong>，最高重访次数只有 <strong>11</strong>。右侧那张按访问数排序的对数曲线传递了同样的信息：好奇心把"头部"压平（不再有过度访问的格子），把"尾部"抬起（不再有被冷落的格子）。</p><p>把这种效应放大到 $10^8$ 帧、状态空间大如系外行星的 Atari，你就明白为什么"好奇心"是 0 分和 11000 分之间的鸿沟了。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/04-%E6%8E%A2%E7%B4%A2%E7%AD%96%E7%95%A5%E4%B8%8E%E5%A5%BD%E5%A5%87%E5%BF%83%E9%A9%B1%E5%8A%A8%E5%AD%A6%E4%B9%A0/fig6_sparse_reward_montezuma.png alt='Montezuma&rsquo;s Revenge 上不同方法的得分曲线与"首次拿到奖励"耗时' loading=lazy decoding=async></figure></p><p>上图把同一个故事放到了大场景里。Vanilla DQN 一直锁死在 0——它从来没找到过哪怕一次奖励。从 count-based 到 ICM、RND、再到 NGU，每一代好奇心方法都把"首次拿到奖励"的时间往前压、把渐进得分往上抬。NGU 是第一个站到人类专家虚线之上的方法。</p><hr><h2 id=8-工程配方ppo--好奇心如何上线>8. 工程配方：PPO + 好奇心如何上线</h2><h3 id=起手超参>起手超参</h3><table><thead><tr><th>参数</th><th>起始值</th><th>备注</th></tr></thead><tbody><tr><td>内在奖励系数 $\beta$</td><td>0.01</td><td>极稀疏奖励环境可推到 0.1</td></tr><tr><td>奖励归一化</td><td><strong>必须开</strong>，$r^{\text{ext}}$ 和 $r^{\text{int}}$ 分开做</td><td>否则 RND/ICM 会淹没任务奖励</td></tr><tr><td>折扣 $\gamma_{\text{int}}$</td><td>0.99</td><td>经常 <strong>比</strong> $\gamma_{\text{ext}}$ 更小，鼓励局部探索</td></tr><tr><td>双 value head</td><td>是</td><td>一个 head 一种奖励，永远比混在一起好</td></tr><tr><td>Frame skip / stack</td><td>4 / 4</td><td>Atari 标配</td></tr><tr><td>梯度裁剪</td><td>0.5</td><td>ICM/RND 梯度尾部很厚</td></tr></tbody></table><h3 id=训练应该看到的进度>训练应该看到的进度</h3><p>PPO + RND，Montezuma&rsquo;s Revenge，单张现代 GPU：</p><table><thead><tr><th>帧数</th><th>期望里程碑</th></tr></thead><tbody><tr><td>10M</td><td>稳定通过第一个房间（≈100 分）</td></tr><tr><td>30M</td><td>拿到钥匙，开门（≈400 分）</td></tr><tr><td>100M</td><td>平均回报 6000+，偶尔 8000+</td></tr></tbody></table><p>如果跑到 20M 帧仍然过不了第一个里程碑，<strong>踩坑排序</strong> 通常是：忘了归一化 $r^{\text{int}}$、用了单 value head、$\beta$ 设得过低。</p><h3 id=怎么选方法>怎么选方法</h3><table><thead><tr><th>场景</th><th>推荐探索策略</th><th>原因</th></tr></thead><tbody><tr><td>奖励密集，低维状态</td><td>$\varepsilon$-greedy 线性衰减</td><td>便宜、够用</td></tr><tr><td>连续控制（MuJoCo、机器人）</td><td>SAC 熵奖励 / 参数噪声</td><td>平滑动作空间需要平滑探索</td></tr><tr><td>单个稀疏奖励 Atari 游戏</td><td><strong>PPO + RND</strong></td><td>简洁与性能的最佳折中</td></tr><tr><td>需要反复回到同一状态的稀疏奖励任务</td><td><strong>NGU</strong></td><td>情景记忆解决"再做一次同样的事"</td></tr><tr><td>全 Atari、研究级 SOTA</td><td>Agent57 / Go-Explore</td><td>顶尖性能，但工程复杂度陡升</td></tr></tbody></table><hr><h2 id=9-小结与下一步>9. 小结与下一步</h2><p>探索是横亘在"玩具 RL"与"通用智能"之间最大的瓶颈。随机探索按理论也能 cover 所有状态，但它的缩放规律实在太糟——状态空间远比均匀采样能覆盖的范围庞大。</p><p>所有现代探索方法的共同思想可以浓缩成一句话：</p><blockquote><p><strong>把好奇心当成一个可学习的奖励。</strong> 用某种可计算的方式定义"新奇性"——访问次数低、预测误差大、蒸馏残差高、距离情景记忆远——再让 Agent 同时最大化它和任务奖励。</p></blockquote><p>我们看了四个具体实例：</p><ul><li><strong>计数型 / 伪计数</strong>：表格 MDP 上漂亮，像素世界里脆弱。</li><li><strong>ICM</strong>：在学到的、动作相关的特征空间里以预测误差为新奇性。</li><li><strong>RND</strong>：以一个随机网络的蒸馏残差为新奇性，简洁到尴尬，效果好到尴尬。</li><li><strong>NGU / Agent57</strong>：把情景新奇与生命周期新奇相乘，专治"会忘记应该回去做某事"的任务。</li></ul><p>但探索问题远未解决。当前主流方法仍然需要 $10^8 \sim 10^9$ 量级的环境帧；人脑解决《蒙特祖玛的复仇》只需要几小时。当前活跃的研究方向包括 <strong>技能发现（skill discovery）</strong>、<strong>语言锚定的探索（language-grounded exploration）</strong>、<strong>从人类示范中学习探索策略</strong>。</p><p><strong>下一篇预告：</strong> <a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/>第 5 部分</a>
+进入 <strong>Model-Based RL 与世界模型</strong>——学一个可微的环境模拟器，让 Agent 在"想象"中预演成千上万条轨迹，从而把真实交互的需求降低一两个数量级。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Pathak, D., Agrawal, P., Efros, A. A., & Darrell, T. (2017). Curiosity-driven exploration by self-supervised prediction. <em>ICML</em>. <a href=https://arxiv.org/abs/1705.05363 target=_blank rel="noopener noreferrer">arXiv:1705.05363 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Burda, Y., Edwards, H., Storkey, A., & Klimov, O. (2019). Exploration by random network distillation. <em>ICLR</em>. <a href=https://arxiv.org/abs/1810.12894 target=_blank rel="noopener noreferrer">arXiv:1810.12894 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Badia, A. P., Sprechmann, P., Vitvitskyi, A., et al. (2020). Never Give Up: learning directed exploration strategies. <em>ICLR</em>. <a href=https://arxiv.org/abs/2002.06038 target=_blank rel="noopener noreferrer">arXiv:2002.06038 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Badia, A. P., Piot, B., Kapturowski, S., et al. (2020). Agent57: outperforming the Atari human benchmark. <em>ICML</em>. <a href=https://arxiv.org/abs/2003.13350 target=_blank rel="noopener noreferrer">arXiv:2003.13350 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Bellemare, M. G., Srinivasan, S., Ostrovski, G., Schaul, T., Saxton, D., & Munos, R. (2016). Unifying count-based exploration and intrinsic motivation. <em>NeurIPS</em>. <a href=https://arxiv.org/abs/1606.01868 target=_blank rel="noopener noreferrer">arXiv:1606.01868 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ecoffet, A., Huizinga, J., Lehman, J., Stanley, K. O., & Clune, J. (2021). First return, then explore. <em>Nature</em>, 590, 580-586. <a href=https://arxiv.org/abs/2004.12919 target=_blank rel="noopener noreferrer">arXiv:2004.12919 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Auer, P., Cesa-Bianchi, N., & Fischer, P. (2002). Finite-time analysis of the multi-armed bandit problem. <em>Machine Learning</em>, 47, 235-256.</li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>部分</th><th>主题</th></tr></thead><tbody><tr><td>1</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/>基础与核心概念</a></td></tr><tr><td>2</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/>Q-Learning 与深度 Q 网络</a></td></tr><tr><td>3</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/>Policy Gradient 与 Actor-Critic</a></td></tr><tr><td><strong>4</strong></td><td><strong>探索策略与好奇心驱动学习（本文）</strong></td></tr><tr><td>5</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/>Model-Based 强化学习与世界模型</a></td></tr><tr><td>6</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/>PPO 与 TRPO：信任域策略优化</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#1-探索为什么这么难>1. 探索为什么这么难</a><ul><li><a href=#11-经典-ε-greedy朴素到一眼能看穿的弱点>1.1 经典 ε-greedy：朴素到一眼能看穿的弱点</a></li><li><a href=#12-boltzmannsoftmax探索略有改善的同门兄弟>1.2 Boltzmann（softmax）探索：略有改善的同门兄弟</a></li><li><a href=#13-ucb理论漂亮规模上栽跟头>1.3 UCB：理论漂亮，规模上栽跟头</a></li><li><a href=#14-thompson-采样贝叶斯版本的-ucb>1.4 Thompson 采样：贝叶斯版本的 UCB</a></li><li><a href=#15-深度-rl-中探索难的四个维度>1.5 深度 RL 中"探索难"的四个维度</a></li></ul></li><li><a href=#2-好奇心的统一框架内在奖励>2. 好奇心的统一框架：内在奖励</a></li><li><a href=#3-计数型方法计数还能用的时候>3. 计数型方法：计数还能用的时候</a></li><li><a href=#4-icm以预测误差衡量好奇心>4. ICM：以预测误差衡量好奇心</a><ul><li><a href=#参考实现>参考实现</a></li><li><a href=#实测效果>实测效果</a></li><li><a href=#icm-的局限>ICM 的局限</a></li></ul></li><li><a href=#5-rnd简单到不可思议的替代方案>5. RND：简单到不可思议的替代方案</a><ul><li><a href=#参考实现-1>参考实现</a></li><li><a href=#头条战绩>头条战绩</a></li></ul></li><li><a href=#6-ngu永不放弃任何状态>6. NGU：永不放弃任何状态</a><ul><li><a href=#关键得分对比>关键得分对比</a></li></ul></li><li><a href=#7-直观对比随机-vs-好奇>7. 直观对比：随机 vs 好奇</a></li><li><a href=#8-工程配方ppo--好奇心如何上线>8. 工程配方：PPO + 好奇心如何上线</a><ul><li><a href=#起手超参>起手超参</a></li><li><a href=#训练应该看到的进度>训练应该看到的进度</a></li><li><a href=#怎么选方法>怎么选方法</a></li></ul></li><li><a href=#9-小结与下一步>9. 小结与下一步</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>16 min</strong></div><div class=row><span>Word count</span><strong>7617</strong></div><div class=row><span>Published</span><strong>Aug 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

@@ -1,588 +1,120 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA) · Chen Kai Blog</title>
-<meta name="description" content="LoRA 把&quot;全量微调&quot;压缩成一个低秩更新，在工程上几乎是免费的：参数少、训练稳、能合并回原权重，因此部署时和原模型一样便宜。但只要你的微调数据稍微&quot;杂&quot;一点——把代码、数学、指令跟随、写作放到一起——单一低秩子空间就显得不够用了。直觉上的解法是把 $r$ 调大，可惜代价线性增长，而且本质上依然只有一个子空间，只是 …">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)">
-<meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)</h1>
-      
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-04-15">April 15, 2023</time> · 11 min read · 5300 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/peft/" class="tag">#PEFT</a><a href="/zh/tags/lora/" class="tag">#LoRA</a><a href="/zh/tags/%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/" class="tag">#参数高效微调</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>LoRA 把&quot;全量微调&quot;压缩成一个低秩更新，在工程上几乎是免费的：参数少、训练稳、能合并回原权重，因此部署时和原模型一样便宜。但只要你的微调数据稍微&quot;杂&quot;一点——把代码、数学、指令跟随、写作放到一起——单一低秩子空间就显得不够用了。直觉上的解法是把 $r$ 调大，可惜代价线性增长，而且本质上依然只有<strong>一个</strong>子空间，只是更&quot;胖&quot;了。</p>
-<p>把 LoRA 和 MoE 拼起来当然是另一条路：把若干个 LoRA 当成专家，加一个 router 做选择。但这条路会丢掉 LoRA 最值钱的两个性质——可合并、推理零开销，并且引入路由训练不充分、负载不均衡等一系列工程问题。</p>
-<p><a href="https://arxiv.org/abs/2406.11909" target="_blank" rel="noopener noreferrer"><strong>MoSLoRA</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-（Wu, Huang, Wei, 2024）选择了一条更克制的路线：去掉 router，用一个<strong>可学习的混合矩阵</strong> $W$ 把 $k$ 个低秩子空间组合起来，整体可以重写成一个干净的 $B\,W\,A$ 乘积。这样既保留了 LoRA 的可合并性与零推理开销，又把&quot;单一子空间&quot;的容量瓶颈打开。下面按&quot;动机—结构—与 MoE 的边界—参数与算力—经验现象—调参建议&quot;的顺序把这篇工作梳理一遍，重点说清楚 mixer 到底在干什么，以及它和 LoRA / LoRA-MoE 的边界到底在哪里。</p>
-<h2 id="你将了解到">你将了解到</h2>
-<ul>
-<li>为什么&quot;单纯调大 $r$&ldquo;不是好答案，瓶颈到底在哪</li>
-<li>MoSLoRA 的核心结构：$k$ 个低秩子空间 + 一个 $k\times k$ 的 mixer</li>
-<li>mixer 的几种实现选择：全局 mixer、输入相关 gate、按层/按投影分组</li>
-<li>与 LoRA、LoRA-MoE、Full FT 在参数量、推理代价上的对比</li>
-<li>MoSLoRA 真正起作用的场景，以及哪些场景里 LoRA 已经够用</li>
-<li>一份干净的 PyTorch 实现 + 实战调参建议</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>熟悉 LoRA 的低秩分解和 Transformer 中线性投影的位置（Q/K/V/O、MLP up/down/gate）</li>
-<li>了解 PEFT 家族的基本术语（Adapter、Prefix-Tuning、BitFit）</li>
-<li>对 MoE 的 router、top-k、负载均衡有基本概念</li>
-</ul>
-<hr>
-<h2 id="1-lora-回顾为什么低秩管用又是在哪里失效">1. LoRA 回顾：为什么低秩管用，又是在哪里失效</h2>
-<p>设 Transformer 中任意一个线性投影 $W \in \mathbb{R}^{d_{out}\times d_{in}}$。LoRA 把 $W_0$ 冻住，把更新写成低秩分解：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA) · Chen Kai Blog</title>
+<meta name=description content='LoRA 把"全量微调"压缩成一个低秩更新，在工程上几乎是免费的：参数少、训练稳、能合并回原权重，因此部署时和原模型一样便宜。但只要你的微调数据稍微"杂"一点——把代码、数学、指令跟随、写作放到一起——单一低秩子空间就显得不够用了。直觉上的解法是把 $r$ 调大，可惜代价线性增长，而且本质上依然只有一个子空间，只是 …'><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/><meta property="og:type" content="article"><meta property="og:title" content="Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)"><meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>Mixture-of-Subspaces in Low-Rank Adaptation (MoSLoRA)</h1><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-04-15>April 15, 2023</time> · 11 min read · 5271 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/peft/ class=tag>#PEFT</a><a href=/zh/tags/lora/ class=tag>#LoRA</a><a href=/zh/tags/%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/ class=tag>#参数高效微调</a></div></div></header><div class=prose><p>LoRA 把"全量微调"压缩成一个低秩更新，在工程上几乎是免费的：参数少、训练稳、能合并回原权重，因此部署时和原模型一样便宜。但只要你的微调数据稍微"杂"一点——把代码、数学、指令跟随、写作放到一起——单一低秩子空间就显得不够用了。直觉上的解法是把 $r$ 调大，可惜代价线性增长，而且本质上依然只有<strong>一个</strong>子空间，只是更"胖"了。</p><p>把 LoRA 和 MoE 拼起来当然是另一条路：把若干个 LoRA 当成专家，加一个 router 做选择。但这条路会丢掉 LoRA 最值钱的两个性质——可合并、推理零开销，并且引入路由训练不充分、负载不均衡等一系列工程问题。</p><p><a href=https://arxiv.org/abs/2406.11909 target=_blank rel="noopener noreferrer"><strong>MoSLoRA</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+（Wu, Huang, Wei, 2024）选择了一条更克制的路线：去掉 router，用一个<strong>可学习的混合矩阵</strong> $W$ 把 $k$ 个低秩子空间组合起来，整体可以重写成一个干净的 $B\,W\,A$ 乘积。这样既保留了 LoRA 的可合并性与零推理开销，又把"单一子空间"的容量瓶颈打开。下面按"动机—结构—与 MoE 的边界—参数与算力—经验现象—调参建议"的顺序把这篇工作梳理一遍，重点说清楚 mixer 到底在干什么，以及它和 LoRA / LoRA-MoE 的边界到底在哪里。</p><h2 id=你将了解到>你将了解到</h2><ul><li>为什么"单纯调大 $r$&ldquo;不是好答案，瓶颈到底在哪</li><li>MoSLoRA 的核心结构：$k$ 个低秩子空间 + 一个 $k\times k$ 的 mixer</li><li>mixer 的几种实现选择：全局 mixer、输入相关 gate、按层/按投影分组</li><li>与 LoRA、LoRA-MoE、Full FT 在参数量、推理代价上的对比</li><li>MoSLoRA 真正起作用的场景，以及哪些场景里 LoRA 已经够用</li><li>一份干净的 PyTorch 实现 + 实战调参建议</li></ul><h2 id=前置知识>前置知识</h2><ul><li>熟悉 LoRA 的低秩分解和 Transformer 中线性投影的位置（Q/K/V/O、MLP up/down/gate）</li><li>了解 PEFT 家族的基本术语（Adapter、Prefix-Tuning、BitFit）</li><li>对 MoE 的 router、top-k、负载均衡有基本概念</li></ul><hr><h2 id=1-lora-回顾为什么低秩管用又是在哪里失效>1. LoRA 回顾：为什么低秩管用，又是在哪里失效</h2><p>设 Transformer 中任意一个线性投影 $W \in \mathbb{R}^{d_{out}\times d_{in}}$。LoRA 把 $W_0$ 冻住，把更新写成低秩分解：</p>$$
 W \;=\; W_0 + \Delta W,
 \qquad
 \Delta W \;=\; \frac{\alpha}{r}\, B\, A,
 \qquad
 B \in \mathbb{R}^{d_{out}\times r},\;
 A \in \mathbb{R}^{r\times d_{in}}.
-$$<p>当 $r \ll \min(d_{in}, d_{out})$ 时，可训练参数量从 $d_{in}\!\cdot\!d_{out}$ 降到 $r(d_{in}+d_{out})$，通常只占全量微调的 $0.1\%$ 到 $1\%$。$B$ 初始化为 $0$ 保证微调起步等价于原模型；推理时把 $W_0 + \frac{\alpha}{r} B A$ 合并成同形状的稠密矩阵，所以<strong>部署成本和原模型完全一致</strong>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig1_lora_recap.png" alt="LoRA 结构回顾：冻结基座 &#43; 单一低秩更新" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>LoRA 隐含了一个很强的假设：<strong>一个</strong>秩为 $r$ 的子空间就是更新的合理形状。在窄场景下这条假设没问题；一旦数据变得多样，这条假设就开始失效，原因有三：</p>
-<ul>
-<li>最优的 $\Delta W$ 可能在<strong>单个任务上低秩</strong>，但<strong>跨任务整体高秩</strong>——不同子任务想把权重往不同方向推。</li>
-<li>单一子空间强行让所有方向共用同一对 $A$、$B$。一个任务的梯度会覆盖另一个任务学到的有用方向，出现&quot;互相拆台&rdquo;。</li>
-<li>简单调大 $r$ 只能让子空间&quot;更胖&quot;，但最优解可能想要的是<strong>几个细子空间的结构化组合</strong>，而不是一个胖子空间。</li>
-</ul>
-<p>这正是 MoSLoRA 想填的缺口。</p>
-<h2 id="2-为什么调大-r不是答案">2. 为什么&quot;调大 $r$&ldquo;不是答案</h2>
-<p>调大 $r$ 当然能增加容量，但代价在大模型规模上很容易压垮收益：</p>
-<ul>
-<li><strong>参数与显存随 $r$ 线性增长</strong>：$r$ 翻倍，每层的 adapter 占用就翻倍。</li>
-<li><strong>收益边际递减</strong>：经验上 $r$ 过了 $8$–$16$ 之后，下游任务的精度曲线就开始变平。</li>
-<li><strong>本质仍是一个子空间</strong>：如果损失曲面在不同输入处偏好不同方向（loss surface 是分块低秩的），多出的维度并不能被同时利用，相当于浪费容量。</li>
-</ul>
-<p>我们真正想要的是<strong>结构化容量</strong>：几个互相区分的低秩子空间，让模型按需组合。MoSLoRA 给出的正是这种结构，且边际成本几乎为零。</p>
-<h2 id="3-moslora-的核心结构delta-w--b-w-a">3. MoSLoRA 的核心结构：$\Delta W = B\, W\, A$</h2>
-<p>MoSLoRA 用一个<strong>可学习的 mixer 矩阵</strong>把 $k$ 个低秩子空间组合起来：</p>
-$$
+$$<p>当 $r \ll \min(d_{in}, d_{out})$ 时，可训练参数量从 $d_{in}\!\cdot\!d_{out}$ 降到 $r(d_{in}+d_{out})$，通常只占全量微调的 $0.1\%$ 到 $1\%$。$B$ 初始化为 $0$ 保证微调起步等价于原模型；推理时把 $W_0 + \frac{\alpha}{r} B A$ 合并成同形状的稠密矩阵，所以<strong>部署成本和原模型完全一致</strong>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig1_lora_recap.png alt="LoRA 结构回顾：冻结基座 + 单一低秩更新" loading=lazy decoding=async></figure></p><p>LoRA 隐含了一个很强的假设：<strong>一个</strong>秩为 $r$ 的子空间就是更新的合理形状。在窄场景下这条假设没问题；一旦数据变得多样，这条假设就开始失效，原因有三：</p><ul><li>最优的 $\Delta W$ 可能在<strong>单个任务上低秩</strong>，但<strong>跨任务整体高秩</strong>——不同子任务想把权重往不同方向推。</li><li>单一子空间强行让所有方向共用同一对 $A$、$B$。一个任务的梯度会覆盖另一个任务学到的有用方向，出现"互相拆台&rdquo;。</li><li>简单调大 $r$ 只能让子空间"更胖"，但最优解可能想要的是<strong>几个细子空间的结构化组合</strong>，而不是一个胖子空间。</li></ul><p>这正是 MoSLoRA 想填的缺口。</p><h2 id=2-为什么调大-r不是答案>2. 为什么"调大 $r$&ldquo;不是答案</h2><p>调大 $r$ 当然能增加容量，但代价在大模型规模上很容易压垮收益：</p><ul><li><strong>参数与显存随 $r$ 线性增长</strong>：$r$ 翻倍，每层的 adapter 占用就翻倍。</li><li><strong>收益边际递减</strong>：经验上 $r$ 过了 $8$–$16$ 之后，下游任务的精度曲线就开始变平。</li><li><strong>本质仍是一个子空间</strong>：如果损失曲面在不同输入处偏好不同方向（loss surface 是分块低秩的），多出的维度并不能被同时利用，相当于浪费容量。</li></ul><p>我们真正想要的是<strong>结构化容量</strong>：几个互相区分的低秩子空间，让模型按需组合。MoSLoRA 给出的正是这种结构，且边际成本几乎为零。</p><h2 id=3-moslora-的核心结构delta-w--b-w-a>3. MoSLoRA 的核心结构：$\Delta W = B\, W\, A$</h2><p>MoSLoRA 用一个<strong>可学习的 mixer 矩阵</strong>把 $k$ 个低秩子空间组合起来：</p>$$
 \Delta W
 \;=\;
 \sum_{i=1}^{k} W_{ii}\, B_i\, A_i
 \;=\;
 B\, W\, A,
-$$<p>其中 $A \in \mathbb{R}^{kr\times d_{in}}$ 把 $k$ 个 down-projection 堆在一起，$B \in \mathbb{R}^{d_{out}\times kr}$ 把 $k$ 个 up-projection 堆在一起，$W \in \mathbb{R}^{kr\times kr}$ 就是 mixer。$W$ 取对角时退化为&rdquo;$k$ 个独立 LoRA 之和&quot;；非对角项的关键作用是<strong>让子空间 $i$ 的 up-projection 与子空间 $j$ 的 down-projection 配对</strong>——额外的表达能力就来自这里。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig2_subspace_mixing.png" alt="MoSLoRA 架构：$k$ 个低秩子空间 &#43; 一个可学习 mixer" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>这个写法直接带来三个性质：</p>
-<ul>
-<li><strong>没有 router、没有 top-k、没有负载均衡</strong>：每个 token 上所有子空间都会贡献，训练像 LoRA 一样平滑。</li>
-<li><strong>推理可合并</strong>：$BWA$ 是一次稠密矩阵乘，$W_0 + \frac{\alpha}{r} BWA$ 又能折叠回同形状的稠密矩阵。LoRA-MoE 一类设计通常就是在这一步丢掉了可合并性。</li>
-<li><strong>mixer 的额外参数可以忽略</strong>：$k$ 个秩为 $r$ 的子空间一共多了 $kr(d_{in}+d_{out}) + (kr)^2$ 个参数。$(kr)^2$ 是 mixer 的全部新增成本，典型设置 $k=4, r=8$ 下也只有 $1024$ 个标量。</li>
-</ul>
-<p>可以把每对 $(B_i, A_i)$ 想象成权重空间里的一个&quot;旋钮&quot;，指向某个方向；mixer 学的是<strong>每个旋钮该开多大</strong>，以及<strong>旋钮之间该怎么组合</strong>。$k=1$ 时 MoSLoRA 退化为 LoRA；$k>1$ 且 $W$ 非对角时，更新族严格更丰富，但每 token 的算力开销变化很小。</p>
-<h2 id="4-与-lora-moe经典-moe-路由的边界">4. 与 LoRA-MoE、经典 MoE 路由的边界</h2>
-<p>很容易把 MoSLoRA 读成&quot;去掉 gate 的 LoRA-MoE&quot;，但这个对比稍微有点偏。经典 MoE 的代价主要来自：</p>
-<ul>
-<li>每个 token 上由 <strong>router</strong> 显式做专家选择</li>
-<li>用 <strong>top-k</strong> 稀疏化控制算力</li>
-<li>用<strong>负载均衡损失</strong>避免专家塌缩</li>
-<li>推理图依赖 token，无法把权重提前合并</li>
-</ul>
-<p>LoRA-MoE 把 LoRA 当成专家，自然继承了这些代价：每个 token 只激活部分专家，可合并性也随之消失。</p>
-<p>MoSLoRA 完全反过来：<strong>没有路由，所有 $k$ 个子空间一直全开；mixer 是&quot;线性组合器&quot;，不是&quot;离散选择器&quot;</strong>。这个设计的取舍是有意的：</p>
-<ul>
-<li>你失去了 MoE 那种&quot;想加专家就加几十个&quot;的条件稀疏。</li>
-<li>你换回了平滑优化、可合并权重，以及和 LoRA 完全一致的部署体验。</li>
-</ul>
-<p>LoRA 被广泛使用的场景就是&quot;一个基座 + 少量 adapter，部署成本等于基座&quot;。在这个场景里，MoSLoRA 的取舍正合适。</p>
-<h2 id="5-mixer-的几种实现选择">5. mixer 的几种实现选择</h2>
-<p>mixer $W$ 有几种常见变体。论文默认用最简单那种，但其它形式在后续工作里都很常见，值得一并知道。</p>
-<h3 id="全局-mixer默认">全局 mixer（默认）</h3>
-<p>每个被改造的投影对应一个 $W \in \mathbb{R}^{kr\times kr}$，端到端学习，不依赖输入。便宜、稳定、可合并。建议把 $W$ 初始化在单位阵附近——这样 step 0 的 MoSLoRA 行为等价于&quot;$k$ 个独立 LoRA 的和&quot;，非对角的 mixing 项是训练中&quot;长出来&quot;的。</p>
-<h3 id="输入相关-gate">输入相关 gate</h3>
-<p>把 $W$ 换成 $W(x) = g(x) \in \mathbb{R}^{k\times k}$，由一个对 pooled hidden state 的小投影生成。每个输入有自己的组合权重。表达力更强，但代价是：</p>
-<ul>
-<li>推理无法预合并（$W$ 依赖 $x$）</li>
-<li>数据少时 gate 容易过拟合</li>
-</ul>
-<p>只有在任务分布<strong>真的多模</strong>且数据量足够时才考虑用。</p>
-<h3 id="按层--按投影分组">按层 / 按投影分组</h3>
-<p>不同 Transformer 层、不同投影（Q/K/V/O/MLP up/gate/down）用不同的 $W$。代价仍然很小，但归纳偏置更强：浅层可以学一种 mixing 模式，深层学另一种。实践中往往是表达力与稳定性的最佳平衡点。</p>
-<h3 id="结构化--低秩-mixer">结构化 / 低秩 mixer</h3>
-<p>当 $k$ 很大时，把稠密的 $W$ 改成低秩或块对角，避免 $(kr)^2$ 暴涨。在 $k\le 8$ 这种常见规模下基本用不到。</p>
-<h2 id="6-参数量与算力开销">6. 参数量与算力开销</h2>
-<p>每个被改造的投影（形状 $d_{out}\times d_{in}$，$k$ 个秩为 $r$ 的子空间）的对比如下：</p>
-<table>
-  <thead>
-      <tr>
-          <th>量</th>
-          <th>LoRA</th>
-          <th>MoSLoRA</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>可训练参数</td>
-          <td>$r(d_{in}+d_{out})$</td>
-          <td>$kr(d_{in}+d_{out}) + (kr)^2$</td>
-      </tr>
-      <tr>
-          <td>单 token 前向 FLOPs</td>
-          <td>$r(d_{in}+d_{out})$</td>
-          <td>$kr(d_{in}+d_{out}) + (kr)^2$</td>
-      </tr>
-      <tr>
-          <td>推理可合并</td>
-          <td>是</td>
-          <td>是（全局 mixer）；否（输入相关 gate）</td>
-      </tr>
-      <tr>
-          <td>路由 / 负载均衡</td>
-          <td>无</td>
-          <td>无</td>
-      </tr>
-  </tbody>
-</table>
-<p>取一个具体例子：$d_{in}=d_{out}=4096$，$r=8$，$k=4$。LoRA 每个投影约 $65$K 参数；MoSLoRA 约 $263$K 加上 $1024$ 个 mixer 参数。把 8B 模型的全部 attention + MLP 投影都改一遍，整体仍在总参数的 $1\%$ 以下。</p>
-<p>mixer 这一项实际上是渐近免费的：只要 $kr \ll d_{in}$（这是你本来就想满足的条件），$(kr)^2$ 就被 $kr(d_{in}+d_{out})$ 完全压住。</p>
-<h2 id="7-实证差距究竟出现在哪里">7. 实证：差距究竟出现在哪里</h2>
-<p>这篇论文以及后续相关工作里反复出现的现象是：<strong>MoSLoRA 在异质化任务上稳定地比 LoRA 高一小到中等的幅度，并且整体仍在 LoRA 的成本范围内</strong>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig3_downstream_perf.png" alt="下游任务表现：MoSLoRA 与 LoRA 在异质化任务上的对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>有两个规律值得记住：</p>
-<ol>
-<li><strong>任务越异质，差距越大</strong>。单一领域的推理基准上提升较小；指令微调混合数据集和多技能 benchmark 上提升较明显。这和直觉一致：一个方向就够时一个子空间够用，方向多起来才需要多子空间。</li>
-<li><strong>当 $r$ 已经到 $8$ 以上时，加 $k$ 比加 $r$ 更划算</strong>。在&quot;参数比 vs 精度&quot;的 Pareto 图上，加子空间能把曲线往上推得更快。</li>
-</ol>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig4_param_efficiency.png" alt="参数效率：MoSLoRA 把 Pareto 前沿整体上抬" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>这背后的几何直观是最干净的解释：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig5_subspace_visualisation.png" alt="一个胖子空间 vs 多个细子空间" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>一个 LoRA 是一条拉长的&quot;主轴&quot;；偏离这条主轴的目标只能被近似投影回去，残差和夹角成正比。MoSLoRA 把若干条细子空间放在不同方向上，再用 mixer 组合，可达集就是一个<strong>结构化的子空间并集</strong>，而不是一条胖主轴。</p>
-<h2 id="8-moslora-什么时候值得用什么时候不值得">8. MoSLoRA 什么时候值得用，什么时候不值得</h2>
-<p><strong>值得用</strong>的几个信号：</p>
-<ul>
-<li>微调数据跨多个子技能 / 多个领域（指令微调、多领域适配、多模态指令）</li>
-<li>已经在 LoRA 上把 $r$ 调大、看到精度饱和</li>
-<li>需要 LoRA 那样的部署性质（可合并、零路由），但又想要超过 vanilla LoRA 的容量、又不想上 LoRA-MoE</li>
-</ul>
-<p><strong>不值得用</strong>的情况：</p>
-<ul>
-<li>任务窄、同质，LoRA 中等 $r$ 已经能逼近全量微调</li>
-<li>数据量相对 adapter 规模偏小，mixer 容易过拟合</li>
-<li>你确实需要最大容量、可以接受真正的 MoE 部署成本——这种场景上 LoRA-MoE 或稀疏 MoE 上限更高</li>
-</ul>
-<h2 id="9-实战调参建议">9. 实战调参建议</h2>
-<p>挑几个高信号的 knob：</p>
-<ul>
-<li><strong>从小起步</strong>：$k=2$ 或 $4$、$r=8$ 是个稳定的默认。$k=8$ 只有在数据非常异质时才有明显额外收益。</li>
-<li><strong>mixer 初始化在单位阵附近</strong>：$W \leftarrow I + \varepsilon \cdot \text{Gaussian}$，让 step 0 接近&quot;独立 LoRA 之和&quot;，非对角项在训练中按需长出来。Gaussian 直接初始化容易让收敛变慢。</li>
-<li><strong>优先改 attention，再改 MLP</strong>：Q/K/V/O 是杠杆最大的位置，把这几个先改完，再看是否需要把 MLP up/gate/down 也加上。</li>
-<li><strong>把 $\alpha/r$ 调小一些</strong>：$k$ 个子空间求和，等效增益放大了 $k$ 倍，把 $\alpha$ 减半是安全起点。</li>
-<li><strong>盯一下 mixer 的奇异值谱</strong>：如果 $W$ 的奇异值塌缩到一个方向，模型就退化成普通 LoRA 了，往往是正则太重或 mixer 学习率太低。</li>
-<li><strong>如果不是非要不可，别上输入相关 gate</strong>：全局 mixer 可合并、几乎不会成为瓶颈；动态 gate 训练更难、还破坏可合并性。</li>
-</ul>
-<h2 id="10-pytorch-实现">10. PyTorch 实现</h2>
-<p>一个最小但完整的实现，可以替换任意 <code>nn.Linear</code>：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MoSLoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;y = x W0^T + (alpha / r) * x A^T W^T B^T.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">16.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>                <span class="c1"># 冻结基座</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">d_in</span>  <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">in_features</span>
-</span></span><span class="line"><span class="cl">        <span class="n">d_out</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">out_features</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">k</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">r</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 堆叠的低秩因子: A in (k*r, d_in), B in (d_out, k*r)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">d_in</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d_out</span><span class="p">,</span> <span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">))</span>   <span class="c1"># B 初始化为 0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">5</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># mixer: W in (k*r, k*r), 初始化在单位阵附近</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>              <span class="c1"># 基座路径</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">T</span>              <span class="c1"># (..., k*r)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">T</span>              <span class="c1"># (..., k*r) -- mixer 在这里发挥作用</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">T</span>              <span class="c1"># (..., d_out)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">h</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;把 MoSLoRA 折叠回基座权重，部署用。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">)</span>   <span class="c1"># (d_out, d_in)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 清掉 adapter，避免后续前向重复加</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">eye_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>三处细节值得强调：</p>
-<ol>
-<li><code>B</code> 初始化为 $0$，保证微调启动时模型与基座完全一致——和 LoRA 一脉相承。</li>
-<li><code>W</code> 初始化在单位阵附近：MoSLoRA 起步等价于&quot;$k$ 个独立 LoRA 之和&quot;，非对角的 mixing 是训练中&quot;长出来&quot;的。</li>
-<li><code>merge()</code> 把整套 MoSLoRA 折叠成一个稠密 <code>Linear</code> —— 这一步是 MoSLoRA 在生产环境零推理开销部署的关键。</li>
-</ol>
-<h2 id="11-全景对比lora--moslora--lora-moe--full-ft">11. 全景对比：LoRA / MoSLoRA / LoRA-MoE / Full FT</h2>
-<table>
-  <thead>
-      <tr>
-          <th>方法</th>
-          <th>可训练参数比例</th>
-          <th>表达力</th>
-          <th>推理代价</th>
-          <th>适合场景</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Full FT</strong></td>
-          <td>100%</td>
-          <td>最高</td>
-          <td>基线（1x）</td>
-          <td>单一同质任务、无部署约束</td>
-      </tr>
-      <tr>
-          <td><strong>LoRA</strong></td>
-          <td>$\sim 0.1$–$1\%$</td>
-          <td>中</td>
-          <td>$\approx 1$x（可合并）</td>
-          <td>单任务或窄分布任务</td>
-      </tr>
-      <tr>
-          <td><strong>MoSLoRA</strong></td>
-          <td>$\sim 0.5$–$3\%$</td>
-          <td>高</td>
-          <td>$\approx 1$x（可合并）</td>
-          <td>异质多任务 / 多领域，且要保留 LoRA 风格部署</td>
-      </tr>
-      <tr>
-          <td><strong>LoRA-MoE</strong></td>
-          <td>$\sim 1$–$5\%$</td>
-          <td>高（稀疏激活）</td>
-          <td>$> 1$x，不可合并</td>
-          <td>想要更高容量上限，可接受路由 / 不可合并的部署代价</td>
-      </tr>
-  </tbody>
-</table>
-<p>核心结论是：MoSLoRA 和 LoRA 在<strong>同一条</strong>部署轴上往容量方向走了一步；LoRA-MoE 则切换到了另一条轴，运维代价完全不同。</p>
-<h2 id="12-moslora-最该被使用的场景">12. MoSLoRA 最该被使用的场景</h2>
-<ul>
-<li><strong>跨多任务族的指令微调</strong>：代码、数学、推理、写作把权重往不同方向推，单一子空间难以兼顾。</li>
-<li><strong>多领域适配（金融 + 医疗 + 法律）</strong>：每个领域天然有自己的更新方向；mixer 实际上学到了一种&quot;软的按域组合&quot;，而不需要显式 router。</li>
-<li><strong>持续 / 增量适配</strong>：可以为新任务追加新的子空间而不动旧的，把 MoSLoRA 当成模块化的容量扩展工具。这一点超出原论文的实验范围，但在后续工作里已经能看到很自然的延伸。</li>
-</ul>
-<h2 id="总结">总结</h2>
-<p>把 MoSLoRA 理解成&quot;LoRA 的结构化容量升级&quot;比理解成&quot;轻量化 MoE&quot;更准确：</p>
-<ul>
-<li>LoRA：一个秩为 $r$ 的子空间，权重空间里只有一条方向。</li>
-<li>MoSLoRA：$k$ 个秩为 $r$ 的子空间 + 一个 $kr \times kr$ 的小 mixer，推理时仍可折叠成单一稠密权重。</li>
-</ul>
-<p>mixer 才是这套设计能成立的关键：它给了你一个秩为 $kr$ 的<strong>结构化更新流形</strong>，部署足迹和 LoRA 完全一致，并且绕开了 MoE 里所有最难处理的部分——没有 router、没有 top-k、没有负载均衡、不会破坏可合并性。对于跑异质化微调任务、又不愿承担 LoRA-MoE 运维代价的工程团队，目前来看这是 LoRA 家族里&quot;容量–可部署性&quot;权衡最务实的一个选择。</p>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Wu, T., Huang, S. and Wei, F., 2024. <strong>Mixture-of-Subspaces in Low-Rank Adaptation</strong>. arXiv:2406.11909. <a href="https://arxiv.org/abs/2406.11909" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- <a href="https://github.com/wutaiqiang/MoSLoRA" target="_blank" rel="noopener noreferrer">[code] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hu, E.J., Shen, Y., Wallis, P., et al., 2022. <strong>LoRA: Low-Rank Adaptation of Large Language Models</strong>. ICLR 2022. <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Fedus, W., Zoph, B. and Shazeer, N., 2022. <strong>Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</strong>. JMLR. <a href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Zadouri, T., Ustun, A., Ahmadian, A., et al., 2024. <strong>Pushing Mixture of Experts to the Limit: Extremely Parameter Efficient MoE for Instruction Tuning</strong>. arXiv:2309.05444. <a href="https://arxiv.org/abs/2309.05444" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Liu, S.Y., Wang, C.Y., Yin, H., et al., 2024. <strong>DoRA: Weight-Decomposed Low-Rank Adaptation</strong>. ICML 2024. <a href="https://arxiv.org/abs/2402.09353" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将了解到">你将了解到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-lora-回顾为什么低秩管用又是在哪里失效">1. LoRA 回顾：为什么低秩管用，又是在哪里失效</a></li>
-    <li><a href="#2-为什么调大-r不是答案">2. 为什么&quot;调大 &ldquo;不是答案</a></li>
-    <li><a href="#3-moslora-的核心结构delta-w--b-w-a">3. MoSLoRA 的核心结构：</a></li>
-    <li><a href="#4-与-lora-moe经典-moe-路由的边界">4. 与 LoRA-MoE、经典 MoE 路由的边界</a></li>
-    <li><a href="#5-mixer-的几种实现选择">5. mixer 的几种实现选择</a>
-      <ul>
-        <li><a href="#全局-mixer默认">全局 mixer（默认）</a></li>
-        <li><a href="#输入相关-gate">输入相关 gate</a></li>
-        <li><a href="#按层--按投影分组">按层 / 按投影分组</a></li>
-        <li><a href="#结构化--低秩-mixer">结构化 / 低秩 mixer</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-参数量与算力开销">6. 参数量与算力开销</a></li>
-    <li><a href="#7-实证差距究竟出现在哪里">7. 实证：差距究竟出现在哪里</a></li>
-    <li><a href="#8-moslora-什么时候值得用什么时候不值得">8. MoSLoRA 什么时候值得用，什么时候不值得</a></li>
-    <li><a href="#9-实战调参建议">9. 实战调参建议</a></li>
-    <li><a href="#10-pytorch-实现">10. PyTorch 实现</a></li>
-    <li><a href="#11-全景对比lora--moslora--lora-moe--full-ft">11. 全景对比：LoRA / MoSLoRA / LoRA-MoE / Full FT</a></li>
-    <li><a href="#12-moslora-最该被使用的场景">12. MoSLoRA 最该被使用的场景</a></li>
-    <li><a href="#总结">总结</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5300</strong></div>
-      <div class="row"><span>Published</span><strong>Apr 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>其中 $A \in \mathbb{R}^{kr\times d_{in}}$ 把 $k$ 个 down-projection 堆在一起，$B \in \mathbb{R}^{d_{out}\times kr}$ 把 $k$ 个 up-projection 堆在一起，$W \in \mathbb{R}^{kr\times kr}$ 就是 mixer。$W$ 取对角时退化为&rdquo;$k$ 个独立 LoRA 之和"；非对角项的关键作用是<strong>让子空间 $i$ 的 up-projection 与子空间 $j$ 的 down-projection 配对</strong>——额外的表达能力就来自这里。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig2_subspace_mixing.png alt="MoSLoRA 架构：$k$ 个低秩子空间 + 一个可学习 mixer" loading=lazy decoding=async></figure></p><p>这个写法直接带来三个性质：</p><ul><li><strong>没有 router、没有 top-k、没有负载均衡</strong>：每个 token 上所有子空间都会贡献，训练像 LoRA 一样平滑。</li><li><strong>推理可合并</strong>：$BWA$ 是一次稠密矩阵乘，$W_0 + \frac{\alpha}{r} BWA$ 又能折叠回同形状的稠密矩阵。LoRA-MoE 一类设计通常就是在这一步丢掉了可合并性。</li><li><strong>mixer 的额外参数可以忽略</strong>：$k$ 个秩为 $r$ 的子空间一共多了 $kr(d_{in}+d_{out}) + (kr)^2$ 个参数。$(kr)^2$ 是 mixer 的全部新增成本，典型设置 $k=4, r=8$ 下也只有 $1024$ 个标量。</li></ul><p>可以把每对 $(B_i, A_i)$ 想象成权重空间里的一个"旋钮"，指向某个方向；mixer 学的是<strong>每个旋钮该开多大</strong>，以及<strong>旋钮之间该怎么组合</strong>。$k=1$ 时 MoSLoRA 退化为 LoRA；$k>1$ 且 $W$ 非对角时，更新族严格更丰富，但每 token 的算力开销变化很小。</p><h2 id=4-与-lora-moe经典-moe-路由的边界>4. 与 LoRA-MoE、经典 MoE 路由的边界</h2><p>很容易把 MoSLoRA 读成"去掉 gate 的 LoRA-MoE"，但这个对比稍微有点偏。经典 MoE 的代价主要来自：</p><ul><li>每个 token 上由 <strong>router</strong> 显式做专家选择</li><li>用 <strong>top-k</strong> 稀疏化控制算力</li><li>用<strong>负载均衡损失</strong>避免专家塌缩</li><li>推理图依赖 token，无法把权重提前合并</li></ul><p>LoRA-MoE 把 LoRA 当成专家，自然继承了这些代价：每个 token 只激活部分专家，可合并性也随之消失。</p><p>MoSLoRA 完全反过来：<strong>没有路由，所有 $k$ 个子空间一直全开；mixer 是"线性组合器"，不是"离散选择器"</strong>。这个设计的取舍是有意的：</p><ul><li>你失去了 MoE 那种"想加专家就加几十个"的条件稀疏。</li><li>你换回了平滑优化、可合并权重，以及和 LoRA 完全一致的部署体验。</li></ul><p>LoRA 被广泛使用的场景就是"一个基座 + 少量 adapter，部署成本等于基座"。在这个场景里，MoSLoRA 的取舍正合适。</p><h2 id=5-mixer-的几种实现选择>5. mixer 的几种实现选择</h2><p>mixer $W$ 有几种常见变体。论文默认用最简单那种，但其它形式在后续工作里都很常见，值得一并知道。</p><h3 id=全局-mixer默认>全局 mixer（默认）</h3><p>每个被改造的投影对应一个 $W \in \mathbb{R}^{kr\times kr}$，端到端学习，不依赖输入。便宜、稳定、可合并。建议把 $W$ 初始化在单位阵附近——这样 step 0 的 MoSLoRA 行为等价于"$k$ 个独立 LoRA 的和"，非对角的 mixing 项是训练中"长出来"的。</p><h3 id=输入相关-gate>输入相关 gate</h3><p>把 $W$ 换成 $W(x) = g(x) \in \mathbb{R}^{k\times k}$，由一个对 pooled hidden state 的小投影生成。每个输入有自己的组合权重。表达力更强，但代价是：</p><ul><li>推理无法预合并（$W$ 依赖 $x$）</li><li>数据少时 gate 容易过拟合</li></ul><p>只有在任务分布<strong>真的多模</strong>且数据量足够时才考虑用。</p><h3 id=按层--按投影分组>按层 / 按投影分组</h3><p>不同 Transformer 层、不同投影（Q/K/V/O/MLP up/gate/down）用不同的 $W$。代价仍然很小，但归纳偏置更强：浅层可以学一种 mixing 模式，深层学另一种。实践中往往是表达力与稳定性的最佳平衡点。</p><h3 id=结构化--低秩-mixer>结构化 / 低秩 mixer</h3><p>当 $k$ 很大时，把稠密的 $W$ 改成低秩或块对角，避免 $(kr)^2$ 暴涨。在 $k\le 8$ 这种常见规模下基本用不到。</p><h2 id=6-参数量与算力开销>6. 参数量与算力开销</h2><p>每个被改造的投影（形状 $d_{out}\times d_{in}$，$k$ 个秩为 $r$ 的子空间）的对比如下：</p><table><thead><tr><th>量</th><th>LoRA</th><th>MoSLoRA</th></tr></thead><tbody><tr><td>可训练参数</td><td>$r(d_{in}+d_{out})$</td><td>$kr(d_{in}+d_{out}) + (kr)^2$</td></tr><tr><td>单 token 前向 FLOPs</td><td>$r(d_{in}+d_{out})$</td><td>$kr(d_{in}+d_{out}) + (kr)^2$</td></tr><tr><td>推理可合并</td><td>是</td><td>是（全局 mixer）；否（输入相关 gate）</td></tr><tr><td>路由 / 负载均衡</td><td>无</td><td>无</td></tr></tbody></table><p>取一个具体例子：$d_{in}=d_{out}=4096$，$r=8$，$k=4$。LoRA 每个投影约 $65$K 参数；MoSLoRA 约 $263$K 加上 $1024$ 个 mixer 参数。把 8B 模型的全部 attention + MLP 投影都改一遍，整体仍在总参数的 $1\%$ 以下。</p><p>mixer 这一项实际上是渐近免费的：只要 $kr \ll d_{in}$（这是你本来就想满足的条件），$(kr)^2$ 就被 $kr(d_{in}+d_{out})$ 完全压住。</p><h2 id=7-实证差距究竟出现在哪里>7. 实证：差距究竟出现在哪里</h2><p>这篇论文以及后续相关工作里反复出现的现象是：<strong>MoSLoRA 在异质化任务上稳定地比 LoRA 高一小到中等的幅度，并且整体仍在 LoRA 的成本范围内</strong>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig3_downstream_perf.png alt="下游任务表现：MoSLoRA 与 LoRA 在异质化任务上的对比" loading=lazy decoding=async></figure></p><p>有两个规律值得记住：</p><ol><li><strong>任务越异质，差距越大</strong>。单一领域的推理基准上提升较小；指令微调混合数据集和多技能 benchmark 上提升较明显。这和直觉一致：一个方向就够时一个子空间够用，方向多起来才需要多子空间。</li><li><strong>当 $r$ 已经到 $8$ 以上时，加 $k$ 比加 $r$ 更划算</strong>。在"参数比 vs 精度"的 Pareto 图上，加子空间能把曲线往上推得更快。</li></ol><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig4_param_efficiency.png alt="参数效率：MoSLoRA 把 Pareto 前沿整体上抬" loading=lazy decoding=async></figure></p><p>这背后的几何直观是最干净的解释：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/mixture-of-subspaces-in-low-rank-adaptation-moslora/fig5_subspace_visualisation.png alt="一个胖子空间 vs 多个细子空间" loading=lazy decoding=async></figure></p><p>一个 LoRA 是一条拉长的"主轴"；偏离这条主轴的目标只能被近似投影回去，残差和夹角成正比。MoSLoRA 把若干条细子空间放在不同方向上，再用 mixer 组合，可达集就是一个<strong>结构化的子空间并集</strong>，而不是一条胖主轴。</p><h2 id=8-moslora-什么时候值得用什么时候不值得>8. MoSLoRA 什么时候值得用，什么时候不值得</h2><p><strong>值得用</strong>的几个信号：</p><ul><li>微调数据跨多个子技能 / 多个领域（指令微调、多领域适配、多模态指令）</li><li>已经在 LoRA 上把 $r$ 调大、看到精度饱和</li><li>需要 LoRA 那样的部署性质（可合并、零路由），但又想要超过 vanilla LoRA 的容量、又不想上 LoRA-MoE</li></ul><p><strong>不值得用</strong>的情况：</p><ul><li>任务窄、同质，LoRA 中等 $r$ 已经能逼近全量微调</li><li>数据量相对 adapter 规模偏小，mixer 容易过拟合</li><li>你确实需要最大容量、可以接受真正的 MoE 部署成本——这种场景上 LoRA-MoE 或稀疏 MoE 上限更高</li></ul><h2 id=9-实战调参建议>9. 实战调参建议</h2><p>挑几个高信号的 knob：</p><ul><li><strong>从小起步</strong>：$k=2$ 或 $4$、$r=8$ 是个稳定的默认。$k=8$ 只有在数据非常异质时才有明显额外收益。</li><li><strong>mixer 初始化在单位阵附近</strong>：$W \leftarrow I + \varepsilon \cdot \text{Gaussian}$，让 step 0 接近"独立 LoRA 之和"，非对角项在训练中按需长出来。Gaussian 直接初始化容易让收敛变慢。</li><li><strong>优先改 attention，再改 MLP</strong>：Q/K/V/O 是杠杆最大的位置，把这几个先改完，再看是否需要把 MLP up/gate/down 也加上。</li><li><strong>把 $\alpha/r$ 调小一些</strong>：$k$ 个子空间求和，等效增益放大了 $k$ 倍，把 $\alpha$ 减半是安全起点。</li><li><strong>盯一下 mixer 的奇异值谱</strong>：如果 $W$ 的奇异值塌缩到一个方向，模型就退化成普通 LoRA 了，往往是正则太重或 mixer 学习率太低。</li><li><strong>如果不是非要不可，别上输入相关 gate</strong>：全局 mixer 可合并、几乎不会成为瓶颈；动态 gate 训练更难、还破坏可合并性。</li></ul><h2 id=10-pytorch-实现>10. PyTorch 实现</h2><p>一个最小但完整的实现，可以替换任意 <code>nn.Linear</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MoSLoRALinear</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;y = x W0^T + (alpha / r) * x A^T W^T B^T.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>,</span> <span class=n>r</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>16.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>                <span class=c1># 冻结基座</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>d_in</span>  <span class=o>=</span> <span class=n>base</span><span class=o>.</span><span class=n>in_features</span>
+</span></span><span class=line><span class=cl>        <span class=n>d_out</span> <span class=o>=</span> <span class=n>base</span><span class=o>.</span><span class=n>out_features</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>r</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span> <span class=o>=</span> <span class=n>r</span><span class=p>,</span> <span class=n>k</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scale</span> <span class=o>=</span> <span class=n>alpha</span> <span class=o>/</span> <span class=n>r</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 堆叠的低秩因子: A in (k*r, d_in), B in (d_out, k*r)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>A</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>,</span> <span class=n>d_in</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>B</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>d_out</span><span class=p>,</span> <span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>))</span>   <span class=c1># B 初始化为 0</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>kaiming_uniform_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>,</span> <span class=n>a</span><span class=o>=</span><span class=mi>5</span> <span class=o>**</span> <span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># mixer: W in (k*r, k*r), 初始化在单位阵附近</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>)</span> <span class=o>+</span> <span class=mf>0.01</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>,</span> <span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>              <span class=c1># 基座路径</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>x</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=o>.</span><span class=n>T</span>              <span class=c1># (..., k*r)</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=o>.</span><span class=n>T</span>              <span class=c1># (..., k*r) -- mixer 在这里发挥作用</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>B</span><span class=o>.</span><span class=n>T</span>              <span class=c1># (..., d_out)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>y</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>scale</span> <span class=o>*</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>merge</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;把 MoSLoRA 折叠回基座权重，部署用。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>delta</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scale</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>B</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>W</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>)</span>   <span class=c1># (d_out, d_in)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>add_</span><span class=p>(</span><span class=n>delta</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 清掉 adapter，避免后续前向重复加</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>B</span><span class=o>.</span><span class=n>zero_</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>eye_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>三处细节值得强调：</p><ol><li><code>B</code> 初始化为 $0$，保证微调启动时模型与基座完全一致——和 LoRA 一脉相承。</li><li><code>W</code> 初始化在单位阵附近：MoSLoRA 起步等价于"$k$ 个独立 LoRA 之和"，非对角的 mixing 是训练中"长出来"的。</li><li><code>merge()</code> 把整套 MoSLoRA 折叠成一个稠密 <code>Linear</code> —— 这一步是 MoSLoRA 在生产环境零推理开销部署的关键。</li></ol><h2 id=11-全景对比lora--moslora--lora-moe--full-ft>11. 全景对比：LoRA / MoSLoRA / LoRA-MoE / Full FT</h2><table><thead><tr><th>方法</th><th>可训练参数比例</th><th>表达力</th><th>推理代价</th><th>适合场景</th></tr></thead><tbody><tr><td><strong>Full FT</strong></td><td>100%</td><td>最高</td><td>基线（1x）</td><td>单一同质任务、无部署约束</td></tr><tr><td><strong>LoRA</strong></td><td>$\sim 0.1$–$1\%$</td><td>中</td><td>$\approx 1$x（可合并）</td><td>单任务或窄分布任务</td></tr><tr><td><strong>MoSLoRA</strong></td><td>$\sim 0.5$–$3\%$</td><td>高</td><td>$\approx 1$x（可合并）</td><td>异质多任务 / 多领域，且要保留 LoRA 风格部署</td></tr><tr><td><strong>LoRA-MoE</strong></td><td>$\sim 1$–$5\%$</td><td>高（稀疏激活）</td><td>$> 1$x，不可合并</td><td>想要更高容量上限，可接受路由 / 不可合并的部署代价</td></tr></tbody></table><p>核心结论是：MoSLoRA 和 LoRA 在<strong>同一条</strong>部署轴上往容量方向走了一步；LoRA-MoE 则切换到了另一条轴，运维代价完全不同。</p><h2 id=12-moslora-最该被使用的场景>12. MoSLoRA 最该被使用的场景</h2><ul><li><strong>跨多任务族的指令微调</strong>：代码、数学、推理、写作把权重往不同方向推，单一子空间难以兼顾。</li><li><strong>多领域适配（金融 + 医疗 + 法律）</strong>：每个领域天然有自己的更新方向；mixer 实际上学到了一种"软的按域组合"，而不需要显式 router。</li><li><strong>持续 / 增量适配</strong>：可以为新任务追加新的子空间而不动旧的，把 MoSLoRA 当成模块化的容量扩展工具。这一点超出原论文的实验范围，但在后续工作里已经能看到很自然的延伸。</li></ul><h2 id=总结>总结</h2><p>把 MoSLoRA 理解成"LoRA 的结构化容量升级"比理解成"轻量化 MoE"更准确：</p><ul><li>LoRA：一个秩为 $r$ 的子空间，权重空间里只有一条方向。</li><li>MoSLoRA：$k$ 个秩为 $r$ 的子空间 + 一个 $kr \times kr$ 的小 mixer，推理时仍可折叠成单一稠密权重。</li></ul><p>mixer 才是这套设计能成立的关键：它给了你一个秩为 $kr$ 的<strong>结构化更新流形</strong>，部署足迹和 LoRA 完全一致，并且绕开了 MoE 里所有最难处理的部分——没有 router、没有 top-k、没有负载均衡、不会破坏可合并性。对于跑异质化微调任务、又不愿承担 LoRA-MoE 运维代价的工程团队，目前来看这是 LoRA 家族里"容量–可部署性"权衡最务实的一个选择。</p><h2 id=参考文献>参考文献</h2><ul><li>Wu, T., Huang, S. and Wei, F., 2024. <strong>Mixture-of-Subspaces in Low-Rank Adaptation</strong>. arXiv:2406.11909. <a href=https://arxiv.org/abs/2406.11909 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+<a href=https://github.com/wutaiqiang/MoSLoRA target=_blank rel="noopener noreferrer">[code] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hu, E.J., Shen, Y., Wallis, P., et al., 2022. <strong>LoRA: Low-Rank Adaptation of Large Language Models</strong>. ICLR 2022. <a href=https://arxiv.org/abs/2106.09685 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Fedus, W., Zoph, B. and Shazeer, N., 2022. <strong>Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</strong>. JMLR. <a href=https://arxiv.org/abs/2101.03961 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Zadouri, T., Ustun, A., Ahmadian, A., et al., 2024. <strong>Pushing Mixture of Experts to the Limit: Extremely Parameter Efficient MoE for Instruction Tuning</strong>. arXiv:2309.05444. <a href=https://arxiv.org/abs/2309.05444 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Liu, S.Y., Wang, C.Y., Yin, H., et al., 2024. <strong>DoRA: Weight-Decomposed Low-Rank Adaptation</strong>. ICML 2024. <a href=https://arxiv.org/abs/2402.09353 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将了解到>你将了解到</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-lora-回顾为什么低秩管用又是在哪里失效>1. LoRA 回顾：为什么低秩管用，又是在哪里失效</a></li><li><a href=#2-为什么调大-r不是答案>2. 为什么"调大 &ldquo;不是答案</a></li><li><a href=#3-moslora-的核心结构delta-w--b-w-a>3. MoSLoRA 的核心结构：</a></li><li><a href=#4-与-lora-moe经典-moe-路由的边界>4. 与 LoRA-MoE、经典 MoE 路由的边界</a></li><li><a href=#5-mixer-的几种实现选择>5. mixer 的几种实现选择</a><ul><li><a href=#全局-mixer默认>全局 mixer（默认）</a></li><li><a href=#输入相关-gate>输入相关 gate</a></li><li><a href=#按层--按投影分组>按层 / 按投影分组</a></li><li><a href=#结构化--低秩-mixer>结构化 / 低秩 mixer</a></li></ul></li><li><a href=#6-参数量与算力开销>6. 参数量与算力开销</a></li><li><a href=#7-实证差距究竟出现在哪里>7. 实证：差距究竟出现在哪里</a></li><li><a href=#8-moslora-什么时候值得用什么时候不值得>8. MoSLoRA 什么时候值得用，什么时候不值得</a></li><li><a href=#9-实战调参建议>9. 实战调参建议</a></li><li><a href=#10-pytorch-实现>10. PyTorch 实现</a></li><li><a href=#11-全景对比lora--moslora--lora-moe--full-ft>11. 全景对比：LoRA / MoSLoRA / LoRA-MoE / Full FT</a></li><li><a href=#12-moslora-最该被使用的场景>12. MoSLoRA 最该被使用的场景</a></li><li><a href=#总结>总结</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5271</strong></div><div class=row><span>Published</span><strong>Apr 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

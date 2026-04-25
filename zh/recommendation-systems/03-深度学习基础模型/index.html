@@ -1,1120 +1,468 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>推荐系统（三）—— 深度学习基础模型 · Chen Kai Blog</title>
-<meta name="description" content="从 MLP 到 Embedding，再到 NeuMF、YouTube DNN、Wide &amp; Deep —— 用渐进的方式讲清深度学习推荐系统的每一块基石，附经过原文核对的架构图和可直接运行的 PyTorch 代码。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="推荐系统（三）—— 深度学习基础模型">
-<meta property="og:description" content="从 MLP 到 Embedding，再到 NeuMF、YouTube DNN、Wide &amp; Deep —— 用渐进的方式讲清深度学习推荐系统的每一块基石，附经过原文核对的架构图和可直接运行的 PyTorch 代码。">
-<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
-         · Chapter 3
-      </div>
-      <h1>推荐系统（三）—— 深度学习基础模型</h1>
-      <p class="deck">从 MLP 到 Embedding，再到 NeuMF、YouTube DNN、Wide &amp; Deep —— 用渐进的方式讲清深度学习推荐系统的每一块基石，附经过原文核对的架构图和可直接运行的 PyTorch 代码。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-12-07">December 7, 2025</time> · 2 min read · 1000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/" class="tag">#神经网络</a><a href="/zh/tags/embedding/" class="tag">#Embedding</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>2016 年 6 月，Google 在一篇短短一页的会议论文里悄悄改写了推荐系统的版图。那篇论文叫 <strong>Wide &amp; Deep Learning</strong>，描述的模型当时正在 Google Play 应用商店里跑——一个用户量上十亿的产品。一年之内，主流厂商都把深度模型推上了线；到 2019 年，行业默认值已经变了：矩阵分解只是 baseline，不再是系统。</p>
-<p>发生了什么？多层神经网络带来了四件经典方法做不到的事：</p>
-<ul>
-<li><strong>表征是学出来的</strong>。Embedding 取代 one-hot，模型从点击数据里端到端地长出语义。</li>
-<li><strong>交互是非线性的</strong>。两层带 ReLU 的 MLP 能拟合 XOR；点积不行。</li>
-<li><strong>多模态可以融合</strong>。文本、图像、行为序列都走同一条梯度。</li>
-<li><strong>优化是端到端的</strong>。再也不用人手设计交叉特征，损失函数自己挑。</li>
-</ul>
-<p>本文沿着 <code>dot(p_u, q_i)</code> 一路走到 NeuMF、YouTube DNN 和 Wide &amp; Deep。架构都按原论文核对过，每一步配可直接跑的 PyTorch 代码。</p>
-<h2 id="你将建立直觉的部分">你将建立直觉的部分</h2>
-<ul>
-<li><strong>MLP 直觉</strong>：为什么&quot;Linear + ReLU&quot;叠起来就是一台通用的交互引擎。</li>
-<li><strong>Embedding</strong>：不只是 <code>nn.Embedding</code> 怎么调，而是<em>为什么</em>梯度会把相似 ID 拉到一起。</li>
-<li><strong>NeuMF</strong>（He 等，WWW 2017）：两条路径，一个目标。</li>
-<li><strong>YouTube DNN</strong>（Covington 等，RecSys 2016）：当今几乎所有大规模推荐系统的两阶段模板。</li>
-<li><strong>Wide &amp; Deep</strong>（Cheng 等，DLRS 2016）：教科书级别的&quot;记忆 + 泛化&quot;融合。</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>熟悉 PyTorch 基础（<code>nn.Module</code>、autograd、<code>DataLoader</code>）。</li>
-<li>看过<a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%8c-%e5%8d%8f%e5%90%8c%e8%bf%87%e6%bb%a4%e4%b8%8e%e7%9f%a9%e9%98%b5%e5%88%86%e8%a7%a3/">本系列第二篇</a>
-，理解矩阵分解和隐式/显式反馈。</li>
-<li>基本线性代数：点积、矩阵向量乘法。</li>
-</ul>
-<hr>
-<h2 id="一为什么是深度学习为什么是现在">一、为什么是深度学习，为什么是现在</h2>
-<h3 id="经典方法撞到的天花板">经典方法撞到的天花板</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig1_dl_vs_traditional.png" alt="深度模型在 CTR 任务上对比 MF、FM、Wide &amp; Deep、DeepFM、DIN 的 AUC，深度模型比 MF baseline 高 5%-13%" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上面的数字是公开 CTR 数据集（Criteo、Avazu、隐式反馈版的 MovieLens-1M）上的典型表现。结论很一致：<strong>每多一层非线性就多换来几个 AUC 百分点，而几个 AUC 百分点在 GMV 上意义重大。</strong></p>
-<p>要看清<em>为什么</em>，得先看清每种经典方法到底能表达什么。</p>
-<p><strong>矩阵分解</strong>用一个点积来预测评分：</p>
-$$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$<p>直白讲：每个用户、每个物品都是一个短向量，预测就是它们的&quot;对齐程度&quot;。漂亮，但是线性的——没法表达&quot;我同时喜欢科幻<em>和</em>动作，但单独一个都不行&quot;这种交互。</p>
-<p>**因子分解机（FM）**加上了二阶交互：</p>
-$$\hat{y}(\mathbf{x}) = w_0 + \sum_i w_i x_i + \sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j\rangle x_i x_j$$<p>它是 MF 的真超集，但也只到二阶。&ldquo;年轻用户 × 周五晚上 × 惊悚片&quot;这种三阶组合，得人手设计。</p>
-<p><strong>协同过滤</strong>直接绕过建模，找&quot;和你像的人喜欢什么&rdquo;。在矩阵稀疏到一定程度之前都好用——而生产环境里，矩阵总会稀疏。</p>
-<p>三者的共同短板是：<strong>最多到二阶，并且都需要人来设计正确的特征。</strong></p>
-<h3 id="深度学习补上的部分">深度学习补上的部分</h3>
-<p>带非线性的两层网络在理论上是通用函数逼近器。落到实践，就是：</p>
-<ul>
-<li>一个建在 Embedding 之上的 MLP，可以拟合数据所支撑的任意阶交互。</li>
-<li>同一套骨干可以同时吃图像（CNN）、文本（Transformer）、序列（RNN）—— 联合训练。</li>
-<li>冷启动有了抓手：新物品只要有<em>内容</em>（标题、图像），预训练编码器就能给它一个像样的初始向量。</li>
-</ul>
-<p>代价是更多算力、更差的可解释性、更多超参。第七节会讲让这笔买卖划算的工程纪律。</p>
-<hr>
-<h2 id="二mlp-直觉从点积到非线性交互">二、MLP 直觉：从点积到非线性交互</h2>
-<p>在认识具体模型之前，先内化一件事：MLP 比点积多给了你什么。</p>
-<p>点积 $\mathbf{p}^\top \mathbf{q} = \sum_k p_k q_k$ 是把每个维度的乘积加起来。它对称、线性，无法表达&quot;特征 A 只在特征 B 也激活时才有用&quot;。</p>
-<p>把 $[\mathbf{p}; \mathbf{q}]$ 拼起来过一层 <code>Linear → ReLU → Linear</code>：</p>
-$$f(\mathbf{p}, \mathbf{q}) = \mathbf{w}^\top \, \text{ReLU}\!\big(\mathbf{W} [\mathbf{p}; \mathbf{q}] + \mathbf{b}\big)$$<p>ReLU 会根据&quot;哪些输入维度组合被激活&quot;来开关每个隐藏单元。隐藏单元够多，就是通用逼近定理。<strong>交互形式不再是写死的公式，而是学出来的。</strong></p>
-<p>把&quot;点积换成 MLP&quot;这一刀就是种子，NeuMF、YouTube DNN、Wide &amp; Deep 都从这里长出来。</p>
-<hr>
-<h2 id="三embedding从稀疏-id-到语义表征的桥梁">三、Embedding：从稀疏 ID 到语义表征的桥梁</h2>
-<h3 id="one-hot-是敌人">One-hot 是敌人</h3>
-<p>想象一个目录：1000 万用户、100 万物品。one-hot 编码下，每个用户是一个 1000 万维的向量，只有一个位置是 1。三件事同时出问题：</p>
-<ol>
-<li><strong>存储和计算</strong>爆炸——光一个用户输入就是 40 MB 的浮点向量。</li>
-<li><strong>信息密度</strong>塌陷——99.99999% 的位置都是零。</li>
-<li><strong>任意两个 one-hot 的距离都相等</strong>：$\|\mathbf{e}_i - \mathbf{e}_j\|_2 = \sqrt{2}$。用户 42 和用户 43 的距离，跟用户 42 和用户 9,999,999 的距离没区别。</li>
-</ol>
-<p>Embedding 一次性解掉这三件事。它把每个 ID 映射到一个 64 维左右的稠密向量。训练完之后，<strong>口味相似的用户在这个 64 维空间里挨着</strong>。</p>
-<blockquote>
-<p><strong>类比</strong>：one-hot 像一本通讯录，每个人都住在一座孤岛上，岛与岛距离相等。Embedding 是地理学家把岛重排，让相关的人住的岛挨在一起。&ldquo;找相似用户&quot;突然就变成了一次最近邻查询。</p>
-</blockquote>
-<h3 id="embedding-到底是什么">Embedding 到底是什么</h3>
-<p>数学上，Embedding 层就是一个可学习的矩阵 $\mathbf{P} \in \mathbb{R}^{m \times d}$，第 $i$ 行就是用户 $i$ 的向量。&ldquo;查表&quot;操作 $\mathbf{p}_i = \mathbf{P}[i, :]$ 等价于 $\mathbf{P}^\top \mathbf{e}_i$，但实现成行索引来跑得快。</p>
-<p>代码上一行就够：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">user_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_embeddings</span><span class="o">=</span><span class="mi">10_000_000</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">user_vec</span> <span class="o">=</span> <span class="n">user_embedding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="mi">42</span><span class="p">]))</span>   <span class="c1"># shape: [1, 64]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="梯度是怎么教会-embedding-有意义的">梯度是怎么教会 Embedding 有意义的</h3>
-<p>Embedding 一开始是随机的。它能变得有语义，全靠梯度推它。</p>
-<p>拿一个点击预测的损失来说：用户 $u$ 点了物品 $i$，损失就告诉优化器&quot;让 $\mathbf{p}_u^\top \mathbf{q}_i$ 变大&rdquo;。反向传播会把 $\mathbf{p}_u$ 微微往 $\mathbf{q}_i$ 的方向推，反之亦然。在百万次点击之后，这一条简单规则就能产出令人惊讶的结构：受众重叠的物品会聚在一起，常被一起买的物品会聚在一起，同一个艺术家的歌会聚在一起。</p>
-<p>你从没告诉模型&quot;流派&quot;是什么。是梯度的几何结构自己发现了它。</p>
-<h3 id="把它学到的东西画出来">把它学到的东西画出来</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig5_embedding_space.png" alt="训练得到的物品 Embedding 经过 t-SNE 投影后形成科幻、动作、纪录片、爱情喜剧、恐怖等聚类，跨类型物品落在簇之间" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>把训练好的物品 Embedding 矩阵用 t-SNE 投到二维，通常会看到这样一幅图：同类物品紧紧聚成一团，混合类物品在相关簇之间架起桥梁（&ldquo;科幻动作&quot;就坐在科幻和动作之间），长尾物品散落在外围。这是判断模型&quot;到底有没有学到东西&quot;的最佳诊断。</p>
-<h3 id="维度怎么选">维度怎么选</h3>
-<table>
-  <thead>
-      <tr>
-          <th>物品规模</th>
-          <th>推荐 $d$</th>
-          <th>备注</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>&lt;10 万</td>
-          <td>8 &ndash; 32</td>
-          <td>再大就过拟合</td>
-      </tr>
-      <tr>
-          <td>10 万 &ndash; 100 万</td>
-          <td>32 &ndash; 64</td>
-          <td>多数场景的甜点</td>
-      </tr>
-      <tr>
-          <td>100 万 &ndash; 1 亿</td>
-          <td>64 &ndash; 128</td>
-          <td>128 之上收益递减</td>
-      </tr>
-      <tr>
-          <td>网级</td>
-          <td>128 &ndash; 256</td>
-          <td>只有交互上百亿才合算</td>
-      </tr>
-  </tbody>
-</table>
-<p>YouTube 论文里、后续工作里反复印证的一条经验法则：<strong>从 $d = 32$ 起步，翻倍直到验证 AUC 提升不到 ~0.5%，停。</strong> 内存和服务延迟随 $d$ 线性增长，质量却是凹的。</p>
-<h3 id="一个干净可复用的-embedding-层">一个干净、可复用的 Embedding 层</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">IdEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;带 Xavier 初始化和可选 padding 的 Embedding 层。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">padding_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="n">padding_idx</span><span class="p">]</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>多字段类别特征（用户 ID、物品 ID、类目、城市……）每个字段一张表，再 stack 起来：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiFieldEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_dims</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tables</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span><span class="n">IdEmbedding</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">field_dims</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># x: [batch, num_fields] -&gt; [batch, num_fields, dim]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">t</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这个 <code>[batch, num_fields, dim]</code> 的张量，就是下面所有模型期望的输入形状。</p>
-<hr>
-<h2 id="四神经协同过滤ncf-与-neumf">四、神经协同过滤（NCF 与 NeuMF）</h2>
-<h3 id="想法把点积换成更聪明的东西">想法：把点积换成更聪明的东西</h3>
-<p>He、Liao、Zhang、Nie、Hu、Chua 在 WWW 2017 上提出 <strong>NCF</strong>。卖点朴素得让人意外：矩阵分解其实是网络的特例，把它一般化就能做得更好。</p>
-<p>论文里一共有三兄弟：</p>
-<ul>
-<li><strong>GMF</strong>（Generalized Matrix Factorization）：可学习权重的点积。</li>
-<li><strong>MLP</strong>：纯粹的拼接 + 深度网络，不预设&quot;内积&quot;这种归纳偏置。</li>
-<li><strong>NeuMF</strong>：把 GMF 和 MLP 融合起来，每条路径用各自独立的 Embedding。</li>
-</ul>
-<p>实践里 NeuMF 才是真正重要的那个。下面这张架构图忠于原论文。</p>
-<h3 id="neumf-架构">NeuMF 架构</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig2_ncf_architecture.png" alt="NeuMF 架构图：左侧 GMF 路径用元素积融合用户/物品 Embedding，右侧 MLP 路径用拼接 &#43; ReLU 层，顶部融合后接 sigmoid 输出" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>从下往上看：</p>
-<ol>
-<li><strong>每边两张 Embedding 表</strong>。GMF 和 MLP <em>不</em>共享 Embedding——论文里强调这一点很关键。每条路径学自己擅长的表征。</li>
-<li><strong>GMF 路径</strong>：元素积 $\mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF}$。在它上面再乘一个可学习权重，就是点积的推广。</li>
-<li><strong>MLP 路径</strong>：把 $[\mathbf{p}_u^\text{MLP}; \mathbf{q}_i^\text{MLP}]$ 拼起来，过 2&ndash;3 层 Dense + ReLU（典型尺寸：$128 \to 64 \to 32$）。</li>
-<li><strong>融合</strong>：把两条路径的输出拼起来，再投影成一个标量过 sigmoid：</li>
-</ol>
-$$\hat{y}_{ui} = \sigma\!\left(\mathbf{h}^\top \begin{bmatrix} \mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF} \\ \mathbf{z}_L^\text{MLP} \end{bmatrix}\right)$$<p>对隐式反馈（点击、播放、购买），损失是二元交叉熵：</p>
-$$\mathcal{L} = -\sum_{(u, i) \in \mathcal{D}^+ \cup \mathcal{D}^-} \big[ y_{ui} \log \hat{y}_{ui} + (1 - y_{ui}) \log(1 - \hat{y}_{ui}) \big]$$<p>负样本集 $\mathcal{D}^-$ 由采样得到——通常每个正样本配 4 个负样本。</p>
-<h3 id="neumf-端到端实现">NeuMF 端到端实现</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">NeuMF</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;NeuMF：融合 GMF 与 MLP，两条路径独立 Embedding（He 等，2017）。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_users</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mlp_layers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 两条路径独立 Embedding——NeuMF 的关键设计。</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_gmf</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_gmf</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_users</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># MLP 塔，输入是拼接后的用户/物品向量。</span>
-</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">embedding_dim</span> <span class="o">*</span> <span class="mi">2</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="n">mlp_layers</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">dropout</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 输出头看到的是 [GMF 向量；MLP 向量]。</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span> <span class="o">+</span> <span class="n">mlp_layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">emb</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_gmf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_gmf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">users</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">gmf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_gmf</span><span class="p">(</span><span class="n">users</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_gmf</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>           <span class="c1"># [B, d]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mlp_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">user_mlp</span><span class="p">(</span><span class="n">users</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_mlp</span><span class="p">(</span><span class="n">items</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mlp_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="n">mlp_in</span><span class="p">)</span>                                  <span class="c1"># [B, mlp_layers[-1]]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">gmf</span><span class="p">,</span> <span class="n">mlp_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 冒烟测试</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">NeuMF</span><span class="p">(</span><span class="n">num_users</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">num_items</span><span class="o">=</span><span class="mi">5_000</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">users</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">,</span> <span class="p">(</span><span class="mi">8</span><span class="p">,))</span>
-</span></span><span class="line"><span class="cl"><span class="n">items</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5_000</span><span class="p">,</span> <span class="p">(</span><span class="mi">8</span><span class="p">,))</span>
-</span></span><span class="line"><span class="cl"><span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">8</span><span class="p">,))</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">loss</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">()(</span><span class="n">preds</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;preds=</span><span class="si">{</span><span class="n">preds</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">  loss=</span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="neumf-训练里容易被忽略的细节">NeuMF 训练里容易被忽略的细节</h3>
-<p>论文里有三件事经常被人忘掉：</p>
-<ul>
-<li><strong>两条路径分别预训练</strong>。先单独训 GMF，再单独训 MLP，最后把两份权重拿来初始化 NeuMF。论文里光这个 trick 就有 ~2% 的 AUC 提升。</li>
-<li><strong>负样本比例要选对</strong>。&ldquo;1 正 4 负&quot;是经典默认；1:1 欠拟合，1:10 浪费算力。</li>
-<li><strong>bias 不要做 L2</strong>。给偏置项加 weight decay 会掉点，要在优化器的参数组里把它们排除。</li>
-</ul>
-<hr>
-<h2 id="五youtube-dnn撑起半个互联网的两阶段流水线">五、YouTube DNN：撑起半个互联网的两阶段流水线</h2>
-<p>Covington、Adams、Sargin（RecSys 2016）是深度学习时代被引最多的工业推荐论文。它的&quot;召回（candidate generation）+ 排序（ranking）&ldquo;两阶段拆分，是后来几乎所有大规模推荐系统的模板：抖音、Spotify、Pinterest、Instagram、淘宝。</p>
-<h3 id="为什么要两阶段">为什么要两阶段</h3>
-<p>每次请求都给十亿个视频打分根本不现实。给十亿个物品都喂丰富特征实时打分也不现实。解法是：</p>
-<ol>
-<li><strong>召回阶段</strong>用便宜的模型和便宜的特征，把候选集从百万缩到几百。</li>
-<li><strong>排序阶段</strong>用很重的模型和丰富特征，对这几百个候选精打分，挑 top-K。</li>
-</ol>
-<h3 id="架构">架构</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig3_youtube_dnn.png" alt="YouTube DNN 两阶段流水线：左侧召回塔输入观看历史、搜索 token、地域、年龄、性别；右侧排序塔用更丰富的特征预测期望观看时长" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>召回</strong>被建模成一个&quot;超级多分类&quot;问题：给定用户当前状态，预测他下一个会看的视频是哪一个，类别数等于候选视频总数（百万级）。用户塔把最近看过的视频 Embedding 平均池化、和人口学特征拼接，过三层 ReLU（$1024 \to 512 \to 256$），输出一个 256 维的<strong>用户向量</strong>。训练用 sampled softmax；上线时把视频 Embedding 灌进 ANN 索引（HNSW、ScaNN），用户向量就是一次最近邻查询——十亿物品也只要个位数毫秒。</p>
-<p><strong>排序</strong>是一个更深的前馈网络（$1024 \to 512 \to 256 \to 128$），吃的特征也多得多：曝光视频自身的 Embedding、同频道历史观看的 Embedding、<em>距离上次观看的时间</em>、<em>在 feed 中的位置</em>、语言匹配等等。关键是输出头用了<strong>带权重的 logistic 回归</strong>，目标是预测期望观看时长，而不是点击。论文证明这个目标比纯 CTR 更对齐长期满意度。</p>
-<h3 id="youtube-论文里值得抄的设计">YouTube 论文里值得抄的设计</h3>
-<p>三个老化得很好的选择：</p>
-<ul>
-<li><strong>用平均池化压缩用户最近行为</strong>。便宜、并行、强 baseline。序列模型（第六篇）只有在数据足够多时才赢得了它。</li>
-<li><strong>召回当分类做，不要当回归做</strong>。Sampled softmax + ANN 上线，是行业的统治性范式。</li>
-<li><strong>认真选标签</strong>。&ldquo;观看时长&rdquo;、&ldquo;长点击&rdquo;（停留 &gt;30 秒）、&ldquo;完播&quot;都比裸点击泛化得好。损失函数就是产品规格。</li>
-</ul>
-<p>PyTorch 里召回塔的骨架：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">YouTubeCandidateTower</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;召回塔：产出可以直接进 ANN 的用户向量。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_videos</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_searches</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_geos</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">user_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">video_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_videos</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">search_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_searches</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">geo_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_geos</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">in_dim</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">embedding_dim</span> <span class="o">+</span> <span class="mi">2</span>  <span class="c1"># 视频池化 + 搜索池化 + 地域 + 年龄 + 性别</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tower</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="mi">1024</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">512</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">user_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">watched</span><span class="p">,</span> <span class="n">searched</span><span class="p">,</span> <span class="n">geo</span><span class="p">,</span> <span class="n">age</span><span class="p">,</span> <span class="n">gender</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># watched, searched: [B, L]，padding 过；对非 padding 的位置做 mean pool。</span>
-</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">video_emb</span><span class="p">(</span><span class="n">watched</span><span class="p">),</span> <span class="n">watched</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_emb</span><span class="p">(</span><span class="n">searched</span><span class="p">),</span> <span class="n">searched</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_emb</span><span class="p">(</span><span class="n">geo</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">v</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">age</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">gender</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tower</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># 归一化的用户向量，配 cosine 检索</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_masked_mean</span><span class="p">(</span><span class="n">emb</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">m</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">emb</span> <span class="o">*</span> <span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">m</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>训练时把这个用户向量和一组采样的候选视频 Embedding 拼起来过 softmax；上线时直接对 ANN 索引做点积。这一座塔，就是当今工业级召回的主力机型。</p>
-<hr>
-<h2 id="六wide--deep记忆遇上泛化">六、Wide &amp; Deep：记忆遇上泛化</h2>
-<h3 id="洞察">洞察</h3>
-<p>Cheng 等人（DLRS 2016）注意到，深度模型虽然泛化好，但有时会&quot;过度推荐&rdquo;——因为 Embedding 把一切都抹平了，它会推一些&quot;听起来合理但其实不对&quot;的物品。反过来，带交叉特征的线性模型能完美记住具体共现，但没法外推。</p>
-<blockquote>
-<p><strong>类比</strong>：记忆是那个会跟你说&quot;你喜欢 Inception，那一定喜欢 Tenet&quot;的朋友——具体、准确，但永远不冒险。泛化是那个会跟你说&quot;你喜欢烧脑悬疑片，试试 Primer&quot;的朋友——视野更宽，偶尔翻车，但能给你惊喜。一个好的推荐系统应该同时是这两个朋友。</p>
-</blockquote>
-<p>他们的解法：<strong>联合训练</strong>，两边的分数在 sigmoid 之前直接相加。</p>
-<h3 id="架构-1">架构</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig4_wide_and_deep.png" alt="Wide &amp; Deep 架构：左侧 Wide 线性模型输入稀疏特征和交叉特征，右侧 Deep MLP 输入稠密 Embedding，两者求和后过 sigmoid" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Wide 部分</strong>：在原始稀疏特征和<strong>人手设计的交叉特征</strong> $\phi(\mathbf{x})$ 上的线性层，比如 <code>installed_app=Pandora AND impression_app=YouTube</code>。输出 $\hat{y}^w = \mathbf{w}^\top [\mathbf{x}, \phi(\mathbf{x})] + b$。</p>
-<p><strong>Deep 部分</strong>：每个类别字段都过 Embedding，拼接后过 3 层 ReLU（$256 \to 128 \to 64$）。输出 $\hat{y}^d$。</p>
-<p><strong>联合输出头</strong>：$\hat{y} = \sigma(\hat{y}^w + \hat{y}^d)$。两边都从同一个损失收到梯度，由优化器决定各自贡献多少。</p>
-<p>论文用了一个刻意的拆分：<strong>Wide 端用带 L1 的 FTRL</strong>（稀疏、可解释、自动选特征），<strong>Deep 端用 AdaGrad</strong>（稠密、平滑）。这种&quot;两套优化器&quot;的设置很关键——一套吃到底会掉点。</p>
-<h3 id="实现">实现</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">WideAndDeep</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Wide &amp; Deep（Cheng 等，2016），二分类 CTR 预测。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">wide_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>                  <span class="c1"># 稀疏 + 交叉特征向量的维度</span>
-</span></span><span class="line"><span class="cl">        <span class="n">field_dims</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>          <span class="c1"># Deep 端每个类别字段的词表大小</span>
-</span></span><span class="line"><span class="cl">        <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">deep_layers</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Wide 端：一个大的稀疏线性层。</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">wide</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">wide_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Deep 端：每字段 Embedding + MLP。</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">field_dims</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">in_dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">field_dims</span><span class="p">)</span> <span class="o">*</span> <span class="n">embedding_dim</span>
-</span></span><span class="line"><span class="cl">        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="n">deep_layers</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">dropout</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">deep</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_wide</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x_deep</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">wide_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wide</span><span class="p">(</span><span class="n">x_wide</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">deep_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">emb</span><span class="p">(</span><span class="n">x_deep</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">emb</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">deep_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deep</span><span class="p">(</span><span class="n">deep_in</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">wide_score</span> <span class="o">+</span> <span class="n">deep_score</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 双优化器训练——很多教程会漏掉这个生产级细节。</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">WideAndDeep</span><span class="p">(</span><span class="n">wide_dim</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">field_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">50_000</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">20</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl"><span class="n">opt_wide</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">wide</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">opt_deep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">n</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&#34;wide.&#34;</span><span class="p">)],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>实践里你也可以一把 Adam 训完，模型也能跑出来——但 Wide+Deep 的<em>联合损失</em>才是模型真正叫 Wide &amp; Deep 的原因。<strong>它不是把两个独立训完的模型 ensemble 在一起。</strong> Wide 和 Deep 的参数能看到彼此的梯度，这种交互正是要害。</p>
-<h3 id="直系后辈">直系后辈</h3>
-<p>Wide &amp; Deep 衍生出了一整支族系，把人手交叉特征自动化掉：</p>
-<table>
-  <thead>
-      <tr>
-          <th>模型</th>
-          <th>&ldquo;Wide&quot;被替换为</th>
-          <th>年份</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>DeepFM</strong></td>
-          <td>FM 层，自动学二阶交叉</td>
-          <td>2017</td>
-      </tr>
-      <tr>
-          <td><strong>DCN</strong></td>
-          <td>Cross Network，每多一阶只多 $O(d)$ 参数</td>
-          <td>2017</td>
-      </tr>
-      <tr>
-          <td><strong>xDeepFM</strong></td>
-          <td>CIN（Compressed Interaction Network），显式高阶交叉</td>
-          <td>2018</td>
-      </tr>
-      <tr>
-          <td><strong>AutoInt</strong></td>
-          <td>在特征 Embedding 上做自注意力</td>
-          <td>2019</td>
-      </tr>
-  </tbody>
-</table>
-<p><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/">本系列第四篇</a>
-会一一讲它们。</p>
-<hr>
-<h2 id="七训练纪律决定上面这些到底好不好用">七、训练纪律：决定上面这些到底好不好用</h2>
-<p>架构对只是必要条件，远不是充分条件。下面这些细节经常比&quot;换模型&quot;更能动 AUC。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig6_training_curves.png" alt="训练损失和验证 AUC 曲线：MF、NCF、Wide &amp; Deep 在 50 个 epoch 上的对比，深度模型收敛到更低损失、更高 AUC，配合 early stopping" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="负采样">负采样</h3>
-<p>对隐式反馈，每个用户都有上千&quot;负样本&rdquo;（没看到过的物品）。三种采样策略，按精细程度排序：</p>
-<ul>
-<li><strong>均匀随机</strong>。默认，意外地难被打败，召回阶段尤其稳。</li>
-<li><strong>按热度加权</strong>。热门物品被采到的概率更大——用户略过一个爆款，是很强的负信号。</li>
-<li><strong>batch 内 / 困难负样本</strong>。把同一个 batch 里别人的正样本当自己的负样本；或者周期性从当前模型里捞高分负样本。提升判别力，但温度要调好。</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">sample_negatives</span><span class="p">(</span><span class="n">user_history</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">catalog_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;均匀随机采样负样本，命中用户历史则拒绝。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">cand</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">catalog_size</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">cand</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user_history</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cand</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">out</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="优化器调度正则">优化器、调度、正则</h3>
-<p>90% 以上的推荐模型都能用的合理默认：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">scheduler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ReduceLROnPlateau</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">optimizer</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&#34;min&#34;</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">3</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><ul>
-<li><strong>Dropout 0.2 &ndash; 0.3</strong>，加在 MLP 塔里。再大就掉排序质量。</li>
-<li><strong>梯度裁剪</strong>（<code>torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)</code>）：看到 loss 跳就开。</li>
-<li><strong>Early stopping</strong>：监控验证 AUC，patience 5&ndash;10 个 epoch。</li>
-</ul>
-<h3 id="一个完整的训练循环">一个完整的训练循环</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bce</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">sched</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ReduceLROnPlateau</span><span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&#34;min&#34;</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">best_val</span><span class="p">,</span> <span class="n">bad</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">),</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">users</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">items</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">bce</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">5.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">train_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">val_loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">users</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">items</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">val_loss</span> <span class="o">+=</span> <span class="n">bce</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">users</span><span class="p">,</span> <span class="n">items</span><span class="p">),</span> <span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">sched</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">val_loss</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">val_loss</span> <span class="o">&lt;</span> <span class="n">best_val</span> <span class="o">-</span> <span class="mf">1e-4</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">best_val</span><span class="p">,</span> <span class="n">bad</span> <span class="o">=</span> <span class="n">val_loss</span><span class="p">,</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s2">&#34;best.pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">bad</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">bad</span> <span class="o">&gt;=</span> <span class="n">patience</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;early stop at epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">; best val_loss=</span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">:</span><span class="s2">&gt;3</span><span class="si">}</span><span class="s2">  train=</span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  val=</span><span class="si">{</span><span class="n">val_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="指标要对得上任务">指标要对得上任务</h3>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>主指标</th>
-          <th>它真正度量的是</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>CTR 预测</td>
-          <td><strong>AUC</strong></td>
-          <td>模型能不能把正样本排在负样本前面</td>
-      </tr>
-      <tr>
-          <td>CTR 预测</td>
-          <td><strong>LogLoss</strong></td>
-          <td>预测概率是否校准</td>
-      </tr>
-      <tr>
-          <td>Top-K 召回</td>
-          <td><strong>Recall@K</strong>、<strong>HitRate@K</strong></td>
-          <td>正确物品有没有出现在前 K 个里</td>
-      </tr>
-      <tr>
-          <td>Top-K 排序</td>
-          <td><strong>NDCG@K</strong></td>
-          <td>正确物品排得有多靠前</td>
-      </tr>
-      <tr>
-          <td>评分预测</td>
-          <td><strong>RMSE</strong></td>
-          <td>预测分数的平方误差均值</td>
-      </tr>
-  </tbody>
-</table>
-<p>如果你用 RMSE 衡量 CTR、用 AUC 衡量评分预测，那就拧错了优化的旋钮。一开始就选定，写下来，永远别偷偷换。</p>
-<hr>
-<h2 id="八常见问题认真回答">八、常见问题，认真回答</h2>
-<p><strong>Q：Embedding 维度该多大？</strong>
-1M 以下物品规模从 32 起步，再大从 64 起步。翻倍直到验证 AUC 提升不到 ~0.5%。$d$ 超过 256 几乎都会过拟合，除非你有上百亿次交互。</p>
-<p><strong>Q：是不是永远应该用 NeuMF 取代 MF？</strong>
-不是。在 ~100 万次交互以下，调好正则的 MF 经常打过 NeuMF——深度模型在那个数据量下会过拟合。NeuMF 真正稳定胜出，是在 ~1000 万次交互、且有丰富 side feature 之上。</p>
-<p><strong>Q：Wide &amp; Deep 能不能只要 Deep，不要 Wide？</strong>
-可以，很多人就是这么做的（DeepFM、DCN）。Wide 端给纯 Deep 模型不能给的东西，是对高基数共现的<em>精确</em>记忆——&ldquo;装了 X 应用的用户也会装 Y 应用&rdquo;。如果你的业务依赖这种具体共现被精确捕捉，留着 Wide 端。否则用自动化的交叉网络（DeepFM、DCN）通常更划算。</p>
-<p><strong>Q：YouTube DNN 在我只有几百万用户的场景里要不要用？</strong>
-两阶段在 ~10 万物品以下属于杀鸡用牛刀。先用一个 ranker 对全目录打分。当全目录打分跟不上你的延迟预算时，再上两阶段。</p>
-<p><strong>Q：全新物品（没任何交互）怎么处理？</strong>
-按效果递减排：</p>
-<ol>
-<li><strong>基于内容初始化</strong>——用预训练编码器（BERT、CLIP）从物品文本/图像算出 Embedding。</li>
-<li><strong>类目均值初始化</strong>——取同类目物品 Embedding 的平均。</li>
-<li><strong>多臂老虎机探索</strong>——把新物品给一小部分流量，攒初始信号。</li>
-</ol>
-<p><strong>Q：怎么防止深度推荐模型过拟合？</strong>
-分层防御：Embedding 上加 $10^{-5}$ 的 weight decay，MLP 里 0.2&ndash;0.3 的 dropout，验证 AUC 上的 early stopping，实在不行减小 $d$。只在验证指标真的能跟着动的时候才加复杂度。</p>
-<p><strong>Q：怎么加速训练？</strong>
-80/20 列表：先上 GPU（10&ndash;100 倍），再加大 batch（吃满 GPU），再混合精度（<code>torch.cuda.amp</code>，~2 倍），最后 <code>DataLoader(num_workers &gt; 0)</code>。所有特征离线预计算，永远不要在训练循环里做 join。</p>
-<hr>
-<h2 id="九走到这里我们看到了什么">九、走到这里我们看到了什么</h2>
-<p>深度学习没有发明推荐系统，它改了三个约束：</p>
-<ul>
-<li><strong>表征是学出来的</strong>，不是设计出来的。Embedding 取代 one-hot，梯度发现你写不出来的结构。</li>
-<li><strong>交互是任意阶的</strong>，不再止步于二阶。MLP 拟合数据所支撑的任何形式。</li>
-<li><strong>流水线是端到端的</strong>，不再是几段拼起来。损失从预测一路流回原始 ID。</li>
-</ul>
-<p>NeuMF 证明了&quot;学出来的交互&quot;打得过&quot;写死的内积&rdquo;。YouTube DNN 展示了如何在十亿物品的尺度上把召回和排序拆开做。Wide &amp; Deep 告诉我们记忆和泛化最好联合学，而不是分别学完再 ensemble。</p>
-<p><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/">本系列第四篇</a>
-接着往下走：<strong>CTR 预估模型如何把 Wide &amp; Deep 还在依赖的人手交叉自动化掉</strong>，包括 DeepFM、DCN、xDeepFM、AutoInt、FiBiNet。</p>
-<hr>
-<blockquote>
-<p><strong>系列导航</strong></p>
-<p>本文是推荐系统系列的<strong>第 3 篇</strong>，共 16 篇。</p>
-<ul>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%80-%e5%85%a5%e9%97%a8%e4%b8%8e%e5%9f%ba%e7%a1%80%e6%a6%82%e5%bf%b5/">第 1 篇：入门与基础概念</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%8c-%e5%8d%8f%e5%90%8c%e8%bf%87%e6%bb%a4%e4%b8%8e%e7%9f%a9%e9%98%b5%e5%88%86%e8%a7%a3/">第 2 篇：协同过滤与矩阵分解</a>
-</li>
-<li><strong>第 3 篇：深度学习基础模型</strong>（当前）</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/">第 4 篇：CTR 预估与点击率建模</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/">第 5 篇：Embedding 表示学习</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ad-%e5%ba%8f%e5%88%97%e6%8e%a8%e8%8d%90%e4%b8%8e%e4%bc%9a%e8%af%9d%e5%bb%ba%e6%a8%a1/">第 6 篇：序列推荐与会话建模</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e7%a4%be%e4%ba%a4%e6%8e%a8%e8%8d%90/">第 7 篇：图神经网络与社交推荐</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ab-%e7%9f%a5%e8%af%86%e5%9b%be%e8%b0%b1%e5%a2%9e%e5%bc%ba%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">第 8 篇：知识图谱增强推荐系统</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b9%9d-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0%e4%b8%8e%e5%a4%9a%e7%9b%ae%e6%a0%87%e4%bc%98%e5%8c%96/">第 9 篇：多任务学习与多目标优化</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/">第 10 篇：深度兴趣网络与注意力机制</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%b8%80-%e5%af%b9%e6%af%94%e5%ad%a6%e4%b9%a0%e4%b8%8e%e8%87%aa%e7%9b%91%e7%9d%a3%e5%ad%a6%e4%b9%a0/">第 11 篇：对比学习与自监督学习</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%ba%8c-%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e4%b8%8e%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">第 12 篇：大语言模型与推荐系统</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%b8%89-%e5%85%ac%e5%b9%b3%e6%80%a7-%e5%8e%bb%e5%81%8f%e4%b8%8e%e5%8f%af%e8%a7%a3%e9%87%8a%e6%80%a7/">第 13 篇：公平性、去偏与可解释性</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e5%9b%9b-%e8%b7%a8%e5%9f%9f%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%86%b7%e5%90%af%e5%8a%a8%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88/">第 14 篇：跨域推荐与冷启动解决方案</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%ba%94-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/">第 15 篇：实时推荐与在线学习</a>
-</li>
-<li><a href="/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e5%85%ad-%e5%b7%a5%e4%b8%9a%e7%ba%a7%e6%9e%b6%e6%9e%84%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">第 16 篇：工业级架构与最佳实践</a>
-</li>
-</ul>
-</blockquote>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将建立直觉的部分">你将建立直觉的部分</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#一为什么是深度学习为什么是现在">一、为什么是深度学习，为什么是现在</a>
-      <ul>
-        <li><a href="#经典方法撞到的天花板">经典方法撞到的天花板</a></li>
-        <li><a href="#深度学习补上的部分">深度学习补上的部分</a></li>
-      </ul>
-    </li>
-    <li><a href="#二mlp-直觉从点积到非线性交互">二、MLP 直觉：从点积到非线性交互</a></li>
-    <li><a href="#三embedding从稀疏-id-到语义表征的桥梁">三、Embedding：从稀疏 ID 到语义表征的桥梁</a>
-      <ul>
-        <li><a href="#one-hot-是敌人">One-hot 是敌人</a></li>
-        <li><a href="#embedding-到底是什么">Embedding 到底是什么</a></li>
-        <li><a href="#梯度是怎么教会-embedding-有意义的">梯度是怎么教会 Embedding 有意义的</a></li>
-        <li><a href="#把它学到的东西画出来">把它学到的东西画出来</a></li>
-        <li><a href="#维度怎么选">维度怎么选</a></li>
-        <li><a href="#一个干净可复用的-embedding-层">一个干净、可复用的 Embedding 层</a></li>
-      </ul>
-    </li>
-    <li><a href="#四神经协同过滤ncf-与-neumf">四、神经协同过滤（NCF 与 NeuMF）</a>
-      <ul>
-        <li><a href="#想法把点积换成更聪明的东西">想法：把点积换成更聪明的东西</a></li>
-        <li><a href="#neumf-架构">NeuMF 架构</a></li>
-        <li><a href="#neumf-端到端实现">NeuMF 端到端实现</a></li>
-        <li><a href="#neumf-训练里容易被忽略的细节">NeuMF 训练里容易被忽略的细节</a></li>
-      </ul>
-    </li>
-    <li><a href="#五youtube-dnn撑起半个互联网的两阶段流水线">五、YouTube DNN：撑起半个互联网的两阶段流水线</a>
-      <ul>
-        <li><a href="#为什么要两阶段">为什么要两阶段</a></li>
-        <li><a href="#架构">架构</a></li>
-        <li><a href="#youtube-论文里值得抄的设计">YouTube 论文里值得抄的设计</a></li>
-      </ul>
-    </li>
-    <li><a href="#六wide--deep记忆遇上泛化">六、Wide &amp; Deep：记忆遇上泛化</a>
-      <ul>
-        <li><a href="#洞察">洞察</a></li>
-        <li><a href="#架构-1">架构</a></li>
-        <li><a href="#实现">实现</a></li>
-        <li><a href="#直系后辈">直系后辈</a></li>
-      </ul>
-    </li>
-    <li><a href="#七训练纪律决定上面这些到底好不好用">七、训练纪律：决定上面这些到底好不好用</a>
-      <ul>
-        <li><a href="#负采样">负采样</a></li>
-        <li><a href="#优化器调度正则">优化器、调度、正则</a></li>
-        <li><a href="#一个完整的训练循环">一个完整的训练循环</a></li>
-        <li><a href="#指标要对得上任务">指标要对得上任务</a></li>
-      </ul>
-    </li>
-    <li><a href="#八常见问题认真回答">八、常见问题，认真回答</a></li>
-    <li><a href="#九走到这里我们看到了什么">九、走到这里我们看到了什么</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>2 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1000</strong></div>
-      <div class="row"><span>Published</span><strong>Dec 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>推荐系统（三）—— 深度学习基础模型 · Chen Kai Blog</title>
+<meta name=description content="从 MLP 到 Embedding，再到 NeuMF、YouTube DNN、Wide & Deep —— 用渐进的方式讲清深度学习推荐系统的每一块基石，附经过原文核对的架构图和可直接运行的 PyTorch 代码。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/><meta property="og:type" content="article"><meta property="og:title" content="推荐系统（三）—— 深度学习基础模型"><meta property="og:description" content="从 MLP 到 Embedding，再到 NeuMF、YouTube DNN、Wide & Deep —— 用渐进的方式讲清深度学习推荐系统的每一块基石，附经过原文核对的架构图和可直接运行的 PyTorch 代码。"><meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>推荐系统</a>
+· Chapter 3</div><h1>推荐系统（三）—— 深度学习基础模型</h1><p class=deck>从 MLP 到 Embedding，再到 NeuMF、YouTube DNN、Wide & Deep —— 用渐进的方式讲清深度学习推荐系统的每一块基石，附经过原文核对的架构图和可直接运行的 PyTorch 代码。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-12-07>December 7, 2025</time> · 2 min read · 946 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/ class=tag>#推荐系统</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/ class=tag>#神经网络</a><a href=/zh/tags/embedding/ class=tag>#Embedding</a></div></div></header><div class=prose><p>2016 年 6 月，Google 在一篇短短一页的会议论文里悄悄改写了推荐系统的版图。那篇论文叫 <strong>Wide & Deep Learning</strong>，描述的模型当时正在 Google Play 应用商店里跑——一个用户量上十亿的产品。一年之内，主流厂商都把深度模型推上了线；到 2019 年，行业默认值已经变了：矩阵分解只是 baseline，不再是系统。</p><p>发生了什么？多层神经网络带来了四件经典方法做不到的事：</p><ul><li><strong>表征是学出来的</strong>。Embedding 取代 one-hot，模型从点击数据里端到端地长出语义。</li><li><strong>交互是非线性的</strong>。两层带 ReLU 的 MLP 能拟合 XOR；点积不行。</li><li><strong>多模态可以融合</strong>。文本、图像、行为序列都走同一条梯度。</li><li><strong>优化是端到端的</strong>。再也不用人手设计交叉特征，损失函数自己挑。</li></ul><p>本文沿着 <code>dot(p_u, q_i)</code> 一路走到 NeuMF、YouTube DNN 和 Wide & Deep。架构都按原论文核对过，每一步配可直接跑的 PyTorch 代码。</p><h2 id=你将建立直觉的部分>你将建立直觉的部分</h2><ul><li><strong>MLP 直觉</strong>：为什么"Linear + ReLU"叠起来就是一台通用的交互引擎。</li><li><strong>Embedding</strong>：不只是 <code>nn.Embedding</code> 怎么调，而是<em>为什么</em>梯度会把相似 ID 拉到一起。</li><li><strong>NeuMF</strong>（He 等，WWW 2017）：两条路径，一个目标。</li><li><strong>YouTube DNN</strong>（Covington 等，RecSys 2016）：当今几乎所有大规模推荐系统的两阶段模板。</li><li><strong>Wide & Deep</strong>（Cheng 等，DLRS 2016）：教科书级别的"记忆 + 泛化"融合。</li></ul><h2 id=前置知识>前置知识</h2><ul><li>熟悉 PyTorch 基础（<code>nn.Module</code>、autograd、<code>DataLoader</code>）。</li><li>看过<a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%8c-%e5%8d%8f%e5%90%8c%e8%bf%87%e6%bb%a4%e4%b8%8e%e7%9f%a9%e9%98%b5%e5%88%86%e8%a7%a3/>本系列第二篇</a>
+，理解矩阵分解和隐式/显式反馈。</li><li>基本线性代数：点积、矩阵向量乘法。</li></ul><hr><h2 id=一为什么是深度学习为什么是现在>一、为什么是深度学习，为什么是现在</h2><h3 id=经典方法撞到的天花板>经典方法撞到的天花板</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig1_dl_vs_traditional.png alt="深度模型在 CTR 任务上对比 MF、FM、Wide & Deep、DeepFM、DIN 的 AUC，深度模型比 MF baseline 高 5%-13%" loading=lazy decoding=async></figure></p><p>上面的数字是公开 CTR 数据集（Criteo、Avazu、隐式反馈版的 MovieLens-1M）上的典型表现。结论很一致：<strong>每多一层非线性就多换来几个 AUC 百分点，而几个 AUC 百分点在 GMV 上意义重大。</strong></p><p>要看清<em>为什么</em>，得先看清每种经典方法到底能表达什么。</p><p><strong>矩阵分解</strong>用一个点积来预测评分：</p>$$\hat{r}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$<p>直白讲：每个用户、每个物品都是一个短向量，预测就是它们的"对齐程度"。漂亮，但是线性的——没法表达"我同时喜欢科幻<em>和</em>动作，但单独一个都不行"这种交互。</p><p>**因子分解机（FM）**加上了二阶交互：</p>$$\hat{y}(\mathbf{x}) = w_0 + \sum_i w_i x_i + \sum_{i<j} \langle \mathbf{v}_i, \mathbf{v}_j\rangle x_i x_j$$<p>它是 MF 的真超集，但也只到二阶。&ldquo;年轻用户 × 周五晚上 × 惊悚片"这种三阶组合，得人手设计。</p><p><strong>协同过滤</strong>直接绕过建模，找"和你像的人喜欢什么&rdquo;。在矩阵稀疏到一定程度之前都好用——而生产环境里，矩阵总会稀疏。</p><p>三者的共同短板是：<strong>最多到二阶，并且都需要人来设计正确的特征。</strong></p><h3 id=深度学习补上的部分>深度学习补上的部分</h3><p>带非线性的两层网络在理论上是通用函数逼近器。落到实践，就是：</p><ul><li>一个建在 Embedding 之上的 MLP，可以拟合数据所支撑的任意阶交互。</li><li>同一套骨干可以同时吃图像（CNN）、文本（Transformer）、序列（RNN）—— 联合训练。</li><li>冷启动有了抓手：新物品只要有<em>内容</em>（标题、图像），预训练编码器就能给它一个像样的初始向量。</li></ul><p>代价是更多算力、更差的可解释性、更多超参。第七节会讲让这笔买卖划算的工程纪律。</p><hr><h2 id=二mlp-直觉从点积到非线性交互>二、MLP 直觉：从点积到非线性交互</h2><p>在认识具体模型之前，先内化一件事：MLP 比点积多给了你什么。</p><p>点积 $\mathbf{p}^\top \mathbf{q} = \sum_k p_k q_k$ 是把每个维度的乘积加起来。它对称、线性，无法表达"特征 A 只在特征 B 也激活时才有用"。</p><p>把 $[\mathbf{p}; \mathbf{q}]$ 拼起来过一层 <code>Linear → ReLU → Linear</code>：</p>$$f(\mathbf{p}, \mathbf{q}) = \mathbf{w}^\top \, \text{ReLU}\!\big(\mathbf{W} [\mathbf{p}; \mathbf{q}] + \mathbf{b}\big)$$<p>ReLU 会根据"哪些输入维度组合被激活"来开关每个隐藏单元。隐藏单元够多，就是通用逼近定理。<strong>交互形式不再是写死的公式，而是学出来的。</strong></p><p>把"点积换成 MLP"这一刀就是种子，NeuMF、YouTube DNN、Wide & Deep 都从这里长出来。</p><hr><h2 id=三embedding从稀疏-id-到语义表征的桥梁>三、Embedding：从稀疏 ID 到语义表征的桥梁</h2><h3 id=one-hot-是敌人>One-hot 是敌人</h3><p>想象一个目录：1000 万用户、100 万物品。one-hot 编码下，每个用户是一个 1000 万维的向量，只有一个位置是 1。三件事同时出问题：</p><ol><li><strong>存储和计算</strong>爆炸——光一个用户输入就是 40 MB 的浮点向量。</li><li><strong>信息密度</strong>塌陷——99.99999% 的位置都是零。</li><li><strong>任意两个 one-hot 的距离都相等</strong>：$\|\mathbf{e}_i - \mathbf{e}_j\|_2 = \sqrt{2}$。用户 42 和用户 43 的距离，跟用户 42 和用户 9,999,999 的距离没区别。</li></ol><p>Embedding 一次性解掉这三件事。它把每个 ID 映射到一个 64 维左右的稠密向量。训练完之后，<strong>口味相似的用户在这个 64 维空间里挨着</strong>。</p><blockquote><p><strong>类比</strong>：one-hot 像一本通讯录，每个人都住在一座孤岛上，岛与岛距离相等。Embedding 是地理学家把岛重排，让相关的人住的岛挨在一起。&ldquo;找相似用户"突然就变成了一次最近邻查询。</p></blockquote><h3 id=embedding-到底是什么>Embedding 到底是什么</h3><p>数学上，Embedding 层就是一个可学习的矩阵 $\mathbf{P} \in \mathbb{R}^{m \times d}$，第 $i$ 行就是用户 $i$ 的向量。&ldquo;查表"操作 $\mathbf{p}_i = \mathbf{P}[i, :]$ 等价于 $\mathbf{P}^\top \mathbf{e}_i$，但实现成行索引来跑得快。</p><p>代码上一行就够：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>user_embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_embeddings</span><span class=o>=</span><span class=mi>10_000_000</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>user_vec</span> <span class=o>=</span> <span class=n>user_embedding</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=mi>42</span><span class=p>]))</span>   <span class=c1># shape: [1, 64]</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=梯度是怎么教会-embedding-有意义的>梯度是怎么教会 Embedding 有意义的</h3><p>Embedding 一开始是随机的。它能变得有语义，全靠梯度推它。</p><p>拿一个点击预测的损失来说：用户 $u$ 点了物品 $i$，损失就告诉优化器"让 $\mathbf{p}_u^\top \mathbf{q}_i$ 变大&rdquo;。反向传播会把 $\mathbf{p}_u$ 微微往 $\mathbf{q}_i$ 的方向推，反之亦然。在百万次点击之后，这一条简单规则就能产出令人惊讶的结构：受众重叠的物品会聚在一起，常被一起买的物品会聚在一起，同一个艺术家的歌会聚在一起。</p><p>你从没告诉模型"流派"是什么。是梯度的几何结构自己发现了它。</p><h3 id=把它学到的东西画出来>把它学到的东西画出来</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig5_embedding_space.png alt="训练得到的物品 Embedding 经过 t-SNE 投影后形成科幻、动作、纪录片、爱情喜剧、恐怖等聚类，跨类型物品落在簇之间" loading=lazy decoding=async></figure></p><p>把训练好的物品 Embedding 矩阵用 t-SNE 投到二维，通常会看到这样一幅图：同类物品紧紧聚成一团，混合类物品在相关簇之间架起桥梁（&ldquo;科幻动作"就坐在科幻和动作之间），长尾物品散落在外围。这是判断模型"到底有没有学到东西"的最佳诊断。</p><h3 id=维度怎么选>维度怎么选</h3><table><thead><tr><th>物品规模</th><th>推荐 $d$</th><th>备注</th></tr></thead><tbody><tr><td>&lt;10 万</td><td>8 &ndash; 32</td><td>再大就过拟合</td></tr><tr><td>10 万 &ndash; 100 万</td><td>32 &ndash; 64</td><td>多数场景的甜点</td></tr><tr><td>100 万 &ndash; 1 亿</td><td>64 &ndash; 128</td><td>128 之上收益递减</td></tr><tr><td>网级</td><td>128 &ndash; 256</td><td>只有交互上百亿才合算</td></tr></tbody></table><p>YouTube 论文里、后续工作里反复印证的一条经验法则：<strong>从 $d = 32$ 起步，翻倍直到验证 AUC 提升不到 ~0.5%，停。</strong> 内存和服务延迟随 $d$ 线性增长，质量却是凹的。</p><h3 id=一个干净可复用的-embedding-层>一个干净、可复用的 Embedding 层</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>IdEmbedding</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;带 Xavier 初始化和可选 padding 的 Embedding 层。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>padding_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>emb</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>dim</span><span class=p>,</span> <span class=n>padding_idx</span><span class=o>=</span><span class=n>padding_idx</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>xavier_uniform_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>emb</span><span class=o>.</span><span class=n>weight</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>padding_idx</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>emb</span><span class=o>.</span><span class=n>weight</span><span class=p>[</span><span class=n>padding_idx</span><span class=p>]</span><span class=o>.</span><span class=n>zero_</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>ids</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>emb</span><span class=p>(</span><span class=n>ids</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>多字段类别特征（用户 ID、物品 ID、类目、城市……）每个字段一张表，再 stack 起来：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>MultiFieldEmbedding</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>field_dims</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span> <span class=n>dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tables</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ModuleList</span><span class=p>([</span><span class=n>IdEmbedding</span><span class=p>(</span><span class=n>v</span><span class=p>,</span> <span class=n>dim</span><span class=p>)</span> <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>field_dims</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># x: [batch, num_fields] -&gt; [batch, num_fields, dim]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>t</span><span class=p>(</span><span class=n>x</span><span class=p>[:,</span> <span class=n>i</span><span class=p>])</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>tables</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>这个 <code>[batch, num_fields, dim]</code> 的张量，就是下面所有模型期望的输入形状。</p><hr><h2 id=四神经协同过滤ncf-与-neumf>四、神经协同过滤（NCF 与 NeuMF）</h2><h3 id=想法把点积换成更聪明的东西>想法：把点积换成更聪明的东西</h3><p>He、Liao、Zhang、Nie、Hu、Chua 在 WWW 2017 上提出 <strong>NCF</strong>。卖点朴素得让人意外：矩阵分解其实是网络的特例，把它一般化就能做得更好。</p><p>论文里一共有三兄弟：</p><ul><li><strong>GMF</strong>（Generalized Matrix Factorization）：可学习权重的点积。</li><li><strong>MLP</strong>：纯粹的拼接 + 深度网络，不预设"内积"这种归纳偏置。</li><li><strong>NeuMF</strong>：把 GMF 和 MLP 融合起来，每条路径用各自独立的 Embedding。</li></ul><p>实践里 NeuMF 才是真正重要的那个。下面这张架构图忠于原论文。</p><h3 id=neumf-架构>NeuMF 架构</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig2_ncf_architecture.png alt="NeuMF 架构图：左侧 GMF 路径用元素积融合用户/物品 Embedding，右侧 MLP 路径用拼接 + ReLU 层，顶部融合后接 sigmoid 输出" loading=lazy decoding=async></figure></p><p>从下往上看：</p><ol><li><strong>每边两张 Embedding 表</strong>。GMF 和 MLP <em>不</em>共享 Embedding——论文里强调这一点很关键。每条路径学自己擅长的表征。</li><li><strong>GMF 路径</strong>：元素积 $\mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF}$。在它上面再乘一个可学习权重，就是点积的推广。</li><li><strong>MLP 路径</strong>：把 $[\mathbf{p}_u^\text{MLP}; \mathbf{q}_i^\text{MLP}]$ 拼起来，过 2&ndash;3 层 Dense + ReLU（典型尺寸：$128 \to 64 \to 32$）。</li><li><strong>融合</strong>：把两条路径的输出拼起来，再投影成一个标量过 sigmoid：</li></ol>$$\hat{y}_{ui} = \sigma\!\left(\mathbf{h}^\top \begin{bmatrix} \mathbf{p}_u^\text{GMF} \odot \mathbf{q}_i^\text{GMF} \\ \mathbf{z}_L^\text{MLP} \end{bmatrix}\right)$$<p>对隐式反馈（点击、播放、购买），损失是二元交叉熵：</p>$$\mathcal{L} = -\sum_{(u, i) \in \mathcal{D}^+ \cup \mathcal{D}^-} \big[ y_{ui} \log \hat{y}_{ui} + (1 - y_{ui}) \log(1 - \hat{y}_{ui}) \big]$$<p>负样本集 $\mathcal{D}^-$ 由采样得到——通常每个正样本配 4 个负样本。</p><h3 id=neumf-端到端实现>NeuMF 端到端实现</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>NeuMF</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;NeuMF：融合 GMF 与 MLP，两条路径独立 Embedding（He 等，2017）。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_users</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_items</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>embedding_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>32</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>mlp_layers</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mi>128</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>32</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 两条路径独立 Embedding——NeuMF 的关键设计。</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>user_gmf</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_users</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>item_gmf</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_items</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>user_mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_users</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>item_mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_items</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># MLP 塔，输入是拼接后的用户/物品向量。</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span><span class=p>,</span> <span class=n>in_dim</span> <span class=o>=</span> <span class=p>[],</span> <span class=n>embedding_dim</span> <span class=o>*</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>out_dim</span> <span class=ow>in</span> <span class=n>mlp_layers</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>out_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>dropout</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>layers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_dim</span> <span class=o>=</span> <span class=n>out_dim</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 输出头看到的是 [GMF 向量；MLP 向量]。</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>embedding_dim</span> <span class=o>+</span> <span class=n>mlp_layers</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>],</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>emb</span> <span class=ow>in</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>user_gmf</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_gmf</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>user_mlp</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_mlp</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>normal_</span><span class=p>(</span><span class=n>emb</span><span class=o>.</span><span class=n>weight</span><span class=p>,</span> <span class=n>std</span><span class=o>=</span><span class=mf>0.01</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>users</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>,</span> <span class=n>items</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>gmf</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>user_gmf</span><span class=p>(</span><span class=n>users</span><span class=p>)</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_gmf</span><span class=p>(</span><span class=n>items</span><span class=p>)</span>           <span class=c1># [B, d]</span>
+</span></span><span class=line><span class=cl>        <span class=n>mlp_in</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=bp>self</span><span class=o>.</span><span class=n>user_mlp</span><span class=p>(</span><span class=n>users</span><span class=p>),</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_mlp</span><span class=p>(</span><span class=n>items</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>mlp_out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>mlp</span><span class=p>(</span><span class=n>mlp_in</span><span class=p>)</span>                                  <span class=c1># [B, mlp_layers[-1]]</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>gmf</span><span class=p>,</span> <span class=n>mlp_out</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=n>logits</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 冒烟测试</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>NeuMF</span><span class=p>(</span><span class=n>num_users</span><span class=o>=</span><span class=mi>10_000</span><span class=p>,</span> <span class=n>num_items</span><span class=o>=</span><span class=mi>5_000</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>users</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>10_000</span><span class=p>,</span> <span class=p>(</span><span class=mi>8</span><span class=p>,))</span>
+</span></span><span class=line><span class=cl><span class=n>items</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>5_000</span><span class=p>,</span> <span class=p>(</span><span class=mi>8</span><span class=p>,))</span>
+</span></span><span class=line><span class=cl><span class=n>labels</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=p>(</span><span class=mi>8</span><span class=p>,))</span><span class=o>.</span><span class=n>float</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>preds</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>loss</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>BCELoss</span><span class=p>()(</span><span class=n>preds</span><span class=p>,</span> <span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;preds=</span><span class=si>{</span><span class=n>preds</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span><span class=si>}</span><span class=s2>  loss=</span><span class=si>{</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=neumf-训练里容易被忽略的细节>NeuMF 训练里容易被忽略的细节</h3><p>论文里有三件事经常被人忘掉：</p><ul><li><strong>两条路径分别预训练</strong>。先单独训 GMF，再单独训 MLP，最后把两份权重拿来初始化 NeuMF。论文里光这个 trick 就有 ~2% 的 AUC 提升。</li><li><strong>负样本比例要选对</strong>。&ldquo;1 正 4 负"是经典默认；1:1 欠拟合，1:10 浪费算力。</li><li><strong>bias 不要做 L2</strong>。给偏置项加 weight decay 会掉点，要在优化器的参数组里把它们排除。</li></ul><hr><h2 id=五youtube-dnn撑起半个互联网的两阶段流水线>五、YouTube DNN：撑起半个互联网的两阶段流水线</h2><p>Covington、Adams、Sargin（RecSys 2016）是深度学习时代被引最多的工业推荐论文。它的"召回（candidate generation）+ 排序（ranking）&ldquo;两阶段拆分，是后来几乎所有大规模推荐系统的模板：抖音、Spotify、Pinterest、Instagram、淘宝。</p><h3 id=为什么要两阶段>为什么要两阶段</h3><p>每次请求都给十亿个视频打分根本不现实。给十亿个物品都喂丰富特征实时打分也不现实。解法是：</p><ol><li><strong>召回阶段</strong>用便宜的模型和便宜的特征，把候选集从百万缩到几百。</li><li><strong>排序阶段</strong>用很重的模型和丰富特征，对这几百个候选精打分，挑 top-K。</li></ol><h3 id=架构>架构</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig3_youtube_dnn.png alt="YouTube DNN 两阶段流水线：左侧召回塔输入观看历史、搜索 token、地域、年龄、性别；右侧排序塔用更丰富的特征预测期望观看时长" loading=lazy decoding=async></figure></p><p><strong>召回</strong>被建模成一个"超级多分类"问题：给定用户当前状态，预测他下一个会看的视频是哪一个，类别数等于候选视频总数（百万级）。用户塔把最近看过的视频 Embedding 平均池化、和人口学特征拼接，过三层 ReLU（$1024 \to 512 \to 256$），输出一个 256 维的<strong>用户向量</strong>。训练用 sampled softmax；上线时把视频 Embedding 灌进 ANN 索引（HNSW、ScaNN），用户向量就是一次最近邻查询——十亿物品也只要个位数毫秒。</p><p><strong>排序</strong>是一个更深的前馈网络（$1024 \to 512 \to 256 \to 128$），吃的特征也多得多：曝光视频自身的 Embedding、同频道历史观看的 Embedding、<em>距离上次观看的时间</em>、<em>在 feed 中的位置</em>、语言匹配等等。关键是输出头用了<strong>带权重的 logistic 回归</strong>，目标是预测期望观看时长，而不是点击。论文证明这个目标比纯 CTR 更对齐长期满意度。</p><h3 id=youtube-论文里值得抄的设计>YouTube 论文里值得抄的设计</h3><p>三个老化得很好的选择：</p><ul><li><strong>用平均池化压缩用户最近行为</strong>。便宜、并行、强 baseline。序列模型（第六篇）只有在数据足够多时才赢得了它。</li><li><strong>召回当分类做，不要当回归做</strong>。Sampled softmax + ANN 上线，是行业的统治性范式。</li><li><strong>认真选标签</strong>。&ldquo;观看时长&rdquo;、&ldquo;长点击&rdquo;（停留 >30 秒）、&ldquo;完播"都比裸点击泛化得好。损失函数就是产品规格。</li></ul><p>PyTorch 里召回塔的骨架：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>YouTubeCandidateTower</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;召回塔：产出可以直接进 ANN 的用户向量。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_videos</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_searches</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_geos</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>embedding_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>64</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>user_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>256</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>video_emb</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_videos</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>,</span> <span class=n>padding_idx</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>search_emb</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_searches</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>,</span> <span class=n>padding_idx</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>geo_emb</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_geos</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=mi>3</span> <span class=o>*</span> <span class=n>embedding_dim</span> <span class=o>+</span> <span class=mi>2</span>  <span class=c1># 视频池化 + 搜索池化 + 地域 + 年龄 + 性别</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tower</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=mi>1024</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>1024</span><span class=p>,</span> <span class=mi>512</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>512</span><span class=p>,</span> <span class=n>user_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>watched</span><span class=p>,</span> <span class=n>searched</span><span class=p>,</span> <span class=n>geo</span><span class=p>,</span> <span class=n>age</span><span class=p>,</span> <span class=n>gender</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># watched, searched: [B, L]，padding 过；对非 padding 的位置做 mean pool。</span>
+</span></span><span class=line><span class=cl>        <span class=n>v</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_masked_mean</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>video_emb</span><span class=p>(</span><span class=n>watched</span><span class=p>),</span> <span class=n>watched</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_masked_mean</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>search_emb</span><span class=p>(</span><span class=n>searched</span><span class=p>),</span> <span class=n>searched</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>g</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>geo_emb</span><span class=p>(</span><span class=n>geo</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>v</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>g</span><span class=p>,</span> <span class=n>age</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>),</span> <span class=n>gender</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>F</span><span class=o>.</span><span class=n>normalize</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>tower</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># 归一化的用户向量，配 cosine 检索</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@staticmethod</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_masked_mean</span><span class=p>(</span><span class=n>emb</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>mask</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>m</span> <span class=o>=</span> <span class=n>mask</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>emb</span> <span class=o>*</span> <span class=n>m</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>m</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>clamp</span><span class=p>(</span><span class=nb>min</span><span class=o>=</span><span class=mf>1.0</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>训练时把这个用户向量和一组采样的候选视频 Embedding 拼起来过 softmax；上线时直接对 ANN 索引做点积。这一座塔，就是当今工业级召回的主力机型。</p><hr><h2 id=六wide--deep记忆遇上泛化>六、Wide & Deep：记忆遇上泛化</h2><h3 id=洞察>洞察</h3><p>Cheng 等人（DLRS 2016）注意到，深度模型虽然泛化好，但有时会"过度推荐&rdquo;——因为 Embedding 把一切都抹平了，它会推一些"听起来合理但其实不对"的物品。反过来，带交叉特征的线性模型能完美记住具体共现，但没法外推。</p><blockquote><p><strong>类比</strong>：记忆是那个会跟你说"你喜欢 Inception，那一定喜欢 Tenet"的朋友——具体、准确，但永远不冒险。泛化是那个会跟你说"你喜欢烧脑悬疑片，试试 Primer"的朋友——视野更宽，偶尔翻车，但能给你惊喜。一个好的推荐系统应该同时是这两个朋友。</p></blockquote><p>他们的解法：<strong>联合训练</strong>，两边的分数在 sigmoid 之前直接相加。</p><h3 id=架构-1>架构</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig4_wide_and_deep.png alt="Wide & Deep 架构：左侧 Wide 线性模型输入稀疏特征和交叉特征，右侧 Deep MLP 输入稠密 Embedding，两者求和后过 sigmoid" loading=lazy decoding=async></figure></p><p><strong>Wide 部分</strong>：在原始稀疏特征和<strong>人手设计的交叉特征</strong> $\phi(\mathbf{x})$ 上的线性层，比如 <code>installed_app=Pandora AND impression_app=YouTube</code>。输出 $\hat{y}^w = \mathbf{w}^\top [\mathbf{x}, \phi(\mathbf{x})] + b$。</p><p><strong>Deep 部分</strong>：每个类别字段都过 Embedding，拼接后过 3 层 ReLU（$256 \to 128 \to 64$）。输出 $\hat{y}^d$。</p><p><strong>联合输出头</strong>：$\hat{y} = \sigma(\hat{y}^w + \hat{y}^d)$。两边都从同一个损失收到梯度，由优化器决定各自贡献多少。</p><p>论文用了一个刻意的拆分：<strong>Wide 端用带 L1 的 FTRL</strong>（稀疏、可解释、自动选特征），<strong>Deep 端用 AdaGrad</strong>（稠密、平滑）。这种"两套优化器"的设置很关键——一套吃到底会掉点。</p><h3 id=实现>实现</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>WideAndDeep</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Wide &amp; Deep（Cheng 等，2016），二分类 CTR 预测。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>wide_dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>                  <span class=c1># 稀疏 + 交叉特征向量的维度</span>
+</span></span><span class=line><span class=cl>        <span class=n>field_dims</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span>          <span class=c1># Deep 端每个类别字段的词表大小</span>
+</span></span><span class=line><span class=cl>        <span class=n>embedding_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>32</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>deep_layers</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mi>256</span><span class=p>,</span> <span class=mi>128</span><span class=p>,</span> <span class=mi>64</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Wide 端：一个大的稀疏线性层。</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>wide</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>wide_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Deep 端：每字段 Embedding + MLP。</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embeddings</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ModuleList</span><span class=p>([</span><span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>v</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span> <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>field_dims</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>field_dims</span><span class=p>)</span> <span class=o>*</span> <span class=n>embedding_dim</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>out_dim</span> <span class=ow>in</span> <span class=n>deep_layers</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>out_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>dropout</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>layers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_dim</span> <span class=o>=</span> <span class=n>out_dim</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>deep</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x_wide</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>x_deep</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>wide_score</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>wide</span><span class=p>(</span><span class=n>x_wide</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>deep_in</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>emb</span><span class=p>(</span><span class=n>x_deep</span><span class=p>[:,</span> <span class=n>i</span><span class=p>])</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>emb</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>embeddings</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>deep_score</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>deep</span><span class=p>(</span><span class=n>deep_in</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=n>wide_score</span> <span class=o>+</span> <span class=n>deep_score</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 双优化器训练——很多教程会漏掉这个生产级细节。</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>WideAndDeep</span><span class=p>(</span><span class=n>wide_dim</span><span class=o>=</span><span class=mi>10_000</span><span class=p>,</span> <span class=n>field_dims</span><span class=o>=</span><span class=p>[</span><span class=mi>50_000</span><span class=p>,</span> <span class=mi>10_000</span><span class=p>,</span> <span class=mi>100</span><span class=p>,</span> <span class=mi>20</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=n>opt_wide</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adagrad</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>wide</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.05</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>opt_deep</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=p>[</span><span class=n>p</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span> <span class=k>if</span> <span class=ow>not</span> <span class=n>n</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>&#34;wide.&#34;</span><span class=p>)],</span>
+</span></span><span class=line><span class=cl>    <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>weight_decay</span><span class=o>=</span><span class=mf>1e-5</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>实践里你也可以一把 Adam 训完，模型也能跑出来——但 Wide+Deep 的<em>联合损失</em>才是模型真正叫 Wide & Deep 的原因。<strong>它不是把两个独立训完的模型 ensemble 在一起。</strong> Wide 和 Deep 的参数能看到彼此的梯度，这种交互正是要害。</p><h3 id=直系后辈>直系后辈</h3><p>Wide & Deep 衍生出了一整支族系，把人手交叉特征自动化掉：</p><table><thead><tr><th>模型</th><th>&ldquo;Wide"被替换为</th><th>年份</th></tr></thead><tbody><tr><td><strong>DeepFM</strong></td><td>FM 层，自动学二阶交叉</td><td>2017</td></tr><tr><td><strong>DCN</strong></td><td>Cross Network，每多一阶只多 $O(d)$ 参数</td><td>2017</td></tr><tr><td><strong>xDeepFM</strong></td><td>CIN（Compressed Interaction Network），显式高阶交叉</td><td>2018</td></tr><tr><td><strong>AutoInt</strong></td><td>在特征 Embedding 上做自注意力</td><td>2019</td></tr></tbody></table><p><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/>本系列第四篇</a>
+会一一讲它们。</p><hr><h2 id=七训练纪律决定上面这些到底好不好用>七、训练纪律：决定上面这些到底好不好用</h2><p>架构对只是必要条件，远不是充分条件。下面这些细节经常比"换模型"更能动 AUC。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/03-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/fig6_training_curves.png alt="训练损失和验证 AUC 曲线：MF、NCF、Wide & Deep 在 50 个 epoch 上的对比，深度模型收敛到更低损失、更高 AUC，配合 early stopping" loading=lazy decoding=async></figure></p><h3 id=负采样>负采样</h3><p>对隐式反馈，每个用户都有上千"负样本&rdquo;（没看到过的物品）。三种采样策略，按精细程度排序：</p><ul><li><strong>均匀随机</strong>。默认，意外地难被打败，召回阶段尤其稳。</li><li><strong>按热度加权</strong>。热门物品被采到的概率更大——用户略过一个爆款，是很强的负信号。</li><li><strong>batch 内 / 困难负样本</strong>。把同一个 batch 里别人的正样本当自己的负样本；或者周期性从当前模型里捞高分负样本。提升判别力，但温度要调好。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sample_negatives</span><span class=p>(</span><span class=n>user_history</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span> <span class=n>catalog_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;均匀随机采样负样本，命中用户历史则拒绝。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>out</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>out</span><span class=p>)</span> <span class=o>&lt;</span> <span class=n>k</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>cand</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=n>catalog_size</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>cand</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>user_history</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>cand</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>out</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=优化器调度正则>优化器、调度、正则</h3><p>90% 以上的推荐模型都能用的合理默认：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>optimizer</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>weight_decay</span><span class=o>=</span><span class=mf>1e-5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>scheduler</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>lr_scheduler</span><span class=o>.</span><span class=n>ReduceLROnPlateau</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>optimizer</span><span class=p>,</span> <span class=n>mode</span><span class=o>=</span><span class=s2>&#34;min&#34;</span><span class=p>,</span> <span class=n>factor</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>patience</span><span class=o>=</span><span class=mi>3</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><ul><li><strong>Dropout 0.2 &ndash; 0.3</strong>，加在 MLP 塔里。再大就掉排序质量。</li><li><strong>梯度裁剪</strong>（<code>torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)</code>）：看到 loss 跳就开。</li><li><strong>Early stopping</strong>：监控验证 AUC，patience 5&ndash;10 个 epoch。</li></ul><h3 id=一个完整的训练循环>一个完整的训练循环</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span> <span class=o>*</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>patience</span><span class=o>=</span><span class=mi>8</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>bce</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>BCELoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>weight_decay</span><span class=o>=</span><span class=mf>1e-5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sched</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>lr_scheduler</span><span class=o>.</span><span class=n>ReduceLROnPlateau</span><span class=p>(</span><span class=n>opt</span><span class=p>,</span> <span class=n>mode</span><span class=o>=</span><span class=s2>&#34;min&#34;</span><span class=p>,</span> <span class=n>patience</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>factor</span><span class=o>=</span><span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>best_val</span><span class=p>,</span> <span class=n>bad</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>),</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>epochs</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>train_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>,</span> <span class=n>labels</span> <span class=ow>in</span> <span class=n>train_loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>,</span> <span class=n>labels</span> <span class=o>=</span> <span class=n>users</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>items</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>labels</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>preds</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>bce</span><span class=p>(</span><span class=n>preds</span><span class=p>,</span> <span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>5.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>train_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>*</span> <span class=nb>len</span><span class=p>(</span><span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>train_loss</span> <span class=o>/=</span> <span class=nb>len</span><span class=p>(</span><span class=n>train_loader</span><span class=o>.</span><span class=n>dataset</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>,</span> <span class=n>labels</span> <span class=ow>in</span> <span class=n>val_loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>,</span> <span class=n>labels</span> <span class=o>=</span> <span class=n>users</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>items</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>labels</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>val_loss</span> <span class=o>+=</span> <span class=n>bce</span><span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>users</span><span class=p>,</span> <span class=n>items</span><span class=p>),</span> <span class=n>labels</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>*</span> <span class=nb>len</span><span class=p>(</span><span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_loss</span> <span class=o>/=</span> <span class=nb>len</span><span class=p>(</span><span class=n>val_loader</span><span class=o>.</span><span class=n>dataset</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>sched</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>val_loss</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>val_loss</span> <span class=o>&lt;</span> <span class=n>best_val</span> <span class=o>-</span> <span class=mf>1e-4</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>best_val</span><span class=p>,</span> <span class=n>bad</span> <span class=o>=</span> <span class=n>val_loss</span><span class=p>,</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=s2>&#34;best.pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>bad</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>bad</span> <span class=o>&gt;=</span> <span class=n>patience</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;early stop at epoch </span><span class=si>{</span><span class=n>epoch</span><span class=si>}</span><span class=s2>; best val_loss=</span><span class=si>{</span><span class=n>best_val</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;epoch </span><span class=si>{</span><span class=n>epoch</span><span class=si>:</span><span class=s2>&gt;3</span><span class=si>}</span><span class=s2>  train=</span><span class=si>{</span><span class=n>train_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  val=</span><span class=si>{</span><span class=n>val_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=指标要对得上任务>指标要对得上任务</h3><table><thead><tr><th>场景</th><th>主指标</th><th>它真正度量的是</th></tr></thead><tbody><tr><td>CTR 预测</td><td><strong>AUC</strong></td><td>模型能不能把正样本排在负样本前面</td></tr><tr><td>CTR 预测</td><td><strong>LogLoss</strong></td><td>预测概率是否校准</td></tr><tr><td>Top-K 召回</td><td><strong>Recall@K</strong>、<strong>HitRate@K</strong></td><td>正确物品有没有出现在前 K 个里</td></tr><tr><td>Top-K 排序</td><td><strong>NDCG@K</strong></td><td>正确物品排得有多靠前</td></tr><tr><td>评分预测</td><td><strong>RMSE</strong></td><td>预测分数的平方误差均值</td></tr></tbody></table><p>如果你用 RMSE 衡量 CTR、用 AUC 衡量评分预测，那就拧错了优化的旋钮。一开始就选定，写下来，永远别偷偷换。</p><hr><h2 id=八常见问题认真回答>八、常见问题，认真回答</h2><p><strong>Q：Embedding 维度该多大？</strong>
+1M 以下物品规模从 32 起步，再大从 64 起步。翻倍直到验证 AUC 提升不到 ~0.5%。$d$ 超过 256 几乎都会过拟合，除非你有上百亿次交互。</p><p><strong>Q：是不是永远应该用 NeuMF 取代 MF？</strong>
+不是。在 ~100 万次交互以下，调好正则的 MF 经常打过 NeuMF——深度模型在那个数据量下会过拟合。NeuMF 真正稳定胜出，是在 ~1000 万次交互、且有丰富 side feature 之上。</p><p><strong>Q：Wide & Deep 能不能只要 Deep，不要 Wide？</strong>
+可以，很多人就是这么做的（DeepFM、DCN）。Wide 端给纯 Deep 模型不能给的东西，是对高基数共现的<em>精确</em>记忆——&ldquo;装了 X 应用的用户也会装 Y 应用&rdquo;。如果你的业务依赖这种具体共现被精确捕捉，留着 Wide 端。否则用自动化的交叉网络（DeepFM、DCN）通常更划算。</p><p><strong>Q：YouTube DNN 在我只有几百万用户的场景里要不要用？</strong>
+两阶段在 ~10 万物品以下属于杀鸡用牛刀。先用一个 ranker 对全目录打分。当全目录打分跟不上你的延迟预算时，再上两阶段。</p><p><strong>Q：全新物品（没任何交互）怎么处理？</strong>
+按效果递减排：</p><ol><li><strong>基于内容初始化</strong>——用预训练编码器（BERT、CLIP）从物品文本/图像算出 Embedding。</li><li><strong>类目均值初始化</strong>——取同类目物品 Embedding 的平均。</li><li><strong>多臂老虎机探索</strong>——把新物品给一小部分流量，攒初始信号。</li></ol><p><strong>Q：怎么防止深度推荐模型过拟合？</strong>
+分层防御：Embedding 上加 $10^{-5}$ 的 weight decay，MLP 里 0.2&ndash;0.3 的 dropout，验证 AUC 上的 early stopping，实在不行减小 $d$。只在验证指标真的能跟着动的时候才加复杂度。</p><p><strong>Q：怎么加速训练？</strong>
+80/20 列表：先上 GPU（10&ndash;100 倍），再加大 batch（吃满 GPU），再混合精度（<code>torch.cuda.amp</code>，~2 倍），最后 <code>DataLoader(num_workers > 0)</code>。所有特征离线预计算，永远不要在训练循环里做 join。</p><hr><h2 id=九走到这里我们看到了什么>九、走到这里我们看到了什么</h2><p>深度学习没有发明推荐系统，它改了三个约束：</p><ul><li><strong>表征是学出来的</strong>，不是设计出来的。Embedding 取代 one-hot，梯度发现你写不出来的结构。</li><li><strong>交互是任意阶的</strong>，不再止步于二阶。MLP 拟合数据所支撑的任何形式。</li><li><strong>流水线是端到端的</strong>，不再是几段拼起来。损失从预测一路流回原始 ID。</li></ul><p>NeuMF 证明了"学出来的交互"打得过"写死的内积&rdquo;。YouTube DNN 展示了如何在十亿物品的尺度上把召回和排序拆开做。Wide & Deep 告诉我们记忆和泛化最好联合学，而不是分别学完再 ensemble。</p><p><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/>本系列第四篇</a>
+接着往下走：<strong>CTR 预估模型如何把 Wide & Deep 还在依赖的人手交叉自动化掉</strong>，包括 DeepFM、DCN、xDeepFM、AutoInt、FiBiNet。</p><hr><blockquote><p><strong>系列导航</strong></p><p>本文是推荐系统系列的<strong>第 3 篇</strong>，共 16 篇。</p><ul><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%80-%e5%85%a5%e9%97%a8%e4%b8%8e%e5%9f%ba%e7%a1%80%e6%a6%82%e5%bf%b5/>第 1 篇：入门与基础概念</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%8c-%e5%8d%8f%e5%90%8c%e8%bf%87%e6%bb%a4%e4%b8%8e%e7%9f%a9%e9%98%b5%e5%88%86%e8%a7%a3/>第 2 篇：协同过滤与矩阵分解</a></li><li><strong>第 3 篇：深度学习基础模型</strong>（当前）</li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%9b%9b-CTR%e9%a2%84%e4%bc%b0%e4%b8%8e%e7%82%b9%e5%87%bb%e7%8e%87%e5%bb%ba%e6%a8%a1/>第 4 篇：CTR 预估与点击率建模</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%ba%94-Embedding%e8%a1%a8%e7%a4%ba%e5%ad%a6%e4%b9%a0/>第 5 篇：Embedding 表示学习</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ad-%e5%ba%8f%e5%88%97%e6%8e%a8%e8%8d%90%e4%b8%8e%e4%bc%9a%e8%af%9d%e5%bb%ba%e6%a8%a1/>第 6 篇：序列推荐与会话建模</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b8%83-%e5%9b%be%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c%e4%b8%8e%e7%a4%be%e4%ba%a4%e6%8e%a8%e8%8d%90/>第 7 篇：图神经网络与社交推荐</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%85%ab-%e7%9f%a5%e8%af%86%e5%9b%be%e8%b0%b1%e5%a2%9e%e5%bc%ba%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/>第 8 篇：知识图谱增强推荐系统</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e4%b9%9d-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0%e4%b8%8e%e5%a4%9a%e7%9b%ae%e6%a0%87%e4%bc%98%e5%8c%96/>第 9 篇：多任务学习与多目标优化</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81-%e6%b7%b1%e5%ba%a6%e5%85%b4%e8%b6%a3%e7%bd%91%e7%bb%9c%e4%b8%8e%e6%b3%a8%e6%84%8f%e5%8a%9b%e6%9c%ba%e5%88%b6/>第 10 篇：深度兴趣网络与注意力机制</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%b8%80-%e5%af%b9%e6%af%94%e5%ad%a6%e4%b9%a0%e4%b8%8e%e8%87%aa%e7%9b%91%e7%9d%a3%e5%ad%a6%e4%b9%a0/>第 11 篇：对比学习与自监督学习</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%ba%8c-%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e4%b8%8e%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/>第 12 篇：大语言模型与推荐系统</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%b8%89-%e5%85%ac%e5%b9%b3%e6%80%a7-%e5%8e%bb%e5%81%8f%e4%b8%8e%e5%8f%af%e8%a7%a3%e9%87%8a%e6%80%a7/>第 13 篇：公平性、去偏与可解释性</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e5%9b%9b-%e8%b7%a8%e5%9f%9f%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%86%b7%e5%90%af%e5%8a%a8%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88/>第 14 篇：跨域推荐与冷启动解决方案</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e4%ba%94-%e5%ae%9e%e6%97%b6%e6%8e%a8%e8%8d%90%e4%b8%8e%e5%9c%a8%e7%ba%bf%e5%ad%a6%e4%b9%a0/>第 15 篇：实时推荐与在线学习</a></li><li><a href=/zh/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f-%e5%8d%81%e5%85%ad-%e5%b7%a5%e4%b8%9a%e7%ba%a7%e6%9e%b6%e6%9e%84%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/>第 16 篇：工业级架构与最佳实践</a></li></ul></blockquote></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将建立直觉的部分>你将建立直觉的部分</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#一为什么是深度学习为什么是现在>一、为什么是深度学习，为什么是现在</a><ul><li><a href=#经典方法撞到的天花板>经典方法撞到的天花板</a></li><li><a href=#深度学习补上的部分>深度学习补上的部分</a></li></ul></li><li><a href=#二mlp-直觉从点积到非线性交互>二、MLP 直觉：从点积到非线性交互</a></li><li><a href=#三embedding从稀疏-id-到语义表征的桥梁>三、Embedding：从稀疏 ID 到语义表征的桥梁</a><ul><li><a href=#one-hot-是敌人>One-hot 是敌人</a></li><li><a href=#embedding-到底是什么>Embedding 到底是什么</a></li><li><a href=#梯度是怎么教会-embedding-有意义的>梯度是怎么教会 Embedding 有意义的</a></li><li><a href=#把它学到的东西画出来>把它学到的东西画出来</a></li><li><a href=#维度怎么选>维度怎么选</a></li><li><a href=#一个干净可复用的-embedding-层>一个干净、可复用的 Embedding 层</a></li></ul></li><li><a href=#四神经协同过滤ncf-与-neumf>四、神经协同过滤（NCF 与 NeuMF）</a><ul><li><a href=#想法把点积换成更聪明的东西>想法：把点积换成更聪明的东西</a></li><li><a href=#neumf-架构>NeuMF 架构</a></li><li><a href=#neumf-端到端实现>NeuMF 端到端实现</a></li><li><a href=#neumf-训练里容易被忽略的细节>NeuMF 训练里容易被忽略的细节</a></li></ul></li><li><a href=#五youtube-dnn撑起半个互联网的两阶段流水线>五、YouTube DNN：撑起半个互联网的两阶段流水线</a><ul><li><a href=#为什么要两阶段>为什么要两阶段</a></li><li><a href=#架构>架构</a></li><li><a href=#youtube-论文里值得抄的设计>YouTube 论文里值得抄的设计</a></li></ul></li><li><a href=#六wide--deep记忆遇上泛化>六、Wide & Deep：记忆遇上泛化</a><ul><li><a href=#洞察>洞察</a></li><li><a href=#架构-1>架构</a></li><li><a href=#实现>实现</a></li><li><a href=#直系后辈>直系后辈</a></li></ul></li><li><a href=#七训练纪律决定上面这些到底好不好用>七、训练纪律：决定上面这些到底好不好用</a><ul><li><a href=#负采样>负采样</a></li><li><a href=#优化器调度正则>优化器、调度、正则</a></li><li><a href=#一个完整的训练循环>一个完整的训练循环</a></li><li><a href=#指标要对得上任务>指标要对得上任务</a></li></ul></li><li><a href=#八常见问题认真回答>八、常见问题，认真回答</a></li><li><a href=#九走到这里我们看到了什么>九、走到这里我们看到了什么</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>2 min</strong></div><div class=row><span>Word count</span><strong>946</strong></div><div class=row><span>Published</span><strong>Dec 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

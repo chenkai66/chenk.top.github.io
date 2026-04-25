@@ -1,810 +1,473 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/terraform-agents/06-llm-gateway-and-secrets/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Terraform for AI Agents (6): LLM Gateway and Secrets Management · Chen Kai Blog</title>
-<meta name="description" content="Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Terraform for AI Agents (6): LLM Gateway and Secrets Management">
-<meta property="og:description" content="Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager.">
-<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-3);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
-         · Chapter 6
-      </div>
-      <h1>Terraform for AI Agents (6): LLM Gateway and Secrets Management</h1>
-      <p class="deck">Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-22">March 22, 2026</time> · 10 min read · 2000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/kms/" class="tag">#KMS</a><a href="/en/tags/api-gateway/" class="tag">#API Gateway</a><a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/terraform-agents/06-llm-gateway-and-secrets/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>A pattern I see repeatedly in immature agent stacks: each agent has its own copy of <code>OPENAI_API_KEY</code> in its own <code>.env</code> file. Sometimes the same key, sometimes different ones, sometimes a colleague&rsquo;s personal key from when they prototyped. When the bill arrives nobody can tell which agent caused which token spend, and when a key leaks (it always does) you&rsquo;re playing whack-a-mole across a dozen <code>.env</code> files.</p>
-<p>This article ends that. We build one <strong>LLM gateway</strong> that:</p>
-<ul>
-<li>Holds every provider key in KMS Secrets Manager</li>
-<li>Authenticates agents via short-lived RAM tokens</li>
-<li>Enforces per-agent QPM and daily token caps</li>
-<li>Logs every request to SLS for forensics and cost attribution</li>
-<li>Rotates keys without redeploying any agent</li>
-</ul>
-<p>It is two days of setup and a permanent operational win.</p>
-<h2 id="the-shape">The shape</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png" alt="Centralised LLM gateway: one egress, one quota, one audit log" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Agents on the left, providers on the right, the gateway in the middle. Every agent&rsquo;s HTTP call to &ldquo;an LLM&rdquo; actually goes to the gateway, which decides which provider to dispatch to, attaches the right key, enforces quotas, and logs the result.</p>
-<p>You have two reasonable implementation options:</p>
-<ol>
-<li><strong>Aliyun API Gateway in front of a custom backend</strong> — most managed, easiest to add quota plans, integrates with RAM</li>
-<li><strong>Self-hosted LiteLLM (or your own) on ECS behind an ALB</strong> — most flexible, supports the long tail of providers, easier to extend with cost tracking</li>
-</ol>
-<p>I use both depending on how custom the routing logic is. For a pure proxy with quotas, API Gateway alone is enough. For multi-provider routing with fallback and budget guards, LiteLLM on ECS wins.</p>
-<h2 id="step-1-store-every-key-in-kms-secrets-manager">Step 1: store every key in KMS Secrets Manager</h2>
-<p>The first rule: provider keys never appear in <code>.env</code> files, in <code>provider {}</code> blocks, in agent code, or in tfstate plaintext. They live in KMS Secrets Manager and the gateway pulls them at startup via STS.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  llm_secrets</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;dashscope-prod&#34;</span>  <span class="o">=</span> <span class="s2">&#34;DashScope (Bailian) API key&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;openai-prod&#34;</span>     <span class="o">=</span> <span class="s2">&#34;OpenAI API key&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;anthropic-prod&#34;</span>  <span class="o">=</span> <span class="s2">&#34;Anthropic API key&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;deepseek-prod&#34;</span>   <span class="o">=</span> <span class="s2">&#34;DeepSeek API key&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_kms_secret&#34; &#34;llm&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">llm_secrets</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  secret_name</span>              <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span>
-</span></span><span class="line"><span class="cl"><span class="n">  secret_data</span>              <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">llm_keys</span><span class="p">[</span><span class="k">each</span><span class="p">.</span><span class="k">key</span><span class="p">]</span><span class="c1">   # passed via -var or env
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  version_id</span>               <span class="o">=</span> <span class="s2">&#34;v1&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  description</span>              <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span>
-</span></span><span class="line"><span class="cl"><span class="n">  encryption_key_id</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;secrets&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  rotation_interval</span>        <span class="o">=</span> <span class="s2">&#34;30d&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  enable_automatic_rotation</span> <span class="o">=</span> <span class="kt">false</span><span class="c1">   # we rotate by updating secret_data
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  recovery_window_in_days</span>  <span class="o">=</span> <span class="m">7</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The keys themselves come in via <code>var.llm_keys</code> — set with <code>-var-file=secrets.auto.tfvars</code> (gitignored) or <code>TF_VAR_llm_keys='{...}'</code> from a CI secret. They never live in your repository.</p>
-<blockquote>
-<p><strong>Real-world tip:</strong> When you rotate a provider key, change <code>secret_data</code> and bump <code>version_id</code>. KMS keeps the old version active for the recovery window so in-flight requests don&rsquo;t fail; new gateway pulls get the new version. Plan this in PR form so it&rsquo;s auditable.</p>
-</blockquote>
-<h2 id="step-2-a-ram-role-the-gateway-can-assume">Step 2: a RAM role the gateway can assume</h2>
-<p>The gateway ECS or function needs permission to read these secrets — and only these secrets:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ram_role&#34; &#34;gateway&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  name</span> <span class="o">=</span> <span class="s2">&#34;agent-gateway-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  assume_role_policy_document</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">(</span>{
-</span></span><span class="line"><span class="cl"><span class="n">    Statement</span> <span class="o">=</span> <span class="p">[</span>{
-</span></span><span class="line"><span class="cl"><span class="n">      Effect</span> <span class="o">=</span> <span class="s2">&#34;Allow&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      Action</span> <span class="o">=</span> <span class="s2">&#34;sts:AssumeRole&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      Principal</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">        Service</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;ecs.aliyuncs.com&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">      }
-</span></span><span class="line"><span class="cl">    }<span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">    Version</span> <span class="o">=</span> <span class="s2">&#34;1&#34;</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">)</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ram_policy&#34; &#34;gateway_kms&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  policy_name</span> <span class="o">=</span> <span class="s2">&#34;agent-gateway-kms-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  policy_document</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">(</span>{
-</span></span><span class="line"><span class="cl"><span class="n">    Version</span> <span class="o">=</span> <span class="s2">&#34;1&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    Statement</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">      {
-</span></span><span class="line"><span class="cl"><span class="n">        Effect</span> <span class="o">=</span> <span class="s2">&#34;Allow&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">        Action</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">          <span class="s2">&#34;kms:GetSecretValue&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="s2">&#34;kms:Decrypt&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">        Resource</span> <span class="o">=</span> <span class="p">[</span><span class="k">for</span> <span class="k">s</span> <span class="k">in</span> <span class="k">alicloud_kms_secret</span><span class="p">.</span><span class="k">llm</span> <span class="err">:</span> <span class="k">s</span><span class="p">.</span><span class="k">arn</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">      }
-</span></span><span class="line"><span class="cl">    <span class="p">]</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">)</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_ram_role_policy_attachment&#34; &#34;gateway_kms&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  policy_name</span> <span class="o">=</span> <span class="k">alicloud_ram_policy</span><span class="p">.</span><span class="k">gateway_kms</span><span class="p">.</span><span class="k">policy_name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  policy_type</span> <span class="o">=</span> <span class="s2">&#34;Custom&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  role_name</span>   <span class="o">=</span> <span class="k">alicloud_ram_role</span><span class="p">.</span><span class="k">gateway</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Three things deliberate here:</p>
-<ul>
-<li><strong>Resource-scoped policy.</strong> Only these secrets, not <code>kms:GetSecretValue</code> on <code>*</code>. If the gateway box is compromised, the attacker cannot pivot to other KMS secrets.</li>
-<li><strong>No long-lived AK.</strong> The role is assumed by the ECS instance via metadata service. Zero static credentials.</li>
-<li><strong><code>kms:Decrypt</code> is needed</strong> even just to read the secret because secrets are KMS-encrypted at rest.</li>
-</ul>
-<h2 id="step-3-deploy-litellm-on-ecs">Step 3: deploy LiteLLM on ECS</h2>
-<p>LiteLLM is the easiest open-source LLM proxy I know of. It speaks the OpenAI API format on its frontend and translates to whatever each provider speaks on its backend. Self-hosting it on ECS keeps things flexible:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_instance&#34; &#34;gateway&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  count</span> <span class="o">=</span> <span class="m">2</span><span class="c1">  # two for HA, fronted by ALB
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_name</span>        <span class="o">=</span> <span class="s2">&#34;llm-gateway-${terraform.workspace}-${count.index + 1}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  image_id</span>             <span class="o">=</span> <span class="k">data</span><span class="p">.</span><span class="k">alicloud_images</span><span class="p">.</span><span class="k">ubuntu</span><span class="p">.</span><span class="k">images</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_type</span>        <span class="o">=</span> <span class="s2">&#34;ecs.c7.large&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  availability_zone</span>    <span class="o">=</span><span class="n"> &#34;cn-shanghai-${count.index</span> <span class="o">==</span> <span class="m">0</span> <span class="err">?</span> <span class="s2">&#34;l&#34; : &#34;m&#34;}&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  vswitch_id</span>      <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="k">count</span><span class="p">.</span><span class="k">index</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  security_groups</span> <span class="o">=</span> <span class="p">[</span><span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">agent_runtime_sg_id</span><span class="p">]</span><span class="c1">   # same SG; gateway is part of the runtime tier
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="n">  role_name</span> <span class="o">=</span> <span class="k">alicloud_ram_role</span><span class="p">.</span><span class="k">gateway</span><span class="p">.</span><span class="k">name</span><span class="c1">           # gateway assumes this role
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_category</span> <span class="o">=</span> <span class="s2">&#34;cloud_essd&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_size</span>     <span class="o">=</span> <span class="m">40</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  user_data</span> <span class="o">=</span> <span class="k">base64encode</span><span class="p">(</span><span class="k">templatefile</span><span class="p">(</span><span class="s2">&#34;${path.module}/gateway-init.sh&#34;</span><span class="p">,</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    config_b64</span> <span class="o">=</span> <span class="k">base64encode</span><span class="p">(</span><span class="k">local</span><span class="p">.</span><span class="k">litellm_config</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">    sls_project</span> <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    sls_logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">gateway_requests</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span><span class="n"> { Role</span> <span class="o">=</span> <span class="s2">&#34;llm-gateway&#34;</span> }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">locals</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  litellm_config</span> <span class="o">=</span> <span class="k">yamlencode</span><span class="p">(</span>{
-</span></span><span class="line"><span class="cl"><span class="n">    model_list</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">      {
-</span></span><span class="line"><span class="cl"><span class="n">        model_name</span> <span class="o">=</span> <span class="s2">&#34;qwen-max&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">        litellm_params</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">          model</span>     <span class="o">=</span> <span class="s2">&#34;dashscope/qwen-max-2026-01-15&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">          api_key</span>   <span class="o">=</span> <span class="s2">&#34;os.environ/DASHSCOPE_API_KEY&#34;</span>
-</span></span><span class="line"><span class="cl">        }
-</span></span><span class="line"><span class="cl">      }<span class="p">,</span>
-</span></span><span class="line"><span class="cl">      {
-</span></span><span class="line"><span class="cl"><span class="n">        model_name</span> <span class="o">=</span> <span class="s2">&#34;claude-opus&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">        litellm_params</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">          model</span>     <span class="o">=</span> <span class="s2">&#34;anthropic/claude-opus-4.7&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">          api_key</span>   <span class="o">=</span> <span class="s2">&#34;os.environ/ANTHROPIC_API_KEY&#34;</span>
-</span></span><span class="line"><span class="cl">        }
-</span></span><span class="line"><span class="cl">      }<span class="p">,</span>
-</span></span><span class="line"><span class="cl">      {
-</span></span><span class="line"><span class="cl"><span class="n">        model_name</span> <span class="o">=</span> <span class="s2">&#34;gpt-4o&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">        litellm_params</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">          model</span>     <span class="o">=</span> <span class="s2">&#34;openai/gpt-4o-2026-01-15&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">          api_key</span>   <span class="o">=</span> <span class="s2">&#34;os.environ/OPENAI_API_KEY&#34;</span>
-</span></span><span class="line"><span class="cl">        }
-</span></span><span class="line"><span class="cl">      }
-</span></span><span class="line"><span class="cl">    <span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">    general_settings</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      master_key</span> <span class="o">=</span> <span class="s2">&#34;os.environ/LITELLM_MASTER_KEY&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      database_url</span> <span class="o">=</span> <span class="s2">&#34;os.environ/DATABASE_URL&#34;</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">  }<span class="p">)</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>gateway-init.sh</code> does the boot:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="nb">set</span> -euxo pipefail
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">apt-get update -y
-</span></span><span class="line"><span class="cl">apt-get install -y python3.11 python3.11-venv git curl jq
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Pull provider keys from KMS via instance role (no AK needed)</span>
-</span></span><span class="line"><span class="cl"><span class="nv">TOKEN</span><span class="o">=</span><span class="k">$(</span>curl -s http://100.100.100.200/latest/meta-data/ram/security-credentials/agent-gateway-<span class="si">${</span><span class="nv">ENV</span><span class="si">}</span><span class="k">)</span>
-</span></span><span class="line"><span class="cl"><span class="nv">ACCESS_KEY_ID</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="nv">$TOKEN</span> <span class="p">|</span> jq -r .AccessKeyId<span class="k">)</span>
-</span></span><span class="line"><span class="cl"><span class="nv">ACCESS_KEY_SECRET</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="nv">$TOKEN</span> <span class="p">|</span> jq -r .AccessKeySecret<span class="k">)</span>
-</span></span><span class="line"><span class="cl"><span class="nv">SECURITY_TOKEN</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span> <span class="nv">$TOKEN</span> <span class="p">|</span> jq -r .SecurityToken<span class="k">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Use the Aliyun KMS CLI (or Python SDK) to fetch each key</span>
-</span></span><span class="line"><span class="cl">pip install alibabacloud-kms20160120
-</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">DASHSCOPE_API_KEY</span><span class="o">=</span><span class="k">$(</span>python3 -c <span class="s2">&#34;import kms_helper; print(kms_helper.get(&#39;dashscope-prod&#39;))&#34;</span><span class="k">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">OPENAI_API_KEY</span><span class="o">=</span><span class="k">$(</span>python3 -c <span class="s2">&#34;import kms_helper; print(kms_helper.get(&#39;openai-prod&#39;))&#34;</span><span class="k">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">ANTHROPIC_API_KEY</span><span class="o">=</span><span class="k">$(</span>python3 -c <span class="s2">&#34;import kms_helper; print(kms_helper.get(&#39;anthropic-prod&#39;))&#34;</span><span class="k">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Write LiteLLM config</span>
-</span></span><span class="line"><span class="cl">mkdir -p /etc/litellm
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;</span><span class="si">${</span><span class="nv">config_b64</span><span class="si">}</span><span class="s2">&#34;</span> <span class="p">|</span> base64 -d &gt; /etc/litellm/config.yaml
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Install and run LiteLLM under pm2</span>
-</span></span><span class="line"><span class="cl">pip install <span class="s1">&#39;litellm[proxy]&#39;</span>
-</span></span><span class="line"><span class="cl">npm install -g pm2
-</span></span><span class="line"><span class="cl">pm2 start --name llm-gateway -- litellm --config /etc/litellm/config.yaml --port <span class="m">4000</span>
-</span></span><span class="line"><span class="cl">pm2 save
-</span></span><span class="line"><span class="cl">pm2 startup systemd -u root --hp /root
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The gateway is now running on each instance, listening on port 4000, with all provider keys loaded. The ALB in front fans out:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_alb_load_balancer&#34; &#34;gateway&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>              <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  address_type</span>        <span class="o">=</span> <span class="s2">&#34;Intranet&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  load_balancer_name</span>  <span class="o">=</span> <span class="s2">&#34;llm-gateway-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  load_balancer_edition</span> <span class="o">=</span> <span class="s2">&#34;Standard&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">zone_mappings</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    vswitch_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="m">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">    zone_id</span>    <span class="o">=</span> <span class="s2">&#34;cn-shanghai-l&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">  <span class="k">zone_mappings</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    vswitch_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="m">1</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">    zone_id</span>    <span class="o">=</span> <span class="s2">&#34;cn-shanghai-m&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_alb_server_group&#34; &#34;gateway&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>            <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  server_group_name</span> <span class="o">=</span> <span class="s2">&#34;llm-gateway&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  protocol</span>          <span class="o">=</span> <span class="s2">&#34;HTTP&#34;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">health_check_config</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    health_check_enabled</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">    health_check_path</span>    <span class="o">=</span> <span class="s2">&#34;/health&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    health_check_protocol</span> <span class="o">=</span> <span class="s2">&#34;HTTP&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl"><span class="n">  servers</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="k">inst</span> <span class="k">in</span> <span class="k">alicloud_instance</span><span class="p">.</span><span class="k">gateway</span> <span class="err">:</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      server_id</span> <span class="o">=</span> <span class="k">inst</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">      port</span>      <span class="o">=</span> <span class="m">4000</span>
-</span></span><span class="line"><span class="cl"><span class="n">      weight</span>    <span class="o">=</span> <span class="m">100</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">  <span class="p">]</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_alb_listener&#34; &#34;gateway&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  load_balancer_id</span>     <span class="o">=</span> <span class="k">alicloud_alb_load_balancer</span><span class="p">.</span><span class="k">gateway</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  listener_port</span>        <span class="o">=</span> <span class="m">80</span>
-</span></span><span class="line"><span class="cl"><span class="n">  listener_protocol</span>    <span class="o">=</span> <span class="s2">&#34;HTTP&#34;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">default_actions</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    type</span> <span class="o">=</span> <span class="s2">&#34;ForwardGroup&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">forward_group_config</span> {
-</span></span><span class="line"><span class="cl">      <span class="k">server_group_tuples</span> {
-</span></span><span class="line"><span class="cl"><span class="n">        server_group_id</span> <span class="o">=</span> <span class="k">alicloud_alb_server_group</span><span class="p">.</span><span class="k">gateway</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl">      }
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Agents now reach the gateway at <code>http://&lt;alb-id&gt;.cn-shanghai.alb.aliyuncs.com/v1/chat/completions</code> and never see a provider key.</p>
-<h2 id="step-4-per-agent-quotas">Step 4: per-agent quotas</h2>
-<p>LiteLLM supports per-key quotas natively. The cleanest way to wire this through Terraform is to provision one LiteLLM &ldquo;virtual key&rdquo; per agent, each with its own QPM and token budget. Since LiteLLM stores these in its own database, you provision them via its API at apply time using a <code>null_resource</code>:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig3_quota_table.png" alt="Per-agent quota policy" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  agent_quotas</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;research-agent&#34;</span> <span class="o">=</span><span class="n"> { qpm</span> <span class="o">=</span><span class="n"> 120, daily_tokens</span> <span class="o">=</span><span class="n"> 2000000, max_budget</span> <span class="o">=</span> <span class="m">800</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;code-agent&#34;</span>     <span class="o">=</span><span class="n"> { qpm</span> <span class="o">=</span><span class="n"> 60,  daily_tokens</span> <span class="o">=</span><span class="n"> 1000000, max_budget</span> <span class="o">=</span> <span class="m">500</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;support-agent&#34;</span>  <span class="o">=</span><span class="n"> { qpm</span> <span class="o">=</span><span class="n"> 300, daily_tokens</span> <span class="o">=</span><span class="n"> 3000000, max_budget</span> <span class="o">=</span> <span class="m">600</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;schedule-agent&#34;</span> <span class="o">=</span><span class="n"> { qpm</span> <span class="o">=</span><span class="n"> 10,  daily_tokens</span> <span class="o">=</span><span class="n"> 100000,  max_budget</span> <span class="o">=</span> <span class="m">40</span>  }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;null_resource&#34; &#34;agent_keys&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">agent_quotas</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  triggers</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    config_hash</span> <span class="o">=</span> <span class="k">sha256</span><span class="p">(</span><span class="k">jsonencode</span><span class="p">(</span><span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">provisioner</span> <span class="s2">&#34;local-exec&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    command</span> <span class="o">=</span> <span class="err">&lt;&lt;-</span><span class="k">EOT</span>
-</span></span><span class="line"><span class="cl">      <span class="k">curl</span> <span class="err">-</span><span class="k">X</span> <span class="k">POST</span> <span class="k">http</span><span class="err">://</span><span class="si">${</span><span class="err">alicloud_alb_load_balancer</span><span class="p">.</span><span class="err">gateway</span><span class="p">.</span><span class="err">dns_name</span><span class="si">}</span><span class="err">/</span><span class="k">key</span><span class="err">/</span><span class="k">generate</span> \
-</span></span><span class="line"><span class="cl">        <span class="err">-</span><span class="k">H</span> <span class="s2">&#34;Authorization: Bearer ${var.litellm_master_key}&#34;</span> \
-</span></span><span class="line"><span class="cl">        <span class="err">-</span><span class="k">H</span> <span class="s2">&#34;Content-Type: application/json&#34;</span> \
-</span></span><span class="line"><span class="cl">        <span class="err">-</span><span class="k">d</span> <span class="err">&#39;</span>{
-</span></span><span class="line"><span class="cl">          <span class="s2">&#34;key_alias&#34;: &#34;${each.key}&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="s2">&#34;rpm_limit&#34;</span><span class="err">:</span> <span class="si">${</span><span class="err">each</span><span class="p">.</span><span class="err">value</span><span class="p">.</span><span class="err">qpm</span><span class="si">}</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="s2">&#34;max_budget&#34;</span><span class="err">:</span> <span class="si">${</span><span class="err">each</span><span class="p">.</span><span class="err">value</span><span class="p">.</span><span class="err">max_budget</span><span class="si">}</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="s2">&#34;tpm_limit&#34;</span><span class="err">:</span> <span class="si">${</span><span class="err">each</span><span class="p">.</span><span class="err">value</span><span class="p">.</span><span class="err">daily_tokens</span> <span class="err">/</span> <span class="err">1440</span><span class="si">}</span>
-</span></span><span class="line"><span class="cl">        }<span class="err">&#39;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">EOT</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>I&rsquo;m not in love with <code>null_resource</code> + <code>local-exec</code> — it&rsquo;s the exit hatch for &ldquo;the resource doesn&rsquo;t exist in the provider yet.&rdquo; But it works, and the alternative (a custom Terraform provider for LiteLLM) is more code than it&rsquo;s worth for one team.</p>
-<p>The output: each agent gets a distinct <code>LITELLM_API_KEY</code> env var that the cloud-init script in article 4 reads. Quota violations return <code>429 Too Many Requests</code>, which agents should handle with exponential backoff.</p>
-<h2 id="step-5-secret-rotation-flow">Step 5: secret rotation flow</h2>
-<p>The whole point of putting keys in KMS Secrets Manager is rotation:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig2_secret_rotation.png" alt="Secret rotation flow — KMS as single source of truth" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The lifecycle:</p>
-<ol>
-<li>You change the <code>secret_data</code> in Terraform (or via the KMS API), bump <code>version_id</code> to <code>v2</code></li>
-<li>KMS keeps <code>v1</code> active for the rotation window (default 30 days)</li>
-<li>Gateway instances re-pull on cold start; existing instances keep using the cached value until their next refresh (every 15min, configured in <code>gateway-init.sh</code>)</li>
-<li>After 30 days, <code>v1</code> is disabled — anyone still using it gets <code>InvalidSecretVersion</code></li>
-<li>You confirm zero usage of <code>v1</code> via SLS, then promote <code>v2</code> and retire <code>v1</code></li>
-</ol>
-<p>For a team, codify this as a runbook and re-execute it quarterly even if nothing leaks. Keys that have lived longer than a quarter are by definition stale; treat staleness as a low-grade incident.</p>
-<h2 id="what-about-bailian--dashscope-specifically">What about Bailian / DashScope specifically?</h2>
-<p>DashScope is just another OpenAI-compatible endpoint in LiteLLM&rsquo;s eyes. The model names are <code>dashscope/qwen-max</code>, <code>dashscope/qwen-plus</code>, etc. The API key is what you generate from the DashScope console.</p>
-<p>If you want first-class Aliyun-native treatment (so you can use STS instead of an API key), DashScope supports STS-based auth on some endpoints — but in 2026 the API-key path is still the standard, and rotating the key via KMS as above is the right operational pattern.</p>
-<blockquote>
-<p><strong>Real-world tip:</strong> Set a <code>master_key</code> on LiteLLM (the <code>LITELLM_MASTER_KEY</code> env var). Without it, anyone who can reach the gateway can issue themselves an API key. With it, only the master can mint subordinate keys — and the master never leaves Terraform&rsquo;s variable space.</p>
-</blockquote>
-<h2 id="what-this-gives-you">What this gives you</h2>
-<p>After this article you have:</p>
-<ul>
-<li>One URL where every agent calls &ldquo;the LLM&rdquo;</li>
-<li>One place to add a new model provider (edit <code>litellm_config</code>, <code>terraform apply</code>)</li>
-<li>One place to rotate any provider key (edit <code>var.llm_keys</code>, <code>terraform apply</code>)</li>
-<li>One log stream (next article) showing every request, latency, token count, model, and agent</li>
-<li>Hard QPM and budget caps per agent — a runaway loop costs at most ¥800/day, not your entire month&rsquo;s budget</li>
-</ul>
-<p>The gateway is a strategic asset. Every team I&rsquo;ve shipped one for has thanked me within a month — usually the first time someone&rsquo;s API key gets accidentally checked into git and they realise rotating it is a one-line PR instead of a fire drill.</p>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 7 is observability and cost control: SLS for logs, ARMS for traces, CloudMonitor for metrics, the budget alarm that pings DingTalk when a daily LLM spend crosses a threshold, and the SLS-driven cost dashboard that lets you see &ldquo;which agent is burning my budget&rdquo;.</p>
-<p>Article 8 is the end-to-end walkthrough where everything in articles 2-7 lands as one <code>terraform apply</code>.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/"><span class="title">Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/"><span class="title">Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-shape">The shape</a></li>
-    <li><a href="#step-1-store-every-key-in-kms-secrets-manager">Step 1: store every key in KMS Secrets Manager</a></li>
-    <li><a href="#step-2-a-ram-role-the-gateway-can-assume">Step 2: a RAM role the gateway can assume</a></li>
-    <li><a href="#step-3-deploy-litellm-on-ecs">Step 3: deploy LiteLLM on ECS</a></li>
-    <li><a href="#step-4-per-agent-quotas">Step 4: per-agent quotas</a></li>
-    <li><a href="#step-5-secret-rotation-flow">Step 5: secret rotation flow</a></li>
-    <li><a href="#what-about-bailian--dashscope-specifically">What about Bailian / DashScope specifically?</a></li>
-    <li><a href="#what-this-gives-you">What this gives you</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2000</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/terraform-agents/06-llm-gateway-and-secrets/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Terraform for AI Agents (6): LLM Gateway and Secrets Management · Chen Kai Blog</title>
+<meta name=description content="Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/terraform-agents/06-llm-gateway-and-secrets/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><meta property="og:type" content="article"><meta property="og:title" content="Terraform for AI Agents (6): LLM Gateway and Secrets Management"><meta property="og:description" content="Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager."><meta property="og:url" content="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Terraform Agents</a>
+· Chapter 6</div><h1>Terraform for AI Agents (6): LLM Gateway and Secrets Management</h1><p class=deck>Centralise LLM API access through one gateway: per-agent quotas, request logging, and zero secrets outside KMS. Terraform-provisioned API Gateway plus self-hosted LiteLLM on ECS, with DashScope/OpenAI/Anthropic keys rotating automatically through KMS Secrets Manager.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-22>March 22, 2026</time> · 10 min read · 1970 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/kms/ class=tag>#KMS</a><a href=/en/tags/api-gateway/ class=tag>#API Gateway</a><a href=/en/tags/llm/ class=tag>#LLM</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/06-llm-gateway-and-secrets/>Read in English →</a></div></header><div class=prose><p>A pattern I see repeatedly in immature agent stacks: each agent has its own copy of <code>OPENAI_API_KEY</code> in its own <code>.env</code> file. Sometimes the same key, sometimes different ones, sometimes a colleague&rsquo;s personal key from when they prototyped. When the bill arrives nobody can tell which agent caused which token spend, and when a key leaks (it always does) you&rsquo;re playing whack-a-mole across a dozen <code>.env</code> files.</p><p>This article ends that. We build one <strong>LLM gateway</strong> that:</p><ul><li>Holds every provider key in KMS Secrets Manager</li><li>Authenticates agents via short-lived RAM tokens</li><li>Enforces per-agent QPM and daily token caps</li><li>Logs every request to SLS for forensics and cost attribution</li><li>Rotates keys without redeploying any agent</li></ul><p>It is two days of setup and a permanent operational win.</p><h2 id=the-shape>The shape</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig1_gateway_topology.png alt="Centralised LLM gateway: one egress, one quota, one audit log" loading=lazy decoding=async></figure></p><p>Agents on the left, providers on the right, the gateway in the middle. Every agent&rsquo;s HTTP call to &ldquo;an LLM&rdquo; actually goes to the gateway, which decides which provider to dispatch to, attaches the right key, enforces quotas, and logs the result.</p><p>You have two reasonable implementation options:</p><ol><li><strong>Aliyun API Gateway in front of a custom backend</strong> — most managed, easiest to add quota plans, integrates with RAM</li><li><strong>Self-hosted LiteLLM (or your own) on ECS behind an ALB</strong> — most flexible, supports the long tail of providers, easier to extend with cost tracking</li></ol><p>I use both depending on how custom the routing logic is. For a pure proxy with quotas, API Gateway alone is enough. For multi-provider routing with fallback and budget guards, LiteLLM on ECS wins.</p><h2 id=step-1-store-every-key-in-kms-secrets-manager>Step 1: store every key in KMS Secrets Manager</h2><p>The first rule: provider keys never appear in <code>.env</code> files, in <code>provider {}</code> blocks, in agent code, or in tfstate plaintext. They live in KMS Secrets Manager and the gateway pulls them at startup via STS.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  llm_secrets</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    &#34;dashscope-prod&#34;</span>  <span class=o>=</span> <span class=s2>&#34;DashScope (Bailian) API key&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    &#34;openai-prod&#34;</span>     <span class=o>=</span> <span class=s2>&#34;OpenAI API key&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    &#34;anthropic-prod&#34;</span>  <span class=o>=</span> <span class=s2>&#34;Anthropic API key&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    &#34;deepseek-prod&#34;</span>   <span class=o>=</span> <span class=s2>&#34;DeepSeek API key&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_kms_secret&#34; &#34;llm&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  for_each</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>llm_secrets</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  secret_name</span>              <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>key</span>
+</span></span><span class=line><span class=cl><span class=n>  secret_data</span>              <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>llm_keys</span><span class=p>[</span><span class=k>each</span><span class=p>.</span><span class=k>key</span><span class=p>]</span><span class=c1>   # passed via -var or env
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  version_id</span>               <span class=o>=</span> <span class=s2>&#34;v1&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span>              <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>value</span>
+</span></span><span class=line><span class=cl><span class=n>  encryption_key_id</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;secrets&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  rotation_interval</span>        <span class=o>=</span> <span class=s2>&#34;30d&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  enable_automatic_rotation</span> <span class=o>=</span> <span class=kt>false</span><span class=c1>   # we rotate by updating secret_data
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  recovery_window_in_days</span>  <span class=o>=</span> <span class=m>7</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>The keys themselves come in via <code>var.llm_keys</code> — set with <code>-var-file=secrets.auto.tfvars</code> (gitignored) or <code>TF_VAR_llm_keys='{...}'</code> from a CI secret. They never live in your repository.</p><blockquote><p><strong>Real-world tip:</strong> When you rotate a provider key, change <code>secret_data</code> and bump <code>version_id</code>. KMS keeps the old version active for the recovery window so in-flight requests don&rsquo;t fail; new gateway pulls get the new version. Plan this in PR form so it&rsquo;s auditable.</p></blockquote><h2 id=step-2-a-ram-role-the-gateway-can-assume>Step 2: a RAM role the gateway can assume</h2><p>The gateway ECS or function needs permission to read these secrets — and only these secrets:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_ram_role&#34; &#34;gateway&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  name</span> <span class=o>=</span> <span class=s2>&#34;agent-gateway-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  assume_role_policy_document</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    Statement</span> <span class=o>=</span> <span class=p>[</span>{
+</span></span><span class=line><span class=cl><span class=n>      Effect</span> <span class=o>=</span> <span class=s2>&#34;Allow&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      Action</span> <span class=o>=</span> <span class=s2>&#34;sts:AssumeRole&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      Principal</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>        Service</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;ecs.aliyuncs.com&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>      }
+</span></span><span class=line><span class=cl>    }<span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>    Version</span> <span class=o>=</span> <span class=s2>&#34;1&#34;</span>
+</span></span><span class=line><span class=cl>  }<span class=p>)</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_ram_policy&#34; &#34;gateway_kms&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  policy_name</span> <span class=o>=</span> <span class=s2>&#34;agent-gateway-kms-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  policy_document</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    Version</span> <span class=o>=</span> <span class=s2>&#34;1&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    Statement</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      {
+</span></span><span class=line><span class=cl><span class=n>        Effect</span> <span class=o>=</span> <span class=s2>&#34;Allow&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>        Action</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;kms:GetSecretValue&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;kms:Decrypt&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>        Resource</span> <span class=o>=</span> <span class=p>[</span><span class=k>for</span> <span class=k>s</span> <span class=k>in</span> <span class=k>alicloud_kms_secret</span><span class=p>.</span><span class=k>llm</span> <span class=err>:</span> <span class=k>s</span><span class=p>.</span><span class=k>arn</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>      }
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl>  }<span class=p>)</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_ram_role_policy_attachment&#34; &#34;gateway_kms&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  policy_name</span> <span class=o>=</span> <span class=k>alicloud_ram_policy</span><span class=p>.</span><span class=k>gateway_kms</span><span class=p>.</span><span class=k>policy_name</span>
+</span></span><span class=line><span class=cl><span class=n>  policy_type</span> <span class=o>=</span> <span class=s2>&#34;Custom&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  role_name</span>   <span class=o>=</span> <span class=k>alicloud_ram_role</span><span class=p>.</span><span class=k>gateway</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Three things deliberate here:</p><ul><li><strong>Resource-scoped policy.</strong> Only these secrets, not <code>kms:GetSecretValue</code> on <code>*</code>. If the gateway box is compromised, the attacker cannot pivot to other KMS secrets.</li><li><strong>No long-lived AK.</strong> The role is assumed by the ECS instance via metadata service. Zero static credentials.</li><li><strong><code>kms:Decrypt</code> is needed</strong> even just to read the secret because secrets are KMS-encrypted at rest.</li></ul><h2 id=step-3-deploy-litellm-on-ecs>Step 3: deploy LiteLLM on ECS</h2><p>LiteLLM is the easiest open-source LLM proxy I know of. It speaks the OpenAI API format on its frontend and translates to whatever each provider speaks on its backend. Self-hosting it on ECS keeps things flexible:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_instance&#34; &#34;gateway&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  count</span> <span class=o>=</span> <span class=m>2</span><span class=c1>  # two for HA, fronted by ALB
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=n>  instance_name</span>        <span class=o>=</span> <span class=s2>&#34;llm-gateway-${terraform.workspace}-${count.index + 1}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  image_id</span>             <span class=o>=</span> <span class=k>data</span><span class=p>.</span><span class=k>alicloud_images</span><span class=p>.</span><span class=k>ubuntu</span><span class=p>.</span><span class=k>images</span><span class=p>[</span><span class=m>0</span><span class=p>].</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_type</span>        <span class=o>=</span> <span class=s2>&#34;ecs.c7.large&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  availability_zone</span>    <span class=o>=</span><span class=n> &#34;cn-shanghai-${count.index</span> <span class=o>==</span> <span class=m>0</span> <span class=err>?</span> <span class=s2>&#34;l&#34; : &#34;m&#34;}&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  vswitch_id</span>      <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=k>count</span><span class=p>.</span><span class=k>index</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  security_groups</span> <span class=o>=</span> <span class=p>[</span><span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>agent_runtime_sg_id</span><span class=p>]</span><span class=c1>   # same SG; gateway is part of the runtime tier
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=n>  role_name</span> <span class=o>=</span> <span class=k>alicloud_ram_role</span><span class=p>.</span><span class=k>gateway</span><span class=p>.</span><span class=k>name</span><span class=c1>           # gateway assumes this role
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_category</span> <span class=o>=</span> <span class=s2>&#34;cloud_essd&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_size</span>     <span class=o>=</span> <span class=m>40</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  user_data</span> <span class=o>=</span> <span class=k>base64encode</span><span class=p>(</span><span class=k>templatefile</span><span class=p>(</span><span class=s2>&#34;${path.module}/gateway-init.sh&#34;</span><span class=p>,</span> {
+</span></span><span class=line><span class=cl><span class=n>    config_b64</span> <span class=o>=</span> <span class=k>base64encode</span><span class=p>(</span><span class=k>local</span><span class=p>.</span><span class=k>litellm_config</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>    sls_project</span> <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    sls_logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>gateway_requests</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>  }<span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  tags</span> <span class=o>=</span><span class=n> { Role</span> <span class=o>=</span> <span class=s2>&#34;llm-gateway&#34;</span> }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  litellm_config</span> <span class=o>=</span> <span class=k>yamlencode</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    model_list</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>      {
+</span></span><span class=line><span class=cl><span class=n>        model_name</span> <span class=o>=</span> <span class=s2>&#34;qwen-max&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>        litellm_params</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>          model</span>     <span class=o>=</span> <span class=s2>&#34;dashscope/qwen-max-2026-01-15&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>          api_key</span>   <span class=o>=</span> <span class=s2>&#34;os.environ/DASHSCOPE_API_KEY&#34;</span>
+</span></span><span class=line><span class=cl>        }
+</span></span><span class=line><span class=cl>      }<span class=p>,</span>
+</span></span><span class=line><span class=cl>      {
+</span></span><span class=line><span class=cl><span class=n>        model_name</span> <span class=o>=</span> <span class=s2>&#34;claude-opus&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>        litellm_params</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>          model</span>     <span class=o>=</span> <span class=s2>&#34;anthropic/claude-opus-4.7&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>          api_key</span>   <span class=o>=</span> <span class=s2>&#34;os.environ/ANTHROPIC_API_KEY&#34;</span>
+</span></span><span class=line><span class=cl>        }
+</span></span><span class=line><span class=cl>      }<span class=p>,</span>
+</span></span><span class=line><span class=cl>      {
+</span></span><span class=line><span class=cl><span class=n>        model_name</span> <span class=o>=</span> <span class=s2>&#34;gpt-4o&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>        litellm_params</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>          model</span>     <span class=o>=</span> <span class=s2>&#34;openai/gpt-4o-2026-01-15&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>          api_key</span>   <span class=o>=</span> <span class=s2>&#34;os.environ/OPENAI_API_KEY&#34;</span>
+</span></span><span class=line><span class=cl>        }
+</span></span><span class=line><span class=cl>      }
+</span></span><span class=line><span class=cl>    <span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>    general_settings</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>      master_key</span> <span class=o>=</span> <span class=s2>&#34;os.environ/LITELLM_MASTER_KEY&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      database_url</span> <span class=o>=</span> <span class=s2>&#34;os.environ/DATABASE_URL&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  }<span class=p>)</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>gateway-init.sh</code> does the boot:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euxo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>apt-get update -y
+</span></span><span class=line><span class=cl>apt-get install -y python3.11 python3.11-venv git curl jq
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Pull provider keys from KMS via instance role (no AK needed)</span>
+</span></span><span class=line><span class=cl><span class=nv>TOKEN</span><span class=o>=</span><span class=k>$(</span>curl -s http://100.100.100.200/latest/meta-data/ram/security-credentials/agent-gateway-<span class=si>${</span><span class=nv>ENV</span><span class=si>}</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>ACCESS_KEY_ID</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=nv>$TOKEN</span> <span class=p>|</span> jq -r .AccessKeyId<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>ACCESS_KEY_SECRET</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=nv>$TOKEN</span> <span class=p>|</span> jq -r .AccessKeySecret<span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nv>SECURITY_TOKEN</span><span class=o>=</span><span class=k>$(</span><span class=nb>echo</span> <span class=nv>$TOKEN</span> <span class=p>|</span> jq -r .SecurityToken<span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Use the Aliyun KMS CLI (or Python SDK) to fetch each key</span>
+</span></span><span class=line><span class=cl>pip install alibabacloud-kms20160120
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>DASHSCOPE_API_KEY</span><span class=o>=</span><span class=k>$(</span>python3 -c <span class=s2>&#34;import kms_helper; print(kms_helper.get(&#39;dashscope-prod&#39;))&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>OPENAI_API_KEY</span><span class=o>=</span><span class=k>$(</span>python3 -c <span class=s2>&#34;import kms_helper; print(kms_helper.get(&#39;openai-prod&#39;))&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl><span class=nb>export</span> <span class=nv>ANTHROPIC_API_KEY</span><span class=o>=</span><span class=k>$(</span>python3 -c <span class=s2>&#34;import kms_helper; print(kms_helper.get(&#39;anthropic-prod&#39;))&#34;</span><span class=k>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Write LiteLLM config</span>
+</span></span><span class=line><span class=cl>mkdir -p /etc/litellm
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;</span><span class=si>${</span><span class=nv>config_b64</span><span class=si>}</span><span class=s2>&#34;</span> <span class=p>|</span> base64 -d &gt; /etc/litellm/config.yaml
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Install and run LiteLLM under pm2</span>
+</span></span><span class=line><span class=cl>pip install <span class=s1>&#39;litellm[proxy]&#39;</span>
+</span></span><span class=line><span class=cl>npm install -g pm2
+</span></span><span class=line><span class=cl>pm2 start --name llm-gateway -- litellm --config /etc/litellm/config.yaml --port <span class=m>4000</span>
+</span></span><span class=line><span class=cl>pm2 save
+</span></span><span class=line><span class=cl>pm2 startup systemd -u root --hp /root
+</span></span></code></pre></td></tr></table></div></div><p>The gateway is now running on each instance, listening on port 4000, with all provider keys loaded. The ALB in front fans out:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_alb_load_balancer&#34; &#34;gateway&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  vpc_id</span>              <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  address_type</span>        <span class=o>=</span> <span class=s2>&#34;Intranet&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  load_balancer_name</span>  <span class=o>=</span> <span class=s2>&#34;llm-gateway-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  load_balancer_edition</span> <span class=o>=</span> <span class=s2>&#34;Standard&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>zone_mappings</span> {
+</span></span><span class=line><span class=cl><span class=n>    vswitch_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=m>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>    zone_id</span>    <span class=o>=</span> <span class=s2>&#34;cn-shanghai-l&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>  <span class=k>zone_mappings</span> {
+</span></span><span class=line><span class=cl><span class=n>    vswitch_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=m>1</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>    zone_id</span>    <span class=o>=</span> <span class=s2>&#34;cn-shanghai-m&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_alb_server_group&#34; &#34;gateway&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  vpc_id</span>            <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  server_group_name</span> <span class=o>=</span> <span class=s2>&#34;llm-gateway&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  protocol</span>          <span class=o>=</span> <span class=s2>&#34;HTTP&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>health_check_config</span> {
+</span></span><span class=line><span class=cl><span class=n>    health_check_enabled</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    health_check_path</span>    <span class=o>=</span> <span class=s2>&#34;/health&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    health_check_protocol</span> <span class=o>=</span> <span class=s2>&#34;HTTP&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl><span class=n>  servers</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=k>inst</span> <span class=k>in</span> <span class=k>alicloud_instance</span><span class=p>.</span><span class=k>gateway</span> <span class=err>:</span> {
+</span></span><span class=line><span class=cl><span class=n>      server_id</span> <span class=o>=</span> <span class=k>inst</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>      port</span>      <span class=o>=</span> <span class=m>4000</span>
+</span></span><span class=line><span class=cl><span class=n>      weight</span>    <span class=o>=</span> <span class=m>100</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  <span class=p>]</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_alb_listener&#34; &#34;gateway&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  load_balancer_id</span>     <span class=o>=</span> <span class=k>alicloud_alb_load_balancer</span><span class=p>.</span><span class=k>gateway</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  listener_port</span>        <span class=o>=</span> <span class=m>80</span>
+</span></span><span class=line><span class=cl><span class=n>  listener_protocol</span>    <span class=o>=</span> <span class=s2>&#34;HTTP&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>default_actions</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span> <span class=o>=</span> <span class=s2>&#34;ForwardGroup&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>forward_group_config</span> {
+</span></span><span class=line><span class=cl>      <span class=k>server_group_tuples</span> {
+</span></span><span class=line><span class=cl><span class=n>        server_group_id</span> <span class=o>=</span> <span class=k>alicloud_alb_server_group</span><span class=p>.</span><span class=k>gateway</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl>      }
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Agents now reach the gateway at <code>http://&lt;alb-id>.cn-shanghai.alb.aliyuncs.com/v1/chat/completions</code> and never see a provider key.</p><h2 id=step-4-per-agent-quotas>Step 4: per-agent quotas</h2><p>LiteLLM supports per-key quotas natively. The cleanest way to wire this through Terraform is to provision one LiteLLM &ldquo;virtual key&rdquo; per agent, each with its own QPM and token budget. Since LiteLLM stores these in its own database, you provision them via its API at apply time using a <code>null_resource</code>:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig3_quota_table.png alt="Per-agent quota policy" loading=lazy decoding=async></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  agent_quotas</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    &#34;research-agent&#34;</span> <span class=o>=</span><span class=n> { qpm</span> <span class=o>=</span><span class=n> 120, daily_tokens</span> <span class=o>=</span><span class=n> 2000000, max_budget</span> <span class=o>=</span> <span class=m>800</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;code-agent&#34;</span>     <span class=o>=</span><span class=n> { qpm</span> <span class=o>=</span><span class=n> 60,  daily_tokens</span> <span class=o>=</span><span class=n> 1000000, max_budget</span> <span class=o>=</span> <span class=m>500</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;support-agent&#34;</span>  <span class=o>=</span><span class=n> { qpm</span> <span class=o>=</span><span class=n> 300, daily_tokens</span> <span class=o>=</span><span class=n> 3000000, max_budget</span> <span class=o>=</span> <span class=m>600</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;schedule-agent&#34;</span> <span class=o>=</span><span class=n> { qpm</span> <span class=o>=</span><span class=n> 10,  daily_tokens</span> <span class=o>=</span><span class=n> 100000,  max_budget</span> <span class=o>=</span> <span class=m>40</span>  }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;null_resource&#34; &#34;agent_keys&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  for_each</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>agent_quotas</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  triggers</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    config_hash</span> <span class=o>=</span> <span class=k>sha256</span><span class=p>(</span><span class=k>jsonencode</span><span class=p>(</span><span class=k>each</span><span class=p>.</span><span class=k>value</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>provisioner</span> <span class=s2>&#34;local-exec&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>    command</span> <span class=o>=</span> <span class=err>&lt;&lt;-</span><span class=k>EOT</span>
+</span></span><span class=line><span class=cl>      <span class=k>curl</span> <span class=err>-</span><span class=k>X</span> <span class=k>POST</span> <span class=k>http</span><span class=err>://</span><span class=si>${</span><span class=err>alicloud_alb_load_balancer</span><span class=p>.</span><span class=err>gateway</span><span class=p>.</span><span class=err>dns_name</span><span class=si>}</span><span class=err>/</span><span class=k>key</span><span class=err>/</span><span class=k>generate</span> \
+</span></span><span class=line><span class=cl>        <span class=err>-</span><span class=k>H</span> <span class=s2>&#34;Authorization: Bearer ${var.litellm_master_key}&#34;</span> \
+</span></span><span class=line><span class=cl>        <span class=err>-</span><span class=k>H</span> <span class=s2>&#34;Content-Type: application/json&#34;</span> \
+</span></span><span class=line><span class=cl>        <span class=err>-</span><span class=k>d</span> <span class=err>&#39;</span>{
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;key_alias&#34;: &#34;${each.key}&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;rpm_limit&#34;</span><span class=err>:</span> <span class=si>${</span><span class=err>each</span><span class=p>.</span><span class=err>value</span><span class=p>.</span><span class=err>qpm</span><span class=si>}</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;max_budget&#34;</span><span class=err>:</span> <span class=si>${</span><span class=err>each</span><span class=p>.</span><span class=err>value</span><span class=p>.</span><span class=err>max_budget</span><span class=si>}</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=s2>&#34;tpm_limit&#34;</span><span class=err>:</span> <span class=si>${</span><span class=err>each</span><span class=p>.</span><span class=err>value</span><span class=p>.</span><span class=err>daily_tokens</span> <span class=err>/</span> <span class=err>1440</span><span class=si>}</span>
+</span></span><span class=line><span class=cl>        }<span class=err>&#39;</span>
+</span></span><span class=line><span class=cl>    <span class=k>EOT</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>I&rsquo;m not in love with <code>null_resource</code> + <code>local-exec</code> — it&rsquo;s the exit hatch for &ldquo;the resource doesn&rsquo;t exist in the provider yet.&rdquo; But it works, and the alternative (a custom Terraform provider for LiteLLM) is more code than it&rsquo;s worth for one team.</p><p>The output: each agent gets a distinct <code>LITELLM_API_KEY</code> env var that the cloud-init script in article 4 reads. Quota violations return <code>429 Too Many Requests</code>, which agents should handle with exponential backoff.</p><h2 id=step-5-secret-rotation-flow>Step 5: secret rotation flow</h2><p>The whole point of putting keys in KMS Secrets Manager is rotation:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/06-llm-gateway-and-secrets/fig2_secret_rotation.png alt="Secret rotation flow — KMS as single source of truth" loading=lazy decoding=async></figure></p><p>The lifecycle:</p><ol><li>You change the <code>secret_data</code> in Terraform (or via the KMS API), bump <code>version_id</code> to <code>v2</code></li><li>KMS keeps <code>v1</code> active for the rotation window (default 30 days)</li><li>Gateway instances re-pull on cold start; existing instances keep using the cached value until their next refresh (every 15min, configured in <code>gateway-init.sh</code>)</li><li>After 30 days, <code>v1</code> is disabled — anyone still using it gets <code>InvalidSecretVersion</code></li><li>You confirm zero usage of <code>v1</code> via SLS, then promote <code>v2</code> and retire <code>v1</code></li></ol><p>For a team, codify this as a runbook and re-execute it quarterly even if nothing leaks. Keys that have lived longer than a quarter are by definition stale; treat staleness as a low-grade incident.</p><h2 id=what-about-bailian--dashscope-specifically>What about Bailian / DashScope specifically?</h2><p>DashScope is just another OpenAI-compatible endpoint in LiteLLM&rsquo;s eyes. The model names are <code>dashscope/qwen-max</code>, <code>dashscope/qwen-plus</code>, etc. The API key is what you generate from the DashScope console.</p><p>If you want first-class Aliyun-native treatment (so you can use STS instead of an API key), DashScope supports STS-based auth on some endpoints — but in 2026 the API-key path is still the standard, and rotating the key via KMS as above is the right operational pattern.</p><blockquote><p><strong>Real-world tip:</strong> Set a <code>master_key</code> on LiteLLM (the <code>LITELLM_MASTER_KEY</code> env var). Without it, anyone who can reach the gateway can issue themselves an API key. With it, only the master can mint subordinate keys — and the master never leaves Terraform&rsquo;s variable space.</p></blockquote><h2 id=what-this-gives-you>What this gives you</h2><p>After this article you have:</p><ul><li>One URL where every agent calls &ldquo;the LLM&rdquo;</li><li>One place to add a new model provider (edit <code>litellm_config</code>, <code>terraform apply</code>)</li><li>One place to rotate any provider key (edit <code>var.llm_keys</code>, <code>terraform apply</code>)</li><li>One log stream (next article) showing every request, latency, token count, model, and agent</li><li>Hard QPM and budget caps per agent — a runaway loop costs at most ¥800/day, not your entire month&rsquo;s budget</li></ul><p>The gateway is a strategic asset. Every team I&rsquo;ve shipped one for has thanked me within a month — usually the first time someone&rsquo;s API key gets accidentally checked into git and they realise rotating it is a one-line PR instead of a fire drill.</p><h2 id=whats-next>What&rsquo;s next</h2><p>Article 7 is observability and cost control: SLS for logs, ARMS for traces, CloudMonitor for metrics, the budget alarm that pings DingTalk when a daily LLM spend crosses a threshold, and the SLS-driven cost dashboard that lets you see &ldquo;which agent is burning my budget&rdquo;.</p><p>Article 8 is the end-to-end walkthrough where everything in articles 2-7 lands as one <code>terraform apply</code>.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><span class=title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-shape>The shape</a></li><li><a href=#step-1-store-every-key-in-kms-secrets-manager>Step 1: store every key in KMS Secrets Manager</a></li><li><a href=#step-2-a-ram-role-the-gateway-can-assume>Step 2: a RAM role the gateway can assume</a></li><li><a href=#step-3-deploy-litellm-on-ecs>Step 3: deploy LiteLLM on ECS</a></li><li><a href=#step-4-per-agent-quotas>Step 4: per-agent quotas</a></li><li><a href=#step-5-secret-rotation-flow>Step 5: secret rotation flow</a></li><li><a href=#what-about-bailian--dashscope-specifically>What about Bailian / DashScope specifically?</a></li><li><a href=#what-this-gives-you>What this gives you</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Terraform Agents</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
+<span class=chapter-title>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
+<span class=chapter-title>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
+<span class=chapter-title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><span class=chapter-num>04</span>
+<span class=chapter-title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><span class=chapter-num>05</span>
+<span class=chapter-title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>06</span>
+<span class=chapter-title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
+<span class=chapter-title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
+<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>1970</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

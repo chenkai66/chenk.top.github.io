@@ -1,866 +1,327 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>强化学习（七）：模仿学习与逆强化学习 · Chen Kai Blog</title>
-<meta name="description" content="从专家示范中学习：行为克隆为何在长任务上必败、DAgger 如何把误差从二次降到线性、最大熵 IRL 如何反推奖励、GAIL/AIRL 如何用对抗训练匹配专家占用度。配可运行 PyTorch 代码、方法选择阶梯，以及七张高质量配图。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="强化学习（七）：模仿学习与逆强化学习">
-<meta property="og:description" content="从专家示范中学习：行为克隆为何在长任务上必败、DAgger 如何把误差从二次降到线性、最大熵 IRL 如何反推奖励、GAIL/AIRL 如何用对抗训练匹配专家占用度。配可运行 PyTorch 代码、方法选择阶梯，以及七张高质量配图。">
-<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
-         · Chapter 7
-      </div>
-      <h1>强化学习（七）：模仿学习与逆强化学习</h1>
-      <p class="deck">从专家示范中学习：行为克隆为何在长任务上必败、DAgger 如何把误差从二次降到线性、最大熵 IRL 如何反推奖励、GAIL/AIRL 如何用对抗训练匹配专家占用度。配可运行 PyTorch 代码、方法选择阶梯，以及七张高质量配图。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-08-31">August 31, 2025</time> · 12 min read · 5900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0/" class="tag">#模仿学习</a><a href="/zh/tags/%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#逆强化学习</a><a href="/zh/tags/gail/" class="tag">#GAIL</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>之前章节里所有算法的前提，都是已经有一个奖励函数。但在工程实践中，<strong>写出那个奖励函数本身往往才是最难的一步</strong>。&ldquo;像一个有经验的老司机一样开车&rdquo;、&ldquo;像一个裁缝一样把衬衫叠整齐&rdquo;、&ldquo;像一个资深编辑一样把这篇文档总结一下&rdquo;——这类任务你能轻易<strong>演示</strong>，却很难一段话<strong>写清楚</strong>。</p>
-<p>模仿学习把这个直觉做到了极致：不再优化人为设计的标量奖励，而是直接从专家示范 $\mathcal{D} = \{(s_t, a_t)\}$ 学策略。本章按&quot;一根阶梯&quot;的视角依次讲四个经典方法——<strong>行为克隆、DAgger、最大熵 IRL、GAIL/AIRL</strong>。每登上一阶，都是放松上一阶的某个假设、然后用新的结构买回来。</p>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li><strong>行为克隆（BC）</strong>：把模仿当成监督学习，它在短任务上为什么够用、在长任务上为什么必败。</li>
-<li><strong>DAgger</strong>：通过交互式重新打标签，把 BC 的二次误差降到线性，背后的 no-regret 定理是怎么一回事。</li>
-<li><strong>最大熵 IRL</strong>：从行为反推一个<strong>可解释</strong>的奖励，使其最优策略复现示范。</li>
-<li><strong>GAIL 与 AIRL</strong>：用对抗训练，端到端地匹配专家的<strong>占用度量</strong>（occupancy measure）。</li>
-<li><strong>方法选择</strong>：根据是否能在线询问专家、是否能与环境交互、是否需要迁移，给出明确选择规则。</li>
-</ul>
-<p><strong>前置知识</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/">第 5 部分</a>
-及 PPO（<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">第 6 部分</a>
-）。代码段假设熟悉 PyTorch 基本用法。</p>
-<hr>
-<h2 id="1-问题设定">1. 问题设定</h2>
-<p>给定专家示范</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>强化学习（七）：模仿学习与逆强化学习 · Chen Kai Blog</title>
+<meta name=description content="从专家示范中学习：行为克隆为何在长任务上必败、DAgger 如何把误差从二次降到线性、最大熵 IRL 如何反推奖励、GAIL/AIRL 如何用对抗训练匹配专家占用度。配可运行 PyTorch 代码、方法选择阶梯，以及七张高质量配图。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/><meta property="og:type" content="article"><meta property="og:title" content="强化学习（七）：模仿学习与逆强化学习"><meta property="og:description" content="从专家示范中学习：行为克隆为何在长任务上必败、DAgger 如何把误差从二次降到线性、最大熵 IRL 如何反推奖励、GAIL/AIRL 如何用对抗训练匹配专家占用度。配可运行 PyTorch 代码、方法选择阶梯，以及七张高质量配图。"><meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>强化学习</a>
+· Chapter 7</div><h1>强化学习（七）：模仿学习与逆强化学习</h1><p class=deck>从专家示范中学习：行为克隆为何在长任务上必败、DAgger 如何把误差从二次降到线性、最大熵 IRL 如何反推奖励、GAIL/AIRL 如何用对抗训练匹配专家占用度。配可运行 PyTorch 代码、方法选择阶梯，以及七张高质量配图。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-08-31>August 31, 2025</time> · 12 min read · 5828 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/ class=tag>#强化学习</a><a href=/zh/tags/%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0/ class=tag>#模仿学习</a><a href=/zh/tags/%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/ class=tag>#逆强化学习</a><a href=/zh/tags/gail/ class=tag>#GAIL</a></div></div></header><div class=prose><p>之前章节里所有算法的前提，都是已经有一个奖励函数。但在工程实践中，<strong>写出那个奖励函数本身往往才是最难的一步</strong>。&ldquo;像一个有经验的老司机一样开车&rdquo;、&ldquo;像一个裁缝一样把衬衫叠整齐&rdquo;、&ldquo;像一个资深编辑一样把这篇文档总结一下&rdquo;——这类任务你能轻易<strong>演示</strong>，却很难一段话<strong>写清楚</strong>。</p><p>模仿学习把这个直觉做到了极致：不再优化人为设计的标量奖励，而是直接从专家示范 $\mathcal{D} = \{(s_t, a_t)\}$ 学策略。本章按"一根阶梯"的视角依次讲四个经典方法——<strong>行为克隆、DAgger、最大熵 IRL、GAIL/AIRL</strong>。每登上一阶，都是放松上一阶的某个假设、然后用新的结构买回来。</p><h2 id=你将学到什么>你将学到什么</h2><ul><li><strong>行为克隆（BC）</strong>：把模仿当成监督学习，它在短任务上为什么够用、在长任务上为什么必败。</li><li><strong>DAgger</strong>：通过交互式重新打标签，把 BC 的二次误差降到线性，背后的 no-regret 定理是怎么一回事。</li><li><strong>最大熵 IRL</strong>：从行为反推一个<strong>可解释</strong>的奖励，使其最优策略复现示范。</li><li><strong>GAIL 与 AIRL</strong>：用对抗训练，端到端地匹配专家的<strong>占用度量</strong>（occupancy measure）。</li><li><strong>方法选择</strong>：根据是否能在线询问专家、是否能与环境交互、是否需要迁移，给出明确选择规则。</li></ul><p><strong>前置知识</strong>：<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/>第 5 部分</a>
+及 PPO（<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/>第 6 部分</a>
+）。代码段假设熟悉 PyTorch 基本用法。</p><hr><h2 id=1-问题设定>1. 问题设定</h2><p>给定专家示范</p>$$
 \mathcal{D} = \{(s_1, a_1), (s_2, a_2), \ldots, (s_N, a_N)\},
-$$<p>要学出一个策略 $\pi_\theta$，行为接近某个<strong>未知的</strong>专家策略 $\pi^*$。我们看不到 $\pi^*$ 本身，只能看到它的样本；也没有奖励信号。有时候我们还能在新状态上<strong>主动询问</strong>专家（这就是 DAgger 的设定）；更多时候不能。</p>
-<table>
-  <thead>
-      <tr>
-          <th>维度</th>
-          <th>强化学习</th>
-          <th>模仿学习</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>监督信号</td>
-          <td>奖励 $r(s, a)$</td>
-          <td>专家数据集 $\mathcal{D}$</td>
-      </tr>
-      <tr>
-          <td>是否需要交互</td>
-          <td>必须探索</td>
-          <td>可以纯离线（BC）</td>
-      </tr>
-      <tr>
-          <td>优化目标</td>
-          <td>$\mathbb{E}[\sum \gamma^t r_t]$</td>
-          <td>匹配专家行为分布</td>
-      </tr>
-      <tr>
-          <td>典型失败模式</td>
-          <td>奖励作弊、探索失败</td>
-          <td>分布偏移、模式塌缩</td>
-      </tr>
-      <tr>
-          <td>典型应用</td>
-          <td>游戏、机器人、RLHF</td>
-          <td>自动驾驶、手术、语言风格</td>
-      </tr>
-  </tbody>
-</table>
-<p>下面这五种方法在这些维度上不同地权衡。整张&quot;阶梯图&quot;先放在这里，后文按阶展开：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig6_method_hierarchy.png" alt="模仿学习方法阶梯" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<hr>
-<h2 id="2-行为克隆behavioral-cloning">2. 行为克隆（Behavioral Cloning）</h2>
-<p>最简单的模仿算法，也是工业界部署得最多的算法：把 $\mathcal{D}$ 当成一个监督学习数据集，最小化</p>
-$$
+$$<p>要学出一个策略 $\pi_\theta$，行为接近某个<strong>未知的</strong>专家策略 $\pi^*$。我们看不到 $\pi^*$ 本身，只能看到它的样本；也没有奖励信号。有时候我们还能在新状态上<strong>主动询问</strong>专家（这就是 DAgger 的设定）；更多时候不能。</p><table><thead><tr><th>维度</th><th>强化学习</th><th>模仿学习</th></tr></thead><tbody><tr><td>监督信号</td><td>奖励 $r(s, a)$</td><td>专家数据集 $\mathcal{D}$</td></tr><tr><td>是否需要交互</td><td>必须探索</td><td>可以纯离线（BC）</td></tr><tr><td>优化目标</td><td>$\mathbb{E}[\sum \gamma^t r_t]$</td><td>匹配专家行为分布</td></tr><tr><td>典型失败模式</td><td>奖励作弊、探索失败</td><td>分布偏移、模式塌缩</td></tr><tr><td>典型应用</td><td>游戏、机器人、RLHF</td><td>自动驾驶、手术、语言风格</td></tr></tbody></table><p>下面这五种方法在这些维度上不同地权衡。整张"阶梯图"先放在这里，后文按阶展开：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig6_method_hierarchy.png alt=模仿学习方法阶梯 loading=lazy decoding=async></figure></p><hr><h2 id=2-行为克隆behavioral-cloning>2. 行为克隆（Behavioral Cloning）</h2><p>最简单的模仿算法，也是工业界部署得最多的算法：把 $\mathcal{D}$ 当成一个监督学习数据集，最小化</p>$$
 \mathcal{L}(\theta) \;=\; \mathbb{E}_{(s,a)\sim\mathcal{D}}\big[ \ell\big(\pi_\theta(s),\, a\big) \big],
-$$<p>其中 $\ell$ 在离散动作下是交叉熵、在连续动作下是 MSE 或负对数似然。这个思路最早可追溯到 1989 年的 <strong>ALVINN</strong>（Pomerleau, 1989）——一个全连接网络从摄像头图像直接学到方向盘角度，让一辆面包车自主行驶。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">TensorDataset</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BehavioralCloning</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;监督式模仿：把策略输出与专家动作之间的损失最小化。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden_dims</span><span class="o">=</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span> <span class="o">=</span> <span class="n">continuous</span>
-</span></span><span class="line"><span class="cl">        <span class="n">layers</span><span class="p">,</span> <span class="n">prev</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">state_dim</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden_dims</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">h</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">h</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">continuous</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">()]</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span> <span class="o">=</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">val_frac</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 标准化状态——BC 是个小监督模型，未归一化的特征会主导损失。</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
-</span></span><span class="line"><span class="cl">        <span class="n">S</span> <span class="o">=</span> <span class="p">(</span><span class="n">states</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">n_val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">*</span> <span class="n">val_frac</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">S_tr</span><span class="p">,</span> <span class="n">S_val</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">n_val</span><span class="p">:]],</span> <span class="n">S</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="n">n_val</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">A_tr</span><span class="p">,</span> <span class="n">A_val</span> <span class="o">=</span> <span class="n">actions</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="n">n_val</span><span class="p">:]],</span> <span class="n">actions</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="n">n_val</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">S_tr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">S_tr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">S_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">S_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">A_tr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_tr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">A_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">A_tr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_tr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">A_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">A_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">S_tr</span><span class="p">,</span> <span class="n">A_tr</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span><span class="p">,</span> <span class="n">best_state</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">),</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">a</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="bp">self</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">                <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">S_val</span><span class="p">),</span> <span class="n">A_val</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">best</span><span class="p">,</span> <span class="n">best_state</span> <span class="o">=</span> <span class="n">v</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span>
-</span></span><span class="line"><span class="cl">                                       <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">best_state</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">act</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="p">(</span><span class="n">state</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_std</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span> <span class="k">else</span> <span class="n">out</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>三个看似不起眼、其实决定成败的工程细节：</p>
-<ol>
-<li><strong>必须做输入标准化。</strong> BC 网络很小，未归一化的特征会让损失被某几维主导，在罕见状态上输出过度自信的动作。</li>
-<li><strong>必须用验证集早停。</strong> 训得过久会把专家自己的噪声学进去，反而放大下一节要讲的分布偏移问题。</li>
-<li><strong>动作表示要选对。</strong> 连续控制下，输出高斯分布参数（用 NLL 损失）几乎总是优于&quot;Tanh + MSE&quot;——尤其当专家行为是多模态的时候。</li>
-</ol>
-<h3 id="21-bc-为什么在长任务上必败">2.1 BC 为什么在长任务上必败</h3>
-<p>BC 训练时看到的状态来自专家分布 $d_{\pi^*}$，部署时却走在自己策略的状态分布 $d_{\pi_\theta}$ 上。因为 $\pi_\theta$ 不完美，这两个分布会<strong>逐步</strong>分开。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig1_bc_vs_dagger.png" alt="BC 与 DAgger 的状态分布对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>经典误差界把这个级联效应说得非常清楚。如果 $\pi_\theta$ 在专家分布上的单步期望误差是 $\varepsilon$，那么在长度 $T$ 的轨迹上，最坏情况下总误差是</p>
-$$
+$$<p>其中 $\ell$ 在离散动作下是交叉熵、在连续动作下是 MSE 或负对数似然。这个思路最早可追溯到 1989 年的 <strong>ALVINN</strong>（Pomerleau, 1989）——一个全连接网络从摄像头图像直接学到方向盘角度，让一辆面包车自主行驶。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.utils.data</span> <span class=kn>import</span> <span class=n>DataLoader</span><span class=p>,</span> <span class=n>TensorDataset</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BehavioralCloning</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;监督式模仿：把策略输出与专家动作之间的损失最小化。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=n>hidden_dims</span><span class=o>=</span><span class=p>(</span><span class=mi>256</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                 <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>continuous</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>continuous</span> <span class=o>=</span> <span class=n>continuous</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span><span class=p>,</span> <span class=n>prev</span> <span class=o>=</span> <span class=p>[],</span> <span class=n>state_dim</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>hidden_dims</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>prev</span><span class=p>,</span> <span class=n>h</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>            <span class=n>prev</span> <span class=o>=</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>continuous</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>prev</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>MSELoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span> <span class=o>+=</span> <span class=p>[</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>prev</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>policy</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>optim</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>state_mean</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_std</span> <span class=o>=</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>fit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>states</span><span class=p>,</span> <span class=n>actions</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>val_frac</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 标准化状态——BC 是个小监督模型，未归一化的特征会主导损失。</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>state_mean</span> <span class=o>=</span> <span class=n>states</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>state_std</span> <span class=o>=</span> <span class=n>states</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-8</span>
+</span></span><span class=line><span class=cl>        <span class=n>S</span> <span class=o>=</span> <span class=p>(</span><span class=n>states</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_mean</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_std</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>n_val</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>S</span><span class=p>)</span> <span class=o>*</span> <span class=n>val_frac</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>permutation</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>S</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>S_tr</span><span class=p>,</span> <span class=n>S_val</span> <span class=o>=</span> <span class=n>S</span><span class=p>[</span><span class=n>idx</span><span class=p>[</span><span class=n>n_val</span><span class=p>:]],</span> <span class=n>S</span><span class=p>[</span><span class=n>idx</span><span class=p>[:</span><span class=n>n_val</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>        <span class=n>A_tr</span><span class=p>,</span> <span class=n>A_val</span> <span class=o>=</span> <span class=n>actions</span><span class=p>[</span><span class=n>idx</span><span class=p>[</span><span class=n>n_val</span><span class=p>:]],</span> <span class=n>actions</span><span class=p>[</span><span class=n>idx</span><span class=p>[:</span><span class=n>n_val</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>S_tr</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>S_tr</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>S_val</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>S_val</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>continuous</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>A_tr</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>A_tr</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>A_val</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>A_val</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>A_tr</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>A_tr</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>long</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>A_val</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>A_val</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>long</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>TensorDataset</span><span class=p>(</span><span class=n>S_tr</span><span class=p>,</span> <span class=n>A_tr</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                            <span class=n>batch_size</span><span class=o>=</span><span class=n>batch_size</span><span class=p>,</span> <span class=n>shuffle</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span><span class=p>,</span> <span class=n>best_state</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>),</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>s</span><span class=p>,</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>s</span><span class=p>),</span> <span class=n>a</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=bp>self</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                <span class=n>v</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>S_val</span><span class=p>),</span> <span class=n>A_val</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>v</span> <span class=o>&lt;</span> <span class=n>best</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>best</span><span class=p>,</span> <span class=n>best_state</span> <span class=o>=</span> <span class=n>v</span><span class=p>,</span> <span class=p>{</span><span class=n>k</span><span class=p>:</span> <span class=n>t</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span> <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span>
+</span></span><span class=line><span class=cl>                                       <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>state_dict</span><span class=p>()</span><span class=o>.</span><span class=n>items</span><span class=p>()}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>load_state_dict</span><span class=p>(</span><span class=n>best_state</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>act</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span> <span class=o>=</span> <span class=p>(</span><span class=n>state</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_mean</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_std</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>continuous</span> <span class=k>else</span> <span class=n>out</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>三个看似不起眼、其实决定成败的工程细节：</p><ol><li><strong>必须做输入标准化。</strong> BC 网络很小，未归一化的特征会让损失被某几维主导，在罕见状态上输出过度自信的动作。</li><li><strong>必须用验证集早停。</strong> 训得过久会把专家自己的噪声学进去，反而放大下一节要讲的分布偏移问题。</li><li><strong>动作表示要选对。</strong> 连续控制下，输出高斯分布参数（用 NLL 损失）几乎总是优于"Tanh + MSE"——尤其当专家行为是多模态的时候。</li></ol><h3 id=21-bc-为什么在长任务上必败>2.1 BC 为什么在长任务上必败</h3><p>BC 训练时看到的状态来自专家分布 $d_{\pi^*}$，部署时却走在自己策略的状态分布 $d_{\pi_\theta}$ 上。因为 $\pi_\theta$ 不完美，这两个分布会<strong>逐步</strong>分开。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig1_bc_vs_dagger.png alt="BC 与 DAgger 的状态分布对比" loading=lazy decoding=async></figure></p><p>经典误差界把这个级联效应说得非常清楚。如果 $\pi_\theta$ 在专家分布上的单步期望误差是 $\varepsilon$，那么在长度 $T$ 的轨迹上，最坏情况下总误差是</p>$$
 J(\pi^*) - J(\pi_\theta) \;\le\; \mathcal{O}\!\left( \varepsilon \, T^2 \right),
-$$<p><strong>关于 $T$ 二次方</strong>（Ross &amp; Bagnell, 2010）。听起来温和，实际杀伤力极大：哪怕单步 99% 准确，跑 200 步也基本会偏离——一旦走到专家从没见过的状态，模型就完全没有训练信号，错误自此一发不可收拾。</p>
-<p>把训好的策略放回环境跑，能很直观地看到这个级联：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig2_expert_trajectory_comparison.png" alt="专家轨迹与学习者轨迹对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>前期 BC 学习者还能贴在专家走廊上；过了中段出现一个小偏差，策略进入分布外状态，然后慢慢漂入危险区。每一步的误差曲线也讲了同一个故事：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig5_compounding_error.png" alt="BC 的误差累积" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<hr>
-<h2 id="3-dagger数据集聚合">3. DAgger：数据集聚合</h2>
-<p>DAgger（Ross, Gordon &amp; Bagnell, 2011）的核心思想极其朴素：<strong>到学习者真正走到的状态上去问专家</strong>。每一轮迭代，都把当前策略走出来的 $(s, a^*)$ 加进训练集，然后整体重训。</p>
-<p><strong>算法。</strong></p>
-<ol>
-<li>用初始的专家示范训出 $\pi_1$。</li>
-<li>对 $i = 1, \ldots, N$：
-<ul>
-<li>用 $\pi_i$ 和专家按调度 $\beta_i \to 0$ 的混合策略采样状态。</li>
-<li>在每个访问到的状态上向专家<strong>询问</strong>正确动作 $a^*$。</li>
-<li>聚合：$\mathcal{D} \leftarrow \mathcal{D} \cup \{(s, a^*)\}$。</li>
-<li>在整个 $\mathcal{D}$ 上重训出 $\pi_{i+1}$。</li>
-</ul>
-</li>
-</ol>
-<p><strong>No-regret 保证。</strong> 把这一连串策略看成一个在线学习者，对手是这些访问分布所诱导的损失序列；用 no-regret 算法可以证明</p>
-$$
+$$<p><strong>关于 $T$ 二次方</strong>（Ross & Bagnell, 2010）。听起来温和，实际杀伤力极大：哪怕单步 99% 准确，跑 200 步也基本会偏离——一旦走到专家从没见过的状态，模型就完全没有训练信号，错误自此一发不可收拾。</p><p>把训好的策略放回环境跑，能很直观地看到这个级联：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig2_expert_trajectory_comparison.png alt=专家轨迹与学习者轨迹对比 loading=lazy decoding=async></figure></p><p>前期 BC 学习者还能贴在专家走廊上；过了中段出现一个小偏差，策略进入分布外状态，然后慢慢漂入危险区。每一步的误差曲线也讲了同一个故事：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig5_compounding_error.png alt="BC 的误差累积" loading=lazy decoding=async></figure></p><hr><h2 id=3-dagger数据集聚合>3. DAgger：数据集聚合</h2><p>DAgger（Ross, Gordon & Bagnell, 2011）的核心思想极其朴素：<strong>到学习者真正走到的状态上去问专家</strong>。每一轮迭代，都把当前策略走出来的 $(s, a^*)$ 加进训练集，然后整体重训。</p><p><strong>算法。</strong></p><ol><li>用初始的专家示范训出 $\pi_1$。</li><li>对 $i = 1, \ldots, N$：<ul><li>用 $\pi_i$ 和专家按调度 $\beta_i \to 0$ 的混合策略采样状态。</li><li>在每个访问到的状态上向专家<strong>询问</strong>正确动作 $a^*$。</li><li>聚合：$\mathcal{D} \leftarrow \mathcal{D} \cup \{(s, a^*)\}$。</li><li>在整个 $\mathcal{D}$ 上重训出 $\pi_{i+1}$。</li></ul></li></ol><p><strong>No-regret 保证。</strong> 把这一连串策略看成一个在线学习者，对手是这些访问分布所诱导的损失序列；用 no-regret 算法可以证明</p>$$
 J(\pi^*) - J(\pi_{\hat{i}}) \;\le\; \mathcal{O}\!\left( \varepsilon \, T \right) + \mathcal{O}\!\left( \tfrac{T \sqrt{\log N}}{\sqrt{N}} \right),
-$$<p>也就是<strong>对 $T$ 线性</strong>。直观读法：每多一轮迭代，都在把 BC 丢掉的&quot;恢复信息&quot;重新拿回来。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DAgger</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;DAgger = BC + 在学习者访问的状态上反复请专家标注。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">bc_kwargs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span> <span class="o">=</span> <span class="n">BehavioralCloning</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">bc_kwargs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_iters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">              <span class="n">n_init</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">n_per_iter</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 第 0 轮：纯专家轨迹做 warm start。</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s0</span><span class="p">,</span> <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_init</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">+=</span> <span class="n">s0</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">+=</span> <span class="n">a0</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_iters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">beta</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">i</span> <span class="o">/</span> <span class="n">n_iters</span><span class="p">)</span>   <span class="c1"># 专家比例从 1 衰减到 0</span>
-</span></span><span class="line"><span class="cl">            <span class="n">s</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collect</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_per_iter</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">S</span> <span class="o">+=</span> <span class="n">s</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">+=</span> <span class="n">a</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">S</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_collect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">expert</span><span class="p">,</span> <span class="n">n_episodes</span><span class="p">,</span> <span class="n">beta</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">states</span><span class="p">,</span> <span class="n">actions</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_episodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">s</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(),</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="c1"># 行动用混合策略；标签始终来自专家。</span>
-</span></span><span class="line"><span class="cl">                <span class="n">a_play</span> <span class="o">=</span> <span class="n">expert</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">beta</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">a_label</span> <span class="o">=</span> <span class="n">expert</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">);</span> <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a_label</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a_play</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>DAgger 在哪些场景适用？</strong> 它要求专家能在<strong>训练时</strong>被实时询问。这在以下场合是现实的：</p>
-<ul>
-<li>专家本身是个算法（MPC 控制器、基于搜索的规划器、最优控制器）；</li>
-<li>专家是更强的模型，你想做蒸馏（teacher-student RL、模型蒸馏、语言模型自蒸馏）；</li>
-<li>人类专家在线，愿意按批次打标签。</li>
-</ul>
-<p>它<strong>不适用</strong>的典型场景，就是只能拿到一份静态日志——比如一份录制好的驾驶数据。这种纯离线设定，要跳到 GAIL。</p>
-<hr>
-<h2 id="4-逆强化学习irl">4. 逆强化学习（IRL）</h2>
-<p>BC 和 DAgger 都在<strong>模仿动作</strong>。IRL 问得更深一层：专家<strong>为什么</strong>这么做？它假设专家在（近似）最大化某个未知的奖励 $r^*$，从示范中<strong>反推</strong>出一个候选 $\hat r$，然后在 $\hat r$ 上跑标准 RL。</p>
-<p>绕这一圈值得吗？两个理由：</p>
-<ul>
-<li><strong>可解释性。</strong> $\hat r$ 直接告诉你<strong>专家在乎什么</strong>——可以审计、可以改。</li>
-<li><strong>迁移性。</strong> 奖励函数对动力学、形态、初始状态分布的变化具有鲁棒性，而行为级别的模型一改环境就废。</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig3_irl_recovery.png" alt="逆强化学习从行为反推奖励" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="41-最大熵-irl">4.1 最大熵 IRL</h3>
-<p>单纯&quot;匹配专家价值&quot;的目标是病态的——很多奖励都能解释同一段行为。<strong>最大熵 IRL</strong>（Ziebart et al., 2008）用一句话打破歧义：恢复出来的策略要在最大化 $r$ 的同时<strong>熵最大</strong>。形式上，专家在轨迹 $\tau$ 上的分布取 Boltzmann 形式：</p>
-$$
+$$<p>也就是<strong>对 $T$ 线性</strong>。直观读法：每多一轮迭代，都在把 BC 丢掉的"恢复信息"重新拿回来。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>DAgger</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;DAgger = BC + 在学习者访问的状态上反复请专家标注。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=o>**</span><span class=n>bc_kwargs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bc</span> <span class=o>=</span> <span class=n>BehavioralCloning</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=o>**</span><span class=n>bc_kwargs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>S</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>,</span> <span class=n>expert</span><span class=p>,</span> <span class=n>n_iters</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>              <span class=n>n_init</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>n_per_iter</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 第 0 轮：纯专家轨迹做 warm start。</span>
+</span></span><span class=line><span class=cl>        <span class=n>s0</span><span class=p>,</span> <span class=n>a0</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_collect</span><span class=p>(</span><span class=n>env</span><span class=p>,</span> <span class=n>expert</span><span class=p>,</span> <span class=n>n_init</span><span class=p>,</span> <span class=n>beta</span><span class=o>=</span><span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>S</span> <span class=o>+=</span> <span class=n>s0</span><span class=p>;</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span> <span class=o>+=</span> <span class=n>a0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bc</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>S</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>n_iters</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>beta</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=mf>1.0</span> <span class=o>-</span> <span class=n>i</span> <span class=o>/</span> <span class=n>n_iters</span><span class=p>)</span>   <span class=c1># 专家比例从 1 衰减到 0</span>
+</span></span><span class=line><span class=cl>            <span class=n>s</span><span class=p>,</span> <span class=n>a</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_collect</span><span class=p>(</span><span class=n>env</span><span class=p>,</span> <span class=n>expert</span><span class=p>,</span> <span class=n>n_per_iter</span><span class=p>,</span> <span class=n>beta</span><span class=o>=</span><span class=n>beta</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>S</span> <span class=o>+=</span> <span class=n>s</span><span class=p>;</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span> <span class=o>+=</span> <span class=n>a</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>bc</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>S</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_collect</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>,</span> <span class=n>expert</span><span class=p>,</span> <span class=n>n_episodes</span><span class=p>,</span> <span class=n>beta</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>states</span><span class=p>,</span> <span class=n>actions</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_episodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>s</span><span class=p>,</span> <span class=n>done</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>reset</span><span class=p>(),</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=ow>not</span> <span class=n>done</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=c1># 行动用混合策略；标签始终来自专家。</span>
+</span></span><span class=line><span class=cl>                <span class=n>a_play</span> <span class=o>=</span> <span class=n>expert</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>rand</span><span class=p>()</span> <span class=o>&lt;</span> <span class=n>beta</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>bc</span><span class=o>.</span><span class=n>act</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>a_label</span> <span class=o>=</span> <span class=n>expert</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>states</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>s</span><span class=p>);</span> <span class=n>actions</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>a_label</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>s</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>done</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>a_play</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>states</span><span class=p>,</span> <span class=n>actions</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>DAgger 在哪些场景适用？</strong> 它要求专家能在<strong>训练时</strong>被实时询问。这在以下场合是现实的：</p><ul><li>专家本身是个算法（MPC 控制器、基于搜索的规划器、最优控制器）；</li><li>专家是更强的模型，你想做蒸馏（teacher-student RL、模型蒸馏、语言模型自蒸馏）；</li><li>人类专家在线，愿意按批次打标签。</li></ul><p>它<strong>不适用</strong>的典型场景，就是只能拿到一份静态日志——比如一份录制好的驾驶数据。这种纯离线设定，要跳到 GAIL。</p><hr><h2 id=4-逆强化学习irl>4. 逆强化学习（IRL）</h2><p>BC 和 DAgger 都在<strong>模仿动作</strong>。IRL 问得更深一层：专家<strong>为什么</strong>这么做？它假设专家在（近似）最大化某个未知的奖励 $r^*$，从示范中<strong>反推</strong>出一个候选 $\hat r$，然后在 $\hat r$ 上跑标准 RL。</p><p>绕这一圈值得吗？两个理由：</p><ul><li><strong>可解释性。</strong> $\hat r$ 直接告诉你<strong>专家在乎什么</strong>——可以审计、可以改。</li><li><strong>迁移性。</strong> 奖励函数对动力学、形态、初始状态分布的变化具有鲁棒性，而行为级别的模型一改环境就废。</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig3_irl_recovery.png alt=逆强化学习从行为反推奖励 loading=lazy decoding=async></figure></p><h3 id=41-最大熵-irl>4.1 最大熵 IRL</h3><p>单纯"匹配专家价值"的目标是病态的——很多奖励都能解释同一段行为。<strong>最大熵 IRL</strong>（Ziebart et al., 2008）用一句话打破歧义：恢复出来的策略要在最大化 $r$ 的同时<strong>熵最大</strong>。形式上，专家在轨迹 $\tau$ 上的分布取 Boltzmann 形式：</p>$$
 p_\theta(\tau) \;\propto\; \exp\!\left( \sum_t r_\theta(s_t, a_t) \right).
-$$<p>最大化示范的对数似然，能得到一个非常优雅的梯度：</p>
-$$
+$$<p>最大化示范的对数似然，能得到一个非常优雅的梯度：</p>$$
 \nabla_\theta \mathcal{L}(\theta) \;=\; \mathbb{E}_{\tau \sim \pi^*}\!\left[\nabla_\theta r_\theta(\tau)\right] \;-\; \mathbb{E}_{\tau \sim \pi_\theta}\!\left[\nabla_\theta r_\theta(\tau)\right].
-$$<p>把它读成一个对比更新：<strong>专家走过的地方把奖励抬高，自己走过的地方把奖励压低</strong>。收敛时两个期望相等，策略就复现了专家的占用度。</p>
-<p>代价在第二个期望上。计算 $\mathbb{E}_{\pi_\theta}$ 需要在每次更新奖励之后<strong>重新解一遍 RL</strong>——这个嵌套循环把传统 IRL 限制在小规模网格世界里。<strong>Guided cost learning</strong>（Finn, Levine &amp; Abbeel, 2016）用重要性采样的轨迹替代这一内部 RL 求解，把最大熵 IRL 拓展到了连续控制。</p>
-<h3 id="42-奖励的不可识别性">4.2 奖励的不可识别性</h3>
-<p>即便有了最大熵正则，$\hat r$ 也只能恢复到一族<strong>整形不变</strong>（shaping invariance）：加上一个势能差 $\Phi(s') - \Phi(s)$ 不会改变最优策略，却会改变 $r$ 本身。所以 IRL 恢复出来的奖励，是状态间一个有用的&quot;排序&quot;，而不是绝对尺度。下一节的 AIRL 显式把整形项分离出来。</p>
-<hr>
-<h2 id="5-对抗式模仿gail-与-airl">5. 对抗式模仿：GAIL 与 AIRL</h2>
-<p>IRL 的内层 RL 求解太贵。<strong>GAIL</strong>（Ho &amp; Ermon, 2016）的洞察是：<strong>做模仿其实并不需要 $r$</strong>——我们只需要让策略的状态-动作<strong>占用度</strong>和专家匹配上。GAIL 因此把&quot;先恢复奖励、再重解 RL&quot;换成一个<strong>对抗博弈</strong>。</p>
-<p>判别器 $D_\phi(s, a)$ 努力区分专家样本和策略样本；策略努力骗过判别器。Minimax 目标：</p>
-<p>$$
+$$<p>把它读成一个对比更新：<strong>专家走过的地方把奖励抬高，自己走过的地方把奖励压低</strong>。收敛时两个期望相等，策略就复现了专家的占用度。</p><p>代价在第二个期望上。计算 $\mathbb{E}_{\pi_\theta}$ 需要在每次更新奖励之后<strong>重新解一遍 RL</strong>——这个嵌套循环把传统 IRL 限制在小规模网格世界里。<strong>Guided cost learning</strong>（Finn, Levine & Abbeel, 2016）用重要性采样的轨迹替代这一内部 RL 求解，把最大熵 IRL 拓展到了连续控制。</p><h3 id=42-奖励的不可识别性>4.2 奖励的不可识别性</h3><p>即便有了最大熵正则，$\hat r$ 也只能恢复到一族<strong>整形不变</strong>（shaping invariance）：加上一个势能差 $\Phi(s') - \Phi(s)$ 不会改变最优策略，却会改变 $r$ 本身。所以 IRL 恢复出来的奖励，是状态间一个有用的"排序"，而不是绝对尺度。下一节的 AIRL 显式把整形项分离出来。</p><hr><h2 id=5-对抗式模仿gail-与-airl>5. 对抗式模仿：GAIL 与 AIRL</h2><p>IRL 的内层 RL 求解太贵。<strong>GAIL</strong>（Ho & Ermon, 2016）的洞察是：<strong>做模仿其实并不需要 $r$</strong>——我们只需要让策略的状态-动作<strong>占用度</strong>和专家匹配上。GAIL 因此把"先恢复奖励、再重解 RL"换成一个<strong>对抗博弈</strong>。</p><p>判别器 $D_\phi(s, a)$ 努力区分专家样本和策略样本；策略努力骗过判别器。Minimax 目标：</p><p>$$
 \min_\theta \max_\phi ;;
-\mathbb{E}<em>{(s,a)\sim \pi^*}!\left[\log D</em>\phi(s, a)\right]</p>
-<ul>
-<li>\mathbb{E}<em>{(s,a)\sim \pi</em>\theta}!\left[\log\big(1 - D_\phi(s, a)\big)\right]</li>
-</ul>
-<ul>
-<li>\lambda H(\pi_\theta).
-$$</li>
-</ul>
-<p>熵项 $\lambda H(\pi_\theta)$ 用来稳住生成器、防止模式塌缩。鞍点处，$\pi_\theta$ 的占用度等于 $\pi^*$ 的——这正是 BC 想做却做不到的事，因为 BC 的&quot;监督分布&quot;和&quot;部署分布&quot;不一致。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig4_gail_architecture.png" alt="GAIL 判别器-生成器架构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>实践中，判别器的得分<strong>直接</strong>当作每步奖励，喂给 PPO 来更新策略：</p>
-$$
+\mathbb{E}<em>{(s,a)\sim \pi^*}!\left[\log D</em>\phi(s, a)\right]</p><ul><li>\mathbb{E}<em>{(s,a)\sim \pi</em>\theta}!\left[\log\big(1 - D_\phi(s, a)\big)\right]</li></ul><ul><li>\lambda H(\pi_\theta).
+$$</li></ul><p>熵项 $\lambda H(\pi_\theta)$ 用来稳住生成器、防止模式塌缩。鞍点处，$\pi_\theta$ 的占用度等于 $\pi^*$ 的——这正是 BC 想做却做不到的事，因为 BC 的"监督分布"和"部署分布"不一致。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig4_gail_architecture.png alt="GAIL 判别器-生成器架构" loading=lazy decoding=async></figure></p><p>实践中，判别器的得分<strong>直接</strong>当作每步奖励，喂给 PPO 来更新策略：</p>$$
 \hat r(s, a) \;=\; -\log\!\big(1 - D_\phi(s, a)\big) \quad\text{或}\quad \hat r(s, a) \;=\; -\log D_\phi(s, a).
-$$<p>文献里两种形式都有。前者是 GAIL 原论文用的；后者在训练早期方差更小、更稳。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GAIL</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;对抗式模仿：判别器输出充当策略的每步奖励。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span> <span class="o">=</span> <span class="n">continuous</span>
-</span></span><span class="line"><span class="cl">        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">state_dim</span> <span class="o">+</span> <span class="n">action_dim</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">disc_optim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                                           <span class="n">lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 策略 / 价值网络：任何标准 PPO 实现都行（此处省略）。</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_sa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">continuous</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;喂给策略学习器的每步模仿奖励。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sa</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">r</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">d</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>   <span class="c1"># 原版 GAIL 的奖励形式</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update_discriminator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expert_sa</span><span class="p">,</span> <span class="n">policy_sa</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 二元交叉熵：专家=0，策略=1。</span>
-</span></span><span class="line"><span class="cl">        <span class="n">e_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">expert_sa</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">p_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">policy_sa</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">bce</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">bce</span><span class="p">(</span><span class="n">e_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">e_logits</span><span class="p">))</span> <span class="o">+</span> \
-</span></span><span class="line"><span class="cl">               <span class="n">bce</span><span class="p">(</span><span class="n">p_logits</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">p_logits</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">disc_optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="bp">self</span><span class="o">.</span><span class="n">disc_optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>调参要点。</strong> 实际跑 GAIL 时，三种失败模式最常见：</p>
-<ul>
-<li><strong>判别器赢得太快。</strong> 策略侧的奖励梯度直接消失。对策：裁剪判别器 logits、用 spectral normalization、或加 Lipschitz 约束（WGAIL）。</li>
-<li><strong>奖励信号塌缩。</strong> 当 $D \to 0$，奖励整体退化成接近零。对策：对奖励做 batch 内的滑动归一化（running mean / std）。</li>
-<li><strong>策略模式塌缩。</strong> 把熵奖励 $\lambda$ 调大，或者直接把生成器换成最大熵 actor（SAC 风格）。</li>
-</ul>
-<h3 id="51-匹配占用度到底意味着什么">5.1 &ldquo;匹配占用度&quot;到底意味着什么？</h3>
-<p>GAIL 不是在最小化某种动作预测损失，而是在<strong>最小化专家占用度 $\rho_{\pi^*}(s, a)$ 与学习者占用度 $\rho_{\pi_\theta}(s, a)$ 的 Jensen-Shannon 散度</strong>。这是个比 BC 严格强得多的目标——因为它<strong>意识到</strong>了部署分布的存在。代价：训练时必须能与环境交互（用来采 $\rho_{\pi_\theta}$），所以原版 GAIL <strong>不适用于纯离线</strong>场景。</p>
-<h3 id="52-airl把奖励从整形里剥出来">5.2 AIRL：把奖励从整形里剥出来</h3>
-<p>GAIL 学到的判别器擅长模仿，但<strong>不是</strong>一个可复用的奖励。<strong>AIRL</strong>（Fu, Luo &amp; Levine, 2018）把判别器重写成</p>
-$$
+$$<p>文献里两种形式都有。前者是 GAIL 原论文用的；后者在训练早期方差更小、更稳。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>GAIL</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;对抗式模仿：判别器输出充当策略的每步奖励。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>256</span><span class=p>,</span> <span class=n>continuous</span><span class=o>=</span><span class=kc>False</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>continuous</span> <span class=o>=</span> <span class=n>continuous</span>
+</span></span><span class=line><span class=cl>        <span class=n>in_dim</span> <span class=o>=</span> <span class=n>state_dim</span> <span class=o>+</span> <span class=n>action_dim</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>discriminator</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>disc_optim</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>discriminator</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                                           <span class=n>lr</span><span class=o>=</span><span class=mf>3e-4</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 策略 / 价值网络：任何标准 PPO 实现都行（此处省略）。</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_sa</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>continuous</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>a</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>functional</span><span class=o>.</span><span class=n>one_hot</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>long</span><span class=p>(),</span> <span class=bp>self</span><span class=o>.</span><span class=n>action_dim</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>reward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>states</span><span class=p>,</span> <span class=n>actions</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;喂给策略学习器的每步模仿奖励。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>discriminator</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_sa</span><span class=p>(</span><span class=n>states</span><span class=p>,</span> <span class=n>actions</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>d</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=n>logits</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>r</span> <span class=o>=</span> <span class=o>-</span><span class=n>torch</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=mf>1.0</span> <span class=o>-</span> <span class=n>d</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>)</span>   <span class=c1># 原版 GAIL 的奖励形式</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>r</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update_discriminator</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>expert_sa</span><span class=p>,</span> <span class=n>policy_sa</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 二元交叉熵：专家=0，策略=1。</span>
+</span></span><span class=line><span class=cl>        <span class=n>e_logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>discriminator</span><span class=p>(</span><span class=n>expert_sa</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>p_logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>discriminator</span><span class=p>(</span><span class=n>policy_sa</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>bce</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>functional</span><span class=o>.</span><span class=n>binary_cross_entropy_with_logits</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>bce</span><span class=p>(</span><span class=n>e_logits</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>e_logits</span><span class=p>))</span> <span class=o>+</span> \
+</span></span><span class=line><span class=cl>               <span class=n>bce</span><span class=p>(</span><span class=n>p_logits</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>ones_like</span><span class=p>(</span><span class=n>p_logits</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>disc_optim</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=bp>self</span><span class=o>.</span><span class=n>disc_optim</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>调参要点。</strong> 实际跑 GAIL 时，三种失败模式最常见：</p><ul><li><strong>判别器赢得太快。</strong> 策略侧的奖励梯度直接消失。对策：裁剪判别器 logits、用 spectral normalization、或加 Lipschitz 约束（WGAIL）。</li><li><strong>奖励信号塌缩。</strong> 当 $D \to 0$，奖励整体退化成接近零。对策：对奖励做 batch 内的滑动归一化（running mean / std）。</li><li><strong>策略模式塌缩。</strong> 把熵奖励 $\lambda$ 调大，或者直接把生成器换成最大熵 actor（SAC 风格）。</li></ul><h3 id=51-匹配占用度到底意味着什么>5.1 &ldquo;匹配占用度"到底意味着什么？</h3><p>GAIL 不是在最小化某种动作预测损失，而是在<strong>最小化专家占用度 $\rho_{\pi^*}(s, a)$ 与学习者占用度 $\rho_{\pi_\theta}(s, a)$ 的 Jensen-Shannon 散度</strong>。这是个比 BC 严格强得多的目标——因为它<strong>意识到</strong>了部署分布的存在。代价：训练时必须能与环境交互（用来采 $\rho_{\pi_\theta}$），所以原版 GAIL <strong>不适用于纯离线</strong>场景。</p><h3 id=52-airl把奖励从整形里剥出来>5.2 AIRL：把奖励从整形里剥出来</h3><p>GAIL 学到的判别器擅长模仿，但<strong>不是</strong>一个可复用的奖励。<strong>AIRL</strong>（Fu, Luo & Levine, 2018）把判别器重写成</p>$$
 D_\phi(s, a, s') \;=\; \frac{\exp\big(f_\phi(s, a, s')\big)}{\exp\big(f_\phi(s, a, s')\big) + \pi_\theta(a \mid s)},
 \qquad
 f_\phi(s, a, s') \;=\; r_\psi(s) + \gamma \Phi_\xi(s') - \Phi_\xi(s),
-$$<p>其中 $r_\psi$ 是<strong>只依赖状态</strong>的奖励，整形项被 $\Phi_\xi$ 吸收。这样训出来的 $\hat r = r_\psi$ 在动力学发生改变时仍然可用——这是 AIRL 论文最具冲击力的实证结果。</p>
-<hr>
-<h2 id="6-样本效率模仿-vs-rl">6. 样本效率：模仿 vs RL</h2>
-<p>模仿学习最有力的工程论据是<strong>样本效率</strong>：几千条专家示范，往往能省掉数千万步的环境交互——尤其在高维控制任务上。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig7_sample_efficiency.png" alt="样本效率对比：模仿 vs RL" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图的模式在机器人基准上非常稳定：BC 在专家水平之下饱和（它无法超越训练数据）、DAgger 在见到恢复状态后稳步上升、GAIL 最终能匹配专家、纯 RL 要花长得多的时间才能追上。右图把&quot;代价&quot;摆得很直白——吃专家数据多的方法，环境步数就少；反之亦然。</p>
-<p>这也是为什么**&ldquo;模仿预训练 + RL 微调&rdquo;**已经成了现代系统的标准配方——AlphaStar、机器人操作、InstructGPT 全是先模仿再 RL。</p>
-<hr>
-<h2 id="7-方法选择">7. 方法选择</h2>
-<table>
-  <thead>
-      <tr>
-          <th>方法</th>
-          <th>需要在线询问专家？</th>
-          <th>需要环境交互？</th>
-          <th>样本效率</th>
-          <th>可解释奖励？</th>
-          <th>典型场景</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>BC</td>
-          <td>否</td>
-          <td>否</td>
-          <td>高（离线）</td>
-          <td>否</td>
-          <td>短任务、有大量日志</td>
-      </tr>
-      <tr>
-          <td>DAgger</td>
-          <td><strong>是</strong></td>
-          <td>是</td>
-          <td>中-高</td>
-          <td>否</td>
-          <td>算法/模型专家可被询问</td>
-      </tr>
-      <tr>
-          <td>最大熵 IRL</td>
-          <td>否</td>
-          <td>是（内层）</td>
-          <td>低</td>
-          <td><strong>是</strong></td>
-          <td>小状态空间、需要迁移</td>
-      </tr>
-      <tr>
-          <td>GAIL</td>
-          <td>否</td>
-          <td>是</td>
-          <td>中</td>
-          <td>否</td>
-          <td>高维连续控制</td>
-      </tr>
-      <tr>
-          <td>AIRL</td>
-          <td>否</td>
-          <td>是</td>
-          <td>中</td>
-          <td>是（状态奖励）</td>
-          <td>想跨任务迁移奖励</td>
-      </tr>
-  </tbody>
-</table>
-<p>一条简短的决策规则：</p>
-<ul>
-<li><strong>静态示范日志、短时序任务</strong> → 先上 <strong>BC</strong>。一定要做标准化和早停；想要不确定性的话用集成。</li>
-<li><strong>训练时可以在线询问专家</strong> → <strong>DAgger</strong>。这个&quot;线性误差&quot;保证是你能买到的最便宜的提升。</li>
-<li><strong>需要理解专家在乎什么、或者要把它迁移到另一个环境</strong> → 小问题用<strong>最大熵 IRL</strong>，连续控制用 <strong>AIRL</strong>。</li>
-<li><strong>高维连续控制 + 静态数据 + 可与环境交互</strong> → <strong>GAIL</strong>。但要为对抗训练的不稳定性留预算。</li>
-</ul>
-<hr>
-<h2 id="8-常见问题">8. 常见问题</h2>
-<p><strong>模仿学习能超越专家吗？</strong>
-纯模仿不能——最优的模仿者就是复刻专家。标准做法是把模仿当作<strong>初始化</strong>：从 BC/GAIL 策略出发，用你<strong>能写出</strong>的奖励（或 RLHF 的偏好奖励）去做 RL 微调。当今大规模系统几乎都在用这套两段式配方。</p>
-<p><strong>专家示范有噪声、甚至次优，怎么办？</strong>
-三层防线：（i）按估计的质量分（回报、人类偏好）给样本加权；（ii）把交叉熵换成鲁棒损失（Huber、log-cosh）来折损离群点；（iii）在示范上跑离线 RL——IQL、CQL 这类方法天生能处理次优轨迹。</p>
-<p><strong>专家是多模态的——同一状态有多种合理动作，怎么办？</strong>
-标准 MSE-BC 会把多模态平均掉，输出一个危险的&quot;中间动作&rdquo;（&ldquo;一半示范向左、一半向右躲障碍，BC 学到的是直撞过去&rdquo;）。换成混合密度网络（MDN）、离散化动作策略、条件 VAE，或者<strong>扩散策略</strong>（diffusion policy）。Chi 等人 2023 的 diffusion policy 在多模态操作任务上目前是最强的。</p>
-<p><strong>多收点数据能不能解决 BC 的分布偏移？</strong>
-能减轻，但不能根除。更多数据让 $\varepsilon$ 变小，却不会改变 $T^2$ 这个指数。一旦时序长到策略会偏离 $\mathcal{D}$ 的支撑，就必须用 DAgger 风格的重打标签、GAIL 风格的占用匹配，或者<strong>保守的离线 RL</strong>（CQL、IQL，显式惩罚分布外动作）。</p>
-<p><strong>RLHF 算不算模仿学习？</strong>
-<strong>部分算</strong>。RLHF 的 SFT 阶段就是 BC（模仿人类写的示范）；偏好建模阶段更接近 IRL 的一种变体——从对比中学奖励模型，再用 PPO 优化它。完整流水线在<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-RLHF%e4%b8%8e%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e5%ba%94%e7%94%a8/">第 12 部分</a>
-详述。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Pomerleau, D. (1989). <em>ALVINN: An Autonomous Land Vehicle in a Neural Network</em>. NIPS.</li>
-<li>Ross, S., Gordon, G., &amp; Bagnell, J. A. (2011). <em>A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning</em>. AISTATS. <a href="https://arxiv.org/abs/1011.0686" target="_blank" rel="noopener noreferrer">arXiv:1011.0686 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ziebart, B., Maas, A., Bagnell, J. A., &amp; Dey, A. (2008). <em>Maximum Entropy Inverse Reinforcement Learning</em>. AAAI.</li>
-<li>Finn, C., Levine, S., &amp; Abbeel, P. (2016). <em>Guided Cost Learning</em>. ICML. <a href="https://arxiv.org/abs/1603.00448" target="_blank" rel="noopener noreferrer">arXiv:1603.00448 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ho, J., &amp; Ermon, S. (2016). <em>Generative Adversarial Imitation Learning</em>. NeurIPS. <a href="https://arxiv.org/abs/1606.03476" target="_blank" rel="noopener noreferrer">arXiv:1606.03476 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Fu, J., Luo, K., &amp; Levine, S. (2018). <em>Learning Robust Rewards with Adversarial Inverse Reinforcement Learning</em>. ICLR. <a href="https://arxiv.org/abs/1710.11248" target="_blank" rel="noopener noreferrer">arXiv:1710.11248 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Chi, C., et al. (2023). <em>Diffusion Policy: Visuomotor Policy Learning via Action Diffusion</em>. RSS. <a href="https://arxiv.org/abs/2303.04137" target="_blank" rel="noopener noreferrer">arXiv:2303.04137 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>部分</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">基础与核心概念</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/">Q-Learning 与深度 Q 网络</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/">Policy Gradient 与 Actor-Critic</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e6%8e%a2%e7%b4%a2%e7%ad%96%e7%95%a5%e4%b8%8e%e5%a5%bd%e5%a5%87%e5%bf%83%e9%a9%b1%e5%8a%a8%e5%ad%a6%e4%b9%a0/">探索策略与好奇心驱动学习</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/">Model-Based 强化学习与世界模型</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">PPO 与 TRPO</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>7</strong></td>
-          <td><strong>模仿学习与逆强化学习（本文）</strong></td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#1-问题设定">1. 问题设定</a></li>
-    <li><a href="#2-行为克隆behavioral-cloning">2. 行为克隆（Behavioral Cloning）</a>
-      <ul>
-        <li><a href="#21-bc-为什么在长任务上必败">2.1 BC 为什么在长任务上必败</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-dagger数据集聚合">3. DAgger：数据集聚合</a></li>
-    <li><a href="#4-逆强化学习irl">4. 逆强化学习（IRL）</a>
-      <ul>
-        <li><a href="#41-最大熵-irl">4.1 最大熵 IRL</a></li>
-        <li><a href="#42-奖励的不可识别性">4.2 奖励的不可识别性</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-对抗式模仿gail-与-airl">5. 对抗式模仿：GAIL 与 AIRL</a>
-      <ul>
-        <li><a href="#51-匹配占用度到底意味着什么">5.1 &ldquo;匹配占用度&quot;到底意味着什么？</a></li>
-        <li><a href="#52-airl把奖励从整形里剥出来">5.2 AIRL：把奖励从整形里剥出来</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-样本效率模仿-vs-rl">6. 样本效率：模仿 vs RL</a></li>
-    <li><a href="#7-方法选择">7. 方法选择</a></li>
-    <li><a href="#8-常见问题">8. 常见问题</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5900</strong></div>
-      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>其中 $r_\psi$ 是<strong>只依赖状态</strong>的奖励，整形项被 $\Phi_\xi$ 吸收。这样训出来的 $\hat r = r_\psi$ 在动力学发生改变时仍然可用——这是 AIRL 论文最具冲击力的实证结果。</p><hr><h2 id=6-样本效率模仿-vs-rl>6. 样本效率：模仿 vs RL</h2><p>模仿学习最有力的工程论据是<strong>样本效率</strong>：几千条专家示范，往往能省掉数千万步的环境交互——尤其在高维控制任务上。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/07-%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0%E4%B8%8E%E9%80%86%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig7_sample_efficiency.png alt="样本效率对比：模仿 vs RL" loading=lazy decoding=async></figure></p><p>左图的模式在机器人基准上非常稳定：BC 在专家水平之下饱和（它无法超越训练数据）、DAgger 在见到恢复状态后稳步上升、GAIL 最终能匹配专家、纯 RL 要花长得多的时间才能追上。右图把"代价"摆得很直白——吃专家数据多的方法，环境步数就少；反之亦然。</p><p>这也是为什么**&ldquo;模仿预训练 + RL 微调&rdquo;**已经成了现代系统的标准配方——AlphaStar、机器人操作、InstructGPT 全是先模仿再 RL。</p><hr><h2 id=7-方法选择>7. 方法选择</h2><table><thead><tr><th>方法</th><th>需要在线询问专家？</th><th>需要环境交互？</th><th>样本效率</th><th>可解释奖励？</th><th>典型场景</th></tr></thead><tbody><tr><td>BC</td><td>否</td><td>否</td><td>高（离线）</td><td>否</td><td>短任务、有大量日志</td></tr><tr><td>DAgger</td><td><strong>是</strong></td><td>是</td><td>中-高</td><td>否</td><td>算法/模型专家可被询问</td></tr><tr><td>最大熵 IRL</td><td>否</td><td>是（内层）</td><td>低</td><td><strong>是</strong></td><td>小状态空间、需要迁移</td></tr><tr><td>GAIL</td><td>否</td><td>是</td><td>中</td><td>否</td><td>高维连续控制</td></tr><tr><td>AIRL</td><td>否</td><td>是</td><td>中</td><td>是（状态奖励）</td><td>想跨任务迁移奖励</td></tr></tbody></table><p>一条简短的决策规则：</p><ul><li><strong>静态示范日志、短时序任务</strong> → 先上 <strong>BC</strong>。一定要做标准化和早停；想要不确定性的话用集成。</li><li><strong>训练时可以在线询问专家</strong> → <strong>DAgger</strong>。这个"线性误差"保证是你能买到的最便宜的提升。</li><li><strong>需要理解专家在乎什么、或者要把它迁移到另一个环境</strong> → 小问题用<strong>最大熵 IRL</strong>，连续控制用 <strong>AIRL</strong>。</li><li><strong>高维连续控制 + 静态数据 + 可与环境交互</strong> → <strong>GAIL</strong>。但要为对抗训练的不稳定性留预算。</li></ul><hr><h2 id=8-常见问题>8. 常见问题</h2><p><strong>模仿学习能超越专家吗？</strong>
+纯模仿不能——最优的模仿者就是复刻专家。标准做法是把模仿当作<strong>初始化</strong>：从 BC/GAIL 策略出发，用你<strong>能写出</strong>的奖励（或 RLHF 的偏好奖励）去做 RL 微调。当今大规模系统几乎都在用这套两段式配方。</p><p><strong>专家示范有噪声、甚至次优，怎么办？</strong>
+三层防线：（i）按估计的质量分（回报、人类偏好）给样本加权；（ii）把交叉熵换成鲁棒损失（Huber、log-cosh）来折损离群点；（iii）在示范上跑离线 RL——IQL、CQL 这类方法天生能处理次优轨迹。</p><p><strong>专家是多模态的——同一状态有多种合理动作，怎么办？</strong>
+标准 MSE-BC 会把多模态平均掉，输出一个危险的"中间动作&rdquo;（&ldquo;一半示范向左、一半向右躲障碍，BC 学到的是直撞过去&rdquo;）。换成混合密度网络（MDN）、离散化动作策略、条件 VAE，或者<strong>扩散策略</strong>（diffusion policy）。Chi 等人 2023 的 diffusion policy 在多模态操作任务上目前是最强的。</p><p><strong>多收点数据能不能解决 BC 的分布偏移？</strong>
+能减轻，但不能根除。更多数据让 $\varepsilon$ 变小，却不会改变 $T^2$ 这个指数。一旦时序长到策略会偏离 $\mathcal{D}$ 的支撑，就必须用 DAgger 风格的重打标签、GAIL 风格的占用匹配，或者<strong>保守的离线 RL</strong>（CQL、IQL，显式惩罚分布外动作）。</p><p><strong>RLHF 算不算模仿学习？</strong>
+<strong>部分算</strong>。RLHF 的 SFT 阶段就是 BC（模仿人类写的示范）；偏好建模阶段更接近 IRL 的一种变体——从对比中学奖励模型，再用 PPO 优化它。完整流水线在<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-RLHF%e4%b8%8e%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e5%ba%94%e7%94%a8/>第 12 部分</a>
+详述。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Pomerleau, D. (1989). <em>ALVINN: An Autonomous Land Vehicle in a Neural Network</em>. NIPS.</li><li>Ross, S., Gordon, G., & Bagnell, J. A. (2011). <em>A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning</em>. AISTATS. <a href=https://arxiv.org/abs/1011.0686 target=_blank rel="noopener noreferrer">arXiv:1011.0686 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ziebart, B., Maas, A., Bagnell, J. A., & Dey, A. (2008). <em>Maximum Entropy Inverse Reinforcement Learning</em>. AAAI.</li><li>Finn, C., Levine, S., & Abbeel, P. (2016). <em>Guided Cost Learning</em>. ICML. <a href=https://arxiv.org/abs/1603.00448 target=_blank rel="noopener noreferrer">arXiv:1603.00448 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ho, J., & Ermon, S. (2016). <em>Generative Adversarial Imitation Learning</em>. NeurIPS. <a href=https://arxiv.org/abs/1606.03476 target=_blank rel="noopener noreferrer">arXiv:1606.03476 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Fu, J., Luo, K., & Levine, S. (2018). <em>Learning Robust Rewards with Adversarial Inverse Reinforcement Learning</em>. ICLR. <a href=https://arxiv.org/abs/1710.11248 target=_blank rel="noopener noreferrer">arXiv:1710.11248 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Chi, C., et al. (2023). <em>Diffusion Policy: Visuomotor Policy Learning via Action Diffusion</em>. RSS. <a href=https://arxiv.org/abs/2303.04137 target=_blank rel="noopener noreferrer">arXiv:2303.04137 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>部分</th><th>主题</th></tr></thead><tbody><tr><td>1</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/>基础与核心概念</a></td></tr><tr><td>2</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/>Q-Learning 与深度 Q 网络</a></td></tr><tr><td>3</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/>Policy Gradient 与 Actor-Critic</a></td></tr><tr><td>4</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e6%8e%a2%e7%b4%a2%e7%ad%96%e7%95%a5%e4%b8%8e%e5%a5%bd%e5%a5%87%e5%bf%83%e9%a9%b1%e5%8a%a8%e5%ad%a6%e4%b9%a0/>探索策略与好奇心驱动学习</a></td></tr><tr><td>5</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%94-Model-Based%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0%e4%b8%8e%e4%b8%96%e7%95%8c%e6%a8%a1%e5%9e%8b/>Model-Based 强化学习与世界模型</a></td></tr><tr><td>6</td><td><a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/>PPO 与 TRPO</a></td></tr><tr><td><strong>7</strong></td><td><strong>模仿学习与逆强化学习（本文）</strong></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#1-问题设定>1. 问题设定</a></li><li><a href=#2-行为克隆behavioral-cloning>2. 行为克隆（Behavioral Cloning）</a><ul><li><a href=#21-bc-为什么在长任务上必败>2.1 BC 为什么在长任务上必败</a></li></ul></li><li><a href=#3-dagger数据集聚合>3. DAgger：数据集聚合</a></li><li><a href=#4-逆强化学习irl>4. 逆强化学习（IRL）</a><ul><li><a href=#41-最大熵-irl>4.1 最大熵 IRL</a></li><li><a href=#42-奖励的不可识别性>4.2 奖励的不可识别性</a></li></ul></li><li><a href=#5-对抗式模仿gail-与-airl>5. 对抗式模仿：GAIL 与 AIRL</a><ul><li><a href=#51-匹配占用度到底意味着什么>5.1 &ldquo;匹配占用度"到底意味着什么？</a></li><li><a href=#52-airl把奖励从整形里剥出来>5.2 AIRL：把奖励从整形里剥出来</a></li></ul></li><li><a href=#6-样本效率模仿-vs-rl>6. 样本效率：模仿 vs RL</a></li><li><a href=#7-方法选择>7. 方法选择</a></li><li><a href=#8-常见问题>8. 常见问题</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>12 min</strong></div><div class=row><span>Word count</span><strong>5828</strong></div><div class=row><span>Published</span><strong>Aug 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

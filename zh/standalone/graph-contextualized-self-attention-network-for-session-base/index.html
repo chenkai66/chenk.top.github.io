@@ -1,562 +1,187 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Graph Contextualized Self-Attention Network for Session-based Recommendation · Chen Kai Blog</title>
-<meta name="description" content="会话推荐里你能看到的就那么一小段匿名点击序列：没有用户画像、没有历史长期偏好、没有人口统计。所有信号都封装在这几次点击里。GC-SAN（IJCAI 2019）的思路很务实：把当时最强的两个想法直接叠起来——SR-GNN 的会话图捕捉局部转移结构，Transformer 的自注意力捕捉长距离意图，最后用一个标量权重把&quot;当前点击&quot; …">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/graph-contextualized-self-attention-network-for-session-base/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/graph-contextualized-self-attention-network-for-session-base/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Graph Contextualized Self-Attention Network for Session-based Recommendation">
-<meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/graph-contextualized-self-attention-network-for-session-base/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>Graph Contextualized Self-Attention Network for Session-based Recommendation</h1>
-      
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-12-22">December 22, 2023</time> · 9 min read · 4500 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/gnn/" class="tag">#GNN</a><a href="/zh/tags/%E8%87%AA%E6%B3%A8%E6%84%8F%E5%8A%9B/" class="tag">#自注意力</a><a href="/zh/tags/%E4%BC%9A%E8%AF%9D%E6%8E%A8%E8%8D%90/" class="tag">#会话推荐</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>会话推荐里你能看到的就那么一小段匿名点击序列：没有用户画像、没有历史长期偏好、没有人口统计。所有信号都封装在这几次点击里。<strong>GC-SAN</strong>（IJCAI 2019）的思路很务实：把当时最强的两个想法直接叠起来——SR-GNN 的会话图捕捉局部转移结构，Transformer 的自注意力捕捉长距离意图，最后用一个标量权重把&quot;当前点击&quot;和&quot;全局意图&quot;线性融合。它本身不发明新机制，但作为一个 baseline，至今仍然不容易被同等参数量级的模型超过。</p>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>为什么会话推荐结构上比传统协同过滤难</li>
-<li>一段点击序列如何变成一张有向加权图</li>
-<li>GGNN 单元：入/出邻居聚合 + GRU 门控</li>
-<li>自注意力作为图上下文化嵌入之上的全局编码器</li>
-<li>融合权重 $w$：最后一击 vs 全局意图</li>
-<li>GC-SAN 适合什么场景，不适合什么场景</li>
-</ul>
-<h2 id="预备知识">预备知识</h2>
-<ul>
-<li>图神经网络的消息传递与 GRU 风格更新</li>
-<li>自注意力（Q/K/V，缩放点积）</li>
-<li>推荐评估指标 Recall@K、MRR@K</li>
-</ul>
-<hr>
-<h2 id="1-问题设定与困难来源">1. 问题设定与困难来源</h2>
-<p>记物品全集为 $V = \{v_1, v_2, \dots, v_{|V|}\}$，一次会话是一段按时间排好的点击序列 $s = (v_{s,1}, v_{s,2}, \dots, v_{s,n})$。任务是预测 $v_{s,n+1}$，通常对所有候选打分排序并报告 Recall@K、MRR@K。</p>
-<p>为什么这件事比传统协同过滤更棘手：</p>
-<ul>
-<li><strong>没有长期画像</strong>：没法依赖稳定的用户嵌入或人口统计特征。</li>
-<li><strong>行为短而嘈杂</strong>：会话里可能夹杂探索性点击、误点、来回跳转。</li>
-<li><strong>长距离依赖</strong>：早期的&quot;相机&quot;点击，可能直到后面&quot;存储卡&quot;出现时才显出关联。</li>
-<li><strong>重复转移</strong>：用户经常在几个相关物品之间反复跳，单纯的序列模型容易浪费这种结构信息。</li>
-</ul>
-<p>这四种压力相互掣肘。纯序列模型（RNN / Transformer）能处理顺序但把每一步都当成新 token；纯图模型（SR-GNN）能抓回环和重复，但要够到远距离的点击就需要多跳传播。GC-SAN 的设计正是把两者拼起来，避免单独使用任一方法时各自的代价。</p>
-<h2 id="2-gc-san-在已有工作中的位置">2. GC-SAN 在已有工作中的位置</h2>
-<p>在 GC-SAN 之前，常见的 baseline 大致分四类：</p>
-<ul>
-<li><strong>马尔可夫链</strong>：局部信号强，全局视角缺失。</li>
-<li><strong>GRU4Rec</strong>：用 GRU 建会话内的顺序依赖，超过几步就开始吃力。</li>
-<li><strong>NARM、STAMP</strong>：基于注意力的序列模型，长距离依赖处理得更好，但忽略了会话内部天然存在的转移图结构。</li>
-<li><strong>SR-GNN</strong>：把会话建成有向图，跑门控 GNN，能捕捉丰富的局部结构，但远距离意图依赖多跳传播，层数堆多了又会过平滑。</li>
-</ul>
-<p>GC-SAN 的贡献偏<strong>架构</strong>而非算法：保留 SR-GNN 的门控 GNN 作为局部编码器，再在上面叠一层 Transformer 风格的自注意力，让全局依赖不必靠图上多跳来达成。完整流程见图 1。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig1_architecture.png" alt="GC-SAN 端到端流程：从点击到下一击打分" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>整个 pipeline 是严格串行的：点击序列 $\to$ 建图 $\to$ GGNN 传播 $\to$ 多层自注意力 $\to$ 融合&quot;最后一击&quot;与&quot;全局意图&quot; $\to$ 对所有物品打分。</p>
-<h2 id="3-会话图的构建">3. 会话图的构建</h2>
-<p>对每条会话 $s$ 构造有向图 $G_s = (V_s, E_s)$：</p>
-<ul>
-<li><strong>节点</strong>：会话中出现过的不同物品（去重）。</li>
-<li>对相邻点击对 $(v_{s,i}, v_{s,i+1})$ 加一条有向边 $v_{s,i} \to v_{s,i+1}$。</li>
-<li>同一条转移多次出现就累加权重（或者多重边后再归一化）。</li>
-</ul>
-<p>这一步在用紧凑性换信息密度。同一物品在序列里出现两次会被压成一个节点，只有它们之间的<strong>转移</strong>承载重复。回环——比如 A $\to$ B $\to$ A——在图里直接显成环，而单纯的序列模型只会把它当作&quot;A 出现了两次&quot;。</p>
-<p>接着行归一化两个邻接矩阵：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Graph Contextualized Self-Attention Network for Session-based Recommendation · Chen Kai Blog</title>
+<meta name=description content='会话推荐里你能看到的就那么一小段匿名点击序列：没有用户画像、没有历史长期偏好、没有人口统计。所有信号都封装在这几次点击里。GC-SAN（IJCAI 2019）的思路很务实：把当时最强的两个想法直接叠起来——SR-GNN 的会话图捕捉局部转移结构，Transformer 的自注意力捕捉长距离意图，最后用一个标量权重把"当前点击" …'><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/graph-contextualized-self-attention-network-for-session-base/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/graph-contextualized-self-attention-network-for-session-base/><meta property="og:type" content="article"><meta property="og:title" content="Graph Contextualized Self-Attention Network for Session-based Recommendation"><meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/graph-contextualized-self-attention-network-for-session-base/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>Graph Contextualized Self-Attention Network for Session-based Recommendation</h1><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-22>December 22, 2023</time> · 9 min read · 4444 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/gnn/ class=tag>#GNN</a><a href=/zh/tags/%E8%87%AA%E6%B3%A8%E6%84%8F%E5%8A%9B/ class=tag>#自注意力</a><a href=/zh/tags/%E4%BC%9A%E8%AF%9D%E6%8E%A8%E8%8D%90/ class=tag>#会话推荐</a></div></div></header><div class=prose><p>会话推荐里你能看到的就那么一小段匿名点击序列：没有用户画像、没有历史长期偏好、没有人口统计。所有信号都封装在这几次点击里。<strong>GC-SAN</strong>（IJCAI 2019）的思路很务实：把当时最强的两个想法直接叠起来——SR-GNN 的会话图捕捉局部转移结构，Transformer 的自注意力捕捉长距离意图，最后用一个标量权重把"当前点击"和"全局意图"线性融合。它本身不发明新机制，但作为一个 baseline，至今仍然不容易被同等参数量级的模型超过。</p><h2 id=你将学到什么>你将学到什么</h2><ul><li>为什么会话推荐结构上比传统协同过滤难</li><li>一段点击序列如何变成一张有向加权图</li><li>GGNN 单元：入/出邻居聚合 + GRU 门控</li><li>自注意力作为图上下文化嵌入之上的全局编码器</li><li>融合权重 $w$：最后一击 vs 全局意图</li><li>GC-SAN 适合什么场景，不适合什么场景</li></ul><h2 id=预备知识>预备知识</h2><ul><li>图神经网络的消息传递与 GRU 风格更新</li><li>自注意力（Q/K/V，缩放点积）</li><li>推荐评估指标 Recall@K、MRR@K</li></ul><hr><h2 id=1-问题设定与困难来源>1. 问题设定与困难来源</h2><p>记物品全集为 $V = \{v_1, v_2, \dots, v_{|V|}\}$，一次会话是一段按时间排好的点击序列 $s = (v_{s,1}, v_{s,2}, \dots, v_{s,n})$。任务是预测 $v_{s,n+1}$，通常对所有候选打分排序并报告 Recall@K、MRR@K。</p><p>为什么这件事比传统协同过滤更棘手：</p><ul><li><strong>没有长期画像</strong>：没法依赖稳定的用户嵌入或人口统计特征。</li><li><strong>行为短而嘈杂</strong>：会话里可能夹杂探索性点击、误点、来回跳转。</li><li><strong>长距离依赖</strong>：早期的"相机"点击，可能直到后面"存储卡"出现时才显出关联。</li><li><strong>重复转移</strong>：用户经常在几个相关物品之间反复跳，单纯的序列模型容易浪费这种结构信息。</li></ul><p>这四种压力相互掣肘。纯序列模型（RNN / Transformer）能处理顺序但把每一步都当成新 token；纯图模型（SR-GNN）能抓回环和重复，但要够到远距离的点击就需要多跳传播。GC-SAN 的设计正是把两者拼起来，避免单独使用任一方法时各自的代价。</p><h2 id=2-gc-san-在已有工作中的位置>2. GC-SAN 在已有工作中的位置</h2><p>在 GC-SAN 之前，常见的 baseline 大致分四类：</p><ul><li><strong>马尔可夫链</strong>：局部信号强，全局视角缺失。</li><li><strong>GRU4Rec</strong>：用 GRU 建会话内的顺序依赖，超过几步就开始吃力。</li><li><strong>NARM、STAMP</strong>：基于注意力的序列模型，长距离依赖处理得更好，但忽略了会话内部天然存在的转移图结构。</li><li><strong>SR-GNN</strong>：把会话建成有向图，跑门控 GNN，能捕捉丰富的局部结构，但远距离意图依赖多跳传播，层数堆多了又会过平滑。</li></ul><p>GC-SAN 的贡献偏<strong>架构</strong>而非算法：保留 SR-GNN 的门控 GNN 作为局部编码器，再在上面叠一层 Transformer 风格的自注意力，让全局依赖不必靠图上多跳来达成。完整流程见图 1。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig1_architecture.png alt="GC-SAN 端到端流程：从点击到下一击打分" loading=lazy decoding=async></figure></p><p>整个 pipeline 是严格串行的：点击序列 $\to$ 建图 $\to$ GGNN 传播 $\to$ 多层自注意力 $\to$ 融合"最后一击"与"全局意图" $\to$ 对所有物品打分。</p><h2 id=3-会话图的构建>3. 会话图的构建</h2><p>对每条会话 $s$ 构造有向图 $G_s = (V_s, E_s)$：</p><ul><li><strong>节点</strong>：会话中出现过的不同物品（去重）。</li><li>对相邻点击对 $(v_{s,i}, v_{s,i+1})$ 加一条有向边 $v_{s,i} \to v_{s,i+1}$。</li><li>同一条转移多次出现就累加权重（或者多重边后再归一化）。</li></ul><p>这一步在用紧凑性换信息密度。同一物品在序列里出现两次会被压成一个节点，只有它们之间的<strong>转移</strong>承载重复。回环——比如 A $\to$ B $\to$ A——在图里直接显成环，而单纯的序列模型只会把它当作"A 出现了两次"。</p><p>接着行归一化两个邻接矩阵：</p>$$
 A^{out}_{ij} = \frac{w(v_i \to v_j)}{\sum_k w(v_i \to v_k)}, \quad
-A^{in}_{ij}  = \frac{w(v_j \to v_i)}{\sum_k w(v_k \to v_i)}.
-$$<p>图 2 走了一个完整例子。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig2_session_graph.png" alt="会话图构建：点击序列到有向加权图再到归一化邻接矩阵" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>注意点击序列 <code>v1 v2 v3 v2 v4</code> 收敛成 4 个节点的图，里面有一对 <code>v2 &lt;-&gt; v3</code> 回环，以及 <code>v2</code> 同时通向 <code>v3</code> 和 <code>v4</code> 的扇出。原序列长度 5，图只有 4 节点 4 条不同的边——这种压缩正是图视角的价值。</p>
-<h2 id="4-局部编码器会话图上的-ggnn">4. 局部编码器：会话图上的 GGNN</h2>
-<p>GC-SAN 直接复用 SR-GNN 的门控 GGNN 单元。每个节点带一个 $d$ 维嵌入 $h_i$。一步传播包含三件事。</p>
-<p><strong>(i) 聚合入/出邻居。</strong> 对节点 $v_i$ 在第 $t$ 步：</p>
-$$
+A^{in}_{ij} = \frac{w(v_j \to v_i)}{\sum_k w(v_k \to v_i)}.
+$$<p>图 2 走了一个完整例子。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig2_session_graph.png alt=会话图构建：点击序列到有向加权图再到归一化邻接矩阵 loading=lazy decoding=async></figure></p><p>注意点击序列 <code>v1 v2 v3 v2 v4</code> 收敛成 4 个节点的图，里面有一对 <code>v2 &lt;-> v3</code> 回环，以及 <code>v2</code> 同时通向 <code>v3</code> 和 <code>v4</code> 的扇出。原序列长度 5，图只有 4 节点 4 条不同的边——这种压缩正是图视角的价值。</p><h2 id=4-局部编码器会话图上的-ggnn>4. 局部编码器：会话图上的 GGNN</h2><p>GC-SAN 直接复用 SR-GNN 的门控 GGNN 单元。每个节点带一个 $d$ 维嵌入 $h_i$。一步传播包含三件事。</p><p><strong>(i) 聚合入/出邻居。</strong> 对节点 $v_i$ 在第 $t$ 步：</p>$$
 a_i^{(t)} \;=\; A^{in}_{i,:} \, H^{(t-1)} W^{in} \;+\; A^{out}_{i,:} \, H^{(t-1)} W^{out} \;+\; b,
-$$<p>其中 $H^{(t-1)} = [h_1^{(t-1)}, \dots, h_{|V_s|}^{(t-1)}]^\top$ 把会话内所有节点嵌入堆起来，$W^{in}, W^{out} \in \mathbb{R}^{d \times d}$ 都是可学习的。这两项分别表示&quot;流向我的证据&quot;和&quot;我流向别人的证据&quot;，对方向敏感的转移很重要。</p>
-<p><strong>(ii) GRU 门控。</strong> 把聚合消息和上一时刻状态结合：</p>
-$$
+$$<p>其中 $H^{(t-1)} = [h_1^{(t-1)}, \dots, h_{|V_s|}^{(t-1)}]^\top$ 把会话内所有节点嵌入堆起来，$W^{in}, W^{out} \in \mathbb{R}^{d \times d}$ 都是可学习的。这两项分别表示"流向我的证据"和"我流向别人的证据"，对方向敏感的转移很重要。</p><p><strong>(ii) GRU 门控。</strong> 把聚合消息和上一时刻状态结合：</p>$$
 \begin{aligned}
 z_i^{(t)} &= \sigma(W_z a_i^{(t)} + U_z h_i^{(t-1)}), \\
 r_i^{(t)} &= \sigma(W_r a_i^{(t)} + U_r h_i^{(t-1)}), \\
 \tilde h_i^{(t)} &= \tanh\!\bigl(W_h a_i^{(t)} + U_h (r_i^{(t)} \odot h_i^{(t-1)})\bigr), \\
 h_i^{(t)} &= (1 - z_i^{(t)}) \odot h_i^{(t-1)} \;+\; z_i^{(t)} \odot \tilde h_i^{(t)}.
 \end{aligned}
-$$<p>更新门 $z$ 决定新图信号写进多少；重置门 $r$ 决定形成候选状态时要忘掉多少旧状态。图 3 在单个节点上把这一步可视化。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig3_ggnn_message_passing.png" alt="GGNN 单元：入/出邻居聚合 &#43; GRU 门控" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>跑 $T$ 步传播之后（论文常用 $T=1$，有时 $T=2$），每个节点嵌入都吸收了它在图上的局部邻域。<strong>关键点</strong>：传播是在每条会话各自的图上做的，不是全局物品图，所以嵌入是会话条件化的。</p>
-<blockquote>
-<p><strong>实现细节</strong>：会话里物品会重复出现，所以实现里要维护一个 <em>alias</em> 映射，把序列位置映射到去重后的节点索引。GGNN 跑完之后，再把节点状态&quot;散布&quot;回序列位置上，才能丢进自注意力。这就是任何标准实现里 <code>seq_hidden = hidden[alias_inputs]</code> 在做的事。</p>
-</blockquote>
-<h2 id="5-全局编码器会话上的自注意力">5. 全局编码器：会话上的自注意力</h2>
-<p>GGNN 在局部很强，但要触达远端点击需要多跳，而 GGNN 层数堆多了又会<strong>过平滑</strong>——节点嵌入互相塌陷。自注意力直接绕开这个问题：任何位置一步就能注意到任何其他位置。</p>
-<p>设 $E^{(0)} \in \mathbb{R}^{n \times d}$ 是把 GGNN 节点状态散布回序列后的位置表示。一层自注意力为：</p>
-$$
+$$<p>更新门 $z$ 决定新图信号写进多少；重置门 $r$ 决定形成候选状态时要忘掉多少旧状态。图 3 在单个节点上把这一步可视化。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig3_ggnn_message_passing.png alt="GGNN 单元：入/出邻居聚合 + GRU 门控" loading=lazy decoding=async></figure></p><p>跑 $T$ 步传播之后（论文常用 $T=1$，有时 $T=2$），每个节点嵌入都吸收了它在图上的局部邻域。<strong>关键点</strong>：传播是在每条会话各自的图上做的，不是全局物品图，所以嵌入是会话条件化的。</p><blockquote><p><strong>实现细节</strong>：会话里物品会重复出现，所以实现里要维护一个 <em>alias</em> 映射，把序列位置映射到去重后的节点索引。GGNN 跑完之后，再把节点状态"散布"回序列位置上，才能丢进自注意力。这就是任何标准实现里 <code>seq_hidden = hidden[alias_inputs]</code> 在做的事。</p></blockquote><h2 id=5-全局编码器会话上的自注意力>5. 全局编码器：会话上的自注意力</h2><p>GGNN 在局部很强，但要触达远端点击需要多跳，而 GGNN 层数堆多了又会<strong>过平滑</strong>——节点嵌入互相塌陷。自注意力直接绕开这个问题：任何位置一步就能注意到任何其他位置。</p><p>设 $E^{(0)} \in \mathbb{R}^{n \times d}$ 是把 GGNN 节点状态散布回序列后的位置表示。一层自注意力为：</p>$$
 F = \mathrm{softmax}\!\left(\frac{(E W^Q)(E W^K)^\top}{\sqrt{d}}\right)(E W^V),
-$$<p>后面接一个 point-wise 前馈块加残差连接：</p>
-$$
+$$<p>后面接一个 point-wise 前馈块加残差连接：</p>$$
 E^{(1)} = \mathrm{ReLU}(F W_1 + b_1) W_2 + b_2 + F.
-$$<p>叠 $k$ 层得到 $E^{(k)}$，也就是<strong>图上下文化</strong>之后的序列表示。图 4 展示了自注意力典型学到的模式，以及为什么 GGNN 单独做不到同样的连接。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig4_self_attention.png" alt="自注意力捕捉 GGNN 局部跳跃难以触及的全局意图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>热力图是示意性的，但模式是真实的：第一击&quot;相机&quot;会强烈地注意到会话深处与之主题相关的物品（存储卡、电池、相机包）——这种连接如果靠 GNN 走 4 跳，信号早就被平滑掉了。</p>
-<h2 id="6-融合最后一击-vs-全局意图">6. 融合：最后一击 vs 全局意图</h2>
-<p>会话推荐几乎总是需要显式地混合两种信号：</p>
-<ul>
-<li><strong>当前兴趣</strong> $h_t$：最后点击物品的嵌入，通常是最强的短期预测信号。</li>
-<li><strong>全局意图</strong> $a_t$：自注意力栈最后一个位置的输出，整合了整段会话。</li>
-</ul>
-<p>GC-SAN 用一个标量权重把它们组合：</p>
-$$
+$$<p>叠 $k$ 层得到 $E^{(k)}$，也就是<strong>图上下文化</strong>之后的序列表示。图 4 展示了自注意力典型学到的模式，以及为什么 GGNN 单独做不到同样的连接。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig4_self_attention.png alt="自注意力捕捉 GGNN 局部跳跃难以触及的全局意图" loading=lazy decoding=async></figure></p><p>热力图是示意性的，但模式是真实的：第一击"相机"会强烈地注意到会话深处与之主题相关的物品（存储卡、电池、相机包）——这种连接如果靠 GNN 走 4 跳，信号早就被平滑掉了。</p><h2 id=6-融合最后一击-vs-全局意图>6. 融合：最后一击 vs 全局意图</h2><p>会话推荐几乎总是需要显式地混合两种信号：</p><ul><li><strong>当前兴趣</strong> $h_t$：最后点击物品的嵌入，通常是最强的短期预测信号。</li><li><strong>全局意图</strong> $a_t$：自注意力栈最后一个位置的输出，整合了整段会话。</li></ul><p>GC-SAN 用一个标量权重把它们组合：</p>$$
 s_f \;=\; w \cdot a_t \;+\; (1 - w) \cdot h_t,
-$$<p>然后用 $s_f$ 与物品嵌入表做内积打分、softmax 归一：</p>
-$$
+$$<p>然后用 $s_f$ 与物品嵌入表做内积打分、softmax 归一：</p>$$
 \hat y \;=\; \mathrm{softmax}\!\bigl(s_f \, V^\top\bigr).
-$$<p>权重 $w$ 是一个超参（通常的甜区在 $w \in [0.4, 0.6]$）。$w = 0$ 退化为只用最后一击；$w = 1$ 则完全丢掉强短期信号。图 5(b) 的扫描给出典型曲线——中间平坦、两端陡降。</p>
-<h2 id="7-训练与评估">7. 训练与评估</h2>
-<p>大多数会话推荐器用下一击 softmax 上的交叉熵：</p>
-$$
+$$<p>权重 $w$ 是一个超参（通常的甜区在 $w \in [0.4, 0.6]$）。$w = 0$ 退化为只用最后一击；$w = 1$ 则完全丢掉强短期信号。图 5(b) 的扫描给出典型曲线——中间平坦、两端陡降。</p><h2 id=7-训练与评估>7. 训练与评估</h2><p>大多数会话推荐器用下一击 softmax 上的交叉熵：</p>$$
 \mathcal{L} \;=\; -\sum_{i=1}^{|V|} y_i \log \hat y_i \;+\; \lambda \|\Theta\|^2,
-$$<p>$y$ 是 one-hot 标签，$\Theta$ 是所有可学习参数。当 $|V|$ 很大时，常用 BPR 加负采样：</p>
-$$
+$$<p>$y$ 是 one-hot 标签，$\Theta$ 是所有可学习参数。当 $|V|$ 很大时，常用 BPR 加负采样：</p>$$
 \mathcal{L}_{\text{BPR}} \;=\; -\sum_{(u, i, j)} \log \sigma(\hat r_{ui} - \hat r_{uj}) + \lambda \|\Theta\|^2,
-$$<p>其中 $i$ 是正样本（被点击），$j$ 是采样的负样本。BPR 适合隐式反馈场景，它直接优化&quot;用户对正样本的偏好高于负样本&quot;这一相对关系，不需要绝对评分。</p>
-<p>标准 benchmark 是 <strong>Yoochoose1/64</strong> 和 <strong>Diginetica</strong>，报 <strong>Recall@20</strong> 与 <strong>MRR@20</strong>。图 5 复现了论文里的对比格局。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig5_perf_vs_baselines.png" alt="GC-SAN 与 SR-GNN 等 baseline 的对比及融合权重消融" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>从图里能读出两件事：</p>
-<ol>
-<li><strong>GC-SAN 相对 SR-GNN 的提升是稳定的，但不算夸张</strong>（Recall 和 MRR 上大约 +1 到 +2 个点）。在图编码器之上加自注意力的边际价值是真实的，但有上限。</li>
-<li><strong>融合权重曲线中间平、两端陡</strong>——这恰恰是一个超参该有的样子：好调、不易翻车。</li>
-</ol>
-<h2 id="8-工程实践要点">8. 工程实践要点</h2>
-<p><strong>alias 映射与批处理。</strong> 会话里有重复物品，要把序列位置映射到去重图上的节点索引。多条会话图一起 batch 是个非平凡的事：要么拼成块对角邻接矩阵，要么用支持批量图操作的库（PyG、RecBole-GNN）。</p>
-<p><strong>复杂度。</strong></p>
-<ul>
-<li>GGNN：每条会话约 $\mathcal{O}(T \cdot |E_s| \cdot d)$，$T$ 是传播步数，$|E_s|$ 是会话图边数。</li>
-<li>自注意力：每条会话 $\mathcal{O}(n^2 d + n d^2)$，关于会话长度 $n$ 是二次。会话推荐里 $n$ 通常很短（往往 $< 50$），二次代价完全可接受。</li>
-</ul>
-<p><strong>会改变行为的关键超参。</strong></p>
-<ul>
-<li><strong>传播步数 $T$</strong>：太小抓不到多跳转移；太大会过平滑。论文默认 $T = 1$。</li>
-<li><strong>自注意力层数 / 头数</strong>：层数多了容量大，但在 Diginetica 这种小数据集上容易过拟合。</li>
-<li><strong>融合权重 $w$</strong>：控制&quot;全局 vs 最后一击&quot;。在验证集上扫一遍即可，最优点通常在 $0.5$ 附近且很平。</li>
-</ul>
-<p><strong>Padding 与 mask。</strong> 自注意力必须 mask 掉 padding 位置，否则梯度会泄漏到无意义的 token 上。这是移植代码时很容易悄无声息退化的一个点。</p>
-<h2 id="9-参考实现简版">9. 参考实现简版</h2>
-<p>下面是 RecBole 风格的最简版本。GGNN 单元复用自 SR-GNN，其余的接线才是 GC-SAN 的真正贡献。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole.model.layers</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole.model.loss</span> <span class="kn">import</span> <span class="n">BPRLoss</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole.model.abstract_recommender</span> <span class="kn">import</span> <span class="n">SequentialRecommender</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">recbole_gnn.model.layers</span> <span class="kn">import</span> <span class="n">SRGNNCell</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GCSAN</span><span class="p">(</span><span class="n">SequentialRecommender</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;GGNN 局部编码 + 自注意力全局编码 + 最后一击/全局融合。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 超参</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;n_layers&#34;</span><span class="p">]</span>                    <span class="c1"># 自注意力层数</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;n_heads&#34;</span><span class="p">]</span>                      <span class="c1"># 注意力头数</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;hidden_size&#34;</span><span class="p">]</span>              <span class="c1"># d</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">inner_size</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;inner_size&#34;</span><span class="p">]</span>                <span class="c1"># FFN 维度</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dropout_prob</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;hidden_dropout_prob&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout_prob</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;attn_dropout_prob&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;step&#34;</span><span class="p">]</span>                            <span class="c1"># GGNN 传播步数 T</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&#34;weight&#34;</span><span class="p">]</span>                        <span class="c1"># 融合权重 w</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 模块</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_items</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                           <span class="n">padding_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gnncell</span> <span class="o">=</span> <span class="n">SRGNNCell</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>            <span class="c1"># SR-GNN 门控 GGNN</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">self_attention</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">n_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">n_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">hidden_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">inner_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inner_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">hidden_dropout_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_dropout_prob</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">attn_dropout_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout_prob</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">loss_fct</span> <span class="o">=</span> <span class="n">BPRLoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">,</span> <span class="n">alias_inputs</span><span class="p">,</span> <span class="n">item_seq_len</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 1. 嵌入会话图中的去重物品</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 2. GGNN 传播 T 步（按会话级别的入/出邻接）</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gnncell</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 3. 把节点状态散布回序列位置</span>
-</span></span><span class="line"><span class="cl">        <span class="n">seq_hidden</span> <span class="o">=</span> <span class="n">hidden</span><span class="p">[</span><span class="n">alias_inputs</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ht</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_indexes</span><span class="p">(</span><span class="n">seq_hidden</span><span class="p">,</span> <span class="n">item_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1"># 最后一击 h_t</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 4. 在图上下文化的序列上跑自注意力栈</span>
-</span></span><span class="line"><span class="cl">        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_attention</span><span class="p">(</span><span class="n">seq_hidden</span><span class="p">,</span> <span class="n">output_all_encoded_layers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">at</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_indexes</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">item_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># 全局 a_t</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 5. 线性融合 s_f = w * a_t + (1 - w) * h_t</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">at</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">ht</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">calculate_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interaction</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">seq_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="s2">&#34;x&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="s2">&#34;edge_index&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="s2">&#34;alias_inputs&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="n">interaction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ITEM_SEQ_LEN</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">interaction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">POS_ITEM_ID</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">neg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">interaction</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">NEG_ITEM_ID</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fct</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">seq_output</span> <span class="o">*</span> <span class="n">pos</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">seq_output</span> <span class="o">*</span> <span class="n">neg</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>几个值得注意的点：</p>
-<ul>
-<li>GGNN 单元是<strong>直接 import 复用</strong>而非重写，再次说明 GC-SAN 主要是接线创新。</li>
-<li><code>gather_indexes</code> 在 <code>item_seq_len - 1</code> 位置取嵌入，拿到的是真正的最后一击，而不是被 padding 撑出的尾部。</li>
-<li><code>self.weight</code> 是 config 里读的固定标量。一个自然的延伸是让它输入相关（在 $h_t \oplus a_t$ 上接一个小 gating MLP），但论文没有展开。</li>
-<li>损失可以在 BPR 和全 softmax 交叉熵之间根据 $|V|$ 大小切换。</li>
-</ul>
-<h2 id="10-什么时候用-gc-san什么时候不用">10. 什么时候用 GC-SAN，什么时候不用</h2>
-<p><strong>适合：</strong></p>
-<ul>
-<li>会话内部有显著的转移结构（回环、重复、相关物品来回跳）。</li>
-<li>会话长度短到中等，$\mathcal{O}(n^2)$ 自注意力代价可接受。</li>
-<li>想要一个把图和序列信号都吃到的强 baseline，且不引入额外基础设施。</li>
-</ul>
-<p><strong>局限和风险：</strong></p>
-<ul>
-<li>自注意力代价随会话长度二次增长。会话特别长就要换线性注意力变体，或者把会话切块。</li>
-<li>建图选择（边权、归一化方式）会悄悄影响结果，改动时记得在小验证集上对照。</li>
-<li>如果物品 metadata 很关键（文本、图像、类目层级），纯 ID 版本的 GC-SAN 没把这些信息吃进去。可以在 GGNN 之前拼接侧信息嵌入，或者切到内容感知变体。</li>
-<li>相对 SR-GNN 的提升真实但不大。如果上不起一层 self-attention，单独的 SR-GNN 也是个不错的起点。</li>
-</ul>
-<h2 id="11-实操总结">11. 实操总结</h2>
-<p>GC-SAN 与其说是巧思，不如说是一份冷静的&quot;两个都用&quot;配方：</p>
-<ul>
-<li><strong>GGNN</strong> 高效抓局部转移和重复——但要够远必须多跳，多跳就过平滑。</li>
-<li><strong>自注意力</strong> 一步抓长距离依赖——但把输入当扁平序列，看不到图结构。</li>
-<li>用一个标量<strong>融合权重</strong> $w$ 把&quot;最后一击&quot;和&quot;全局意图&quot;接起来，且甜区很平。</li>
-</ul>
-<p>放到 2024 年看，GC-SAN 仍然是一个值得对标的 baseline：它能告诉你新模型是不是真的比&quot;图编码器 + Transformer 块&quot;更善于利用会话结构。如果不是，那就少花点算力，先弄清楚瓶颈在哪。</p>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Xu et al., &ldquo;Graph Contextualized Self-Attention Network for Session-based Recommendation,&rdquo; IJCAI 2019. <a href="https://www.ijcai.org/proceedings/2019/0547.pdf" target="_blank" rel="noopener noreferrer">论文 PDF <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Wu et al., &ldquo;Session-based Recommendation with Graph Neural Networks (SR-GNN),&rdquo; AAAI 2019.</li>
-<li>Hidasi et al., &ldquo;Session-based Recommendations with Recurrent Neural Networks (GRU4Rec),&rdquo; ICLR 2016.</li>
-<li>Li et al., &ldquo;Neural Attentive Session-based Recommendation (NARM),&rdquo; CIKM 2017.</li>
-<li>Liu et al., &ldquo;STAMP: Short-Term Attention/Memory Priority Model for Session-based Recommendation,&rdquo; KDD 2018.</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#预备知识">预备知识</a></li>
-    <li><a href="#1-问题设定与困难来源">1. 问题设定与困难来源</a></li>
-    <li><a href="#2-gc-san-在已有工作中的位置">2. GC-SAN 在已有工作中的位置</a></li>
-    <li><a href="#3-会话图的构建">3. 会话图的构建</a></li>
-    <li><a href="#4-局部编码器会话图上的-ggnn">4. 局部编码器：会话图上的 GGNN</a></li>
-    <li><a href="#5-全局编码器会话上的自注意力">5. 全局编码器：会话上的自注意力</a></li>
-    <li><a href="#6-融合最后一击-vs-全局意图">6. 融合：最后一击 vs 全局意图</a></li>
-    <li><a href="#7-训练与评估">7. 训练与评估</a></li>
-    <li><a href="#8-工程实践要点">8. 工程实践要点</a></li>
-    <li><a href="#9-参考实现简版">9. 参考实现简版</a></li>
-    <li><a href="#10-什么时候用-gc-san什么时候不用">10. 什么时候用 GC-SAN，什么时候不用</a></li>
-    <li><a href="#11-实操总结">11. 实操总结</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
-      <div class="row"><span>Word count</span><strong>4500</strong></div>
-      <div class="row"><span>Published</span><strong>Dec 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>其中 $i$ 是正样本（被点击），$j$ 是采样的负样本。BPR 适合隐式反馈场景，它直接优化"用户对正样本的偏好高于负样本"这一相对关系，不需要绝对评分。</p><p>标准 benchmark 是 <strong>Yoochoose1/64</strong> 和 <strong>Diginetica</strong>，报 <strong>Recall@20</strong> 与 <strong>MRR@20</strong>。图 5 复现了论文里的对比格局。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/graph-contextualized-self-attention-network-for-session-base/fig5_perf_vs_baselines.png alt="GC-SAN 与 SR-GNN 等 baseline 的对比及融合权重消融" loading=lazy decoding=async></figure></p><p>从图里能读出两件事：</p><ol><li><strong>GC-SAN 相对 SR-GNN 的提升是稳定的，但不算夸张</strong>（Recall 和 MRR 上大约 +1 到 +2 个点）。在图编码器之上加自注意力的边际价值是真实的，但有上限。</li><li><strong>融合权重曲线中间平、两端陡</strong>——这恰恰是一个超参该有的样子：好调、不易翻车。</li></ol><h2 id=8-工程实践要点>8. 工程实践要点</h2><p><strong>alias 映射与批处理。</strong> 会话里有重复物品，要把序列位置映射到去重图上的节点索引。多条会话图一起 batch 是个非平凡的事：要么拼成块对角邻接矩阵，要么用支持批量图操作的库（PyG、RecBole-GNN）。</p><p><strong>复杂度。</strong></p><ul><li>GGNN：每条会话约 $\mathcal{O}(T \cdot |E_s| \cdot d)$，$T$ 是传播步数，$|E_s|$ 是会话图边数。</li><li>自注意力：每条会话 $\mathcal{O}(n^2 d + n d^2)$，关于会话长度 $n$ 是二次。会话推荐里 $n$ 通常很短（往往 $< 50$），二次代价完全可接受。</li></ul><p><strong>会改变行为的关键超参。</strong></p><ul><li><strong>传播步数 $T$</strong>：太小抓不到多跳转移；太大会过平滑。论文默认 $T = 1$。</li><li><strong>自注意力层数 / 头数</strong>：层数多了容量大，但在 Diginetica 这种小数据集上容易过拟合。</li><li><strong>融合权重 $w$</strong>：控制"全局 vs 最后一击"。在验证集上扫一遍即可，最优点通常在 $0.5$ 附近且很平。</li></ul><p><strong>Padding 与 mask。</strong> 自注意力必须 mask 掉 padding 位置，否则梯度会泄漏到无意义的 token 上。这是移植代码时很容易悄无声息退化的一个点。</p><h2 id=9-参考实现简版>9. 参考实现简版</h2><p>下面是 RecBole 风格的最简版本。GGNN 单元复用自 SR-GNN，其余的接线才是 GC-SAN 的真正贡献。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch</span> <span class=kn>import</span> <span class=n>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>recbole.model.layers</span> <span class=kn>import</span> <span class=n>TransformerEncoder</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>recbole.model.loss</span> <span class=kn>import</span> <span class=n>BPRLoss</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>recbole.model.abstract_recommender</span> <span class=kn>import</span> <span class=n>SequentialRecommender</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>recbole_gnn.model.layers</span> <span class=kn>import</span> <span class=n>SRGNNCell</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>GCSAN</span><span class=p>(</span><span class=n>SequentialRecommender</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;GGNN 局部编码 + 自注意力全局编码 + 最后一击/全局融合。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>config</span><span class=p>,</span> <span class=n>dataset</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>config</span><span class=p>,</span> <span class=n>dataset</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 超参</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_layers</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;n_layers&#34;</span><span class=p>]</span>                    <span class=c1># 自注意力层数</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_heads</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;n_heads&#34;</span><span class=p>]</span>                      <span class=c1># 注意力头数</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;hidden_size&#34;</span><span class=p>]</span>              <span class=c1># d</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>inner_size</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;inner_size&#34;</span><span class=p>]</span>                <span class=c1># FFN 维度</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hidden_dropout_prob</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;hidden_dropout_prob&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>attn_dropout_prob</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;attn_dropout_prob&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>step</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;step&#34;</span><span class=p>]</span>                            <span class=c1># GGNN 传播步数 T</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>weight</span> <span class=o>=</span> <span class=n>config</span><span class=p>[</span><span class=s2>&#34;weight&#34;</span><span class=p>]</span>                        <span class=c1># 融合权重 w</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 模块</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>item_embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n_items</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                           <span class=n>padding_idx</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>gnncell</span> <span class=o>=</span> <span class=n>SRGNNCell</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>)</span>            <span class=c1># SR-GNN 门控 GGNN</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>self_attention</span> <span class=o>=</span> <span class=n>TransformerEncoder</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>n_layers</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>n_layers</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>n_heads</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>n_heads</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>hidden_size</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>inner_size</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>inner_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>hidden_dropout_prob</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>hidden_dropout_prob</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>attn_dropout_prob</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>attn_dropout_prob</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>loss_fct</span> <span class=o>=</span> <span class=n>BPRLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>edge_index</span><span class=p>,</span> <span class=n>alias_inputs</span><span class=p>,</span> <span class=n>item_seq_len</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 1. 嵌入会话图中的去重物品</span>
+</span></span><span class=line><span class=cl>        <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_embedding</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 2. GGNN 传播 T 步（按会话级别的入/出邻接）</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>step</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>gnncell</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>edge_index</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 3. 把节点状态散布回序列位置</span>
+</span></span><span class=line><span class=cl>        <span class=n>seq_hidden</span> <span class=o>=</span> <span class=n>hidden</span><span class=p>[</span><span class=n>alias_inputs</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>ht</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>gather_indexes</span><span class=p>(</span><span class=n>seq_hidden</span><span class=p>,</span> <span class=n>item_seq_len</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>   <span class=c1># 最后一击 h_t</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 4. 在图上下文化的序列上跑自注意力栈</span>
+</span></span><span class=line><span class=cl>        <span class=n>outputs</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>self_attention</span><span class=p>(</span><span class=n>seq_hidden</span><span class=p>,</span> <span class=n>output_all_encoded_layers</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>at</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>gather_indexes</span><span class=p>(</span><span class=n>outputs</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>],</span> <span class=n>item_seq_len</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>  <span class=c1># 全局 a_t</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 5. 线性融合 s_f = w * a_t + (1 - w) * h_t</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>weight</span> <span class=o>*</span> <span class=n>at</span> <span class=o>+</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>weight</span><span class=p>)</span> <span class=o>*</span> <span class=n>ht</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>calculate_loss</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>interaction</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>seq_output</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>forward</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>interaction</span><span class=p>[</span><span class=s2>&#34;x&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=n>interaction</span><span class=p>[</span><span class=s2>&#34;edge_index&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=n>interaction</span><span class=p>[</span><span class=s2>&#34;alias_inputs&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=n>interaction</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>ITEM_SEQ_LEN</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pos</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_embedding</span><span class=p>(</span><span class=n>interaction</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>POS_ITEM_ID</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>neg</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>item_embedding</span><span class=p>(</span><span class=n>interaction</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>NEG_ITEM_ID</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>loss_fct</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>seq_output</span> <span class=o>*</span> <span class=n>pos</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>seq_output</span> <span class=o>*</span> <span class=n>neg</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>几个值得注意的点：</p><ul><li>GGNN 单元是<strong>直接 import 复用</strong>而非重写，再次说明 GC-SAN 主要是接线创新。</li><li><code>gather_indexes</code> 在 <code>item_seq_len - 1</code> 位置取嵌入，拿到的是真正的最后一击，而不是被 padding 撑出的尾部。</li><li><code>self.weight</code> 是 config 里读的固定标量。一个自然的延伸是让它输入相关（在 $h_t \oplus a_t$ 上接一个小 gating MLP），但论文没有展开。</li><li>损失可以在 BPR 和全 softmax 交叉熵之间根据 $|V|$ 大小切换。</li></ul><h2 id=10-什么时候用-gc-san什么时候不用>10. 什么时候用 GC-SAN，什么时候不用</h2><p><strong>适合：</strong></p><ul><li>会话内部有显著的转移结构（回环、重复、相关物品来回跳）。</li><li>会话长度短到中等，$\mathcal{O}(n^2)$ 自注意力代价可接受。</li><li>想要一个把图和序列信号都吃到的强 baseline，且不引入额外基础设施。</li></ul><p><strong>局限和风险：</strong></p><ul><li>自注意力代价随会话长度二次增长。会话特别长就要换线性注意力变体，或者把会话切块。</li><li>建图选择（边权、归一化方式）会悄悄影响结果，改动时记得在小验证集上对照。</li><li>如果物品 metadata 很关键（文本、图像、类目层级），纯 ID 版本的 GC-SAN 没把这些信息吃进去。可以在 GGNN 之前拼接侧信息嵌入，或者切到内容感知变体。</li><li>相对 SR-GNN 的提升真实但不大。如果上不起一层 self-attention，单独的 SR-GNN 也是个不错的起点。</li></ul><h2 id=11-实操总结>11. 实操总结</h2><p>GC-SAN 与其说是巧思，不如说是一份冷静的"两个都用"配方：</p><ul><li><strong>GGNN</strong> 高效抓局部转移和重复——但要够远必须多跳，多跳就过平滑。</li><li><strong>自注意力</strong> 一步抓长距离依赖——但把输入当扁平序列，看不到图结构。</li><li>用一个标量<strong>融合权重</strong> $w$ 把"最后一击"和"全局意图"接起来，且甜区很平。</li></ul><p>放到 2024 年看，GC-SAN 仍然是一个值得对标的 baseline：它能告诉你新模型是不是真的比"图编码器 + Transformer 块"更善于利用会话结构。如果不是，那就少花点算力，先弄清楚瓶颈在哪。</p><h2 id=参考文献>参考文献</h2><ul><li>Xu et al., &ldquo;Graph Contextualized Self-Attention Network for Session-based Recommendation,&rdquo; IJCAI 2019. <a href=https://www.ijcai.org/proceedings/2019/0547.pdf target=_blank rel="noopener noreferrer">论文 PDF <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Wu et al., &ldquo;Session-based Recommendation with Graph Neural Networks (SR-GNN),&rdquo; AAAI 2019.</li><li>Hidasi et al., &ldquo;Session-based Recommendations with Recurrent Neural Networks (GRU4Rec),&rdquo; ICLR 2016.</li><li>Li et al., &ldquo;Neural Attentive Session-based Recommendation (NARM),&rdquo; CIKM 2017.</li><li>Liu et al., &ldquo;STAMP: Short-Term Attention/Memory Priority Model for Session-based Recommendation,&rdquo; KDD 2018.</li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#预备知识>预备知识</a></li><li><a href=#1-问题设定与困难来源>1. 问题设定与困难来源</a></li><li><a href=#2-gc-san-在已有工作中的位置>2. GC-SAN 在已有工作中的位置</a></li><li><a href=#3-会话图的构建>3. 会话图的构建</a></li><li><a href=#4-局部编码器会话图上的-ggnn>4. 局部编码器：会话图上的 GGNN</a></li><li><a href=#5-全局编码器会话上的自注意力>5. 全局编码器：会话上的自注意力</a></li><li><a href=#6-融合最后一击-vs-全局意图>6. 融合：最后一击 vs 全局意图</a></li><li><a href=#7-训练与评估>7. 训练与评估</a></li><li><a href=#8-工程实践要点>8. 工程实践要点</a></li><li><a href=#9-参考实现简版>9. 参考实现简版</a></li><li><a href=#10-什么时候用-gc-san什么时候不用>10. 什么时候用 GC-SAN，什么时候不用</a></li><li><a href=#11-实操总结>11. 实操总结</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>9 min</strong></div><div class=row><span>Word count</span><strong>4444</strong></div><div class=row><span>Published</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

@@ -1,937 +1,481 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>LeetCode（四）—— 滑动窗口技巧 · Chen Kai Blog</title>
-<meta name="description" content="如果你写过两层 for 循环去枚举所有连续子数组，那么滑动窗口多半就是你缺的那一步优化。它把 $O(nk)$ 或 $O(n^2)$ 的暴力枚举压成线性的一遍扫描，关键就在于&quot;复用上一步算出来的东西&quot;。本文从最朴素的直觉出发，先讲清楚思路，再用四道高频 LeetCode 题目把套路彻底落地，最后再补一个单调队列的进阶用法。
-">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="LeetCode（四）—— 滑动窗口技巧">
-<meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。">
-<meta property="og:url" content="https://www.chenk.top/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-         · Chapter 4
-      </div>
-      <h1>LeetCode（四）—— 滑动窗口技巧</h1>
-      
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2022-06-15">June 15, 2022</time> · 9 min read · 4500 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/leetcode/" class="tag">#LeetCode</a><a href="/zh/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2/" class="tag">#字符串</a><a href="/zh/tags/%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3/" class="tag">#滑动窗口</a><a href="/zh/tags/%E7%AE%97%E6%B3%95/" class="tag">#算法</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>如果你写过两层 <code>for</code> 循环去枚举所有连续子数组，那么<strong>滑动窗口</strong>多半就是你缺的那一步优化。它把 $O(nk)$ 或 $O(n^2)$ 的暴力枚举压成线性的一遍扫描，关键就在于&quot;复用上一步算出来的东西&quot;。本文从最朴素的直觉出发，先讲清楚思路，再用四道高频 LeetCode 题目把套路彻底落地，最后再补一个单调队列的进阶用法。</p>
-<h2 id="1-一图看懂滑动窗口">1. 一图看懂滑动窗口</h2>
-<p>滑动窗口本质上是数组或字符串上的一段连续区间 <code>[left, right]</code>。窗口移动的时候，我们不重新计算整个区间，而是<strong>把右边新进来的元素加进去、把左边离开的元素拿出来</strong>，每个元素最多被处理两次，整体是 $O(n)$。</p>
-<p>按窗口大小是否变化，可以分成两类：</p>
-<ul>
-<li><strong>固定窗口</strong>——宽度固定为 <code>k</code>，左右指针同步前进。</li>
-<li><strong>可变窗口</strong>——<code>right</code> 主动扩张，<code>left</code> 在窗口&quot;违反约束&quot;时被动收缩。</li>
-</ul>
-<p>下面这张图展示了固定窗口求最大子数组和：绿色是当前窗口，橙色是即将进入的元素，粉色是即将离开的元素。右侧的算式说明每次只做一次加法和一次减法，这就是滑动窗口的全部秘密。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig1_fixed_window.png" alt="固定窗口：求大小为 k 的最大子数组和" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="2-固定窗口大小为-k-的最大子数组和">2. 固定窗口：大小为 k 的最大子数组和</h2>
-<p><strong>题目</strong>：给定数组 <code>arr</code> 和整数 <code>k</code>，求所有长度为 <code>k</code> 的连续子数组中和最大的那个。</p>
-<p><strong>朴素做法</strong>：枚举每个长度为 <code>k</code> 的切片再求和，复杂度 $O(nk)$。</p>
-<p><strong>滑动窗口</strong>：先算第一个窗口的和，之后每滑一格只做&quot;减去离开者，加上进入者&quot;。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">max_sum_subarray</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;求长度为 k 的连续子数组的最大和。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">window_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">arr</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span>     <span class="c1"># 第一个窗口</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="n">window_sum</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 进入：arr[right]   离开：arr[right - k]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">window_sum</span> <span class="o">+=</span> <span class="n">arr</span><span class="p">[</span><span class="n">right</span><span class="p">]</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="n">right</span> <span class="o">-</span> <span class="n">k</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">window_sum</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Java 版本</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">maxSumSubarray</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">arr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">arr</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">MIN_VALUE</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">windowSum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="n">windowSum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">arr</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">best</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">windowSum</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">arr</span><span class="p">.</span><span class="na">length</span><span class="p">;</span><span class="w"> </span><span class="n">right</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">windowSum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">arr</span><span class="o">[</span><span class="n">right</span><span class="o">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">arr</span><span class="o">[</span><span class="n">right</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">k</span><span class="o">]</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">best</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span><span class="w"> </span><span class="n">windowSum</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">best</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>复杂度</strong>：时间 $O(n)$，每滑一步只做常数次加减；空间 $O(1)$。</p>
-<p><strong>为什么能这么省？</strong> 窗口的&quot;和&quot;只依赖窗口里的元素集合。当窗口右移一格，集合的变化恰好是&quot;删一个、加一个&quot;，所以只要把这两个变化量叠加就行了。这种<strong>增量更新</strong>的思路也适用于计数、频率表，乃至单调队列（见第 6 节）。</p>
-<h2 id="3-可变窗口的两种姿势">3. 可变窗口的两种姿势</h2>
-<p>如果窗口大小不固定，就要靠两个指针配合：</p>
-<ul>
-<li><strong>求最长合法窗口</strong>：<code>right</code> 一路向右扩张；一旦窗口违反约束，就把 <code>left</code> 往右挪到重新合法为止，期间记录最大长度。</li>
-<li><strong>求最短合法窗口</strong>：<code>right</code> 扩到窗口刚好满足条件后，<code>left</code> 尽量往右挤，看看能不能更短，每次收缩时更新答案。</li>
-</ul>
-<p>下图追踪了&quot;无重复字符的最长子串&quot;在 <code>&quot;abcabcbb&quot;</code> 上的运行过程：绿色表示窗口合法、橙色括号是当前 <code>[L, R]</code>，粉色表示检测到重复，紫色表示正在收缩。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig2_variable_window.png" alt="可变窗口：无重复字符的最长子串" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>下面这张图把窗口长度随迭代步数的变化画了出来，绿色背景是扩张阶段，紫色是收缩阶段。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig3_expand_contract.png" alt="窗口长度随时间变化" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>最关键的不变量是：<strong><code>left</code> 永远只往右走，绝不回头</strong>。所以即使外层 <code>for</code> 套着内层 <code>while</code>，整个内层在全程里跑过的总步数也最多 $n$，这就是滑动窗口&quot;摊还 $O(n)$&ldquo;的根据。</p>
-<h2 id="4-leetcode-3无重复字符的最长子串">4. LeetCode 3：无重复字符的最长子串</h2>
-<p><strong>题目</strong>：给定字符串 <code>s</code>，求其中无重复字符的最长子串的长度。</p>
-<p><strong>套路</strong>：可变窗口、求最长。约束是&quot;窗口内字符全部不同&rdquo;。当 <code>s[right]</code> 已经在窗口里时，把 <code>left</code> 直接跳到上一次出现位置的下一格。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">length_of_longest_substring</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LeetCode 3：无重复字符的最长子串。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">last_seen</span> <span class="o">=</span> <span class="p">{}</span>        <span class="c1"># 字符 -&gt; 最近一次出现的下标</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">last_seen</span> <span class="ow">and</span> <span class="n">last_seen</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">left</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># 跳过上一次出现位置，O(1) 完成收缩</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">=</span> <span class="n">last_seen</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="n">last_seen</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">=</span> <span class="n">right</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">right</span> <span class="o">-</span> <span class="n">left</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Java 版本</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">lengthOfLongestSubstring</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">Character</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lastSeen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">best</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="na">length</span><span class="p">();</span><span class="w"> </span><span class="n">right</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">right</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lastSeen</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">lastSeen</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">left</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lastSeen</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">lastSeen</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">best</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">best</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>复杂度</strong>：时间 $O(n)$，每个字符最多被插入和移出哈希表各一次；空间 $O(\min(n, |\Sigma|))$，$|\Sigma|$ 是字符集大小。</p>
-<p><strong>两种写法</strong>：上面这版是&quot;跳跃式收缩&quot;——<code>left</code> 一步跳过去；另一种&quot;步进式收缩&quot;是用频次表配 <code>while count[s[right]] &gt; 1: drop(s[left]); left += 1</code>。两者都是 $O(n)$，跳跃版代码短，步进版的好处是更容易扩展到&quot;最多包含 k 种字符&quot;那类变体。</p>
-<h2 id="5-leetcode-76最小覆盖子串">5. LeetCode 76：最小覆盖子串</h2>
-<p><strong>题目</strong>：给定字符串 <code>s</code> 和 <code>t</code>，返回 <code>s</code> 中能覆盖 <code>t</code> 所有字符（含重数）的最短子串；不存在则返回 <code>&quot;&quot;</code>。</p>
-<p><strong>套路</strong>：可变窗口、求最短。约束是&quot;窗口内每个目标字符的出现次数都达标&quot;。先扩到合法，再尽力收缩。</p>
-<p>判断窗口是否合法时，最干净的办法是维护一个 <code>valid</code> 计数器：表示当前有多少种目标字符的出现次数已经&quot;达标&quot;。当 <code>valid == len(need)</code> 时整个窗口就合法了，避免了每一步都比对两个哈希表。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">min_window</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LeetCode 76：覆盖 t 所有字符的最短子串。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">t</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">need</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">have</span> <span class="o">=</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">    <span class="n">valid</span> <span class="o">=</span> <span class="mi">0</span>                     <span class="c1"># 已达标的字符种类数</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best_len</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best_start</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">need</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">have</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">=</span> <span class="n">have</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ch</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">have</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="o">==</span> <span class="n">need</span><span class="p">[</span><span class="n">ch</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">valid</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 窗口合法时尝试收缩</span>
-</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="n">valid</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">need</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">right</span> <span class="o">-</span> <span class="n">left</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">best_len</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">best_len</span> <span class="o">=</span> <span class="n">right</span> <span class="o">-</span> <span class="n">left</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">                <span class="n">best_start</span> <span class="o">=</span> <span class="n">left</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">drop</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">left</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">drop</span> <span class="ow">in</span> <span class="n">need</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">have</span><span class="p">[</span><span class="n">drop</span><span class="p">]</span> <span class="o">==</span> <span class="n">need</span><span class="p">[</span><span class="n">drop</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">valid</span> <span class="o">-=</span> <span class="mi">1</span>            <span class="c1"># 收缩之后即将失衡</span>
-</span></span><span class="line"><span class="cl">                <span class="n">have</span><span class="p">[</span><span class="n">drop</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;&#34;</span> <span class="k">if</span> <span class="n">best_len</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span><span class="p">[</span><span class="n">best_start</span><span class="p">:</span><span class="n">best_start</span> <span class="o">+</span> <span class="n">best_len</span><span class="p">]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Java 版本</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">minWindow</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="na">length</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="na">length</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">Character</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">need</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="na">toCharArray</span><span class="p">())</span><span class="w"> </span><span class="n">need</span><span class="p">.</span><span class="na">merge</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">1</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="p">::</span><span class="n">sum</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">Character</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">have</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">valid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">bestLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">MAX_VALUE</span><span class="p">,</span><span class="w"> </span><span class="n">bestStart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="na">length</span><span class="p">();</span><span class="w"> </span><span class="n">right</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">right</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">need</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="n">c</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">have</span><span class="p">.</span><span class="na">merge</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">1</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="p">::</span><span class="n">sum</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">have</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">c</span><span class="p">).</span><span class="na">intValue</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">c</span><span class="p">).</span><span class="na">intValue</span><span class="p">())</span><span class="w"> </span><span class="n">valid</span><span class="o">++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">valid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="p">.</span><span class="na">size</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">right</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">bestLen</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">bestLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">bestStart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">left</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="kt">char</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">left</span><span class="o">++</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">need</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="n">d</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">have</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">d</span><span class="p">).</span><span class="na">intValue</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">d</span><span class="p">).</span><span class="na">intValue</span><span class="p">())</span><span class="w"> </span><span class="n">valid</span><span class="o">--</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">have</span><span class="p">.</span><span class="na">merge</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">1</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="p">::</span><span class="n">sum</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">bestLen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">MAX_VALUE</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">bestStart</span><span class="p">,</span><span class="w"> </span><span class="n">bestStart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bestLen</span><span class="p">);</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>复杂度</strong>：时间 $O(|s| + |t|)$，两个指针都是单调推进；空间 $O(|\Sigma|)$。</p>
-<p><strong>容易写错的地方</strong>是这一行：<code>if have[drop] == need[drop]: valid -= 1</code>。我们要在 <code>have</code> 真的减下去之前判断&quot;现在恰好达标，移走一个就要失衡了&quot;，所以判断必须在自减之前。顺序写反，<code>valid</code> 就会跟实际窗口对不上。</p>
-<h2 id="6-leetcode-567字符串的排列">6. LeetCode 567：字符串的排列</h2>
-<p><strong>题目</strong>：判断 <code>s2</code> 中是否存在某个子串是 <code>s1</code> 的一个排列。</p>
-<p><strong>套路</strong>：长度为 <code>len(s1)</code> 的固定窗口。两个字符串互为排列当且仅当字符频率向量相同，所以只要在 <code>s2</code> 上维护一个长度 26 的频率数组，跟 <code>s1</code> 的频率数组比较就行。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">check_inclusion</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LeetCode 567：s2 是否包含 s1 的某个排列？&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">s1</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">m</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">need</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">26</span>
-</span></span><span class="line"><span class="cl">    <span class="n">have</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">26</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s1</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">need</span><span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s2</span><span class="p">[:</span><span class="n">n</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">have</span><span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 当前 26 个桶里有几个对得上</span>
-</span></span><span class="line"><span class="cl">    <span class="n">matches</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">26</span><span class="p">)</span> <span class="k">if</span> <span class="n">need</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">have</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">matches</span> <span class="o">==</span> <span class="mi">26</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">s2</span><span class="p">[</span><span class="n">right</span><span class="p">])</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">l</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">s2</span><span class="p">[</span><span class="n">right</span> <span class="o">-</span> <span class="n">n</span><span class="p">])</span> <span class="o">-</span> <span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 右边新元素进入</span>
-</span></span><span class="line"><span class="cl">        <span class="n">have</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">have</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">==</span> <span class="n">need</span><span class="p">[</span><span class="n">r</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">matches</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">have</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">==</span> <span class="n">need</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">matches</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 左边旧元素离开</span>
-</span></span><span class="line"><span class="cl">        <span class="n">have</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">have</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">==</span> <span class="n">need</span><span class="p">[</span><span class="n">l</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">matches</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">have</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">==</span> <span class="n">need</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">matches</span> <span class="o">-=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">matches</span> <span class="o">==</span> <span class="mi">26</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Java 版本</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">checkInclusion</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">s1</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">s2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s1</span><span class="p">.</span><span class="na">length</span><span class="p">(),</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s2</span><span class="p">.</span><span class="na">length</span><span class="p">();</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">need</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">26</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="n">have</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">26</span><span class="o">]</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">need</span><span class="o">[</span><span class="n">s1</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="o">]++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">have</span><span class="o">[</span><span class="n">s2</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="o">]++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">matches</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">26</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">need</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">have</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="n">matches</span><span class="o">++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">m</span><span class="p">;</span><span class="w"> </span><span class="n">right</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">matches</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">26</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s2</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">right</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s2</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">right</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">have</span><span class="o">[</span><span class="n">r</span><span class="o">]++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">have</span><span class="o">[</span><span class="n">r</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="o">[</span><span class="n">r</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="n">matches</span><span class="o">++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">have</span><span class="o">[</span><span class="n">r</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="o">[</span><span class="n">r</span><span class="o">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="n">matches</span><span class="o">--</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">have</span><span class="o">[</span><span class="n">l</span><span class="o">]--</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">have</span><span class="o">[</span><span class="n">l</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="o">[</span><span class="n">l</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="n">matches</span><span class="o">++</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">have</span><span class="o">[</span><span class="n">l</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">need</span><span class="o">[</span><span class="n">l</span><span class="o">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="n">matches</span><span class="o">--</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">matches</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">26</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>复杂度</strong>：时间 $O(m)$，靠 <code>matches</code> 计数器把&quot;比较两个频率数组&quot;的 $O(26)$ 也省掉了；空间 $O(1)$。</p>
-<p>**LeetCode 438（找到所有字母异位词）**完全可以套这个模板，只是把&quot;提前返回&quot;换成&quot;收集起始下标&quot;。</p>
-<h2 id="7-进阶变体滑动窗口最大值单调队列">7. 进阶变体：滑动窗口最大值（单调队列）</h2>
-<p>当窗口要查询的不是和、不是计数，而是<strong>窗口内的最大值或最小值</strong>时，简单的&quot;加一个、减一个&quot;就不够用了——因为移除当前最大值后，下一个最大值在哪里我们并不知道。这时的标准做法是<strong>单调队列</strong>：队列里的元素按值严格递减，队首始终是当前窗口的最大值。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig4_deque_max.png" alt="单调队列求滑动窗口最大值" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">max_sliding_window</span><span class="p">(</span><span class="n">nums</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LeetCode 239：每个长度为 k 的窗口的最大值。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">dq</span> <span class="o">=</span> <span class="n">deque</span><span class="p">()</span>      <span class="c1"># 存下标；对应的值在 nums 上严格递减</span>
-</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nums</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 1. 把队尾比 x 小的全部踢掉——它们不可能再当最大值了</span>
-</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="n">dq</span> <span class="ow">and</span> <span class="n">nums</span><span class="p">[</span><span class="n">dq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">&lt;</span> <span class="n">x</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dq</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 2. 队首如果已经滑出窗口，弹掉</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">dq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">k</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dq</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 3. 窗口够大时，队首就是答案</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nums</span><span class="p">[</span><span class="n">dq</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">out</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>每个下标至多入队、出队各一次，整体仍是 $O(n)$。</p>
-<h2 id="8-什么时候用滑动窗口">8. 什么时候用滑动窗口</h2>
-<p>下面这棵决策树总结了&quot;什么形状的问题该用滑动窗口的哪种姿势&quot;：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig5_decision_tree.png" alt="滑动窗口适用场景决策树" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>满足下列三条时，优先考虑滑动窗口：</p>
-<ol>
-<li>答案是某段<strong>连续区间</strong>（子数组、子串）。</li>
-<li>区间属性可以<strong>增量维护</strong>——窗口移动一格只需做常数次操作（如累加和、计数表、单调队列）。</li>
-<li>目标要么是<strong>固定大小</strong>（<code>k</code>），要么是<strong>最长 / 最短的合法区间</strong>。</li>
-</ol>
-<p>如果不连续、需要全局信息、或者要任意撤销操作，那就别强行套滑动窗口，换前缀和、双指针、动态规划或堆才是正解。</p>
-<h2 id="9-三套值得背下来的模板">9. 三套值得背下来的模板</h2>
-<p><strong>固定窗口</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">fixed_window</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">state</span> <span class="o">=</span> <span class="n">init_state</span><span class="p">(</span><span class="n">arr</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span>           <span class="c1"># 例如和、频次表</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="n">report</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">right</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">remove</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">right</span> <span class="o">-</span> <span class="n">k</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="n">better</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">report</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>可变窗口——求最长合法</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">longest_valid</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="n">state</span> <span class="o">=</span> <span class="n">empty_state</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="ow">not</span> <span class="n">is_valid</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">state</span> <span class="o">=</span> <span class="n">remove</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">left</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">right</span> <span class="o">-</span> <span class="n">left</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>可变窗口——求最短合法</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">shortest_valid</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">left</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="n">state</span> <span class="o">=</span> <span class="n">empty_state</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">right</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">while</span> <span class="n">is_valid</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">best</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">right</span> <span class="o">-</span> <span class="n">left</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">state</span> <span class="o">=</span> <span class="n">remove</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">arr</span><span class="p">[</span><span class="n">left</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">            <span class="n">left</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">best</span> <span class="k">if</span> <span class="n">best</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="10-常见陷阱">10. 常见陷阱</h2>
-<ul>
-<li><strong>窗口长度差一</strong>：长度是 <code>right - left + 1</code>，不是 <code>right - left</code>。</li>
-<li><strong><code>valid</code> 更新时机搞反</strong>：<code>have[c]</code> <strong>首次</strong>等于 <code>need[c]</code> 时 <code>valid += 1</code>；<strong>即将</strong>跌破时 <code>valid -= 1</code>。先减计数还是先判断，差一步计数器就乱了。</li>
-<li><strong>用 <code>list.pop(0)</code> 维护固定窗口</strong>：那是 $O(k)$ 的操作。请用 <code>collections.deque</code> 或者直接靠下标，保持 $O(1)$。</li>
-<li><strong>每次都重新计算窗口</strong>：滑动窗口的全部价值就在于增量更新；只要内层还在扫整个窗口，渐进复杂度就退回去了。</li>
-<li><strong>&ldquo;和 ≥ target&rdquo; 遇到负数</strong>：收缩时和不一定下降，&ldquo;求最短&quot;模板会失效。这时考虑前缀和 + 单调队列，或者换思路。</li>
-</ul>
-<h2 id="11-推荐练习题清单">11. 推荐练习题清单</h2>
-<table>
-  <thead>
-      <tr>
-          <th>难度</th>
-          <th>题号与名称</th>
-          <th>适用模板</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>简单</td>
-          <td>LC 643 子数组最大平均数 I</td>
-          <td>固定窗口</td>
-      </tr>
-      <tr>
-          <td>简单</td>
-          <td>LC 1456 定长子串中元音的最大数目</td>
-          <td>固定窗口</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 3 无重复字符的最长子串</td>
-          <td>求最长</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 159 / 340 至多包含 K 个不同字符的最长子串</td>
-          <td>求最长</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 209 长度最小的子数组</td>
-          <td>求最短</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 424 替换后的最长重复字符</td>
-          <td>求最长</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 567 字符串的排列</td>
-          <td>固定窗口</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 438 找到字符串中所有字母异位词</td>
-          <td>固定窗口</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 713 乘积小于 K 的子数组</td>
-          <td>求最长</td>
-      </tr>
-      <tr>
-          <td>中等</td>
-          <td>LC 1004 最大连续 1 的个数 III</td>
-          <td>求最长</td>
-      </tr>
-      <tr>
-          <td>困难</td>
-          <td>LC 76 最小覆盖子串</td>
-          <td>求最短</td>
-      </tr>
-      <tr>
-          <td>困难</td>
-          <td>LC 239 滑动窗口最大值</td>
-          <td>单调队列</td>
-      </tr>
-      <tr>
-          <td>困难</td>
-          <td>LC 30 串联所有单词的子串</td>
-          <td>固定窗口 + 哈希</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="12-总结">12. 总结</h2>
-<p>滑动窗口的本质是一个<strong>摊还分析</strong>：与其每个窗口都从头算一遍，不如维护一小块状态，让它随着边界推进做增量更新。两个指针都单调右移，于是把暴力的 $O(n^2)$ 压到 $O(n)$。</p>
-<p>碰到连续区间题时，给自己问四个问题：</p>
-<ol>
-<li>窗口大小是<strong>固定</strong>还是<strong>可变</strong>？</li>
-<li>如果可变，是求<strong>最长</strong>合法窗口，还是<strong>最短</strong>合法窗口？</li>
-<li>我要维护什么<strong>状态</strong>——和、频次表，还是单调队列？</li>
-<li>什么是窗口的<strong>不变量</strong>，谁的移动会破坏它？</li>
-</ol>
-<p>这四个问题想清楚了，绝大多数滑动窗口题就只剩下&quot;往模板里填空&quot;的工作。</p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#1-一图看懂滑动窗口">1. 一图看懂滑动窗口</a></li>
-    <li><a href="#2-固定窗口大小为-k-的最大子数组和">2. 固定窗口：大小为 k 的最大子数组和</a></li>
-    <li><a href="#3-可变窗口的两种姿势">3. 可变窗口的两种姿势</a></li>
-    <li><a href="#4-leetcode-3无重复字符的最长子串">4. LeetCode 3：无重复字符的最长子串</a></li>
-    <li><a href="#5-leetcode-76最小覆盖子串">5. LeetCode 76：最小覆盖子串</a></li>
-    <li><a href="#6-leetcode-567字符串的排列">6. LeetCode 567：字符串的排列</a></li>
-    <li><a href="#7-进阶变体滑动窗口最大值单调队列">7. 进阶变体：滑动窗口最大值（单调队列）</a></li>
-    <li><a href="#8-什么时候用滑动窗口">8. 什么时候用滑动窗口</a></li>
-    <li><a href="#9-三套值得背下来的模板">9. 三套值得背下来的模板</a></li>
-    <li><a href="#10-常见陷阱">10. 常见陷阱</a></li>
-    <li><a href="#11-推荐练习题清单">11. 推荐练习题清单</a></li>
-    <li><a href="#12-总结">12. 总结</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
-      <div class="row"><span>Word count</span><strong>4500</strong></div>
-      <div class="row"><span>Published</span><strong>Jun 2022</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>LeetCode（四）—— 滑动窗口技巧 · Chen Kai Blog</title>
+<meta name=description content='如果你写过两层 for 循环去枚举所有连续子数组，那么滑动窗口多半就是你缺的那一步优化。它把 $O(nk)$ 或 $O(n^2)$ 的暴力枚举压成线性的一遍扫描，关键就在于"复用上一步算出来的东西"。本文从最朴素的直觉出发，先讲清楚思路，再用四道高频 LeetCode 题目把套路彻底落地，最后再补一个单调队列的进阶用法。
+'><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/><meta property="og:type" content="article"><meta property="og:title" content="LeetCode（四）—— 滑动窗口技巧"><meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。"><meta property="og:url" content="https://www.chenk.top/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a>
+· Chapter 4</div><h1>LeetCode（四）—— 滑动窗口技巧</h1><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-06-15>June 15, 2022</time> · 9 min read · 4492 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/leetcode/ class=tag>#LeetCode</a><a href=/zh/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2/ class=tag>#字符串</a><a href=/zh/tags/%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3/ class=tag>#滑动窗口</a><a href=/zh/tags/%E7%AE%97%E6%B3%95/ class=tag>#算法</a></div></div></header><div class=prose><p>如果你写过两层 <code>for</code> 循环去枚举所有连续子数组，那么<strong>滑动窗口</strong>多半就是你缺的那一步优化。它把 $O(nk)$ 或 $O(n^2)$ 的暴力枚举压成线性的一遍扫描，关键就在于"复用上一步算出来的东西"。本文从最朴素的直觉出发，先讲清楚思路，再用四道高频 LeetCode 题目把套路彻底落地，最后再补一个单调队列的进阶用法。</p><h2 id=1-一图看懂滑动窗口>1. 一图看懂滑动窗口</h2><p>滑动窗口本质上是数组或字符串上的一段连续区间 <code>[left, right]</code>。窗口移动的时候，我们不重新计算整个区间，而是<strong>把右边新进来的元素加进去、把左边离开的元素拿出来</strong>，每个元素最多被处理两次，整体是 $O(n)$。</p><p>按窗口大小是否变化，可以分成两类：</p><ul><li><strong>固定窗口</strong>——宽度固定为 <code>k</code>，左右指针同步前进。</li><li><strong>可变窗口</strong>——<code>right</code> 主动扩张，<code>left</code> 在窗口"违反约束"时被动收缩。</li></ul><p>下面这张图展示了固定窗口求最大子数组和：绿色是当前窗口，橙色是即将进入的元素，粉色是即将离开的元素。右侧的算式说明每次只做一次加法和一次减法，这就是滑动窗口的全部秘密。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig1_fixed_window.png alt="固定窗口：求大小为 k 的最大子数组和" loading=lazy decoding=async></figure></p><h2 id=2-固定窗口大小为-k-的最大子数组和>2. 固定窗口：大小为 k 的最大子数组和</h2><p><strong>题目</strong>：给定数组 <code>arr</code> 和整数 <code>k</code>，求所有长度为 <code>k</code> 的连续子数组中和最大的那个。</p><p><strong>朴素做法</strong>：枚举每个长度为 <code>k</code> 的切片再求和，复杂度 $O(nk)$。</p><p><strong>滑动窗口</strong>：先算第一个窗口的和，之后每滑一格只做"减去离开者，加上进入者"。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>max_sum_subarray</span><span class=p>(</span><span class=n>arr</span><span class=p>,</span> <span class=n>k</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;求长度为 k 的连续子数组的最大和。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>arr</span><span class=p>)</span> <span class=o>&lt;</span> <span class=n>k</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>window_sum</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=n>arr</span><span class=p>[:</span><span class=n>k</span><span class=p>])</span>     <span class=c1># 第一个窗口</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=n>window_sum</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>arr</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 进入：arr[right]   离开：arr[right - k]</span>
+</span></span><span class=line><span class=cl>        <span class=n>window_sum</span> <span class=o>+=</span> <span class=n>arr</span><span class=p>[</span><span class=n>right</span><span class=p>]</span> <span class=o>-</span> <span class=n>arr</span><span class=p>[</span><span class=n>right</span> <span class=o>-</span> <span class=n>k</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>window_sum</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Java 版本</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=nf>maxSumSubarray</span><span class=p>(</span><span class=kt>int</span><span class=o>[]</span><span class=w> </span><span class=n>arr</span><span class=p>,</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=n>k</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>arr</span><span class=p>.</span><span class=na>length</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>k</span><span class=p>)</span><span class=w> </span><span class=k>return</span><span class=w> </span><span class=n>Integer</span><span class=p>.</span><span class=na>MIN_VALUE</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>windowSum</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>k</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=n>windowSum</span><span class=w> </span><span class=o>+=</span><span class=w> </span><span class=n>arr</span><span class=o>[</span><span class=n>i</span><span class=o>]</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>best</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>windowSum</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>k</span><span class=p>;</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>arr</span><span class=p>.</span><span class=na>length</span><span class=p>;</span><span class=w> </span><span class=n>right</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>windowSum</span><span class=w> </span><span class=o>+=</span><span class=w> </span><span class=n>arr</span><span class=o>[</span><span class=n>right</span><span class=o>]</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>arr</span><span class=o>[</span><span class=n>right</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>k</span><span class=o>]</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>best</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>Math</span><span class=p>.</span><span class=na>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span><span class=w> </span><span class=n>windowSum</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>best</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>复杂度</strong>：时间 $O(n)$，每滑一步只做常数次加减；空间 $O(1)$。</p><p><strong>为什么能这么省？</strong> 窗口的"和"只依赖窗口里的元素集合。当窗口右移一格，集合的变化恰好是"删一个、加一个"，所以只要把这两个变化量叠加就行了。这种<strong>增量更新</strong>的思路也适用于计数、频率表，乃至单调队列（见第 6 节）。</p><h2 id=3-可变窗口的两种姿势>3. 可变窗口的两种姿势</h2><p>如果窗口大小不固定，就要靠两个指针配合：</p><ul><li><strong>求最长合法窗口</strong>：<code>right</code> 一路向右扩张；一旦窗口违反约束，就把 <code>left</code> 往右挪到重新合法为止，期间记录最大长度。</li><li><strong>求最短合法窗口</strong>：<code>right</code> 扩到窗口刚好满足条件后，<code>left</code> 尽量往右挤，看看能不能更短，每次收缩时更新答案。</li></ul><p>下图追踪了"无重复字符的最长子串"在 <code>"abcabcbb"</code> 上的运行过程：绿色表示窗口合法、橙色括号是当前 <code>[L, R]</code>，粉色表示检测到重复，紫色表示正在收缩。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig2_variable_window.png alt=可变窗口：无重复字符的最长子串 loading=lazy decoding=async></figure></p><p>下面这张图把窗口长度随迭代步数的变化画了出来，绿色背景是扩张阶段，紫色是收缩阶段。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig3_expand_contract.png alt=窗口长度随时间变化 loading=lazy decoding=async></figure></p><p>最关键的不变量是：<strong><code>left</code> 永远只往右走，绝不回头</strong>。所以即使外层 <code>for</code> 套着内层 <code>while</code>，整个内层在全程里跑过的总步数也最多 $n$，这就是滑动窗口"摊还 $O(n)$&ldquo;的根据。</p><h2 id=4-leetcode-3无重复字符的最长子串>4. LeetCode 3：无重复字符的最长子串</h2><p><strong>题目</strong>：给定字符串 <code>s</code>，求其中无重复字符的最长子串的长度。</p><p><strong>套路</strong>：可变窗口、求最长。约束是"窗口内字符全部不同&rdquo;。当 <code>s[right]</code> 已经在窗口里时，把 <code>left</code> 直接跳到上一次出现位置的下一格。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>length_of_longest_substring</span><span class=p>(</span><span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;LeetCode 3：无重复字符的最长子串。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>last_seen</span> <span class=o>=</span> <span class=p>{}</span>        <span class=c1># 字符 -&gt; 最近一次出现的下标</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>last_seen</span> <span class=ow>and</span> <span class=n>last_seen</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>&gt;=</span> <span class=n>left</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># 跳过上一次出现位置，O(1) 完成收缩</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>=</span> <span class=n>last_seen</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>last_seen</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>=</span> <span class=n>right</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>right</span> <span class=o>-</span> <span class=n>left</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Java 版本</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=kt>int</span><span class=w> </span><span class=nf>lengthOfLongestSubstring</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>s</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>Map</span><span class=o>&lt;</span><span class=n>Character</span><span class=p>,</span><span class=w> </span><span class=n>Integer</span><span class=o>&gt;</span><span class=w> </span><span class=n>lastSeen</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HashMap</span><span class=o>&lt;&gt;</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>left</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>,</span><span class=w> </span><span class=n>best</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=na>length</span><span class=p>();</span><span class=w> </span><span class=n>right</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=kt>char</span><span class=w> </span><span class=n>c</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>right</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>lastSeen</span><span class=p>.</span><span class=na>containsKey</span><span class=p>(</span><span class=n>c</span><span class=p>)</span><span class=w> </span><span class=o>&amp;&amp;</span><span class=w> </span><span class=n>lastSeen</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=n>c</span><span class=p>)</span><span class=w> </span><span class=o>&gt;=</span><span class=w> </span><span class=n>left</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>left</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>lastSeen</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=n>c</span><span class=p>)</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>lastSeen</span><span class=p>.</span><span class=na>put</span><span class=p>(</span><span class=n>c</span><span class=p>,</span><span class=w> </span><span class=n>right</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>best</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>Math</span><span class=p>.</span><span class=na>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>left</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>1</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>best</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>复杂度</strong>：时间 $O(n)$，每个字符最多被插入和移出哈希表各一次；空间 $O(\min(n, |\Sigma|))$，$|\Sigma|$ 是字符集大小。</p><p><strong>两种写法</strong>：上面这版是"跳跃式收缩"——<code>left</code> 一步跳过去；另一种"步进式收缩"是用频次表配 <code>while count[s[right]] > 1: drop(s[left]); left += 1</code>。两者都是 $O(n)$，跳跃版代码短，步进版的好处是更容易扩展到"最多包含 k 种字符"那类变体。</p><h2 id=5-leetcode-76最小覆盖子串>5. LeetCode 76：最小覆盖子串</h2><p><strong>题目</strong>：给定字符串 <code>s</code> 和 <code>t</code>，返回 <code>s</code> 中能覆盖 <code>t</code> 所有字符（含重数）的最短子串；不存在则返回 <code>""</code>。</p><p><strong>套路</strong>：可变窗口、求最短。约束是"窗口内每个目标字符的出现次数都达标"。先扩到合法，再尽力收缩。</p><p>判断窗口是否合法时，最干净的办法是维护一个 <code>valid</code> 计数器：表示当前有多少种目标字符的出现次数已经"达标"。当 <code>valid == len(need)</code> 时整个窗口就合法了，避免了每一步都比对两个哈希表。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>Counter</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>min_window</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>t</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;LeetCode 76：覆盖 t 所有字符的最短子串。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=ow>not</span> <span class=n>s</span> <span class=ow>or</span> <span class=ow>not</span> <span class=n>t</span> <span class=ow>or</span> <span class=nb>len</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=o>&lt;</span> <span class=nb>len</span><span class=p>(</span><span class=n>t</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>need</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>have</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=n>valid</span> <span class=o>=</span> <span class=mi>0</span>                     <span class=c1># 已达标的字符种类数</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=n>best_len</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>best_start</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>need</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>have</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>=</span> <span class=n>have</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>ch</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>have</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=o>==</span> <span class=n>need</span><span class=p>[</span><span class=n>ch</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                <span class=n>valid</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 窗口合法时尝试收缩</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=n>valid</span> <span class=o>==</span> <span class=nb>len</span><span class=p>(</span><span class=n>need</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>right</span> <span class=o>-</span> <span class=n>left</span> <span class=o>+</span> <span class=mi>1</span> <span class=o>&lt;</span> <span class=n>best_len</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>best_len</span> <span class=o>=</span> <span class=n>right</span> <span class=o>-</span> <span class=n>left</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                <span class=n>best_start</span> <span class=o>=</span> <span class=n>left</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>drop</span> <span class=o>=</span> <span class=n>s</span><span class=p>[</span><span class=n>left</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>drop</span> <span class=ow>in</span> <span class=n>need</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>have</span><span class=p>[</span><span class=n>drop</span><span class=p>]</span> <span class=o>==</span> <span class=n>need</span><span class=p>[</span><span class=n>drop</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>valid</span> <span class=o>-=</span> <span class=mi>1</span>            <span class=c1># 收缩之后即将失衡</span>
+</span></span><span class=line><span class=cl>                <span class=n>have</span><span class=p>[</span><span class=n>drop</span><span class=p>]</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;&#34;</span> <span class=k>if</span> <span class=n>best_len</span> <span class=o>==</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span> <span class=k>else</span> <span class=n>s</span><span class=p>[</span><span class=n>best_start</span><span class=p>:</span><span class=n>best_start</span> <span class=o>+</span> <span class=n>best_len</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Java 版本</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=nf>minWindow</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>s</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>t</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>s</span><span class=p>.</span><span class=na>length</span><span class=p>()</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=na>length</span><span class=p>())</span><span class=w> </span><span class=k>return</span><span class=w> </span><span class=s>&#34;&#34;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>Map</span><span class=o>&lt;</span><span class=n>Character</span><span class=p>,</span><span class=w> </span><span class=n>Integer</span><span class=o>&gt;</span><span class=w> </span><span class=n>need</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HashMap</span><span class=o>&lt;&gt;</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>char</span><span class=w> </span><span class=n>c</span><span class=w> </span><span class=p>:</span><span class=w> </span><span class=n>t</span><span class=p>.</span><span class=na>toCharArray</span><span class=p>())</span><span class=w> </span><span class=n>need</span><span class=p>.</span><span class=na>merge</span><span class=p>(</span><span class=n>c</span><span class=p>,</span><span class=w> </span><span class=n>1</span><span class=p>,</span><span class=w> </span><span class=n>Integer</span><span class=p>::</span><span class=n>sum</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=n>Map</span><span class=o>&lt;</span><span class=n>Character</span><span class=p>,</span><span class=w> </span><span class=n>Integer</span><span class=o>&gt;</span><span class=w> </span><span class=n>have</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=n>HashMap</span><span class=o>&lt;&gt;</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>valid</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>,</span><span class=w> </span><span class=n>left</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>bestLen</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>Integer</span><span class=p>.</span><span class=na>MAX_VALUE</span><span class=p>,</span><span class=w> </span><span class=n>bestStart</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=na>length</span><span class=p>();</span><span class=w> </span><span class=n>right</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=kt>char</span><span class=w> </span><span class=n>c</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>right</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>need</span><span class=p>.</span><span class=na>containsKey</span><span class=p>(</span><span class=n>c</span><span class=p>))</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=n>have</span><span class=p>.</span><span class=na>merge</span><span class=p>(</span><span class=n>c</span><span class=p>,</span><span class=w> </span><span class=n>1</span><span class=p>,</span><span class=w> </span><span class=n>Integer</span><span class=p>::</span><span class=n>sum</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>have</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=n>c</span><span class=p>).</span><span class=na>intValue</span><span class=p>()</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=n>c</span><span class=p>).</span><span class=na>intValue</span><span class=p>())</span><span class=w> </span><span class=n>valid</span><span class=o>++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>while</span><span class=w> </span><span class=p>(</span><span class=n>valid</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=p>.</span><span class=na>size</span><span class=p>())</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>right</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>left</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>1</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>bestLen</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>bestLen</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>left</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>1</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>bestStart</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>left</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=kt>char</span><span class=w> </span><span class=n>d</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>left</span><span class=o>++</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>need</span><span class=p>.</span><span class=na>containsKey</span><span class=p>(</span><span class=n>d</span><span class=p>))</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>have</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=n>d</span><span class=p>).</span><span class=na>intValue</span><span class=p>()</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=p>.</span><span class=na>get</span><span class=p>(</span><span class=n>d</span><span class=p>).</span><span class=na>intValue</span><span class=p>())</span><span class=w> </span><span class=n>valid</span><span class=o>--</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>                </span><span class=n>have</span><span class=p>.</span><span class=na>merge</span><span class=p>(</span><span class=n>d</span><span class=p>,</span><span class=w> </span><span class=o>-</span><span class=n>1</span><span class=p>,</span><span class=w> </span><span class=n>Integer</span><span class=p>::</span><span class=n>sum</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>            </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>bestLen</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>Integer</span><span class=p>.</span><span class=na>MAX_VALUE</span><span class=w> </span><span class=o>?</span><span class=w> </span><span class=s>&#34;&#34;</span><span class=w> </span><span class=p>:</span><span class=w> </span><span class=n>s</span><span class=p>.</span><span class=na>substring</span><span class=p>(</span><span class=n>bestStart</span><span class=p>,</span><span class=w> </span><span class=n>bestStart</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>bestLen</span><span class=p>);</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>复杂度</strong>：时间 $O(|s| + |t|)$，两个指针都是单调推进；空间 $O(|\Sigma|)$。</p><p><strong>容易写错的地方</strong>是这一行：<code>if have[drop] == need[drop]: valid -= 1</code>。我们要在 <code>have</code> 真的减下去之前判断"现在恰好达标，移走一个就要失衡了"，所以判断必须在自减之前。顺序写反，<code>valid</code> 就会跟实际窗口对不上。</p><h2 id=6-leetcode-567字符串的排列>6. LeetCode 567：字符串的排列</h2><p><strong>题目</strong>：判断 <code>s2</code> 中是否存在某个子串是 <code>s1</code> 的一个排列。</p><p><strong>套路</strong>：长度为 <code>len(s1)</code> 的固定窗口。两个字符串互为排列当且仅当字符频率向量相同，所以只要在 <code>s2</code> 上维护一个长度 26 的频率数组，跟 <code>s1</code> 的频率数组比较就行。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>check_inclusion</span><span class=p>(</span><span class=n>s1</span><span class=p>,</span> <span class=n>s2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;LeetCode 567：s2 是否包含 s1 的某个排列？&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span><span class=p>,</span> <span class=n>m</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>s1</span><span class=p>),</span> <span class=nb>len</span><span class=p>(</span><span class=n>s2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>n</span> <span class=o>&gt;</span> <span class=n>m</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>need</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=mi>26</span>
+</span></span><span class=line><span class=cl>    <span class=n>have</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=mi>26</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>s1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>need</span><span class=p>[</span><span class=nb>ord</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=o>-</span> <span class=nb>ord</span><span class=p>(</span><span class=s1>&#39;a&#39;</span><span class=p>)]</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>s2</span><span class=p>[:</span><span class=n>n</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=n>have</span><span class=p>[</span><span class=nb>ord</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=o>-</span> <span class=nb>ord</span><span class=p>(</span><span class=s1>&#39;a&#39;</span><span class=p>)]</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 当前 26 个桶里有几个对得上</span>
+</span></span><span class=line><span class=cl>    <span class=n>matches</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=mi>1</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>26</span><span class=p>)</span> <span class=k>if</span> <span class=n>need</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>==</span> <span class=n>have</span><span class=p>[</span><span class=n>i</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>m</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>matches</span> <span class=o>==</span> <span class=mi>26</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>r</span> <span class=o>=</span> <span class=nb>ord</span><span class=p>(</span><span class=n>s2</span><span class=p>[</span><span class=n>right</span><span class=p>])</span> <span class=o>-</span> <span class=nb>ord</span><span class=p>(</span><span class=s1>&#39;a&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>l</span> <span class=o>=</span> <span class=nb>ord</span><span class=p>(</span><span class=n>s2</span><span class=p>[</span><span class=n>right</span> <span class=o>-</span> <span class=n>n</span><span class=p>])</span> <span class=o>-</span> <span class=nb>ord</span><span class=p>(</span><span class=s1>&#39;a&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 右边新元素进入</span>
+</span></span><span class=line><span class=cl>        <span class=n>have</span><span class=p>[</span><span class=n>r</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>have</span><span class=p>[</span><span class=n>r</span><span class=p>]</span> <span class=o>==</span> <span class=n>need</span><span class=p>[</span><span class=n>r</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>            <span class=n>matches</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>elif</span> <span class=n>have</span><span class=p>[</span><span class=n>r</span><span class=p>]</span> <span class=o>==</span> <span class=n>need</span><span class=p>[</span><span class=n>r</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>matches</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 左边旧元素离开</span>
+</span></span><span class=line><span class=cl>        <span class=n>have</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>have</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>==</span> <span class=n>need</span><span class=p>[</span><span class=n>l</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>            <span class=n>matches</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>elif</span> <span class=n>have</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>==</span> <span class=n>need</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>-</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>matches</span> <span class=o>-=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>matches</span> <span class=o>==</span> <span class=mi>26</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Java 版本</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-java data-lang=java><span class=line><span class=cl><span class=kd>public</span><span class=w> </span><span class=kt>boolean</span><span class=w> </span><span class=nf>checkInclusion</span><span class=p>(</span><span class=n>String</span><span class=w> </span><span class=n>s1</span><span class=p>,</span><span class=w> </span><span class=n>String</span><span class=w> </span><span class=n>s2</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>n</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s1</span><span class=p>.</span><span class=na>length</span><span class=p>(),</span><span class=w> </span><span class=n>m</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s2</span><span class=p>.</span><span class=na>length</span><span class=p>();</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>n</span><span class=w> </span><span class=o>&gt;</span><span class=w> </span><span class=n>m</span><span class=p>)</span><span class=w> </span><span class=k>return</span><span class=w> </span><span class=kc>false</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=o>[]</span><span class=w> </span><span class=n>need</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=kt>int</span><span class=o>[</span><span class=n>26</span><span class=o>]</span><span class=p>,</span><span class=w> </span><span class=n>have</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=k>new</span><span class=w> </span><span class=kt>int</span><span class=o>[</span><span class=n>26</span><span class=o>]</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>n</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>need</span><span class=o>[</span><span class=n>s1</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>i</span><span class=p>)</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=sc>&#39;a&#39;</span><span class=o>]++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>have</span><span class=o>[</span><span class=n>s2</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>i</span><span class=p>)</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=sc>&#39;a&#39;</span><span class=o>]++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=kt>int</span><span class=w> </span><span class=n>matches</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>0</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>26</span><span class=p>;</span><span class=w> </span><span class=n>i</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>need</span><span class=o>[</span><span class=n>i</span><span class=o>]</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>have</span><span class=o>[</span><span class=n>i</span><span class=o>]</span><span class=p>)</span><span class=w> </span><span class=n>matches</span><span class=o>++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>for</span><span class=w> </span><span class=p>(</span><span class=kt>int</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>n</span><span class=p>;</span><span class=w> </span><span class=n>right</span><span class=w> </span><span class=o>&lt;</span><span class=w> </span><span class=n>m</span><span class=p>;</span><span class=w> </span><span class=n>right</span><span class=o>++</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>matches</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>26</span><span class=p>)</span><span class=w> </span><span class=k>return</span><span class=w> </span><span class=kc>true</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=kt>int</span><span class=w> </span><span class=n>r</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s2</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>right</span><span class=p>)</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=sc>&#39;a&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=kt>int</span><span class=w> </span><span class=n>l</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=n>s2</span><span class=p>.</span><span class=na>charAt</span><span class=p>(</span><span class=n>right</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>n</span><span class=p>)</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=sc>&#39;a&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>have</span><span class=o>[</span><span class=n>r</span><span class=o>]++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>have</span><span class=o>[</span><span class=n>r</span><span class=o>]</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=o>[</span><span class=n>r</span><span class=o>]</span><span class=p>)</span><span class=w> </span><span class=n>matches</span><span class=o>++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>else</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>have</span><span class=o>[</span><span class=n>r</span><span class=o>]</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=o>[</span><span class=n>r</span><span class=o>]</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=n>1</span><span class=p>)</span><span class=w> </span><span class=n>matches</span><span class=o>--</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=n>have</span><span class=o>[</span><span class=n>l</span><span class=o>]--</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>have</span><span class=o>[</span><span class=n>l</span><span class=o>]</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=o>[</span><span class=n>l</span><span class=o>]</span><span class=p>)</span><span class=w> </span><span class=n>matches</span><span class=o>++</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>        </span><span class=k>else</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=p>(</span><span class=n>have</span><span class=o>[</span><span class=n>l</span><span class=o>]</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>need</span><span class=o>[</span><span class=n>l</span><span class=o>]</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>1</span><span class=p>)</span><span class=w> </span><span class=n>matches</span><span class=o>--</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=p>}</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>    </span><span class=k>return</span><span class=w> </span><span class=n>matches</span><span class=w> </span><span class=o>==</span><span class=w> </span><span class=n>26</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=p>}</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p><strong>复杂度</strong>：时间 $O(m)$，靠 <code>matches</code> 计数器把"比较两个频率数组"的 $O(26)$ 也省掉了；空间 $O(1)$。</p><p>**LeetCode 438（找到所有字母异位词）**完全可以套这个模板，只是把"提前返回"换成"收集起始下标"。</p><h2 id=7-进阶变体滑动窗口最大值单调队列>7. 进阶变体：滑动窗口最大值（单调队列）</h2><p>当窗口要查询的不是和、不是计数，而是<strong>窗口内的最大值或最小值</strong>时，简单的"加一个、减一个"就不够用了——因为移除当前最大值后，下一个最大值在哪里我们并不知道。这时的标准做法是<strong>单调队列</strong>：队列里的元素按值严格递减，队首始终是当前窗口的最大值。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig4_deque_max.png alt=单调队列求滑动窗口最大值 loading=lazy decoding=async></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>deque</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>max_sliding_window</span><span class=p>(</span><span class=n>nums</span><span class=p>,</span> <span class=n>k</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;LeetCode 239：每个长度为 k 的窗口的最大值。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>dq</span> <span class=o>=</span> <span class=n>deque</span><span class=p>()</span>      <span class=c1># 存下标；对应的值在 nums 上严格递减</span>
+</span></span><span class=line><span class=cl>    <span class=n>out</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>x</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>nums</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 1. 把队尾比 x 小的全部踢掉——它们不可能再当最大值了</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=n>dq</span> <span class=ow>and</span> <span class=n>nums</span><span class=p>[</span><span class=n>dq</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]]</span> <span class=o>&lt;</span> <span class=n>x</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>dq</span><span class=o>.</span><span class=n>pop</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>dq</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 2. 队首如果已经滑出窗口，弹掉</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>dq</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>i</span> <span class=o>-</span> <span class=n>k</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>dq</span><span class=o>.</span><span class=n>popleft</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 3. 窗口够大时，队首就是答案</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>i</span> <span class=o>&gt;=</span> <span class=n>k</span> <span class=o>-</span> <span class=mi>1</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nums</span><span class=p>[</span><span class=n>dq</span><span class=p>[</span><span class=mi>0</span><span class=p>]])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>out</span>
+</span></span></code></pre></td></tr></table></div></div><p>每个下标至多入队、出队各一次，整体仍是 $O(n)$。</p><h2 id=8-什么时候用滑动窗口>8. 什么时候用滑动窗口</h2><p>下面这棵决策树总结了"什么形状的问题该用滑动窗口的哪种姿势"：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/leetcode/04-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E6%8A%80%E5%B7%A7/fig5_decision_tree.png alt=滑动窗口适用场景决策树 loading=lazy decoding=async></figure></p><p>满足下列三条时，优先考虑滑动窗口：</p><ol><li>答案是某段<strong>连续区间</strong>（子数组、子串）。</li><li>区间属性可以<strong>增量维护</strong>——窗口移动一格只需做常数次操作（如累加和、计数表、单调队列）。</li><li>目标要么是<strong>固定大小</strong>（<code>k</code>），要么是<strong>最长 / 最短的合法区间</strong>。</li></ol><p>如果不连续、需要全局信息、或者要任意撤销操作，那就别强行套滑动窗口，换前缀和、双指针、动态规划或堆才是正解。</p><h2 id=9-三套值得背下来的模板>9. 三套值得背下来的模板</h2><p><strong>固定窗口</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>fixed_window</span><span class=p>(</span><span class=n>arr</span><span class=p>,</span> <span class=n>k</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span> <span class=o>=</span> <span class=n>init_state</span><span class=p>(</span><span class=n>arr</span><span class=p>[:</span><span class=n>k</span><span class=p>])</span>           <span class=c1># 例如和、频次表</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=n>report</span><span class=p>(</span><span class=n>state</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>arr</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>add</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>arr</span><span class=p>[</span><span class=n>right</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>remove</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>arr</span><span class=p>[</span><span class=n>right</span> <span class=o>-</span> <span class=n>k</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span> <span class=o>=</span> <span class=n>better</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>report</span><span class=p>(</span><span class=n>state</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>可变窗口——求最长合法</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>longest_valid</span><span class=p>(</span><span class=n>arr</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span> <span class=o>=</span> <span class=n>empty_state</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span><span class=p>,</span> <span class=n>x</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>arr</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>add</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=ow>not</span> <span class=n>is_valid</span><span class=p>(</span><span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>state</span> <span class=o>=</span> <span class=n>remove</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>arr</span><span class=p>[</span><span class=n>left</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>best</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>right</span> <span class=o>-</span> <span class=n>left</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>可变窗口——求最短合法</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>shortest_valid</span><span class=p>(</span><span class=n>arr</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>left</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span> <span class=o>=</span> <span class=n>empty_state</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>right</span><span class=p>,</span> <span class=n>x</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>arr</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>add</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>while</span> <span class=n>is_valid</span><span class=p>(</span><span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>best</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>right</span> <span class=o>-</span> <span class=n>left</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>state</span> <span class=o>=</span> <span class=n>remove</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>arr</span><span class=p>[</span><span class=n>left</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>left</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>best</span> <span class=k>if</span> <span class=n>best</span> <span class=o>!=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span> <span class=k>else</span> <span class=mi>0</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=10-常见陷阱>10. 常见陷阱</h2><ul><li><strong>窗口长度差一</strong>：长度是 <code>right - left + 1</code>，不是 <code>right - left</code>。</li><li><strong><code>valid</code> 更新时机搞反</strong>：<code>have[c]</code> <strong>首次</strong>等于 <code>need[c]</code> 时 <code>valid += 1</code>；<strong>即将</strong>跌破时 <code>valid -= 1</code>。先减计数还是先判断，差一步计数器就乱了。</li><li><strong>用 <code>list.pop(0)</code> 维护固定窗口</strong>：那是 $O(k)$ 的操作。请用 <code>collections.deque</code> 或者直接靠下标，保持 $O(1)$。</li><li><strong>每次都重新计算窗口</strong>：滑动窗口的全部价值就在于增量更新；只要内层还在扫整个窗口，渐进复杂度就退回去了。</li><li><strong>&ldquo;和 ≥ target&rdquo; 遇到负数</strong>：收缩时和不一定下降，&ldquo;求最短"模板会失效。这时考虑前缀和 + 单调队列，或者换思路。</li></ul><h2 id=11-推荐练习题清单>11. 推荐练习题清单</h2><table><thead><tr><th>难度</th><th>题号与名称</th><th>适用模板</th></tr></thead><tbody><tr><td>简单</td><td>LC 643 子数组最大平均数 I</td><td>固定窗口</td></tr><tr><td>简单</td><td>LC 1456 定长子串中元音的最大数目</td><td>固定窗口</td></tr><tr><td>中等</td><td>LC 3 无重复字符的最长子串</td><td>求最长</td></tr><tr><td>中等</td><td>LC 159 / 340 至多包含 K 个不同字符的最长子串</td><td>求最长</td></tr><tr><td>中等</td><td>LC 209 长度最小的子数组</td><td>求最短</td></tr><tr><td>中等</td><td>LC 424 替换后的最长重复字符</td><td>求最长</td></tr><tr><td>中等</td><td>LC 567 字符串的排列</td><td>固定窗口</td></tr><tr><td>中等</td><td>LC 438 找到字符串中所有字母异位词</td><td>固定窗口</td></tr><tr><td>中等</td><td>LC 713 乘积小于 K 的子数组</td><td>求最长</td></tr><tr><td>中等</td><td>LC 1004 最大连续 1 的个数 III</td><td>求最长</td></tr><tr><td>困难</td><td>LC 76 最小覆盖子串</td><td>求最短</td></tr><tr><td>困难</td><td>LC 239 滑动窗口最大值</td><td>单调队列</td></tr><tr><td>困难</td><td>LC 30 串联所有单词的子串</td><td>固定窗口 + 哈希</td></tr></tbody></table><h2 id=12-总结>12. 总结</h2><p>滑动窗口的本质是一个<strong>摊还分析</strong>：与其每个窗口都从头算一遍，不如维护一小块状态，让它随着边界推进做增量更新。两个指针都单调右移，于是把暴力的 $O(n^2)$ 压到 $O(n)$。</p><p>碰到连续区间题时，给自己问四个问题：</p><ol><li>窗口大小是<strong>固定</strong>还是<strong>可变</strong>？</li><li>如果可变，是求<strong>最长</strong>合法窗口，还是<strong>最短</strong>合法窗口？</li><li>我要维护什么<strong>状态</strong>——和、频次表，还是单调队列？</li><li>什么是窗口的<strong>不变量</strong>，谁的移动会破坏它？</li></ol><p>这四个问题想清楚了，绝大多数滑动窗口题就只剩下"往模板里填空"的工作。</p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#1-一图看懂滑动窗口>1. 一图看懂滑动窗口</a></li><li><a href=#2-固定窗口大小为-k-的最大子数组和>2. 固定窗口：大小为 k 的最大子数组和</a></li><li><a href=#3-可变窗口的两种姿势>3. 可变窗口的两种姿势</a></li><li><a href=#4-leetcode-3无重复字符的最长子串>4. LeetCode 3：无重复字符的最长子串</a></li><li><a href=#5-leetcode-76最小覆盖子串>5. LeetCode 76：最小覆盖子串</a></li><li><a href=#6-leetcode-567字符串的排列>6. LeetCode 567：字符串的排列</a></li><li><a href=#7-进阶变体滑动窗口最大值单调队列>7. 进阶变体：滑动窗口最大值（单调队列）</a></li><li><a href=#8-什么时候用滑动窗口>8. 什么时候用滑动窗口</a></li><li><a href=#9-三套值得背下来的模板>9. 三套值得背下来的模板</a></li><li><a href=#10-常见陷阱>10. 常见陷阱</a></li><li><a href=#11-推荐练习题清单>11. 推荐练习题清单</a></li><li><a href=#12-总结>12. 总结</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>9 min</strong></div><div class=row><span>Word count</span><strong>4492</strong></div><div class=row><span>Published</span><strong>Jun 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

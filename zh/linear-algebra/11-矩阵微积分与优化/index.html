@@ -1,960 +1,219 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>矩阵微积分与优化 -- 从梯度到反向传播 · Chen Kai Blog</title>
-<meta name="description" content="调淋浴水温就是一个最小号的神经网络训练：根据误差去调一个参数。矩阵微积分把这件事推广到上亿个参数，优化算法则是把它做下去的引擎。本章从标量梯度讲到 Jacobian、Hessian、反向传播、凸优化与 Adam。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="矩阵微积分与优化 -- 从梯度到反向传播">
-<meta property="og:description" content="调淋浴水温就是一个最小号的神经网络训练：根据误差去调一个参数。矩阵微积分把这件事推广到上亿个参数，优化算法则是把它做下去的引擎。本章从标量梯度讲到 Jacobian、Hessian、反向传播、凸优化与 Adam。">
-<meta property="og:url" content="https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">线性代数</a>
-         · Chapter 11
-      </div>
-      <h1>矩阵微积分与优化 -- 从梯度到反向传播</h1>
-      <p class="deck">调淋浴水温就是一个最小号的神经网络训练：根据误差去调一个参数。矩阵微积分把这件事推广到上亿个参数，优化算法则是把它做下去的引擎。本章从标量梯度讲到 Jacobian、Hessian、反向传播、凸优化与 Adam。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-03-12">March 12, 2025</time> · 16 min read · 7900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/" class="tag">#线性代数</a><a href="/zh/tags/%E6%A2%AF%E5%BA%A6/" class="tag">#梯度</a><a href="/zh/tags/%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86/" class="tag">#矩阵微积分</a><a href="/zh/tags/%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/" class="tag">#反向传播</a><a href="/zh/tags/%E5%87%B8%E4%BC%98%E5%8C%96/" class="tag">#凸优化</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="从淋浴龙头讲起">从淋浴龙头讲起</h2>
-<p>每天早上你都在训练一个微型神经网络。水太凉，于是你拧一下旋钮——一个<strong>参数</strong>；过一秒钟你感受到新的水温——<strong>误差信号</strong>；再拧一下。三四次之后你就收敛了。</p>
-<p>现代深度学习是同一件事，规模放大七个数量级。&ldquo;旋钮&quot;变成了一个动辄几千万到上亿条目的矩阵$W$；&ldquo;误差&quot;变成了一个标量损失$L$。但提的问题完全一样：<strong>对每一个参数，应该往哪个方向、用多大幅度去推？</strong> 答案藏在一个对象里：梯度$\partial L / \partial W$。</p>
-<p>本章从零搭起这个对象，再把它真正用起来。</p>
-<h3 id="你将学到什么">你将学到什么</h3>
-<ul>
-<li><strong>梯度</strong>——标量对向量的导数，以及它为什么&quot;指向上坡&rdquo;</li>
-<li><strong>方向导数</strong>——任意方向上的坡度，以及&quot;最速下降&quot;的几何意义</li>
-<li><strong>Jacobian 矩阵</strong>——向量函数的导数，链式法则的基本拼块</li>
-<li><strong>Hessian 矩阵</strong>——二阶导数矩阵，用来判别临界点类型</li>
-<li><strong>矩阵导数</strong>——你真正会用到的迹和行列式公式</li>
-<li><strong>链式法则与反向传播</strong>——同一个法则，递归地走遍计算图</li>
-<li><strong>凸优化</strong>——把&quot;搜索&quot;变成&quot;顺坡而下&quot;的关键性质</li>
-<li><strong>优化器全家桶</strong>——梯度下降、牛顿法、SGD、动量、Adam</li>
-</ul>
-<h3 id="前置知识">前置知识</h3>
-<ul>
-<li>一元微积分（导数与链式法则）</li>
-<li>向量与点积（第 1 章）</li>
-<li>矩阵乘法（第 3 章）</li>
-<li>对称矩阵与正定性（第 8 章）</li>
-</ul>
-<hr>
-<h2 id="梯度多维世界里的坡度">梯度：多维世界里的&quot;坡度&rdquo;</h2>
-<h3 id="从一维到多维">从一维到多维</h3>
-<p>你在开一家奶茶店。利润$f$取决于价格$x_1$和广告投入$x_2$。你想知道：<em>稍微改一下价格、或稍微加点广告预算，利润会怎么变？</em></p>
-<p>两个偏导数各回答了半个问题：</p>
-<p>-$\partial f/\partial x_1$——固定广告，价格每涨 1 元利润变多少；
--$\partial f/\partial x_2$——固定价格，广告每加 1 元利润变多少。</p>
-<p>把它们打包成一个向量，就得到<strong>梯度</strong>：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>矩阵微积分与优化 -- 从梯度到反向传播 · Chen Kai Blog</title>
+<meta name=description content="调淋浴水温就是一个最小号的神经网络训练：根据误差去调一个参数。矩阵微积分把这件事推广到上亿个参数，优化算法则是把它做下去的引擎。本章从标量梯度讲到 Jacobian、Hessian、反向传播、凸优化与 Adam。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/><meta property="og:type" content="article"><meta property="og:title" content="矩阵微积分与优化 -- 从梯度到反向传播"><meta property="og:description" content="调淋浴水温就是一个最小号的神经网络训练：根据误差去调一个参数。矩阵微积分把这件事推广到上亿个参数，优化算法则是把它做下去的引擎。本章从标量梯度讲到 Jacobian、Hessian、反向传播、凸优化与 Adam。"><meta property="og:url" content="https://www.chenk.top/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>线性代数</a>
+· Chapter 11</div><h1>矩阵微积分与优化 -- 从梯度到反向传播</h1><p class=deck>调淋浴水温就是一个最小号的神经网络训练：根据误差去调一个参数。矩阵微积分把这件事推广到上亿个参数，优化算法则是把它做下去的引擎。本章从标量梯度讲到 Jacobian、Hessian、反向传播、凸优化与 Adam。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-03-12>March 12, 2025</time> · 16 min read · 7853 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/ class=tag>#线性代数</a><a href=/zh/tags/%E6%A2%AF%E5%BA%A6/ class=tag>#梯度</a><a href=/zh/tags/%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86/ class=tag>#矩阵微积分</a><a href=/zh/tags/%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/ class=tag>#反向传播</a><a href=/zh/tags/%E5%87%B8%E4%BC%98%E5%8C%96/ class=tag>#凸优化</a></div></div></header><div class=prose><h2 id=从淋浴龙头讲起>从淋浴龙头讲起</h2><p>每天早上你都在训练一个微型神经网络。水太凉，于是你拧一下旋钮——一个<strong>参数</strong>；过一秒钟你感受到新的水温——<strong>误差信号</strong>；再拧一下。三四次之后你就收敛了。</p><p>现代深度学习是同一件事，规模放大七个数量级。&ldquo;旋钮"变成了一个动辄几千万到上亿条目的矩阵$W$；&ldquo;误差"变成了一个标量损失$L$。但提的问题完全一样：<strong>对每一个参数，应该往哪个方向、用多大幅度去推？</strong> 答案藏在一个对象里：梯度$\partial L / \partial W$。</p><p>本章从零搭起这个对象，再把它真正用起来。</p><h3 id=你将学到什么>你将学到什么</h3><ul><li><strong>梯度</strong>——标量对向量的导数，以及它为什么"指向上坡&rdquo;</li><li><strong>方向导数</strong>——任意方向上的坡度，以及"最速下降"的几何意义</li><li><strong>Jacobian 矩阵</strong>——向量函数的导数，链式法则的基本拼块</li><li><strong>Hessian 矩阵</strong>——二阶导数矩阵，用来判别临界点类型</li><li><strong>矩阵导数</strong>——你真正会用到的迹和行列式公式</li><li><strong>链式法则与反向传播</strong>——同一个法则，递归地走遍计算图</li><li><strong>凸优化</strong>——把"搜索"变成"顺坡而下"的关键性质</li><li><strong>优化器全家桶</strong>——梯度下降、牛顿法、SGD、动量、Adam</li></ul><h3 id=前置知识>前置知识</h3><ul><li>一元微积分（导数与链式法则）</li><li>向量与点积（第 1 章）</li><li>矩阵乘法（第 3 章）</li><li>对称矩阵与正定性（第 8 章）</li></ul><hr><h2 id=梯度多维世界里的坡度>梯度：多维世界里的"坡度&rdquo;</h2><h3 id=从一维到多维>从一维到多维</h3><p>你在开一家奶茶店。利润$f$取决于价格$x_1$和广告投入$x_2$。你想知道：<em>稍微改一下价格、或稍微加点广告预算，利润会怎么变？</em></p><p>两个偏导数各回答了半个问题：</p><p>-$\partial f/\partial x_1$——固定广告，价格每涨 1 元利润变多少；
+-$\partial f/\partial x_2$——固定价格，广告每加 1 元利润变多少。</p><p>把它们打包成一个向量，就得到<strong>梯度</strong>：</p>$$
 \nabla f = \begin{pmatrix} \partial f/\partial x_1 \\ \partial f/\partial x_2 \end{pmatrix}
-$$<p>对一般的$f: \mathbb{R}^n \to \mathbb{R}$：</p>
-$$
+$$<p>对一般的$f: \mathbb{R}^n \to \mathbb{R}$：</p>$$
 \nabla f(\vec{x}) = \begin{pmatrix} \partial f/\partial x_1 \\ \vdots \\ \partial f/\partial x_n \end{pmatrix} \in \mathbb{R}^n
-$$<h3 id="为什么必须打包成这样三条几何含义">为什么必须打包成这样：三条几何含义</h3>
-<p>梯度不只是&quot;偏导数的堆叠&quot;，它的&quot;打包方式&quot;正是被三条几何含义所决定的。</p>
-<p><strong>1. 方向。</strong> 梯度指向函数增长最快的方向。在所有可能的单位方向里，沿$\nabla f$方向走带来最大的增量；反方向走则带来最大的减量——这一句话就是梯度下降算法的全部理论依据。</p>
-<p><strong>2. 大小。</strong>$\|\nabla f\|$是这个最快方向上的增长率。梯度大，说明此处地势陡，挪一小步函数值就会有大变化；梯度近零，说明你站在了平地或者临界点附近。</p>
-<p><strong>3. 正交性。</strong> 梯度垂直于等值集$\{\vec{y}: f(\vec{y}) = f(\vec{x})\}$。地形图上的等高线连成一条条&quot;高度不变的线&quot;，而梯度永远垂直于这些等高线，正对着上坡方向。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig1_gradient_steepest_ascent.png" alt="梯度即最速上升方向：左边是 3D 碗状曲面，右边是带梯度场的等高线图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="三个值得背下来的例子">三个值得背下来的例子</h3>
-<p>下面三个公式后续到处都会用到，建议直接背下来。</p>
-<p><strong>线性函数</strong>$f(\vec{x}) = \vec{a}^T\vec{x}$，则$\nabla f = \vec{a}$。</p>
-<p>图像是一个超平面，$\vec{a}$是它的法向量，也就是函数增长最快的方向。</p>
-<p><strong>平方范数</strong>$f(\vec{x}) = \|\vec{x}\|^2 = \vec{x}^T\vec{x}$，则$\nabla f = 2\vec{x}$。</p>
-<p>一个以原点为底的&quot;碗&quot;，梯度从原点辐射向外，正好和&quot;远离最小值的方向&quot;一致。</p>
-<p><strong>一般二次型</strong>$f(\vec{x}) = \vec{x}^TA\vec{x}$，$A$对称，则$\nabla f = 2A\vec{x}$。</p>
-<p>本书后面碰到的所有二次损失，归根到底都是这个公式。如果$A$不对称，把它替换成$\tfrac{1}{2}(A+A^T)$即可——梯度本来也只看到对称部分。</p>
-<hr>
-<h2 id="方向导数不一定要走最陡的路">方向导数：不一定要走最陡的路</h2>
-<p>你不一定非得正对着山顶往上爬。<strong>方向导数</strong>告诉你在任意单位方向$\vec{d}$上的坡度：</p>
-$$
+$$<h3 id=为什么必须打包成这样三条几何含义>为什么必须打包成这样：三条几何含义</h3><p>梯度不只是"偏导数的堆叠"，它的"打包方式"正是被三条几何含义所决定的。</p><p><strong>1. 方向。</strong> 梯度指向函数增长最快的方向。在所有可能的单位方向里，沿$\nabla f$方向走带来最大的增量；反方向走则带来最大的减量——这一句话就是梯度下降算法的全部理论依据。</p><p><strong>2. 大小。</strong>$\|\nabla f\|$是这个最快方向上的增长率。梯度大，说明此处地势陡，挪一小步函数值就会有大变化；梯度近零，说明你站在了平地或者临界点附近。</p><p><strong>3. 正交性。</strong> 梯度垂直于等值集$\{\vec{y}: f(\vec{y}) = f(\vec{x})\}$。地形图上的等高线连成一条条"高度不变的线"，而梯度永远垂直于这些等高线，正对着上坡方向。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig1_gradient_steepest_ascent.png alt="梯度即最速上升方向：左边是 3D 碗状曲面，右边是带梯度场的等高线图" loading=lazy decoding=async></figure></p><h3 id=三个值得背下来的例子>三个值得背下来的例子</h3><p>下面三个公式后续到处都会用到，建议直接背下来。</p><p><strong>线性函数</strong>$f(\vec{x}) = \vec{a}^T\vec{x}$，则$\nabla f = \vec{a}$。</p><p>图像是一个超平面，$\vec{a}$是它的法向量，也就是函数增长最快的方向。</p><p><strong>平方范数</strong>$f(\vec{x}) = \|\vec{x}\|^2 = \vec{x}^T\vec{x}$，则$\nabla f = 2\vec{x}$。</p><p>一个以原点为底的"碗"，梯度从原点辐射向外，正好和"远离最小值的方向"一致。</p><p><strong>一般二次型</strong>$f(\vec{x}) = \vec{x}^TA\vec{x}$，$A$对称，则$\nabla f = 2A\vec{x}$。</p><p>本书后面碰到的所有二次损失，归根到底都是这个公式。如果$A$不对称，把它替换成$\tfrac{1}{2}(A+A^T)$即可——梯度本来也只看到对称部分。</p><hr><h2 id=方向导数不一定要走最陡的路>方向导数：不一定要走最陡的路</h2><p>你不一定非得正对着山顶往上爬。<strong>方向导数</strong>告诉你在任意单位方向$\vec{d}$上的坡度：</p>$$
 D_{\vec{d}}f = \nabla f \cdot \vec{d} = \|\nabla f\| \cos\theta
-$$<p>其中$\theta$是$\nabla f$与$\vec{d}$的夹角。三个角度值最关键：</p>
-<p>-$\theta = 0°$（沿梯度方向）：增量最大，等于$\|\nabla f\|$；
+$$<p>其中$\theta$是$\nabla f$与$\vec{d}$的夹角。三个角度值最关键：</p><p>-$\theta = 0°$（沿梯度方向）：增量最大，等于$\|\nabla f\|$；
 -$\theta = 90°$（沿等高线）：函数值不变；
--$\theta = 180°$（逆梯度方向）：减量最大，等于$-\|\nabla f\|$。</p>
-<p>最后一行就是<strong>梯度下降</strong>的理论根据：要让$f$下降得最快，就沿$-\nabla f$方向走。</p>
-<hr>
-<h2 id="jacobian向量进向量出">Jacobian：向量进，向量出</h2>
-<p>当输出也是向量时，单个梯度就不够用了——你需要一整张矩阵，每一项对应一对（输入，输出）。</p>
-<h3 id="一个做菜的类比">一个做菜的类比</h3>
-<p>三种调料用量$(x_1, x_2, x_3)$同时影响三个口味指标$(f_1, f_2, f_3)$：咸度、甜度、辣度。一共有$3 \times 3 = 9$个&quot;输入$j$对输出$i$影响多大&quot;的关系。把它们排进一张$3 \times 3$矩阵，就是 Jacobian。</p>
-<h3 id="定义">定义</h3>
-<p>对$\vec{f}: \mathbb{R}^n \to \mathbb{R}^m$，<strong>Jacobian 矩阵</strong>是一张$m \times n$的矩阵：</p>
-$$
+-$\theta = 180°$（逆梯度方向）：减量最大，等于$-\|\nabla f\|$。</p><p>最后一行就是<strong>梯度下降</strong>的理论根据：要让$f$下降得最快，就沿$-\nabla f$方向走。</p><hr><h2 id=jacobian向量进向量出>Jacobian：向量进，向量出</h2><p>当输出也是向量时，单个梯度就不够用了——你需要一整张矩阵，每一项对应一对（输入，输出）。</p><h3 id=一个做菜的类比>一个做菜的类比</h3><p>三种调料用量$(x_1, x_2, x_3)$同时影响三个口味指标$(f_1, f_2, f_3)$：咸度、甜度、辣度。一共有$3 \times 3 = 9$个"输入$j$对输出$i$影响多大"的关系。把它们排进一张$3 \times 3$矩阵，就是 Jacobian。</p><h3 id=定义>定义</h3><p>对$\vec{f}: \mathbb{R}^n \to \mathbb{R}^m$，<strong>Jacobian 矩阵</strong>是一张$m \times n$的矩阵：</p>$$
 J = \frac{\partial \vec{f}}{\partial \vec{x}} = \begin{pmatrix} \partial f_1/\partial x_1 & \cdots & \partial f_1/\partial x_n \\ \vdots & \ddots & \vdots \\ \partial f_m/\partial x_1 & \cdots & \partial f_m/\partial x_n \end{pmatrix}
-$$<p>第$i$行就是$f_i$的梯度；$(i,j)$位置回答的是&quot;输入$j$动一下，输出$i$跟着动多少&quot;。</p>
-<h3 id="几何含义最佳线性近似">几何含义：最佳线性近似</h3>
-<p>在$\vec{x}_0$附近，Jacobian 就是$\vec{f}$的最佳线性近似：</p>
-$$
+$$<p>第$i$行就是$f_i$的梯度；$(i,j)$位置回答的是"输入$j$动一下，输出$i$跟着动多少"。</p><h3 id=几何含义最佳线性近似>几何含义：最佳线性近似</h3><p>在$\vec{x}_0$附近，Jacobian 就是$\vec{f}$的最佳线性近似：</p>$$
 \vec{f}(\vec{x}_0 + \Delta\vec{x}) \approx \vec{f}(\vec{x}_0) + J\,\Delta\vec{x}
-$$<p>形象一点：Jacobian 描述了函数如何&quot;局部地拉伸/扭曲空间&quot;。输入空间里一个小方块，经过函数后变成一个小平行四边形，而$J$正是那次形变的矩阵。</p>
-<h3 id="经典例子极坐标">经典例子：极坐标</h3>
-<p>变换$(r, \theta) \to (x, y) = (r\cos\theta, r\sin\theta)$的 Jacobian 是</p>
-$$
+$$<p>形象一点：Jacobian 描述了函数如何"局部地拉伸/扭曲空间"。输入空间里一个小方块，经过函数后变成一个小平行四边形，而$J$正是那次形变的矩阵。</p><h3 id=经典例子极坐标>经典例子：极坐标</h3><p>变换$(r, \theta) \to (x, y) = (r\cos\theta, r\sin\theta)$的 Jacobian 是</p>$$
 J = \begin{pmatrix} \cos\theta & -r\sin\theta \\ \sin\theta & r\cos\theta \end{pmatrix}
-$$<p>它的行列式$\det(J) = r$——这正是把$dx\,dy$换成$r\,dr\,d\theta$时多出来的那个$r$。微积分课上这个$r$像是凭空冒出来的，这里它被你亲手算出来了。</p>
-<hr>
-<h2 id="hessian曲率与临界点分类">Hessian：曲率，与临界点分类</h2>
-<p>梯度告诉你坡度，Hessian 告诉你坡度本身怎么变——也就是<strong>曲率</strong>。</p>
-<h3 id="定义-1">定义</h3>
-<p>对$f: \mathbb{R}^n \to \mathbb{R}$，Hessian 是一张$n \times n$的二阶偏导矩阵：</p>
-$$
+$$<p>它的行列式$\det(J) = r$——这正是把$dx\,dy$换成$r\,dr\,d\theta$时多出来的那个$r$。微积分课上这个$r$像是凭空冒出来的，这里它被你亲手算出来了。</p><hr><h2 id=hessian曲率与临界点分类>Hessian：曲率，与临界点分类</h2><p>梯度告诉你坡度，Hessian 告诉你坡度本身怎么变——也就是<strong>曲率</strong>。</p><h3 id=定义-1>定义</h3><p>对$f: \mathbb{R}^n \to \mathbb{R}$，Hessian 是一张$n \times n$的二阶偏导矩阵：</p>$$
 H = \begin{pmatrix} \partial^2 f/\partial x_1^2 & \cdots & \partial^2 f/\partial x_1 \partial x_n \\ \vdots & \ddots & \vdots \\ \partial^2 f/\partial x_n \partial x_1 & \cdots & \partial^2 f/\partial x_n^2 \end{pmatrix}
-$$<p>只要二阶偏导连续，Hessian 就是<strong>对称矩阵</strong>（Schwarz/Clairaut 定理）。这个对称性是后面一切讨论得以成立的基础——它让我们可以放心地谈$H$的特征值。</p>
-<h3 id="二阶-taylor-展开">二阶 Taylor 展开</h3>
-<p>Hessian 出现在二阶 Taylor 展开里：</p>
-$$
+$$<p>只要二阶偏导连续，Hessian 就是<strong>对称矩阵</strong>（Schwarz/Clairaut 定理）。这个对称性是后面一切讨论得以成立的基础——它让我们可以放心地谈$H$的特征值。</p><h3 id=二阶-taylor-展开>二阶 Taylor 展开</h3><p>Hessian 出现在二阶 Taylor 展开里：</p>$$
 f(\vec{x}_0 + \Delta\vec{x}) \approx f(\vec{x}_0) + \nabla f^T \Delta\vec{x} + \frac{1}{2}\Delta\vec{x}^T H \Delta\vec{x}
-$$<p>三项分别是：当前值、线性修正（梯度）、二次修正（曲率）。</p>
-<h3 id="临界点分类">临界点分类</h3>
-<p>在临界点（$\nabla f = \vec{0}$）处，线性项消失，函数的局部行为完全由 Hessian 决定：</p>
-<table>
-  <thead>
-      <tr>
-          <th>Hessian 性质</th>
-          <th>临界点类型</th>
-          <th>几何画面</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>正定（$\lambda_i > 0$）</td>
-          <td>局部极小</td>
-          <td>碗底</td>
-      </tr>
-      <tr>
-          <td>负定（$\lambda_i < 0$）</td>
-          <td>局部极大</td>
-          <td>山顶</td>
-      </tr>
-      <tr>
-          <td>不定（特征值正负都有）</td>
-          <td>鞍点</td>
-          <td>马鞍面</td>
-      </tr>
-      <tr>
-          <td>半定（有$\lambda_i = 0$）</td>
-          <td>不能确定</td>
-          <td>某些方向是&quot;平的&quot;</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>两个例子。</strong>$f(x,y) = x^2 + y^2$的 Hessian 是$\mathrm{diag}(2,2)$，正定，所以$(0,0)$是极小值点；$f(x,y) = x^2 - y^2$的 Hessian 是$\mathrm{diag}(2,-2)$，不定，所以$(0,0)$是鞍点。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig2_critical_points.png" alt="Hessian 的特征值符号决定了临界点类型" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<blockquote>
-<p><strong>为什么深度学习里要单独关心鞍点？</strong> 在高维非凸损失里，你随机碰到的&quot;梯度为零&quot;几乎一定是鞍点，而不是真正的极小值。现代优化器必须能穿过它们——这正是动量类方法盛行、而朴素牛顿法在深度网络里几乎没人用的原因。</p>
-</blockquote>
-<hr>
-<h2 id="矩阵导数当参数本身是矩阵">矩阵导数：当参数本身是矩阵</h2>
-<p>神经网络里参数大多是矩阵（权重矩阵）。我们需要的是&quot;标量损失对权重矩阵的导数&quot;。</p>
-<h3 id="定义-2">定义</h3>
-<p>对$f: \mathbb{R}^{m \times n} \to \mathbb{R}$：</p>
-$$
+$$<p>三项分别是：当前值、线性修正（梯度）、二次修正（曲率）。</p><h3 id=临界点分类>临界点分类</h3><p>在临界点（$\nabla f = \vec{0}$）处，线性项消失，函数的局部行为完全由 Hessian 决定：</p><table><thead><tr><th>Hessian 性质</th><th>临界点类型</th><th>几何画面</th></tr></thead><tbody><tr><td>正定（$\lambda_i > 0$）</td><td>局部极小</td><td>碗底</td></tr><tr><td>负定（$\lambda_i < 0$）</td><td>局部极大</td><td>山顶</td></tr><tr><td>不定（特征值正负都有）</td><td>鞍点</td><td>马鞍面</td></tr><tr><td>半定（有$\lambda_i = 0$）</td><td>不能确定</td><td>某些方向是"平的"</td></tr></tbody></table><p><strong>两个例子。</strong>$f(x,y) = x^2 + y^2$的 Hessian 是$\mathrm{diag}(2,2)$，正定，所以$(0,0)$是极小值点；$f(x,y) = x^2 - y^2$的 Hessian 是$\mathrm{diag}(2,-2)$，不定，所以$(0,0)$是鞍点。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig2_critical_points.png alt="Hessian 的特征值符号决定了临界点类型" loading=lazy decoding=async></figure></p><blockquote><p><strong>为什么深度学习里要单独关心鞍点？</strong> 在高维非凸损失里，你随机碰到的"梯度为零"几乎一定是鞍点，而不是真正的极小值。现代优化器必须能穿过它们——这正是动量类方法盛行、而朴素牛顿法在深度网络里几乎没人用的原因。</p></blockquote><hr><h2 id=矩阵导数当参数本身是矩阵>矩阵导数：当参数本身是矩阵</h2><p>神经网络里参数大多是矩阵（权重矩阵）。我们需要的是"标量损失对权重矩阵的导数"。</p><h3 id=定义-2>定义</h3><p>对$f: \mathbb{R}^{m \times n} \to \mathbb{R}$：</p>$$
 \frac{\partial f}{\partial X} = \begin{pmatrix} \partial f/\partial x_{11} & \cdots & \partial f/\partial x_{1n}\\ \vdots & \ddots & \vdots\\ \partial f/\partial x_{m1} & \cdots & \partial f/\partial x_{mn} \end{pmatrix}
-$$<p>结果与$X$<strong>同形</strong>。这个形状规则是本章最实用的&quot;对错检查&quot;——只要推导出来的答案形状不对，那一定是哪一步代数错了。</p>
-<h3 id="你真正会用到的几条恒等式">你真正会用到的几条恒等式</h3>
-<table>
-  <thead>
-      <tr>
-          <th>函数</th>
-          <th>关于$X$的导数</th>
-          <th>备注</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\text{tr}(AX)$</td>
-          <td>$A^T$</td>
-          <td>$X$的线性项</td>
-      </tr>
-      <tr>
-          <td>$\text{tr}(X^TAX)$</td>
-          <td>$(A + A^T)X$</td>
-          <td>$A$对称时退化为$2AX$</td>
-      </tr>
-      <tr>
-          <td>$\text{tr}(AXB)$</td>
-          <td>$A^TB^T$</td>
-          <td>三明治形式</td>
-      </tr>
-      <tr>
-          <td>$\det(X)$</td>
-          <td>$\det(X)\, X^{-T}$</td>
-          <td>行列式</td>
-      </tr>
-      <tr>
-          <td>$\ln\det(X)$</td>
-          <td>$X^{-T}$</td>
-          <td>极大似然估计里到处都是</td>
-      </tr>
-      <tr>
-          <td>$X^{-1}$（微分）</td>
-          <td>$\partial(X^{-1}) = -X^{-1}(\partial X)X^{-1}$</td>
-          <td>逆矩阵</td>
-      </tr>
-  </tbody>
-</table>
-<p>迹之所以高频出现，是因为任何关于矩阵的标量函数都能写成迹的形式，而迹又满足循环不变性$\text{tr}(ABC) = \text{tr}(BCA) = \text{tr}(CAB)$，特别好用。完整公式表请参见 Petersen &amp; Pedersen 的 <em>Matrix Cookbook</em>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig6_shape_rules_cheatsheet.png" alt="向量和矩阵导数的形状规则速查表" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<hr>
-<h2 id="链式法则与反向传播">链式法则与反向传播</h2>
-<h3 id="矩阵形式的链式法则">矩阵形式的链式法则</h3>
-<p>设$\vec{u} = \vec{h}(\vec{x})$，$y = g(\vec{u})$且$g$为标量，则</p>
-$$
+$$<p>结果与$X$<strong>同形</strong>。这个形状规则是本章最实用的"对错检查"——只要推导出来的答案形状不对，那一定是哪一步代数错了。</p><h3 id=你真正会用到的几条恒等式>你真正会用到的几条恒等式</h3><table><thead><tr><th>函数</th><th>关于$X$的导数</th><th>备注</th></tr></thead><tbody><tr><td>$\text{tr}(AX)$</td><td>$A^T$</td><td>$X$的线性项</td></tr><tr><td>$\text{tr}(X^TAX)$</td><td>$(A + A^T)X$</td><td>$A$对称时退化为$2AX$</td></tr><tr><td>$\text{tr}(AXB)$</td><td>$A^TB^T$</td><td>三明治形式</td></tr><tr><td>$\det(X)$</td><td>$\det(X)\, X^{-T}$</td><td>行列式</td></tr><tr><td>$\ln\det(X)$</td><td>$X^{-T}$</td><td>极大似然估计里到处都是</td></tr><tr><td>$X^{-1}$（微分）</td><td>$\partial(X^{-1}) = -X^{-1}(\partial X)X^{-1}$</td><td>逆矩阵</td></tr></tbody></table><p>迹之所以高频出现，是因为任何关于矩阵的标量函数都能写成迹的形式，而迹又满足循环不变性$\text{tr}(ABC) = \text{tr}(BCA) = \text{tr}(CAB)$，特别好用。完整公式表请参见 Petersen & Pedersen 的 <em>Matrix Cookbook</em>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig6_shape_rules_cheatsheet.png alt=向量和矩阵导数的形状规则速查表 loading=lazy decoding=async></figure></p><hr><h2 id=链式法则与反向传播>链式法则与反向传播</h2><h3 id=矩阵形式的链式法则>矩阵形式的链式法则</h3><p>设$\vec{u} = \vec{h}(\vec{x})$，$y = g(\vec{u})$且$g$为标量，则</p>$$
 \frac{\partial (g \circ \vec{h})}{\partial \vec{x}} = J_h^T \nabla g
-$$<p>如果两段都是向量值函数，那么各阶段的 Jacobian 直接<strong>相乘</strong>：</p>
-$$
+$$<p>如果两段都是向量值函数，那么各阶段的 Jacobian 直接<strong>相乘</strong>：</p>$$
 J_{\text{total}} = J_k\,J_{k-1}\,\cdots\,J_1
-$$<p><strong>河流污染类比。</strong> 上游工厂排放变化$\delta_1$，中游浓度跟着变$\delta_2 = J_1 \delta_1$，下游生态指数再变$\delta_3 = J_2 \delta_2$。最终$\delta_3 = J_2 J_1 \delta_1$——一段一个矩阵，依次相乘。</p>
-<h3 id="反向传播链式法则的高效实现">反向传播：链式法则的高效实现</h3>
-<p>任何复合表达式——包括上千层的神经网络——都能拆成基本运算的有向无环图，称为<strong>计算图</strong>。反向传播就是在这张图上<strong>反向</strong>应用链式法则。</p>
-<p><strong>为什么要反向？</strong> 设有$n$个输入、$1$个输出（典型场景：百万参数、单标量损失）。</p>
-<ul>
-<li><em>前向模式</em>（dual numbers）算的是 Jacobian-向量乘积$J\vec{v}$；要拿到所有梯度，得做$n$次。</li>
-<li><em>反向模式</em>（反向传播）算的是向量-Jacobian 乘积$\vec{v}^TJ$；<strong>一次遍历</strong>就能拿到所有$n$个输入的梯度。</li>
-</ul>
-<p>深度学习里&quot;$n$&ldquo;是&quot;模型里所有参数&rdquo;——反向模式比前向模式大约便宜上百万倍。这一比值，是深度学习在算力上能跑得动的唯一原因。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig7_backprop_chain_rule.png" alt="前向传播算值，反向传播沿同一张图把梯度传回去" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="全连接层的反向传播">全连接层的反向传播</h3>
-<p>这是最常见也最值得吃透的一段推导；如果本章只让你内化一个计算，就让它是这个。</p>
-<p><strong>前向：</strong></p>
-$$
+$$<p><strong>河流污染类比。</strong> 上游工厂排放变化$\delta_1$，中游浓度跟着变$\delta_2 = J_1 \delta_1$，下游生态指数再变$\delta_3 = J_2 \delta_2$。最终$\delta_3 = J_2 J_1 \delta_1$——一段一个矩阵，依次相乘。</p><h3 id=反向传播链式法则的高效实现>反向传播：链式法则的高效实现</h3><p>任何复合表达式——包括上千层的神经网络——都能拆成基本运算的有向无环图，称为<strong>计算图</strong>。反向传播就是在这张图上<strong>反向</strong>应用链式法则。</p><p><strong>为什么要反向？</strong> 设有$n$个输入、$1$个输出（典型场景：百万参数、单标量损失）。</p><ul><li><em>前向模式</em>（dual numbers）算的是 Jacobian-向量乘积$J\vec{v}$；要拿到所有梯度，得做$n$次。</li><li><em>反向模式</em>（反向传播）算的是向量-Jacobian 乘积$\vec{v}^TJ$；<strong>一次遍历</strong>就能拿到所有$n$个输入的梯度。</li></ul><p>深度学习里"$n$&ldquo;是"模型里所有参数&rdquo;——反向模式比前向模式大约便宜上百万倍。这一比值，是深度学习在算力上能跑得动的唯一原因。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig7_backprop_chain_rule.png alt=前向传播算值，反向传播沿同一张图把梯度传回去 loading=lazy decoding=async></figure></p><h3 id=全连接层的反向传播>全连接层的反向传播</h3><p>这是最常见也最值得吃透的一段推导；如果本章只让你内化一个计算，就让它是这个。</p><p><strong>前向：</strong></p>$$
 \vec{z} = W\vec{x} + \vec{b}, \qquad \vec{a} = \sigma(\vec{z})\quad(\text{逐元素})
-$$<p><strong>反向：</strong> 假设后续层已经把$\delta_a := \partial L / \partial \vec{a}$算好传过来。</p>
-<ol>
-<li><strong>穿过激活：</strong>$\delta_z = \delta_a \odot \sigma'(\vec{z})$（$\odot$是逐元素乘）。</li>
-<li><strong>权重梯度：</strong>$\dfrac{\partial L}{\partial W} = \delta_z \vec{x}^T$。注意形状：上游信号与输入的外积，正好和$W$同形。</li>
-<li><strong>偏置梯度：</strong>$\dfrac{\partial L}{\partial \vec{b}} = \delta_z$。</li>
-<li><strong>回传给上一层：</strong>$\dfrac{\partial L}{\partial \vec{x}} = W^T\delta_z$。</li>
-</ol>
-<p>PyTorch、JAX、TensorFlow 等所有现代框架，背后干的就是这一套，逐层执行。</p>
-<h3 id="常见激活函数及其导数">常见激活函数及其导数</h3>
-<p><strong>ReLU：</strong>$\sigma(z) = \max(0, z)$，$\sigma'(z) = 1$（$z>0$）或 0。计算便宜、正区间不饱和。代价是负区间梯度恒为零，可能导致&quot;死亡 ReLU&quot;。</p>
-<p><strong>Sigmoid：</strong>$\sigma(z) = 1/(1+e^{-z})$，有一个优美的恒等式$\sigma'(z) = \sigma(z)(1 - \sigma(z))$。输出在$(0,1)$，可解释为概率。代价是两端饱和，导致深网中梯度消失。</p>
-<p><strong>Softmax + 交叉熵。</strong> 分类器输出端的标准搭配。这两者组合后的梯度极其干净：</p>
-$$
+$$<p><strong>反向：</strong> 假设后续层已经把$\delta_a := \partial L / \partial \vec{a}$算好传过来。</p><ol><li><strong>穿过激活：</strong>$\delta_z = \delta_a \odot \sigma'(\vec{z})$（$\odot$是逐元素乘）。</li><li><strong>权重梯度：</strong>$\dfrac{\partial L}{\partial W} = \delta_z \vec{x}^T$。注意形状：上游信号与输入的外积，正好和$W$同形。</li><li><strong>偏置梯度：</strong>$\dfrac{\partial L}{\partial \vec{b}} = \delta_z$。</li><li><strong>回传给上一层：</strong>$\dfrac{\partial L}{\partial \vec{x}} = W^T\delta_z$。</li></ol><p>PyTorch、JAX、TensorFlow 等所有现代框架，背后干的就是这一套，逐层执行。</p><h3 id=常见激活函数及其导数>常见激活函数及其导数</h3><p><strong>ReLU：</strong>$\sigma(z) = \max(0, z)$，$\sigma'(z) = 1$（$z>0$）或 0。计算便宜、正区间不饱和。代价是负区间梯度恒为零，可能导致"死亡 ReLU"。</p><p><strong>Sigmoid：</strong>$\sigma(z) = 1/(1+e^{-z})$，有一个优美的恒等式$\sigma'(z) = \sigma(z)(1 - \sigma(z))$。输出在$(0,1)$，可解释为概率。代价是两端饱和，导致深网中梯度消失。</p><p><strong>Softmax + 交叉熵。</strong> 分类器输出端的标准搭配。这两者组合后的梯度极其干净：</p>$$
 \frac{\partial L}{\partial \vec{z}} = \hat{\vec{y}} - \vec{y}
-$$<p>&ldquo;预测概率减真实标签&rdquo;——梯度局部、便宜、量级合适，这正是这种组合成为分类问题事实标准的原因。</p>
-<hr>
-<h2 id="凸优化让一切变简单的那条性质">凸优化：让一切变简单的那条性质</h2>
-<h3 id="什么叫凸">什么叫&quot;凸&quot;</h3>
-<p>函数$f$是<strong>凸的</strong>，当图像上任意两点的弦都在图像上方：</p>
-$$
+$$<p>&ldquo;预测概率减真实标签&rdquo;——梯度局部、便宜、量级合适，这正是这种组合成为分类问题事实标准的原因。</p><hr><h2 id=凸优化让一切变简单的那条性质>凸优化：让一切变简单的那条性质</h2><h3 id=什么叫凸>什么叫"凸"</h3><p>函数$f$是<strong>凸的</strong>，当图像上任意两点的弦都在图像上方：</p>$$
 f(\alpha\vec{x} + (1-\alpha)\vec{y}) \leq \alpha f(\vec{x}) + (1-\alpha)f(\vec{y}), \quad \alpha \in [0,1]
-$$<p>凸性之所以宝贵，靠的就是一句话：</p>
-<blockquote>
-<p><strong>定理：</strong> 凸函数的任何局部最小值都是全局最小值。</p>
-</blockquote>
-<p>对凸问题来说，&ldquo;优化器收敛到了一个局部极小值&quot;就已经是<strong>全部故事</strong>——你完全不必担心被困在某个糟糕的低洼里。</p>
-<h3 id="三种等价刻画针对c2函数">三种等价刻画（针对$C^2$函数）</h3>
-<p>1.$f$是凸函数。
+$$<p>凸性之所以宝贵，靠的就是一句话：</p><blockquote><p><strong>定理：</strong> 凸函数的任何局部最小值都是全局最小值。</p></blockquote><p>对凸问题来说，&ldquo;优化器收敛到了一个局部极小值"就已经是<strong>全部故事</strong>——你完全不必担心被困在某个糟糕的低洼里。</p><h3 id=三种等价刻画针对c2函数>三种等价刻画（针对$C^2$函数）</h3><p>1.$f$是凸函数。
 2. 图像在切平面上方：$f(\vec{y}) \geq f(\vec{x}) + \nabla f(\vec{x})^T(\vec{y} - \vec{x})$。
-3. Hessian 处处半正定：$H(\vec{x}) \succeq 0$。</p>
-<p>如果是<strong>严格凸</strong>，把$\succeq$换成$\succ$。</p>
-<h3 id="常见凸函数">常见凸函数</h3>
-<table>
-  <thead>
-      <tr>
-          <th>函数</th>
-          <th>凸性来源</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\vec{a}^T\vec{x} + b$</td>
-          <td>仿射，既凸又凹</td>
-      </tr>
-      <tr>
-          <td>$\|\vec{x}\|_p$（$p \geq 1$）</td>
-          <td>三角不等式</td>
-      </tr>
-      <tr>
-          <td>$\vec{x}^TA\vec{x}$，$A \succeq 0$</td>
-          <td>Hessian 是$2A \succeq 0$</td>
-      </tr>
-      <tr>
-          <td>$e^x$，$x \log x$</td>
-          <td>二阶导数$> 0$</td>
-      </tr>
-      <tr>
-          <td>$-\log x$（$x > 0$）</td>
-          <td>对数似然损失的基础</td>
-      </tr>
-  </tbody>
-</table>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig5_convex_vs_nonconvex.png" alt="凸碗 vs 非凸地形：只有左边那种能保证你找到的就是全局最优" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="kkt-条件">KKT 条件</h3>
-<p>对带约束问题$\min f(\vec{x})$，s.t.$g_i(\vec{x}) \leq 0$与$h_j(\vec{x}) = 0$，KKT 条件是任何最优点必须满足的，<strong>当问题凸时也是充分条件</strong>：</p>
-<ol>
-<li><strong>原问题可行：</strong>$g_i(\vec{x}^*) \leq 0$，$h_j(\vec{x}^*) = 0$。</li>
-<li><strong>对偶可行：</strong>$\mu_i \geq 0$。</li>
-<li><strong>互补松弛：</strong>$\mu_i\, g_i(\vec{x}^*) = 0$（不等式约束要么紧、要么对应乘子为零）。</li>
-<li><strong>驻点条件：</strong>$\nabla f + \sum_i \mu_i \nabla g_i + \sum_j \nu_j \nabla h_j = \vec{0}$。</li>
-</ol>
-<p>KKT 是带约束优化的主力工具——而它背后的拉格朗日框架，也是 SVM、最大熵模型乃至 PCA 推导的统一出发点。</p>
-<hr>
-<h2 id="优化算法">优化算法</h2>
-<h3 id="梯度下降">梯度下降</h3>
-$$
+3. Hessian 处处半正定：$H(\vec{x}) \succeq 0$。</p><p>如果是<strong>严格凸</strong>，把$\succeq$换成$\succ$。</p><h3 id=常见凸函数>常见凸函数</h3><table><thead><tr><th>函数</th><th>凸性来源</th></tr></thead><tbody><tr><td>$\vec{a}^T\vec{x} + b$</td><td>仿射，既凸又凹</td></tr><tr><td>$\|\vec{x}\|_p$（$p \geq 1$）</td><td>三角不等式</td></tr><tr><td>$\vec{x}^TA\vec{x}$，$A \succeq 0$</td><td>Hessian 是$2A \succeq 0$</td></tr><tr><td>$e^x$，$x \log x$</td><td>二阶导数$> 0$</td></tr><tr><td>$-\log x$（$x > 0$）</td><td>对数似然损失的基础</td></tr></tbody></table><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig5_convex_vs_nonconvex.png alt="凸碗 vs 非凸地形：只有左边那种能保证你找到的就是全局最优" loading=lazy decoding=async></figure></p><h3 id=kkt-条件>KKT 条件</h3><p>对带约束问题$\min f(\vec{x})$，s.t.$g_i(\vec{x}) \leq 0$与$h_j(\vec{x}) = 0$，KKT 条件是任何最优点必须满足的，<strong>当问题凸时也是充分条件</strong>：</p><ol><li><strong>原问题可行：</strong>$g_i(\vec{x}^*) \leq 0$，$h_j(\vec{x}^*) = 0$。</li><li><strong>对偶可行：</strong>$\mu_i \geq 0$。</li><li><strong>互补松弛：</strong>$\mu_i\, g_i(\vec{x}^*) = 0$（不等式约束要么紧、要么对应乘子为零）。</li><li><strong>驻点条件：</strong>$\nabla f + \sum_i \mu_i \nabla g_i + \sum_j \nu_j \nabla h_j = \vec{0}$。</li></ol><p>KKT 是带约束优化的主力工具——而它背后的拉格朗日框架，也是 SVM、最大熵模型乃至 PCA 推导的统一出发点。</p><hr><h2 id=优化算法>优化算法</h2><h3 id=梯度下降>梯度下降</h3>$$
 \vec{x}_{k+1} = \vec{x}_k - \alpha \nabla f(\vec{x}_k)
-$$<p>顺坡而下。步长$\alpha$是<strong>学习率</strong>：太小爬得慢，太大会发散。</p>
-<p>对一个条件数为$\kappa$的凸二次函数，收敛率约为$\bigl(\tfrac{\kappa - 1}{\kappa + 1}\bigr)^k$——也就是说一个病态问题（$\kappa \gg 1$）会慢得让人崩溃，且轨迹会沿着碗的长轴方向反复横跳。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig3_gradient_descent_path.png" alt="梯度下降轨迹：左边良态、右边病态——明显的&quot;之&quot;字形抖动" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="牛顿法">牛顿法</h3>
-$$
+$$<p>顺坡而下。步长$\alpha$是<strong>学习率</strong>：太小爬得慢，太大会发散。</p><p>对一个条件数为$\kappa$的凸二次函数，收敛率约为$\bigl(\tfrac{\kappa - 1}{\kappa + 1}\bigr)^k$——也就是说一个病态问题（$\kappa \gg 1$）会慢得让人崩溃，且轨迹会沿着碗的长轴方向反复横跳。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig3_gradient_descent_path.png alt='梯度下降轨迹：左边良态、右边病态——明显的"之"字形抖动' loading=lazy decoding=async></figure></p><h3 id=牛顿法>牛顿法</h3>$$
 \vec{x}_{k+1} = \vec{x}_k - H^{-1}\nabla f(\vec{x}_k)
-$$<p>用二阶 Taylor 展开把$f$近似成二次函数，直接一步跳到那个二次函数的极值点。带来的是<strong>二次收敛</strong>：每次迭代正确数字位数大致翻倍。</p>
-<p>代价是组装并求逆 Hessian 要$O(n^3)$，参数上百万时根本跑不起；而且对非凸损失，牛顿法可能会径直冲向鞍点甚至极大值——它只看&quot;梯度为零&rdquo;，并不挑类型。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig4_newton_vs_gd.png" alt="牛顿法 vs 梯度下降：二次函数上牛顿法一步到位" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="随机梯度下降sgd">随机梯度下降（SGD）</h3>
-<p>当损失是$N$个样本损失的均值$L = \tfrac{1}{N}\sum_i \ell_i$时，精确梯度要$O(N)$。改用单个样本（或小批量）的梯度：</p>
-$$
+$$<p>用二阶 Taylor 展开把$f$近似成二次函数，直接一步跳到那个二次函数的极值点。带来的是<strong>二次收敛</strong>：每次迭代正确数字位数大致翻倍。</p><p>代价是组装并求逆 Hessian 要$O(n^3)$，参数上百万时根本跑不起；而且对非凸损失，牛顿法可能会径直冲向鞍点甚至极大值——它只看"梯度为零&rdquo;，并不挑类型。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linear-algebra/11-%E7%9F%A9%E9%98%B5%E5%BE%AE%E7%A7%AF%E5%88%86%E4%B8%8E%E4%BC%98%E5%8C%96/fig4_newton_vs_gd.png alt="牛顿法 vs 梯度下降：二次函数上牛顿法一步到位" loading=lazy decoding=async></figure></p><h3 id=随机梯度下降sgd>随机梯度下降（SGD）</h3><p>当损失是$N$个样本损失的均值$L = \tfrac{1}{N}\sum_i \ell_i$时，精确梯度要$O(N)$。改用单个样本（或小批量）的梯度：</p>$$
 \vec{x}_{k+1} = \vec{x}_k - \alpha \nabla \ell_{i_k}
-$$<p>每步极便宜。注入的噪声还能帮你穿过窄鞍点和浅盆地——对非凸的深度学习来说，这是一种正面特性。</p>
-<h3 id="动量法momentum">动量法（Momentum）</h3>
-<p>朴素 SGD 抖得厉害。动量法用过去梯度的指数滑动平均来&quot;抚平&quot;轨迹：</p>
-$$
+$$<p>每步极便宜。注入的噪声还能帮你穿过窄鞍点和浅盆地——对非凸的深度学习来说，这是一种正面特性。</p><h3 id=动量法momentum>动量法（Momentum）</h3><p>朴素 SGD 抖得厉害。动量法用过去梯度的指数滑动平均来"抚平"轨迹：</p>$$
 \vec{v}_{k+1} = \beta\vec{v}_k + \nabla f(\vec{x}_k), \qquad \vec{x}_{k+1} = \vec{x}_k - \alpha\vec{v}_{k+1}
-$$<p>经典心象：一颗有质量的球沿坡滚下。惯性把路径磨圆，还能&quot;冲过&quot;小坑。</p>
-<h3 id="adam">Adam</h3>
-<p>把动量（一阶矩）和自适应步长（二阶矩）合二为一：</p>
-$$
+$$<p>经典心象：一颗有质量的球沿坡滚下。惯性把路径磨圆，还能"冲过"小坑。</p><h3 id=adam>Adam</h3><p>把动量（一阶矩）和自适应步长（二阶矩）合二为一：</p>$$
 m_t = \beta_1 m_{t-1} + (1-\beta_1)\nabla f \qquad v_t = \beta_2 v_{t-1} + (1-\beta_2)(\nabla f)^2
 $$$$
 \vec{x}_{t+1} = \vec{x}_t - \frac{\alpha}{\sqrt{\hat{v}_t} + \epsilon}\hat{m}_t
-$$<p>梯度持续较大的参数会被自动调小步长；梯度小、不太动的参数则被调大。默认配置$\beta_1 = 0.9$、$\beta_2 = 0.999$、$\alpha = 10^{-3}$已经是当今大部分深度学习训练的&quot;开箱即用&quot;选择。</p>
-<hr>
-<h2 id="三个值得手算的应用">三个值得手算的应用</h2>
-<h3 id="线性回归闭式解">线性回归（闭式解）</h3>
-<p>目标：$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2$。</p>
-<p>梯度：$\nabla L = 2X^T(X\vec{w} - \vec{y})$。</p>
-<p>令其为零，就得到著名的<strong>正规方程</strong>：</p>
-$$
+$$<p>梯度持续较大的参数会被自动调小步长；梯度小、不太动的参数则被调大。默认配置$\beta_1 = 0.9$、$\beta_2 = 0.999$、$\alpha = 10^{-3}$已经是当今大部分深度学习训练的"开箱即用"选择。</p><hr><h2 id=三个值得手算的应用>三个值得手算的应用</h2><h3 id=线性回归闭式解>线性回归（闭式解）</h3><p>目标：$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2$。</p><p>梯度：$\nabla L = 2X^T(X\vec{w} - \vec{y})$。</p><p>令其为零，就得到著名的<strong>正规方程</strong>：</p>$$
 \vec{w}^* = (X^TX)^{-1}X^T\vec{y}
-$$<p>之所以存在闭式解，正是因为损失是关于$\vec{w}$的凸二次函数。</p>
-<h3 id="岭回归">岭回归</h3>
-<p>加上一个$\ell_2$正则项：$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2 + \lambda\|\vec{w}\|^2$，</p>
-$$
+$$<p>之所以存在闭式解，正是因为损失是关于$\vec{w}$的凸二次函数。</p><h3 id=岭回归>岭回归</h3><p>加上一个$\ell_2$正则项：$L(\vec{w}) = \|X\vec{w} - \vec{y}\|^2 + \lambda\|\vec{w}\|^2$，</p>$$
 \vec{w}^* = (X^TX + \lambda I)^{-1}X^T\vec{y}
-$$<p>$\lambda I$把$X^TX$的每个特征值整体抬高$\lambda$，从而保证可逆，并把条件数压下来——这是上一章关于条件数那一套直觉的直接应用。</p>
-<h3 id="把-pca-写成优化问题">把 PCA 写成优化问题</h3>
-<p>PCA 可以表述为带约束的最大化问题：</p>
-$$
+$$<p>$\lambda I$把$X^TX$的每个特征值整体抬高$\lambda$，从而保证可逆，并把条件数压下来——这是上一章关于条件数那一套直觉的直接应用。</p><h3 id=把-pca-写成优化问题>把 PCA 写成优化问题</h3><p>PCA 可以表述为带约束的最大化问题：</p>$$
 \max_{\|\vec{w}\|=1} \vec{w}^T\Sigma\vec{w}
-$$<p>构造拉格朗日$\vec{w}^T\Sigma\vec{w} - \lambda(\vec{w}^T\vec{w} - 1)$，对$\vec{w}$求导并令为零，得$\Sigma\vec{w} = \lambda\vec{w}$。<strong>正是因为 KKT 的驻点条件</strong>，PCA 才是一个特征值问题；其最优解就是$\Sigma$的最大特征值对应的特征向量。</p>
-<hr>
-<h2 id="公式速查表">公式速查表</h2>
-<h3 id="向量导数">向量导数</h3>
-<table>
-  <thead>
-      <tr>
-          <th>函数</th>
-          <th>导数</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\vec{a}^T\vec{x}$</td>
-          <td>$\vec{a}$</td>
-      </tr>
-      <tr>
-          <td>$\vec{x}^T\vec{x}$</td>
-          <td>$2\vec{x}$</td>
-      </tr>
-      <tr>
-          <td>$\vec{x}^TA\vec{x}$（$A$对称）</td>
-          <td>$2A\vec{x}$</td>
-      </tr>
-      <tr>
-          <td>$\|\vec{x}\|_2$</td>
-          <td>$\vec{x}/\|\vec{x}\|_2$</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="矩阵导数">矩阵导数</h3>
-<table>
-  <thead>
-      <tr>
-          <th>函数</th>
-          <th>导数</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\text{tr}(AX)$</td>
-          <td>$A^T$</td>
-      </tr>
-      <tr>
-          <td>$\text{tr}(X^TAX)$</td>
-          <td>$(A+A^T)X$</td>
-      </tr>
-      <tr>
-          <td>$\det(X)$</td>
-          <td>$\det(X)\cdot X^{-T}$</td>
-      </tr>
-      <tr>
-          <td>$\ln\det(X)$</td>
-          <td>$X^{-T}$</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="python-实战">Python 实战</h2>
-<h3 id="梯度检验">梯度检验</h3>
-<p>任何手推梯度的最佳调试工具：用中心差分对照一下。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">gradient_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">grad_f</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;用数值梯度检验解析梯度。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">analytical</span> <span class="o">=</span> <span class="n">grad_f</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">numerical</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x_plus</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">();</span> <span class="n">x_plus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">epsilon</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x_minus</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">();</span> <span class="n">x_minus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">epsilon</span>
-</span></span><span class="line"><span class="cl">        <span class="n">numerical</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">x_plus</span><span class="p">)</span> <span class="o">-</span> <span class="n">f</span><span class="p">(</span><span class="n">x_minus</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">rel_error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">analytical</span> <span class="o">-</span> <span class="n">numerical</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">analytical</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">numerical</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">rel_error</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 测试 f(x) = x^T A x</span>
-</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">@</span> <span class="n">A</span> <span class="o">@</span> <span class="n">x</span>
-</span></span><span class="line"><span class="cl"><span class="n">grad_f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">A</span> <span class="o">@</span> <span class="n">x</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;相对误差：</span><span class="si">{</span><span class="n">gradient_check</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">grad_f</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>  <span class="c1"># 约 1e-10</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>相对误差小于$10^{-7}$算合格，小于$10^{-9}$算优秀。</p>
-<h3 id="比较-gdmomentumadam">比较 GD、Momentum、Adam</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">optimize_comparison</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;在二维各向异性二次函数上对比 GD、Momentum、Adam。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>  <span class="c1"># 条件数 = 10</span>
-</span></span><span class="line"><span class="cl">    <span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span> <span class="o">@</span> <span class="n">A</span> <span class="o">@</span> <span class="n">x</span>
-</span></span><span class="line"><span class="cl">    <span class="n">grad</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">A</span> <span class="o">@</span> <span class="n">x</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">methods</span> <span class="o">=</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s1">&#39;GD&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="s1">&#39;Momentum&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="s1">&#39;Adam&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span> <span class="s1">&#39;beta1&#39;</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;beta2&#39;</span><span class="p">:</span> <span class="mf">0.999</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">paths</span> <span class="o">=</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">methods</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">vv</span> <span class="o">=</span> <span class="n">x0</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">g</span> <span class="o">=</span> <span class="n">grad</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;GD&#39;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;Momentum&#39;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">v</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">v</span> <span class="o">+</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">v</span>
-</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;Adam&#39;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">m</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta1&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta1&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">                <span class="n">vv</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta2&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">vv</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta2&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">g</span><span class="o">**</span><span class="mi">2</span>
-</span></span><span class="line"><span class="cl">                <span class="n">m_hat</span> <span class="o">=</span> <span class="n">m</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta1&#39;</span><span class="p">]</span><span class="o">**</span><span class="n">t</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">v_hat</span> <span class="o">=</span> <span class="n">vv</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;beta2&#39;</span><span class="p">]</span><span class="o">**</span><span class="n">t</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">m_hat</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v_hat</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">        <span class="n">paths</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Z</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">A</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">Y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">path</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">path</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;o-&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">();</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;二次函数上的优化轨迹&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">optimize_comparison</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="练习题">练习题</h2>
-<h3 id="热身">热身</h3>
-<ol>
-<li>计算$f(\vec{x}) = 3x_1^2 + 2x_1x_2 + x_2^2$的梯度。</li>
-<li>找出$f(x,y) = x^3 - 3xy + y^3$的所有临界点，并用 Hessian 逐个分类。</li>
-<li>从偏导定义出发，证明$\nabla(\vec{x}^TA\vec{x}) = (A + A^T)\vec{x}$。</li>
-</ol>
-<h3 id="进阶">进阶</h3>
-<ol start="4">
-<li>推导两层神经网络$f = \sigma_2(W_2\sigma_1(W_1\vec{x} + \vec{b}_1) + \vec{b}_2)$的完整反向传播公式，每一步都标清楚形状。</li>
-<li>证明牛顿法在任意二次函数上<strong>一步</strong>收敛到最优解。</li>
-<li>用&quot;弦在图像上方&quot;的定义证明：凸函数的任何局部极小值都是全局极小值。</li>
-</ol>
-<h3 id="编程">编程</h3>
-<ol start="7">
-<li>实现上面的梯度检验函数，并在三个不同函数（其中至少一个含矩阵参数）上验证。</li>
-<li>从零实现 SGD、Momentum、Adam，在 Rosenbrock 函数上比较收敛轨迹并画出来。</li>
-<li>用纯 numpy 实现一个两层神经网络，在二维玩具分类数据集上手写反向传播（不许用任何自动微分框架）。</li>
-</ol>
-<hr>
-<h2 id="本章小结">本章小结</h2>
-<table>
-  <thead>
-      <tr>
-          <th>概念</th>
-          <th>关键事实</th>
-          <th>在 ML 中的角色</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>梯度</td>
-          <td>最速上升方向</td>
-          <td>驱动梯度下降</td>
-      </tr>
-      <tr>
-          <td>Jacobian</td>
-          <td>最佳线性近似</td>
-          <td>链式法则的基本拼块</td>
-      </tr>
-      <tr>
-          <td>Hessian</td>
-          <td>曲率矩阵</td>
-          <td>判别临界点类型</td>
-      </tr>
-      <tr>
-          <td>链式法则</td>
-          <td>Jacobian 相乘</td>
-          <td>反向传播的内核</td>
-      </tr>
-      <tr>
-          <td>凸性</td>
-          <td>局部极小 = 全局极小</td>
-          <td>大量损失函数的保证</td>
-      </tr>
-      <tr>
-          <td>Adam</td>
-          <td>自适应学习率</td>
-          <td>深度学习默认优化器</td>
-      </tr>
-  </tbody>
-</table>
-<p>最重要的一句话：<strong>对一个有上百万参数、单个标量损失的模型，一次反向传播能同时算出所有参数的梯度。</strong> 本章其它一切内容，都是为了让这一句话变得精确、可信。</p>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<ul>
-<li><strong>上一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81-%e7%9f%a9%e9%98%b5%e8%8c%83%e6%95%b0%e4%b8%8e%e6%9d%a1%e4%bb%b6%e6%95%b0/">第十章 矩阵范数与条件数</a>
-</li>
-<li><strong>下一篇：</strong> <a href="/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e4%ba%8c-%e7%a8%80%e7%96%8f%e7%9f%a9%e9%98%b5%e4%b8%8e%e5%8e%8b%e7%bc%a9%e6%84%9f%e7%9f%a5/">第十二章 稀疏矩阵与压缩感知</a>
-</li>
-<li><strong>完整系列：</strong> 线性代数的本质（1&ndash;18）</li>
-</ul>
-<h2 id="参考资料">参考资料</h2>
-<ul>
-<li>Petersen, K. B. &amp; Pedersen, M. S. <em>The Matrix Cookbook</em>. 矩阵导数恒等式的标准参考。</li>
-<li>Goodfellow, I., Bengio, Y. &amp; Courville, A. (2016). <em>Deep Learning</em>, 第 6 章——反向传播详解。</li>
-<li>Boyd, S. &amp; Vandenberghe, L. (2004). <em>Convex Optimization</em>——凸性、拉格朗日、KKT 的标准教材。</li>
-<li>Nocedal, J. &amp; Wright, S. (2006). <em>Numerical Optimization</em>——牛顿、拟牛顿、信赖域的经典参考。</li>
-<li>Kingma, D. P. &amp; Ba, J. (2015). &ldquo;Adam: A Method for Stochastic Optimization.&rdquo; <em>ICLR</em>.</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#从淋浴龙头讲起">从淋浴龙头讲起</a>
-      <ul>
-        <li><a href="#你将学到什么">你将学到什么</a></li>
-        <li><a href="#前置知识">前置知识</a></li>
-      </ul>
-    </li>
-    <li><a href="#梯度多维世界里的坡度">梯度：多维世界里的&quot;坡度&rdquo;</a>
-      <ul>
-        <li><a href="#从一维到多维">从一维到多维</a></li>
-        <li><a href="#为什么必须打包成这样三条几何含义">为什么必须打包成这样：三条几何含义</a></li>
-        <li><a href="#三个值得背下来的例子">三个值得背下来的例子</a></li>
-      </ul>
-    </li>
-    <li><a href="#方向导数不一定要走最陡的路">方向导数：不一定要走最陡的路</a></li>
-    <li><a href="#jacobian向量进向量出">Jacobian：向量进，向量出</a>
-      <ul>
-        <li><a href="#一个做菜的类比">一个做菜的类比</a></li>
-        <li><a href="#定义">定义</a></li>
-        <li><a href="#几何含义最佳线性近似">几何含义：最佳线性近似</a></li>
-        <li><a href="#经典例子极坐标">经典例子：极坐标</a></li>
-      </ul>
-    </li>
-    <li><a href="#hessian曲率与临界点分类">Hessian：曲率，与临界点分类</a>
-      <ul>
-        <li><a href="#定义-1">定义</a></li>
-        <li><a href="#二阶-taylor-展开">二阶 Taylor 展开</a></li>
-        <li><a href="#临界点分类">临界点分类</a></li>
-      </ul>
-    </li>
-    <li><a href="#矩阵导数当参数本身是矩阵">矩阵导数：当参数本身是矩阵</a>
-      <ul>
-        <li><a href="#定义-2">定义</a></li>
-        <li><a href="#你真正会用到的几条恒等式">你真正会用到的几条恒等式</a></li>
-      </ul>
-    </li>
-    <li><a href="#链式法则与反向传播">链式法则与反向传播</a>
-      <ul>
-        <li><a href="#矩阵形式的链式法则">矩阵形式的链式法则</a></li>
-        <li><a href="#反向传播链式法则的高效实现">反向传播：链式法则的高效实现</a></li>
-        <li><a href="#全连接层的反向传播">全连接层的反向传播</a></li>
-        <li><a href="#常见激活函数及其导数">常见激活函数及其导数</a></li>
-      </ul>
-    </li>
-    <li><a href="#凸优化让一切变简单的那条性质">凸优化：让一切变简单的那条性质</a>
-      <ul>
-        <li><a href="#什么叫凸">什么叫&quot;凸&quot;</a></li>
-        <li><a href="#三种等价刻画针对c2函数">三种等价刻画（针对函数）</a></li>
-        <li><a href="#常见凸函数">常见凸函数</a></li>
-        <li><a href="#kkt-条件">KKT 条件</a></li>
-      </ul>
-    </li>
-    <li><a href="#优化算法">优化算法</a>
-      <ul>
-        <li><a href="#梯度下降">梯度下降</a></li>
-        <li><a href="#牛顿法">牛顿法</a></li>
-        <li><a href="#随机梯度下降sgd">随机梯度下降（SGD）</a></li>
-        <li><a href="#动量法momentum">动量法（Momentum）</a></li>
-        <li><a href="#adam">Adam</a></li>
-      </ul>
-    </li>
-    <li><a href="#三个值得手算的应用">三个值得手算的应用</a>
-      <ul>
-        <li><a href="#线性回归闭式解">线性回归（闭式解）</a></li>
-        <li><a href="#岭回归">岭回归</a></li>
-        <li><a href="#把-pca-写成优化问题">把 PCA 写成优化问题</a></li>
-      </ul>
-    </li>
-    <li><a href="#公式速查表">公式速查表</a>
-      <ul>
-        <li><a href="#向量导数">向量导数</a></li>
-        <li><a href="#矩阵导数">矩阵导数</a></li>
-      </ul>
-    </li>
-    <li><a href="#python-实战">Python 实战</a>
-      <ul>
-        <li><a href="#梯度检验">梯度检验</a></li>
-        <li><a href="#比较-gdmomentumadam">比较 GD、Momentum、Adam</a></li>
-      </ul>
-    </li>
-    <li><a href="#练习题">练习题</a>
-      <ul>
-        <li><a href="#热身">热身</a></li>
-        <li><a href="#进阶">进阶</a></li>
-        <li><a href="#编程">编程</a></li>
-      </ul>
-    </li>
-    <li><a href="#本章小结">本章小结</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-    <li><a href="#参考资料">参考资料</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">线性代数</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
-      <div class="row"><span>Word count</span><strong>7900</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>构造拉格朗日$\vec{w}^T\Sigma\vec{w} - \lambda(\vec{w}^T\vec{w} - 1)$，对$\vec{w}$求导并令为零，得$\Sigma\vec{w} = \lambda\vec{w}$。<strong>正是因为 KKT 的驻点条件</strong>，PCA 才是一个特征值问题；其最优解就是$\Sigma$的最大特征值对应的特征向量。</p><hr><h2 id=公式速查表>公式速查表</h2><h3 id=向量导数>向量导数</h3><table><thead><tr><th>函数</th><th>导数</th></tr></thead><tbody><tr><td>$\vec{a}^T\vec{x}$</td><td>$\vec{a}$</td></tr><tr><td>$\vec{x}^T\vec{x}$</td><td>$2\vec{x}$</td></tr><tr><td>$\vec{x}^TA\vec{x}$（$A$对称）</td><td>$2A\vec{x}$</td></tr><tr><td>$\|\vec{x}\|_2$</td><td>$\vec{x}/\|\vec{x}\|_2$</td></tr></tbody></table><h3 id=矩阵导数>矩阵导数</h3><table><thead><tr><th>函数</th><th>导数</th></tr></thead><tbody><tr><td>$\text{tr}(AX)$</td><td>$A^T$</td></tr><tr><td>$\text{tr}(X^TAX)$</td><td>$(A+A^T)X$</td></tr><tr><td>$\det(X)$</td><td>$\det(X)\cdot X^{-T}$</td></tr><tr><td>$\ln\det(X)$</td><td>$X^{-T}$</td></tr></tbody></table><hr><h2 id=python-实战>Python 实战</h2><h3 id=梯度检验>梯度检验</h3><p>任何手推梯度的最佳调试工具：用中心差分对照一下。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>gradient_check</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>grad_f</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>epsilon</span><span class=o>=</span><span class=mf>1e-5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;用数值梯度检验解析梯度。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>analytical</span> <span class=o>=</span> <span class=n>grad_f</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>numerical</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_plus</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>();</span> <span class=n>x_plus</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+=</span> <span class=n>epsilon</span>
+</span></span><span class=line><span class=cl>        <span class=n>x_minus</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>();</span> <span class=n>x_minus</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>-=</span> <span class=n>epsilon</span>
+</span></span><span class=line><span class=cl>        <span class=n>numerical</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>f</span><span class=p>(</span><span class=n>x_plus</span><span class=p>)</span> <span class=o>-</span> <span class=n>f</span><span class=p>(</span><span class=n>x_minus</span><span class=p>))</span> <span class=o>/</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>epsilon</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>rel_error</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>analytical</span> <span class=o>-</span> <span class=n>numerical</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>analytical</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>numerical</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>rel_error</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 测试 f(x) = x^T A x</span>
+</span></span><span class=line><span class=cl><span class=n>A</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>]],</span> <span class=n>dtype</span><span class=o>=</span><span class=nb>float</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>f</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span> <span class=o>@</span> <span class=n>A</span> <span class=o>@</span> <span class=n>x</span>
+</span></span><span class=line><span class=cl><span class=n>grad_f</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>A</span> <span class=o>@</span> <span class=n>x</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>1.0</span><span class=p>,</span> <span class=mf>2.0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;相对误差：</span><span class=si>{</span><span class=n>gradient_check</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>grad_f</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span><span class=si>:</span><span class=s2>.2e</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>  <span class=c1># 约 1e-10</span>
+</span></span></code></pre></td></tr></table></div></div><p>相对误差小于$10^{-7}$算合格，小于$10^{-9}$算优秀。</p><h3 id=比较-gdmomentumadam>比较 GD、Momentum、Adam</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>matplotlib.pyplot</span> <span class=k>as</span> <span class=nn>plt</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>optimize_comparison</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;在二维各向异性二次函数上对比 GD、Momentum、Adam。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>A</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>10</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>]])</span>  <span class=c1># 条件数 = 10</span>
+</span></span><span class=line><span class=cl>    <span class=n>f</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>x</span> <span class=o>@</span> <span class=n>A</span> <span class=o>@</span> <span class=n>x</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>A</span> <span class=o>@</span> <span class=n>x</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>methods</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;GD&#39;</span><span class=p>:</span> <span class=p>{</span><span class=s1>&#39;lr&#39;</span><span class=p>:</span> <span class=mf>0.1</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;Momentum&#39;</span><span class=p>:</span> <span class=p>{</span><span class=s1>&#39;lr&#39;</span><span class=p>:</span> <span class=mf>0.1</span><span class=p>,</span> <span class=s1>&#39;beta&#39;</span><span class=p>:</span> <span class=mf>0.9</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=s1>&#39;Adam&#39;</span><span class=p>:</span> <span class=p>{</span><span class=s1>&#39;lr&#39;</span><span class=p>:</span> <span class=mf>0.3</span><span class=p>,</span> <span class=s1>&#39;beta1&#39;</span><span class=p>:</span> <span class=mf>0.9</span><span class=p>,</span> <span class=s1>&#39;beta2&#39;</span><span class=p>:</span> <span class=mf>0.999</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>x0</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mf>5.0</span><span class=p>,</span> <span class=mf>5.0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>paths</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>methods</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span><span class=p>,</span> <span class=n>v</span><span class=p>,</span> <span class=n>m</span><span class=p>,</span> <span class=n>vv</span> <span class=o>=</span> <span class=n>x0</span><span class=o>.</span><span class=n>copy</span><span class=p>(),</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=mi>2</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=mi>2</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>path</span> <span class=o>=</span> <span class=p>[</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>50</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>g</span> <span class=o>=</span> <span class=n>grad</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>name</span> <span class=o>==</span> <span class=s1>&#39;GD&#39;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>-</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;lr&#39;</span><span class=p>]</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>            <span class=k>elif</span> <span class=n>name</span> <span class=o>==</span> <span class=s1>&#39;Momentum&#39;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>v</span> <span class=o>=</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta&#39;</span><span class=p>]</span> <span class=o>*</span> <span class=n>v</span> <span class=o>+</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>                <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>-</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;lr&#39;</span><span class=p>]</span> <span class=o>*</span> <span class=n>v</span>
+</span></span><span class=line><span class=cl>            <span class=k>elif</span> <span class=n>name</span> <span class=o>==</span> <span class=s1>&#39;Adam&#39;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>m</span> <span class=o>=</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta1&#39;</span><span class=p>]</span> <span class=o>*</span> <span class=n>m</span> <span class=o>+</span> <span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta1&#39;</span><span class=p>])</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>                <span class=n>vv</span> <span class=o>=</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta2&#39;</span><span class=p>]</span> <span class=o>*</span> <span class=n>vv</span> <span class=o>+</span> <span class=p>(</span><span class=mi>1</span><span class=o>-</span><span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta2&#39;</span><span class=p>])</span> <span class=o>*</span> <span class=n>g</span><span class=o>**</span><span class=mi>2</span>
+</span></span><span class=line><span class=cl>                <span class=n>m_hat</span> <span class=o>=</span> <span class=n>m</span> <span class=o>/</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta1&#39;</span><span class=p>]</span><span class=o>**</span><span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>v_hat</span> <span class=o>=</span> <span class=n>vv</span> <span class=o>/</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;beta2&#39;</span><span class=p>]</span><span class=o>**</span><span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>-</span> <span class=n>p</span><span class=p>[</span><span class=s1>&#39;lr&#39;</span><span class=p>]</span> <span class=o>*</span> <span class=n>m_hat</span> <span class=o>/</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>v_hat</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>path</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=n>paths</span><span class=p>[</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>path</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>fig</span><span class=p>,</span> <span class=n>ax</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>subplots</span><span class=p>(</span><span class=n>figsize</span><span class=o>=</span><span class=p>(</span><span class=mi>8</span><span class=p>,</span> <span class=mi>6</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=mi>6</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>100</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span><span class=p>,</span> <span class=n>Y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>meshgrid</span><span class=p>(</span><span class=n>t</span><span class=p>,</span> <span class=n>t</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>Z</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>A</span><span class=p>[</span><span class=mi>0</span><span class=p>,</span><span class=mi>0</span><span class=p>]</span><span class=o>*</span><span class=n>X</span><span class=o>**</span><span class=mi>2</span> <span class=o>+</span> <span class=n>A</span><span class=p>[</span><span class=mi>1</span><span class=p>,</span><span class=mi>1</span><span class=p>]</span><span class=o>*</span><span class=n>Y</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>ax</span><span class=o>.</span><span class=n>contour</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>Y</span><span class=p>,</span> <span class=n>Z</span><span class=p>,</span> <span class=n>levels</span><span class=o>=</span><span class=mi>20</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>path</span> <span class=ow>in</span> <span class=n>paths</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>(</span><span class=n>path</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>],</span> <span class=n>path</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>],</span> <span class=s1>&#39;o-&#39;</span><span class=p>,</span> <span class=n>markersize</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>label</span><span class=o>=</span><span class=n>name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>ax</span><span class=o>.</span><span class=n>legend</span><span class=p>();</span> <span class=n>ax</span><span class=o>.</span><span class=n>set_aspect</span><span class=p>(</span><span class=s1>&#39;equal&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>ax</span><span class=o>.</span><span class=n>set_title</span><span class=p>(</span><span class=s1>&#39;二次函数上的优化轨迹&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>optimize_comparison</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=练习题>练习题</h2><h3 id=热身>热身</h3><ol><li>计算$f(\vec{x}) = 3x_1^2 + 2x_1x_2 + x_2^2$的梯度。</li><li>找出$f(x,y) = x^3 - 3xy + y^3$的所有临界点，并用 Hessian 逐个分类。</li><li>从偏导定义出发，证明$\nabla(\vec{x}^TA\vec{x}) = (A + A^T)\vec{x}$。</li></ol><h3 id=进阶>进阶</h3><ol start=4><li>推导两层神经网络$f = \sigma_2(W_2\sigma_1(W_1\vec{x} + \vec{b}_1) + \vec{b}_2)$的完整反向传播公式，每一步都标清楚形状。</li><li>证明牛顿法在任意二次函数上<strong>一步</strong>收敛到最优解。</li><li>用"弦在图像上方"的定义证明：凸函数的任何局部极小值都是全局极小值。</li></ol><h3 id=编程>编程</h3><ol start=7><li>实现上面的梯度检验函数，并在三个不同函数（其中至少一个含矩阵参数）上验证。</li><li>从零实现 SGD、Momentum、Adam，在 Rosenbrock 函数上比较收敛轨迹并画出来。</li><li>用纯 numpy 实现一个两层神经网络，在二维玩具分类数据集上手写反向传播（不许用任何自动微分框架）。</li></ol><hr><h2 id=本章小结>本章小结</h2><table><thead><tr><th>概念</th><th>关键事实</th><th>在 ML 中的角色</th></tr></thead><tbody><tr><td>梯度</td><td>最速上升方向</td><td>驱动梯度下降</td></tr><tr><td>Jacobian</td><td>最佳线性近似</td><td>链式法则的基本拼块</td></tr><tr><td>Hessian</td><td>曲率矩阵</td><td>判别临界点类型</td></tr><tr><td>链式法则</td><td>Jacobian 相乘</td><td>反向传播的内核</td></tr><tr><td>凸性</td><td>局部极小 = 全局极小</td><td>大量损失函数的保证</td></tr><tr><td>Adam</td><td>自适应学习率</td><td>深度学习默认优化器</td></tr></tbody></table><p>最重要的一句话：<strong>对一个有上百万参数、单个标量损失的模型，一次反向传播能同时算出所有参数的梯度。</strong> 本章其它一切内容，都是为了让这一句话变得精确、可信。</p><hr><h2 id=系列导航>系列导航</h2><ul><li><strong>上一篇：</strong> <a href=/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81-%e7%9f%a9%e9%98%b5%e8%8c%83%e6%95%b0%e4%b8%8e%e6%9d%a1%e4%bb%b6%e6%95%b0/>第十章 矩阵范数与条件数</a></li><li><strong>下一篇：</strong> <a href=/zh/%e7%ba%bf%e6%80%a7%e4%bb%a3%e6%95%b0-%e5%8d%81%e4%ba%8c-%e7%a8%80%e7%96%8f%e7%9f%a9%e9%98%b5%e4%b8%8e%e5%8e%8b%e7%bc%a9%e6%84%9f%e7%9f%a5/>第十二章 稀疏矩阵与压缩感知</a></li><li><strong>完整系列：</strong> 线性代数的本质（1&ndash;18）</li></ul><h2 id=参考资料>参考资料</h2><ul><li>Petersen, K. B. & Pedersen, M. S. <em>The Matrix Cookbook</em>. 矩阵导数恒等式的标准参考。</li><li>Goodfellow, I., Bengio, Y. & Courville, A. (2016). <em>Deep Learning</em>, 第 6 章——反向传播详解。</li><li>Boyd, S. & Vandenberghe, L. (2004). <em>Convex Optimization</em>——凸性、拉格朗日、KKT 的标准教材。</li><li>Nocedal, J. & Wright, S. (2006). <em>Numerical Optimization</em>——牛顿、拟牛顿、信赖域的经典参考。</li><li>Kingma, D. P. & Ba, J. (2015). &ldquo;Adam: A Method for Stochastic Optimization.&rdquo; <em>ICLR</em>.</li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#从淋浴龙头讲起>从淋浴龙头讲起</a><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li></ul></li><li><a href=#梯度多维世界里的坡度>梯度：多维世界里的"坡度&rdquo;</a><ul><li><a href=#从一维到多维>从一维到多维</a></li><li><a href=#为什么必须打包成这样三条几何含义>为什么必须打包成这样：三条几何含义</a></li><li><a href=#三个值得背下来的例子>三个值得背下来的例子</a></li></ul></li><li><a href=#方向导数不一定要走最陡的路>方向导数：不一定要走最陡的路</a></li><li><a href=#jacobian向量进向量出>Jacobian：向量进，向量出</a><ul><li><a href=#一个做菜的类比>一个做菜的类比</a></li><li><a href=#定义>定义</a></li><li><a href=#几何含义最佳线性近似>几何含义：最佳线性近似</a></li><li><a href=#经典例子极坐标>经典例子：极坐标</a></li></ul></li><li><a href=#hessian曲率与临界点分类>Hessian：曲率，与临界点分类</a><ul><li><a href=#定义-1>定义</a></li><li><a href=#二阶-taylor-展开>二阶 Taylor 展开</a></li><li><a href=#临界点分类>临界点分类</a></li></ul></li><li><a href=#矩阵导数当参数本身是矩阵>矩阵导数：当参数本身是矩阵</a><ul><li><a href=#定义-2>定义</a></li><li><a href=#你真正会用到的几条恒等式>你真正会用到的几条恒等式</a></li></ul></li><li><a href=#链式法则与反向传播>链式法则与反向传播</a><ul><li><a href=#矩阵形式的链式法则>矩阵形式的链式法则</a></li><li><a href=#反向传播链式法则的高效实现>反向传播：链式法则的高效实现</a></li><li><a href=#全连接层的反向传播>全连接层的反向传播</a></li><li><a href=#常见激活函数及其导数>常见激活函数及其导数</a></li></ul></li><li><a href=#凸优化让一切变简单的那条性质>凸优化：让一切变简单的那条性质</a><ul><li><a href=#什么叫凸>什么叫"凸"</a></li><li><a href=#三种等价刻画针对c2函数>三种等价刻画（针对函数）</a></li><li><a href=#常见凸函数>常见凸函数</a></li><li><a href=#kkt-条件>KKT 条件</a></li></ul></li><li><a href=#优化算法>优化算法</a><ul><li><a href=#梯度下降>梯度下降</a></li><li><a href=#牛顿法>牛顿法</a></li><li><a href=#随机梯度下降sgd>随机梯度下降（SGD）</a></li><li><a href=#动量法momentum>动量法（Momentum）</a></li><li><a href=#adam>Adam</a></li></ul></li><li><a href=#三个值得手算的应用>三个值得手算的应用</a><ul><li><a href=#线性回归闭式解>线性回归（闭式解）</a></li><li><a href=#岭回归>岭回归</a></li><li><a href=#把-pca-写成优化问题>把 PCA 写成优化问题</a></li></ul></li><li><a href=#公式速查表>公式速查表</a><ul><li><a href=#向量导数>向量导数</a></li><li><a href=#矩阵导数>矩阵导数</a></li></ul></li><li><a href=#python-实战>Python 实战</a><ul><li><a href=#梯度检验>梯度检验</a></li><li><a href=#比较-gdmomentumadam>比较 GD、Momentum、Adam</a></li></ul></li><li><a href=#练习题>练习题</a><ul><li><a href=#热身>热身</a></li><li><a href=#进阶>进阶</a></li><li><a href=#编程>编程</a></li></ul></li><li><a href=#本章小结>本章小结</a></li><li><a href=#系列导航>系列导航</a></li><li><a href=#参考资料>参考资料</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>16 min</strong></div><div class=row><span>Word count</span><strong>7853</strong></div><div class=row><span>Published</span><strong>Mar 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

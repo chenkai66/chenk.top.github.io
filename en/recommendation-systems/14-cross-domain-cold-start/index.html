@@ -1,811 +1,334 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions · Chen Kai Blog</title>
-<meta name="description" content="Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/recommendation-systems/14-cross-domain-cold-start/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/recommendation-systems/14-cross-domain-cold-start/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions">
-<meta property="og:description" content="Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack.">
-<meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/14-cross-domain-cold-start/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-2);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Recommendation Systems</a>
-         · Chapter 14
-      </div>
-      <h1>Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions</h1>
-      <p class="deck">Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-01-09">January 9, 2026</time> · 15 min read · 3100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/recommendation-systems/" class="tag">#Recommendation Systems</a><a href="/en/tags/cross-domain/" class="tag">#Cross-Domain</a><a href="/en/tags/cold-start/" class="tag">#Cold Start</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <blockquote>
-<p>When Netflix launches in a new country, it inherits millions of users with zero history and a catalog with no local ratings. Amazon faces the same problem each time it opens a new product category. Pure collaborative filtering — the workhorse of warm-state recommendation — has nothing to compute on. The discipline that makes recommendations work in this regime is a stack of techniques: bootstrap heuristics for the first request, meta-learning after a handful of interactions, cross-domain transfer when a related domain is rich, and bandits to keep exploring once the model is confident. This post walks through that stack, anchored to the papers it descends from.</p>
-</blockquote>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li><strong>The three cold-start regimes</strong> — new user, new item, new system — and why each demands a different lever</li>
-<li><strong>Cross-domain bridges</strong> — from EMCDR&rsquo;s shared MLP to PTUPCDR&rsquo;s per-user meta network</li>
-<li><strong>Meta-learning for recsys</strong> — MAML&rsquo;s bilevel optimization and how MeLU specialises it for users</li>
-<li><strong>Exploration vs exploitation</strong> — UCB1, ε-greedy, Thompson sampling and their regret bounds</li>
-<li><strong>The cold-to-warm progression</strong> — which method dominates at which interaction count</li>
-<li><strong>Content-based fallback</strong> — the always-on safety net for new items</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Working knowledge of collaborative filtering and matrix factorization (Parts 3-4)</li>
-<li>Comfort with PyTorch and basic gradient descent (Part 7)</li>
-<li>Willingness to read one or two equations carefully</li>
-</ul>
-<hr>
-<h2 id="the-three-faces-of-cold-start">The Three Faces of Cold-Start</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig1_cold_start_scenarios.png" alt="Three cold-start regimes shown as user-item interaction matrices: missing row for new user, missing column for new item, mostly empty grid for new system" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A recommendation system trained on history fails in three distinct ways when history is missing. Each looks like a different shape of hole in the user-item matrix.</p>
-<h3 id="user-cold-start">User cold-start</h3>
-<p>A user signs up. We may know their device, IP region, and the campaign that brought them in — possibly an age band from a sign-up form. We have <strong>zero</strong> explicit interactions. Their row in the rating matrix is blank. Industry data points are blunt: poor first-session recommendations correlate with roughly 3× higher 30-day churn on consumer apps. The lever here is <strong>inference from sparse signals plus aggressive exploration</strong>.</p>
-<h3 id="item-cold-start">Item cold-start</h3>
-<p>A merchant uploads a new SKU. A studio releases a new film. A creator publishes a new video. The column is blank. Collaborative filtering cannot retrieve the item because nobody has co-interacted with it. Without intervention, the item never gets exposure, never accumulates ratings, and stays invisible — the so-called rich-get-richer problem. The lever is <strong>content features</strong>: title, image, embedding from a pretrained encoder, plus seeding via similar warm items.</p>
-<h3 id="system-cold-start">System cold-start</h3>
-<p>A new platform launches, or an existing platform expands into a new vertical. The matrix is mostly empty. Both rows and columns are sparse simultaneously. The lever is <strong>transfer</strong>: borrow embeddings, mappings, or even ranking models from a related, data-rich domain.</p>
-<h3 id="a-formalism-that-covers-all-three">A formalism that covers all three</h3>
-<p>Given users $U$, items $I$, and an interaction matrix $R \in \mathbb{R}^{|U| \times |I|}$, define cold-start subsets $U_{\text{cold}} \subset U$ with $|R_{u,\cdot}| < K$ for $u \in U_{\text{cold}}$, and similarly $I_{\text{cold}}$. The objective is to predict $R_{u,i}$ for $(u, i)$ pairs where at least one side is cold. Standard CF learns embeddings $\mathbf{e}_u, \mathbf{e}_i$ from co-occurrence patterns; on cold rows or columns these embeddings either don&rsquo;t exist or are random initializations with no gradient signal. Every method below is essentially an answer to the question: <strong>what do we use instead of $\mathbf{e}_u$ or $\mathbf{e}_i$ when the data isn&rsquo;t there?</strong></p>
-<hr>
-<h2 id="cross-domain-recommendation">Cross-Domain Recommendation</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig2_cross_domain_transfer.png" alt="Cross-domain pipeline: source-domain interactions feed embeddings, a bridge function maps them into target-domain space, target predictor scores cold-start users" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The intuition is old: a user who loves Stanley Kubrick&rsquo;s <em>2001: A Space Odyssey</em> probably reads Arthur C. Clarke. Their movie behavior is a strong prior on their book preferences even though the items are different. The technical question is how to operationalize &ldquo;strong prior&rdquo; — what function maps a user&rsquo;s representation in the movie domain to a representation in the book domain?</p>
-<h3 id="emcdr--the-shared-mlp-bridge">EMCDR — the shared MLP bridge</h3>
-<p><a href="https://www.ijcai.org/proceedings/2017/0343.pdf" target="_blank" rel="noopener noreferrer">Man et al., IJCAI 2017 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- introduced <strong>EMCDR (Embedding and Mapping for Cross-Domain Recommendation)</strong>, the cleanest formulation. It has three stages.</p>
-<ol>
-<li><strong>Train domain-specific MF.</strong> Run matrix factorization on source interactions $R^S$ and target interactions $R^T$ separately, yielding user embeddings $U^S, U^T$ and item embeddings $V^S, V^T$.</li>
-<li><strong>Train a mapping on overlap users.</strong> For users $i \in U_o = U^S \cap U^T$ that exist in both domains, learn an MLP $f_\phi$ that minimizes $\sum_{i \in U_o} \|f_\phi(\mathbf{u}_i^S) - \mathbf{u}_i^T\|^2$.</li>
-<li><strong>Predict for cold target users.</strong> For a user who only exists in the source, set $\hat{\mathbf{u}}_i^T = f_\phi(\mathbf{u}_i^S)$ and feed it into the target predictor.</li>
-</ol>
-<p>The bridge is <strong>global</strong> — every user is mapped through the same $f_\phi$.</p>
-<h3 id="ptupcdr--personalize-the-bridge-itself">PTUPCDR — personalize the bridge itself</h3>
-<p>EMCDR&rsquo;s weakness is that one mapping cannot capture how different users translate across domains. A horror-movie fan and a documentary fan probably need very different mappings into the book domain. <a href="https://arxiv.org/abs/2110.11154" target="_blank" rel="noopener noreferrer">Zhu et al., WSDM 2022 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- propose <strong>PTUPCDR (Personalized Transfer of User Preferences for Cross-Domain Recommendation)</strong>: instead of one $\phi$, generate a per-user $\phi_i$ from the user&rsquo;s source-domain behavior using a meta network.</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions · Chen Kai Blog</title>
+<meta name=description content="Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/recommendation-systems/14-cross-domain-cold-start/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/recommendation-systems/14-cross-domain-cold-start/><meta property="og:type" content="article"><meta property="og:title" content="Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions"><meta property="og:description" content="Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack."><meta property="og:url" content="https://www.chenk.top/en/recommendation-systems/14-cross-domain-cold-start/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Recommendation Systems</a>
+· Chapter 14</div><h1>Recommendation Systems (14): Cross-Domain Recommendation and Cold-Start Solutions</h1><p class=deck>Cold-start and cross-domain recommendation in depth: the three faces of cold-start, EMCDR/PTUPCDR cross-domain bridges, MeLU/MAML meta-learning, UCB bandits for exploration, and the cold-to-warm production stack.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-09>January 9, 2026</time> · 15 min read · 3099 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/recommendation-systems/ class=tag>#Recommendation Systems</a><a href=/en/tags/cross-domain/ class=tag>#Cross-Domain</a><a href=/en/tags/cold-start/ class=tag>#Cold Start</a></div></div></header><div class=prose><blockquote><p>When Netflix launches in a new country, it inherits millions of users with zero history and a catalog with no local ratings. Amazon faces the same problem each time it opens a new product category. Pure collaborative filtering — the workhorse of warm-state recommendation — has nothing to compute on. The discipline that makes recommendations work in this regime is a stack of techniques: bootstrap heuristics for the first request, meta-learning after a handful of interactions, cross-domain transfer when a related domain is rich, and bandits to keep exploring once the model is confident. This post walks through that stack, anchored to the papers it descends from.</p></blockquote><h2 id=what-you-will-learn>What you will learn</h2><ul><li><strong>The three cold-start regimes</strong> — new user, new item, new system — and why each demands a different lever</li><li><strong>Cross-domain bridges</strong> — from EMCDR&rsquo;s shared MLP to PTUPCDR&rsquo;s per-user meta network</li><li><strong>Meta-learning for recsys</strong> — MAML&rsquo;s bilevel optimization and how MeLU specialises it for users</li><li><strong>Exploration vs exploitation</strong> — UCB1, ε-greedy, Thompson sampling and their regret bounds</li><li><strong>The cold-to-warm progression</strong> — which method dominates at which interaction count</li><li><strong>Content-based fallback</strong> — the always-on safety net for new items</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Working knowledge of collaborative filtering and matrix factorization (Parts 3-4)</li><li>Comfort with PyTorch and basic gradient descent (Part 7)</li><li>Willingness to read one or two equations carefully</li></ul><hr><h2 id=the-three-faces-of-cold-start>The Three Faces of Cold-Start</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig1_cold_start_scenarios.png alt="Three cold-start regimes shown as user-item interaction matrices: missing row for new user, missing column for new item, mostly empty grid for new system" loading=lazy decoding=async></figure></p><p>A recommendation system trained on history fails in three distinct ways when history is missing. Each looks like a different shape of hole in the user-item matrix.</p><h3 id=user-cold-start>User cold-start</h3><p>A user signs up. We may know their device, IP region, and the campaign that brought them in — possibly an age band from a sign-up form. We have <strong>zero</strong> explicit interactions. Their row in the rating matrix is blank. Industry data points are blunt: poor first-session recommendations correlate with roughly 3× higher 30-day churn on consumer apps. The lever here is <strong>inference from sparse signals plus aggressive exploration</strong>.</p><h3 id=item-cold-start>Item cold-start</h3><p>A merchant uploads a new SKU. A studio releases a new film. A creator publishes a new video. The column is blank. Collaborative filtering cannot retrieve the item because nobody has co-interacted with it. Without intervention, the item never gets exposure, never accumulates ratings, and stays invisible — the so-called rich-get-richer problem. The lever is <strong>content features</strong>: title, image, embedding from a pretrained encoder, plus seeding via similar warm items.</p><h3 id=system-cold-start>System cold-start</h3><p>A new platform launches, or an existing platform expands into a new vertical. The matrix is mostly empty. Both rows and columns are sparse simultaneously. The lever is <strong>transfer</strong>: borrow embeddings, mappings, or even ranking models from a related, data-rich domain.</p><h3 id=a-formalism-that-covers-all-three>A formalism that covers all three</h3><p>Given users $U$, items $I$, and an interaction matrix $R \in \mathbb{R}^{|U| \times |I|}$, define cold-start subsets $U_{\text{cold}} \subset U$ with $|R_{u,\cdot}| < K$ for $u \in U_{\text{cold}}$, and similarly $I_{\text{cold}}$. The objective is to predict $R_{u,i}$ for $(u, i)$ pairs where at least one side is cold. Standard CF learns embeddings $\mathbf{e}_u, \mathbf{e}_i$ from co-occurrence patterns; on cold rows or columns these embeddings either don&rsquo;t exist or are random initializations with no gradient signal. Every method below is essentially an answer to the question: <strong>what do we use instead of $\mathbf{e}_u$ or $\mathbf{e}_i$ when the data isn&rsquo;t there?</strong></p><hr><h2 id=cross-domain-recommendation>Cross-Domain Recommendation</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig2_cross_domain_transfer.png alt="Cross-domain pipeline: source-domain interactions feed embeddings, a bridge function maps them into target-domain space, target predictor scores cold-start users" loading=lazy decoding=async></figure></p><p>The intuition is old: a user who loves Stanley Kubrick&rsquo;s <em>2001: A Space Odyssey</em> probably reads Arthur C. Clarke. Their movie behavior is a strong prior on their book preferences even though the items are different. The technical question is how to operationalize &ldquo;strong prior&rdquo; — what function maps a user&rsquo;s representation in the movie domain to a representation in the book domain?</p><h3 id=emcdr--the-shared-mlp-bridge>EMCDR — the shared MLP bridge</h3><p><a href=https://www.ijcai.org/proceedings/2017/0343.pdf target=_blank rel="noopener noreferrer">Man et al., IJCAI 2017 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+introduced <strong>EMCDR (Embedding and Mapping for Cross-Domain Recommendation)</strong>, the cleanest formulation. It has three stages.</p><ol><li><strong>Train domain-specific MF.</strong> Run matrix factorization on source interactions $R^S$ and target interactions $R^T$ separately, yielding user embeddings $U^S, U^T$ and item embeddings $V^S, V^T$.</li><li><strong>Train a mapping on overlap users.</strong> For users $i \in U_o = U^S \cap U^T$ that exist in both domains, learn an MLP $f_\phi$ that minimizes $\sum_{i \in U_o} \|f_\phi(\mathbf{u}_i^S) - \mathbf{u}_i^T\|^2$.</li><li><strong>Predict for cold target users.</strong> For a user who only exists in the source, set $\hat{\mathbf{u}}_i^T = f_\phi(\mathbf{u}_i^S)$ and feed it into the target predictor.</li></ol><p>The bridge is <strong>global</strong> — every user is mapped through the same $f_\phi$.</p><h3 id=ptupcdr--personalize-the-bridge-itself>PTUPCDR — personalize the bridge itself</h3><p>EMCDR&rsquo;s weakness is that one mapping cannot capture how different users translate across domains. A horror-movie fan and a documentary fan probably need very different mappings into the book domain. <a href=https://arxiv.org/abs/2110.11154 target=_blank rel="noopener noreferrer">Zhu et al., WSDM 2022 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+propose <strong>PTUPCDR (Personalized Transfer of User Preferences for Cross-Domain Recommendation)</strong>: instead of one $\phi$, generate a per-user $\phi_i$ from the user&rsquo;s source-domain behavior using a meta network.</p>$$
 \phi_i = h_\theta\bigl(\{\mathbf{v}_j^S : j \in \mathcal{H}_i^S\}\bigr), \qquad \hat{\mathbf{u}}_i^T = f_{\phi_i}(\mathbf{u}_i^S)
-$$<p>In words: read the user&rsquo;s source-domain history, summarize it into a small set of bridge weights, then apply that personalized bridge to the user&rsquo;s source embedding. PTUPCDR reports MAE reductions of 5–10% over EMCDR on the standard Amazon cross-category benchmarks.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig3_emcdr_ptupcdr.png" alt="Side-by-side: EMCDR uses a single shared MLP for all users; PTUPCDR generates per-user bridge parameters via a meta network" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="a-minimal-cross-domain-skeleton">A minimal cross-domain skeleton</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CrossDomainBridge</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Shared-bridge cross-domain model in the EMCDR style.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Stage 1 (not shown): pretrain source/target MF separately.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Stage 2: this module learns f_phi on overlap users.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Stage 3: for a cold target user we run u_S through f_phi
-</span></span></span><span class="line"><span class="cl"><span class="s2">             and score against target items.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bridge</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_emb_source</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bridge</span><span class="p">(</span><span class="n">user_emb_source</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">emcdr_loss</span><span class="p">(</span><span class="n">bridge</span><span class="p">,</span> <span class="n">u_source</span><span class="p">,</span> <span class="n">u_target_true</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Train on overlap users only — supervised regression in embedding space.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">u_target_pred</span> <span class="o">=</span> <span class="n">bridge</span><span class="p">(</span><span class="n">u_source</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">u_target_pred</span> <span class="o">-</span> <span class="n">u_target_true</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="negative-transfer--the-failure-mode-to-watch-for">Negative transfer — the failure mode to watch for</h3>
-<p>Cross-domain transfer is not free. If the source and target are weakly related (say, news-reading patterns and grocery purchases), the bridge can actively <strong>hurt</strong> target performance. The signal is straightforward: run an A/B against a target-only baseline and watch the cold-user metric. If transfer doesn&rsquo;t beat the baseline at the same training cost, the domains are too far apart.</p>
-<hr>
-<h2 id="meta-learning-for-cold-start">Meta-Learning for Cold-Start</h2>
-<p>The cross-domain story assumes you have a related rich domain. Meta-learning takes a different angle: even within a single domain, can we train the model so that it <strong>adapts quickly</strong> to a new user from just a handful of interactions?</p>
-<h3 id="maml-in-one-paragraph">MAML in one paragraph</h3>
-<p><a href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener noreferrer">Finn, Abbeel, and Levine (ICML 2017) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- proposed <strong>MAML (Model-Agnostic Meta-Learning)</strong>: instead of learning parameters $\theta$ that minimize expected loss across tasks, learn $\theta$ that, after a few gradient steps on any task, performs well on that task. It&rsquo;s a bilevel optimization. The inner loop adapts:</p>
-$$
+$$<p>In words: read the user&rsquo;s source-domain history, summarize it into a small set of bridge weights, then apply that personalized bridge to the user&rsquo;s source embedding. PTUPCDR reports MAE reductions of 5–10% over EMCDR on the standard Amazon cross-category benchmarks.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig3_emcdr_ptupcdr.png alt="Side-by-side: EMCDR uses a single shared MLP for all users; PTUPCDR generates per-user bridge parameters via a meta network" loading=lazy decoding=async></figure></p><h3 id=a-minimal-cross-domain-skeleton>A minimal cross-domain skeleton</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CrossDomainBridge</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Shared-bridge cross-domain model in the EMCDR style.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Stage 1 (not shown): pretrain source/target MF separately.
+</span></span></span><span class=line><span class=cl><span class=s2>    Stage 2: this module learns f_phi on overlap users.
+</span></span></span><span class=line><span class=cl><span class=s2>    Stage 3: for a cold target user we run u_S through f_phi
+</span></span></span><span class=line><span class=cl><span class=s2>             and score against target items.
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bridge</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>embedding_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_emb_source</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>bridge</span><span class=p>(</span><span class=n>user_emb_source</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>emcdr_loss</span><span class=p>(</span><span class=n>bridge</span><span class=p>,</span> <span class=n>u_source</span><span class=p>,</span> <span class=n>u_target_true</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Train on overlap users only — supervised regression in embedding space.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>u_target_pred</span> <span class=o>=</span> <span class=n>bridge</span><span class=p>(</span><span class=n>u_source</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>mean</span><span class=p>((</span><span class=n>u_target_pred</span> <span class=o>-</span> <span class=n>u_target_true</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=negative-transfer--the-failure-mode-to-watch-for>Negative transfer — the failure mode to watch for</h3><p>Cross-domain transfer is not free. If the source and target are weakly related (say, news-reading patterns and grocery purchases), the bridge can actively <strong>hurt</strong> target performance. The signal is straightforward: run an A/B against a target-only baseline and watch the cold-user metric. If transfer doesn&rsquo;t beat the baseline at the same training cost, the domains are too far apart.</p><hr><h2 id=meta-learning-for-cold-start>Meta-Learning for Cold-Start</h2><p>The cross-domain story assumes you have a related rich domain. Meta-learning takes a different angle: even within a single domain, can we train the model so that it <strong>adapts quickly</strong> to a new user from just a handful of interactions?</p><h3 id=maml-in-one-paragraph>MAML in one paragraph</h3><p><a href=https://arxiv.org/abs/1703.03400 target=_blank rel="noopener noreferrer">Finn, Abbeel, and Levine (ICML 2017) <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+proposed <strong>MAML (Model-Agnostic Meta-Learning)</strong>: instead of learning parameters $\theta$ that minimize expected loss across tasks, learn $\theta$ that, after a few gradient steps on any task, performs well on that task. It&rsquo;s a bilevel optimization. The inner loop adapts:</p>$$
 \theta'_i = \theta - \alpha \nabla_\theta \mathcal{L}_{T_i}(f_\theta, \mathcal{S}_i)
-$$<p>The outer loop optimizes the initialization through the adapted parameters:</p>
-$$
+$$<p>The outer loop optimizes the initialization through the adapted parameters:</p>$$
 \theta \leftarrow \theta - \beta \nabla_\theta \sum_{T_i \sim p(\mathcal{T})} \mathcal{L}_{T_i}(f_{\theta'_i}, \mathcal{Q}_i)
-$$<p>Geometrically, MAML pushes $\theta$ to a region of parameter space where every task&rsquo;s optimum is just a few gradient steps away.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig4_maml_meta_learning.png" alt="MAML loss landscape with three task minima and a meta-initialization equidistant from all three; right panel shows inner and outer loop equations" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="melu--maml-specialised-for-recommendation">MeLU — MAML specialised for recommendation</h3>
-<p><a href="https://arxiv.org/abs/1908.00413" target="_blank" rel="noopener noreferrer">Lee et al. (KDD 2019) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- adapt MAML to recommendation as <strong>MeLU (Meta-Learned User preference estimator)</strong>. The key engineering choice: only the <strong>decision layers</strong> are adapted in the inner loop; the <strong>embedding layers</strong> stay shared and slow-moving. This matches the inductive bias that item / category embeddings should be stable, while the way a user combines them is what changes per user.</p>
-<p>Each &ldquo;task&rdquo; is one user. The support set $\mathcal{S}_i$ is the user&rsquo;s first 1–5 interactions; the query set $\mathcal{Q}_i$ is held out for the outer-loop loss. After meta-training on hundreds of thousands of users, a brand-new user can be handled by:</p>
-<ol>
-<li>Take their first $K$ ratings as the support set.</li>
-<li>Run $K{=}1$ to $5$ gradient steps on the decision layers.</li>
-<li>Score all candidate items with the adapted model.</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MeLU</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;MeLU-style recommender: shared embeddings, adaptive decision head.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Inner-loop adaptation only touches decision_head.parameters().
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Embeddings are meta-learned in the outer loop only.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="n">num_genres</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">32</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_items</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">genre_embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">num_genres</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decision_head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">embedding_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">,</span> <span class="n">genre_ids</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">genre_embedding</span><span class="p">(</span><span class="n">genre_ids</span><span class="p">)],</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decision_head</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">melu_inner_adapt</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">support_items</span><span class="p">,</span> <span class="n">support_genres</span><span class="p">,</span> <span class="n">support_ratings</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                     <span class="n">inner_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Take a few gradient steps on the decision head only.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Returns adapted parameters as a list of tensors with requires_grad=True
-</span></span></span><span class="line"><span class="cl"><span class="s2">    so the outer loop can backprop through them.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">fast_params</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                   <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">decision_head</span><span class="o">.</span><span class="n">parameters</span><span class="p">()]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_steps</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Forward pass with current fast_params</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">model</span><span class="o">.</span><span class="n">item_embedding</span><span class="p">(</span><span class="n">support_items</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                       <span class="n">model</span><span class="o">.</span><span class="n">genre_embedding</span><span class="p">(</span><span class="n">support_genres</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">fast_params</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">w</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">fast_params</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">fast_params</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">fast_params</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">pred</span> <span class="o">-</span> <span class="n">support_ratings</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">fast_params</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">fast_params</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="o">-</span> <span class="n">inner_lr</span> <span class="o">*</span> <span class="n">g</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fast_params</span><span class="p">,</span> <span class="n">grads</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">fast_params</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="when-meta-learning-is-worth-the-cost">When meta-learning is worth the cost</h3>
-<p>MAML/MeLU costs 3–10× more training compute than a vanilla model because of the inner-loop unrolling and second-order gradients. Use it when:</p>
-<ul>
-<li>You have many users, each with very few interactions (the long-tail user distribution).</li>
-<li>You can identify a clear &ldquo;task&rdquo; boundary — one user, one session, one cohort.</li>
-<li>Bootstrap heuristics aren&rsquo;t enough but you don&rsquo;t have a related domain to transfer from.</li>
-</ul>
-<p>If second-order gradients are too expensive, <strong>FOMAML</strong> drops them and recovers most of the benefit.</p>
-<hr>
-<h2 id="bandits--exploration-vs-exploitation">Bandits — Exploration vs Exploitation</h2>
-<p>Once a model has <em>some</em> confidence about a user, the next question is what to actually serve. Always pick the highest-scoring item and you&rsquo;ll never learn whether the user might love something the model rates lower. Always pick randomly and you&rsquo;ll burn the user&rsquo;s session. The textbook framework is the <strong>multi-armed bandit</strong>.</p>
-<h3 id="ucb1--confidence-bounds">UCB1 — confidence bounds</h3>
-<p><a href="http://aima.eecs.berkeley.edu/~russell/classes/cs294/s11/readings/Auer&#43;al:2002.pdf" target="_blank" rel="noopener noreferrer">Auer, Cesa-Bianchi, and Fischer (2002) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- prove that the UCB1 rule</p>
-$$
+$$<p>Geometrically, MAML pushes $\theta$ to a region of parameter space where every task&rsquo;s optimum is just a few gradient steps away.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig4_maml_meta_learning.png alt="MAML loss landscape with three task minima and a meta-initialization equidistant from all three; right panel shows inner and outer loop equations" loading=lazy decoding=async></figure></p><h3 id=melu--maml-specialised-for-recommendation>MeLU — MAML specialised for recommendation</h3><p><a href=https://arxiv.org/abs/1908.00413 target=_blank rel="noopener noreferrer">Lee et al. (KDD 2019) <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+adapt MAML to recommendation as <strong>MeLU (Meta-Learned User preference estimator)</strong>. The key engineering choice: only the <strong>decision layers</strong> are adapted in the inner loop; the <strong>embedding layers</strong> stay shared and slow-moving. This matches the inductive bias that item / category embeddings should be stable, while the way a user combines them is what changes per user.</p><p>Each &ldquo;task&rdquo; is one user. The support set $\mathcal{S}_i$ is the user&rsquo;s first 1–5 interactions; the query set $\mathcal{Q}_i$ is held out for the outer-loop loss. After meta-training on hundreds of thousands of users, a brand-new user can be handled by:</p><ol><li>Take their first $K$ ratings as the support set.</li><li>Run $K{=}1$ to $5$ gradient steps on the decision layers.</li><li>Score all candidate items with the adapted model.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>MeLU</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;MeLU-style recommender: shared embeddings, adaptive decision head.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Inner-loop adaptation only touches decision_head.parameters().
+</span></span></span><span class=line><span class=cl><span class=s2>    Embeddings are meta-learned in the outer loop only.
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>num_items</span><span class=p>,</span> <span class=n>num_genres</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=o>=</span><span class=mi>32</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>item_embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_items</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>genre_embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>num_genres</span><span class=p>,</span> <span class=n>embedding_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>decision_head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>embedding_dim</span> <span class=o>*</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>64</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>32</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item_ids</span><span class=p>,</span> <span class=n>genre_ids</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>item_embedding</span><span class=p>(</span><span class=n>item_ids</span><span class=p>),</span> <span class=bp>self</span><span class=o>.</span><span class=n>genre_embedding</span><span class=p>(</span><span class=n>genre_ids</span><span class=p>)],</span>
+</span></span><span class=line><span class=cl>            <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>decision_head</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>melu_inner_adapt</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>support_items</span><span class=p>,</span> <span class=n>support_genres</span><span class=p>,</span> <span class=n>support_ratings</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                     <span class=n>inner_lr</span><span class=o>=</span><span class=mf>0.01</span><span class=p>,</span> <span class=n>n_steps</span><span class=o>=</span><span class=mi>3</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Take a few gradient steps on the decision head only.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Returns adapted parameters as a list of tensors with requires_grad=True
+</span></span></span><span class=line><span class=cl><span class=s2>    so the outer loop can backprop through them.
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>fast_params</span> <span class=o>=</span> <span class=p>[</span><span class=n>p</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                   <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>decision_head</span><span class=o>.</span><span class=n>parameters</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Forward pass with current fast_params</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>model</span><span class=o>.</span><span class=n>item_embedding</span><span class=p>(</span><span class=n>support_items</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                       <span class=n>model</span><span class=o>.</span><span class=n>genre_embedding</span><span class=p>(</span><span class=n>support_genres</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>fast_params</span><span class=p>),</span> <span class=mi>2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>w</span><span class=p>,</span> <span class=n>b</span> <span class=o>=</span> <span class=n>fast_params</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>fast_params</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>functional</span><span class=o>.</span><span class=n>linear</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>w</span><span class=p>,</span> <span class=n>b</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=nb>len</span><span class=p>(</span><span class=n>fast_params</span><span class=p>)</span> <span class=o>-</span> <span class=mi>2</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pred</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>mean</span><span class=p>((</span><span class=n>pred</span> <span class=o>-</span> <span class=n>support_ratings</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>grads</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>loss</span><span class=p>,</span> <span class=n>fast_params</span><span class=p>,</span> <span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>fast_params</span> <span class=o>=</span> <span class=p>[</span><span class=n>p</span> <span class=o>-</span> <span class=n>inner_lr</span> <span class=o>*</span> <span class=n>g</span> <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>g</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>fast_params</span><span class=p>,</span> <span class=n>grads</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>fast_params</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=when-meta-learning-is-worth-the-cost>When meta-learning is worth the cost</h3><p>MAML/MeLU costs 3–10× more training compute than a vanilla model because of the inner-loop unrolling and second-order gradients. Use it when:</p><ul><li>You have many users, each with very few interactions (the long-tail user distribution).</li><li>You can identify a clear &ldquo;task&rdquo; boundary — one user, one session, one cohort.</li><li>Bootstrap heuristics aren&rsquo;t enough but you don&rsquo;t have a related domain to transfer from.</li></ul><p>If second-order gradients are too expensive, <strong>FOMAML</strong> drops them and recovers most of the benefit.</p><hr><h2 id=bandits--exploration-vs-exploitation>Bandits — Exploration vs Exploitation</h2><p>Once a model has <em>some</em> confidence about a user, the next question is what to actually serve. Always pick the highest-scoring item and you&rsquo;ll never learn whether the user might love something the model rates lower. Always pick randomly and you&rsquo;ll burn the user&rsquo;s session. The textbook framework is the <strong>multi-armed bandit</strong>.</p><h3 id=ucb1--confidence-bounds>UCB1 — confidence bounds</h3><p><a href=http://aima.eecs.berkeley.edu/~russell/classes/cs294/s11/readings/Auer+al:2002.pdf target=_blank rel="noopener noreferrer">Auer, Cesa-Bianchi, and Fischer (2002) <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+prove that the UCB1 rule</p>$$
 a_t = \arg\max_a \left[ \hat\mu_a + \sqrt{\frac{2 \ln t}{n_a}} \right]
-$$<p>achieves $O(\log t)$ cumulative regret — i.e., the gap between UCB and an oracle that always picks the best arm grows only logarithmically in the number of rounds. The formula has a clean interpretation: pick the item whose <strong>upper confidence bound</strong> is highest. Items with few pulls $n_a$ get a large exploration bonus and are tried; items with many pulls have tight bounds and are picked only if their estimated mean is genuinely high.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig5_ucb_exploration.png" alt="Left: bar chart of estimated rewards with UCB whiskers showing items with few pulls have wide uncertainty bonuses; right: cumulative regret curves showing UCB and Thompson achieve logarithmic regret while greedy and random grow linearly" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="thompson-sampling--bayesian-alternative">Thompson sampling — Bayesian alternative</h3>
-<p>Thompson sampling maintains a posterior over each arm&rsquo;s reward and samples from it; pick the arm whose sample is highest. Empirically it usually matches or beats UCB1 and is trivial to implement for Beta-Bernoulli rewards.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">UCB1Recommender</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;UCB1 for K candidate items. Rewards in [0, 1].&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_items</span> <span class="o">=</span> <span class="n">n_items</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Pull each arm once first</span>
-</span></span><span class="line"><span class="cl">        <span class="n">unpulled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">counts</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unpulled</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">unpulled</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ucb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">ucb</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">reward</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">reward</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">item</span><span class="p">])</span> <span class="o">/</span> <span class="n">n</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ThompsonSampling</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Beta-Bernoulli Thompson sampling for binary rewards (e.g. click / no click).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">reward</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">+=</span> <span class="n">reward</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">reward</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>In production, contextual bandits like LinUCB and neural variants extend these ideas to use user / item features rather than just per-arm counters. They are the canonical tool for the <strong>few-shot regime</strong> where meta-learning has produced a model but you still need to gather data efficiently.</p>
-<hr>
-<h2 id="content-based-fallback">Content-Based Fallback</h2>
-<p>For new items, no amount of meta-learning helps if there&rsquo;s no signal at all. Content-based retrieval is the always-on safety net.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig7_content_fallback.png" alt="Cold-start item flows through a feature encoder (BERT / CLIP / TF-IDF) into a content embedding, which is matched against warm catalog items by cosine similarity; predicted rating aggregates the top-K nearest warm items&rsquo; ratings" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The recipe is mechanical:</p>
-<ol>
-<li><strong>Encode the new item</strong> with a domain-appropriate encoder. Text → BERT / sentence-transformers. Images → CLIP. Tabular → handcrafted features + a small MLP.</li>
-<li><strong>Find the K nearest warm items</strong> by cosine similarity on the content embedding.</li>
-<li><strong>Predict the rating</strong> as a similarity-weighted average of those neighbors&rsquo; ratings:</li>
-</ol>
-$$
+$$<p>achieves $O(\log t)$ cumulative regret — i.e., the gap between UCB and an oracle that always picks the best arm grows only logarithmically in the number of rounds. The formula has a clean interpretation: pick the item whose <strong>upper confidence bound</strong> is highest. Items with few pulls $n_a$ get a large exploration bonus and are tried; items with many pulls have tight bounds and are picked only if their estimated mean is genuinely high.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig5_ucb_exploration.png alt="Left: bar chart of estimated rewards with UCB whiskers showing items with few pulls have wide uncertainty bonuses; right: cumulative regret curves showing UCB and Thompson achieve logarithmic regret while greedy and random grow linearly" loading=lazy decoding=async></figure></p><h3 id=thompson-sampling--bayesian-alternative>Thompson sampling — Bayesian alternative</h3><p>Thompson sampling maintains a posterior over each arm&rsquo;s reward and samples from it; pick the arm whose sample is highest. Empirically it usually matches or beats UCB1 and is trivial to implement for Beta-Bernoulli rewards.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>UCB1Recommender</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;UCB1 for K candidate items. Rewards in [0, 1].&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_items</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_items</span> <span class=o>=</span> <span class=n>n_items</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>counts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_items</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>means</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>n_items</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>float64</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>t</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>t</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Pull each arm once first</span>
+</span></span><span class=line><span class=cl>        <span class=n>unpulled</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>counts</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>unpulled</span><span class=p>)</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>unpulled</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>ucb</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>means</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>t</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>ucb</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>reward</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=p>[</span><span class=n>item</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=n>n</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>counts</span><span class=p>[</span><span class=n>item</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>means</span><span class=p>[</span><span class=n>item</span><span class=p>]</span> <span class=o>+=</span> <span class=p>(</span><span class=n>reward</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>means</span><span class=p>[</span><span class=n>item</span><span class=p>])</span> <span class=o>/</span> <span class=n>n</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ThompsonSampling</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Beta-Bernoulli Thompson sampling for binary rewards (e.g. click / no click).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_items</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>beta</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>n_items</span><span class=p>,</span> <span class=n>alpha</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>beta</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>n_items</span><span class=p>,</span> <span class=n>beta</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>samples</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>beta</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>samples</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>reward</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>[</span><span class=n>item</span><span class=p>]</span> <span class=o>+=</span> <span class=n>reward</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>[</span><span class=n>item</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span> <span class=o>-</span> <span class=n>reward</span>
+</span></span></code></pre></td></tr></table></div></div><p>In production, contextual bandits like LinUCB and neural variants extend these ideas to use user / item features rather than just per-arm counters. They are the canonical tool for the <strong>few-shot regime</strong> where meta-learning has produced a model but you still need to gather data efficiently.</p><hr><h2 id=content-based-fallback>Content-Based Fallback</h2><p>For new items, no amount of meta-learning helps if there&rsquo;s no signal at all. Content-based retrieval is the always-on safety net.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig7_content_fallback.png alt="Cold-start item flows through a feature encoder (BERT / CLIP / TF-IDF) into a content embedding, which is matched against warm catalog items by cosine similarity; predicted rating aggregates the top-K nearest warm items&rsquo; ratings" loading=lazy decoding=async></figure></p><p>The recipe is mechanical:</p><ol><li><strong>Encode the new item</strong> with a domain-appropriate encoder. Text → BERT / sentence-transformers. Images → CLIP. Tabular → handcrafted features + a small MLP.</li><li><strong>Find the K nearest warm items</strong> by cosine similarity on the content embedding.</li><li><strong>Predict the rating</strong> as a similarity-weighted average of those neighbors&rsquo; ratings:</li></ol>$$
 \hat r_{u,i} = \frac{\sum_{j \in N_K(i)} \mathrm{sim}(i, j) \cdot r_{u,j}}{\sum_{j \in N_K(i)} \mathrm{sim}(i, j)}
-$$<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ContentFallback</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Predict ratings for a cold item by borrowing from K nearest warm items.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item_features</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">K</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># item_features: (n_items, d) precomputed embeddings (e.g. BERT, CLIP)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">norms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">item_features</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">normed</span> <span class="o">=</span> <span class="n">item_features</span> <span class="o">/</span> <span class="n">norms</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="n">K</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cold_item_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">warm_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">warm_ratings</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">sims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normed</span><span class="p">[</span><span class="n">warm_ids</span><span class="p">]</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">normed</span><span class="p">[</span><span class="n">cold_item_idx</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="o">-</span><span class="n">sims</span><span class="p">,</span> <span class="n">kth</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sims</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">sims</span><span class="p">[</span><span class="n">top</span><span class="p">],</span> <span class="n">warm_ratings</span><span class="p">[</span><span class="n">top</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># negative similarity → ignore</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="n">s</span> <span class="o">*</span> <span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The same pattern works for <strong>user cold-start</strong> if the user provides any content-style signal (a survey on sign-up, a single onboarding click): encode the signal, find similar warm users, borrow their preferences.</p>
-<hr>
-<h2 id="the-cold-to-warm-production-stack">The Cold-to-Warm Production Stack</h2>
-<p>No single method dominates across the whole interaction-count axis. Production systems route requests to different methods based on how much data the user has accumulated.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig6_cold_to_warm.png" alt="Performance vs interaction count with five curves: pure CF starts near zero and ramps slowly, content-based stays flat at a decent floor, meta-learning ramps fast in the few-shot region, cross-domain is strong from the start, hybrid envelope is on top throughout" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The shape of each curve tells a story:</p>
-<ul>
-<li><strong>Pure CF</strong> is useless below ~5 interactions and slow to climb until ~20.</li>
-<li><strong>Content-based</strong> has a flat floor — never great, never terrible, always available.</li>
-<li><strong>Meta-learning (MeLU)</strong> is the steepest mover in the 1–10 interaction range — exactly what it&rsquo;s designed for.</li>
-<li><strong>Cross-domain (PTUPCDR)</strong> starts highest because it inherits source-domain knowledge for free, but flattens earlier.</li>
-<li><strong>Hybrid stack</strong> is the upper envelope: route to whichever method dominates at the current interaction count.</li>
-</ul>
-<p>A practical routing rule:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Interactions</th>
-          <th>Primary method</th>
-          <th>Fallbacks</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>0</td>
-          <td>Cross-domain or popularity</td>
-          <td>Content-based</td>
-      </tr>
-      <tr>
-          <td>1-3</td>
-          <td>Cross-domain + bandit</td>
-          <td>Content-based</td>
-      </tr>
-      <tr>
-          <td>3-20</td>
-          <td>Meta-learning (MeLU)</td>
-          <td>Cross-domain</td>
-      </tr>
-      <tr>
-          <td>20+</td>
-          <td>Full CF / DIN / sequential</td>
-          <td>Meta-learning for new sessions</td>
-      </tr>
-  </tbody>
-</table>
-<p>Keep a popularity baseline running in parallel as a circuit breaker — if any of the above methods produces low-confidence predictions, fall back to popular items in the user&rsquo;s inferred segment.</p>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="my-platform-has-no-related-domain-to-transfer-from-where-do-i-start">My platform has no related domain to transfer from. Where do I start?</h3>
-<p>Lead with content-based fallback for items and a popularity prior for users, then meta-train MeLU on whatever interaction data you accumulate. Cross-domain is a 10–20% relative boost when available, not a prerequisite.</p>
-<h3 id="how-many-interactions-before-melu-outperforms-a-content-baseline">How many interactions before MeLU outperforms a content baseline?</h3>
-<p>In published benchmarks (MovieLens, Bookcrossing) MeLU starts winning at 2–3 interactions and dominates by 5. Your mileage depends on how informative your support interactions are — diverse genres beat homogeneous ones.</p>
-<h3 id="is-fomaml-really-good-enough-or-should-i-bite-the-bullet-on-second-order-maml">Is FOMAML really good enough, or should I bite the bullet on second-order MAML?</h3>
-<p>For recommendation, FOMAML is within 1–2% of MAML on standard metrics and trains 3× faster. Use second-order MAML only when you&rsquo;ve measured that the gap matters for your business metric.</p>
-<h3 id="how-do-i-detect-negative-transfer-in-cross-domain">How do I detect negative transfer in cross-domain?</h3>
-<p>Run a target-only baseline alongside the cross-domain model. If target performance on cold users does not improve, the domains are too distant. Common culprit: aligning users by ID across domains where the same user has wildly different behavior (work account vs personal account).</p>
-<h3 id="are-bandits-worth-it-for-top-k-recommendation-or-just-for-single-pick-problems">Are bandits worth it for top-K recommendation, or just for single-pick problems?</h3>
-<p>Worth it for the <strong>first slot or two</strong> of a feed — that&rsquo;s where exploration value is highest. After the first few items, switch to ranking. Combinatorial bandits exist but are operationally expensive.</p>
-<h3 id="how-do-i-evaluate-a-cold-start-system-offline">How do I evaluate a cold-start system offline?</h3>
-<p>Hold out users entirely (not random interactions). For each held-out user, expose only their first $K$ interactions to the model as &ldquo;support&rdquo; and predict on the rest. Report metrics stratified by $K \in \{1, 3, 5, 10\}$ — a single number hides the cold-to-warm transition.</p>
-<hr>
-<h2 id="summary">Summary</h2>
-<p>Cold-start is not a single problem with a single solution; it&rsquo;s a <strong>regime</strong> that demands different machinery at different points on the interaction-count axis.</p>
-<ul>
-<li>The taxonomy (user / item / system) determines which lever — exploration, content, transfer — is actually available.</li>
-<li><strong>EMCDR</strong> and <strong>PTUPCDR</strong> turn a data-rich source domain into a prior on a data-sparse target. PTUPCDR&rsquo;s per-user bridge is the current practical sweet spot.</li>
-<li><strong>MAML</strong> and its recsys specialisation <strong>MeLU</strong> train models whose initialisations adapt in a few steps — perfect for the 3-10 interaction window.</li>
-<li><strong>UCB1</strong> and <strong>Thompson sampling</strong> give the few-shot regime a principled exploration rule with logarithmic regret.</li>
-<li><strong>Content-based fallback</strong> is the unglamorous always-on safety net.</li>
-<li>The <strong>hybrid stack</strong> routes by interaction count and keeps a popularity circuit breaker.</li>
-</ul>
-<p>Build the stack incrementally. Start with content + popularity, layer in meta-learning once you have enough users to meta-train, add cross-domain when a related domain becomes available. Measure cold-user metrics separately from warm metrics; aggregate numbers will hide the regime where you&rsquo;re actually losing money.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Finn, C., Abbeel, P., &amp; Levine, S. (2017). <a href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener noreferrer">Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. <em>ICML</em>.</li>
-<li>Lee, H., Im, J., Jang, S., Cho, H., &amp; Chung, S. (2019). <a href="https://arxiv.org/abs/1908.00413" target="_blank" rel="noopener noreferrer">MeLU: Meta-Learned User Preference Estimator for Cold-Start Recommendation <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. <em>KDD</em>.</li>
-<li>Man, T., Shen, H., Jin, X., &amp; Cheng, X. (2017). <a href="https://www.ijcai.org/proceedings/2017/0343.pdf" target="_blank" rel="noopener noreferrer">Cross-Domain Recommendation: An Embedding and Mapping Approach <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. <em>IJCAI</em>.</li>
-<li>Zhu, Y., Tang, Z., Liu, Y., Zhuang, F., Xie, R., Zhang, X., Lin, L., &amp; He, Q. (2022). <a href="https://arxiv.org/abs/2110.11154" target="_blank" rel="noopener noreferrer">Personalized Transfer of User Preferences for Cross-domain Recommendation <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. <em>WSDM</em>.</li>
-<li>Auer, P., Cesa-Bianchi, N., &amp; Fischer, P. (2002). <a href="http://aima.eecs.berkeley.edu/~russell/classes/cs294/s11/readings/Auer&#43;al:2002.pdf" target="_blank" rel="noopener noreferrer">Finite-time Analysis of the Multiarmed Bandit Problem <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. <em>Machine Learning</em>, 47, 235-256.</li>
-<li>Snell, J., Swersky, K., &amp; Zemel, R. (2017). <a href="https://arxiv.org/abs/1703.05175" target="_blank" rel="noopener noreferrer">Prototypical Networks for Few-shot Learning <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. <em>NeurIPS</em>.</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<p>This is <strong>Part 14 of 16</strong> in the Recommendation Systems series.</p>
-<p><strong>Previous</strong>: <a href="/en/recommendation-systems-13-fairness-explainability/">Part 13 &ndash; Fairness, Debiasing, and Explainability</a>
-
-<strong>Next</strong>: <a href="/en/recommendation-systems-15-real-time-online/">Part 15 &ndash; Real-Time Recommendation and Online Learning</a>
-</p>
-<p><a href="/categories/Recommendation-Systems/">View all parts in the Recommendation Systems series</a>
-</p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#the-three-faces-of-cold-start">The Three Faces of Cold-Start</a>
-      <ul>
-        <li><a href="#user-cold-start">User cold-start</a></li>
-        <li><a href="#item-cold-start">Item cold-start</a></li>
-        <li><a href="#system-cold-start">System cold-start</a></li>
-        <li><a href="#a-formalism-that-covers-all-three">A formalism that covers all three</a></li>
-      </ul>
-    </li>
-    <li><a href="#cross-domain-recommendation">Cross-Domain Recommendation</a>
-      <ul>
-        <li><a href="#emcdr--the-shared-mlp-bridge">EMCDR — the shared MLP bridge</a></li>
-        <li><a href="#ptupcdr--personalize-the-bridge-itself">PTUPCDR — personalize the bridge itself</a></li>
-        <li><a href="#a-minimal-cross-domain-skeleton">A minimal cross-domain skeleton</a></li>
-        <li><a href="#negative-transfer--the-failure-mode-to-watch-for">Negative transfer — the failure mode to watch for</a></li>
-      </ul>
-    </li>
-    <li><a href="#meta-learning-for-cold-start">Meta-Learning for Cold-Start</a>
-      <ul>
-        <li><a href="#maml-in-one-paragraph">MAML in one paragraph</a></li>
-        <li><a href="#melu--maml-specialised-for-recommendation">MeLU — MAML specialised for recommendation</a></li>
-        <li><a href="#when-meta-learning-is-worth-the-cost">When meta-learning is worth the cost</a></li>
-      </ul>
-    </li>
-    <li><a href="#bandits--exploration-vs-exploitation">Bandits — Exploration vs Exploitation</a>
-      <ul>
-        <li><a href="#ucb1--confidence-bounds">UCB1 — confidence bounds</a></li>
-        <li><a href="#thompson-sampling--bayesian-alternative">Thompson sampling — Bayesian alternative</a></li>
-      </ul>
-    </li>
-    <li><a href="#content-based-fallback">Content-Based Fallback</a></li>
-    <li><a href="#the-cold-to-warm-production-stack">The Cold-to-Warm Production Stack</a></li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#my-platform-has-no-related-domain-to-transfer-from-where-do-i-start">My platform has no related domain to transfer from. Where do I start?</a></li>
-        <li><a href="#how-many-interactions-before-melu-outperforms-a-content-baseline">How many interactions before MeLU outperforms a content baseline?</a></li>
-        <li><a href="#is-fomaml-really-good-enough-or-should-i-bite-the-bullet-on-second-order-maml">Is FOMAML really good enough, or should I bite the bullet on second-order MAML?</a></li>
-        <li><a href="#how-do-i-detect-negative-transfer-in-cross-domain">How do I detect negative transfer in cross-domain?</a></li>
-        <li><a href="#are-bandits-worth-it-for-top-k-recommendation-or-just-for-single-pick-problems">Are bandits worth it for top-K recommendation, or just for single-pick problems?</a></li>
-        <li><a href="#how-do-i-evaluate-a-cold-start-system-offline">How do I evaluate a cold-start system offline?</a></li>
-      </ul>
-    </li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Recommendation Systems</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3100</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ContentFallback</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Predict ratings for a cold item by borrowing from K nearest warm items.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item_features</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>K</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># item_features: (n_items, d) precomputed embeddings (e.g. BERT, CLIP)</span>
+</span></span><span class=line><span class=cl>        <span class=n>norms</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>item_features</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-8</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>normed</span> <span class=o>=</span> <span class=n>item_features</span> <span class=o>/</span> <span class=n>norms</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>K</span> <span class=o>=</span> <span class=n>K</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>cold_item_idx</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>warm_ids</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>warm_ratings</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>sims</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>normed</span><span class=p>[</span><span class=n>warm_ids</span><span class=p>]</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>normed</span><span class=p>[</span><span class=n>cold_item_idx</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>top</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>argpartition</span><span class=p>(</span><span class=o>-</span><span class=n>sims</span><span class=p>,</span> <span class=n>kth</span><span class=o>=</span><span class=nb>min</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>sims</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))[:</span> <span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span><span class=p>,</span> <span class=n>r</span> <span class=o>=</span> <span class=n>sims</span><span class=p>[</span><span class=n>top</span><span class=p>],</span> <span class=n>warm_ratings</span><span class=p>[</span><span class=n>top</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>s</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>maximum</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>  <span class=c1># negative similarity → ignore</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>float</span><span class=p>((</span><span class=n>s</span> <span class=o>*</span> <span class=n>r</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span> <span class=o>/</span> <span class=p>(</span><span class=n>s</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p>The same pattern works for <strong>user cold-start</strong> if the user provides any content-style signal (a survey on sign-up, a single onboarding click): encode the signal, find similar warm users, borrow their preferences.</p><hr><h2 id=the-cold-to-warm-production-stack>The Cold-to-Warm Production Stack</h2><p>No single method dominates across the whole interaction-count axis. Production systems route requests to different methods based on how much data the user has accumulated.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/recommendation-systems/14-cross-domain-cold-start/fig6_cold_to_warm.png alt="Performance vs interaction count with five curves: pure CF starts near zero and ramps slowly, content-based stays flat at a decent floor, meta-learning ramps fast in the few-shot region, cross-domain is strong from the start, hybrid envelope is on top throughout" loading=lazy decoding=async></figure></p><p>The shape of each curve tells a story:</p><ul><li><strong>Pure CF</strong> is useless below ~5 interactions and slow to climb until ~20.</li><li><strong>Content-based</strong> has a flat floor — never great, never terrible, always available.</li><li><strong>Meta-learning (MeLU)</strong> is the steepest mover in the 1–10 interaction range — exactly what it&rsquo;s designed for.</li><li><strong>Cross-domain (PTUPCDR)</strong> starts highest because it inherits source-domain knowledge for free, but flattens earlier.</li><li><strong>Hybrid stack</strong> is the upper envelope: route to whichever method dominates at the current interaction count.</li></ul><p>A practical routing rule:</p><table><thead><tr><th>Interactions</th><th>Primary method</th><th>Fallbacks</th></tr></thead><tbody><tr><td>0</td><td>Cross-domain or popularity</td><td>Content-based</td></tr><tr><td>1-3</td><td>Cross-domain + bandit</td><td>Content-based</td></tr><tr><td>3-20</td><td>Meta-learning (MeLU)</td><td>Cross-domain</td></tr><tr><td>20+</td><td>Full CF / DIN / sequential</td><td>Meta-learning for new sessions</td></tr></tbody></table><p>Keep a popularity baseline running in parallel as a circuit breaker — if any of the above methods produces low-confidence predictions, fall back to popular items in the user&rsquo;s inferred segment.</p><hr><h2 id=qa>Q&amp;A</h2><h3 id=my-platform-has-no-related-domain-to-transfer-from-where-do-i-start>My platform has no related domain to transfer from. Where do I start?</h3><p>Lead with content-based fallback for items and a popularity prior for users, then meta-train MeLU on whatever interaction data you accumulate. Cross-domain is a 10–20% relative boost when available, not a prerequisite.</p><h3 id=how-many-interactions-before-melu-outperforms-a-content-baseline>How many interactions before MeLU outperforms a content baseline?</h3><p>In published benchmarks (MovieLens, Bookcrossing) MeLU starts winning at 2–3 interactions and dominates by 5. Your mileage depends on how informative your support interactions are — diverse genres beat homogeneous ones.</p><h3 id=is-fomaml-really-good-enough-or-should-i-bite-the-bullet-on-second-order-maml>Is FOMAML really good enough, or should I bite the bullet on second-order MAML?</h3><p>For recommendation, FOMAML is within 1–2% of MAML on standard metrics and trains 3× faster. Use second-order MAML only when you&rsquo;ve measured that the gap matters for your business metric.</p><h3 id=how-do-i-detect-negative-transfer-in-cross-domain>How do I detect negative transfer in cross-domain?</h3><p>Run a target-only baseline alongside the cross-domain model. If target performance on cold users does not improve, the domains are too distant. Common culprit: aligning users by ID across domains where the same user has wildly different behavior (work account vs personal account).</p><h3 id=are-bandits-worth-it-for-top-k-recommendation-or-just-for-single-pick-problems>Are bandits worth it for top-K recommendation, or just for single-pick problems?</h3><p>Worth it for the <strong>first slot or two</strong> of a feed — that&rsquo;s where exploration value is highest. After the first few items, switch to ranking. Combinatorial bandits exist but are operationally expensive.</p><h3 id=how-do-i-evaluate-a-cold-start-system-offline>How do I evaluate a cold-start system offline?</h3><p>Hold out users entirely (not random interactions). For each held-out user, expose only their first $K$ interactions to the model as &ldquo;support&rdquo; and predict on the rest. Report metrics stratified by $K \in \{1, 3, 5, 10\}$ — a single number hides the cold-to-warm transition.</p><hr><h2 id=summary>Summary</h2><p>Cold-start is not a single problem with a single solution; it&rsquo;s a <strong>regime</strong> that demands different machinery at different points on the interaction-count axis.</p><ul><li>The taxonomy (user / item / system) determines which lever — exploration, content, transfer — is actually available.</li><li><strong>EMCDR</strong> and <strong>PTUPCDR</strong> turn a data-rich source domain into a prior on a data-sparse target. PTUPCDR&rsquo;s per-user bridge is the current practical sweet spot.</li><li><strong>MAML</strong> and its recsys specialisation <strong>MeLU</strong> train models whose initialisations adapt in a few steps — perfect for the 3-10 interaction window.</li><li><strong>UCB1</strong> and <strong>Thompson sampling</strong> give the few-shot regime a principled exploration rule with logarithmic regret.</li><li><strong>Content-based fallback</strong> is the unglamorous always-on safety net.</li><li>The <strong>hybrid stack</strong> routes by interaction count and keeps a popularity circuit breaker.</li></ul><p>Build the stack incrementally. Start with content + popularity, layer in meta-learning once you have enough users to meta-train, add cross-domain when a related domain becomes available. Measure cold-user metrics separately from warm metrics; aggregate numbers will hide the regime where you&rsquo;re actually losing money.</p><hr><h2 id=references>References</h2><ul><li>Finn, C., Abbeel, P., & Levine, S. (2017). <a href=https://arxiv.org/abs/1703.03400 target=_blank rel="noopener noreferrer">Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. <em>ICML</em>.</li><li>Lee, H., Im, J., Jang, S., Cho, H., & Chung, S. (2019). <a href=https://arxiv.org/abs/1908.00413 target=_blank rel="noopener noreferrer">MeLU: Meta-Learned User Preference Estimator for Cold-Start Recommendation <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. <em>KDD</em>.</li><li>Man, T., Shen, H., Jin, X., & Cheng, X. (2017). <a href=https://www.ijcai.org/proceedings/2017/0343.pdf target=_blank rel="noopener noreferrer">Cross-Domain Recommendation: An Embedding and Mapping Approach <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. <em>IJCAI</em>.</li><li>Zhu, Y., Tang, Z., Liu, Y., Zhuang, F., Xie, R., Zhang, X., Lin, L., & He, Q. (2022). <a href=https://arxiv.org/abs/2110.11154 target=_blank rel="noopener noreferrer">Personalized Transfer of User Preferences for Cross-domain Recommendation <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. <em>WSDM</em>.</li><li>Auer, P., Cesa-Bianchi, N., & Fischer, P. (2002). <a href=http://aima.eecs.berkeley.edu/~russell/classes/cs294/s11/readings/Auer+al:2002.pdf target=_blank rel="noopener noreferrer">Finite-time Analysis of the Multiarmed Bandit Problem <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. <em>Machine Learning</em>, 47, 235-256.</li><li>Snell, J., Swersky, K., & Zemel, R. (2017). <a href=https://arxiv.org/abs/1703.05175 target=_blank rel="noopener noreferrer">Prototypical Networks for Few-shot Learning <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. <em>NeurIPS</em>.</li></ul><hr><h2 id=series-navigation>Series Navigation</h2><p>This is <strong>Part 14 of 16</strong> in the Recommendation Systems series.</p><p><strong>Previous</strong>: <a href=/en/recommendation-systems-13-fairness-explainability/>Part 13 &ndash; Fairness, Debiasing, and Explainability</a>
+<strong>Next</strong>: <a href=/en/recommendation-systems-15-real-time-online/>Part 15 &ndash; Real-Time Recommendation and Online Learning</a></p><p><a href=/categories/Recommendation-Systems/>View all parts in the Recommendation Systems series</a></p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#the-three-faces-of-cold-start>The Three Faces of Cold-Start</a><ul><li><a href=#user-cold-start>User cold-start</a></li><li><a href=#item-cold-start>Item cold-start</a></li><li><a href=#system-cold-start>System cold-start</a></li><li><a href=#a-formalism-that-covers-all-three>A formalism that covers all three</a></li></ul></li><li><a href=#cross-domain-recommendation>Cross-Domain Recommendation</a><ul><li><a href=#emcdr--the-shared-mlp-bridge>EMCDR — the shared MLP bridge</a></li><li><a href=#ptupcdr--personalize-the-bridge-itself>PTUPCDR — personalize the bridge itself</a></li><li><a href=#a-minimal-cross-domain-skeleton>A minimal cross-domain skeleton</a></li><li><a href=#negative-transfer--the-failure-mode-to-watch-for>Negative transfer — the failure mode to watch for</a></li></ul></li><li><a href=#meta-learning-for-cold-start>Meta-Learning for Cold-Start</a><ul><li><a href=#maml-in-one-paragraph>MAML in one paragraph</a></li><li><a href=#melu--maml-specialised-for-recommendation>MeLU — MAML specialised for recommendation</a></li><li><a href=#when-meta-learning-is-worth-the-cost>When meta-learning is worth the cost</a></li></ul></li><li><a href=#bandits--exploration-vs-exploitation>Bandits — Exploration vs Exploitation</a><ul><li><a href=#ucb1--confidence-bounds>UCB1 — confidence bounds</a></li><li><a href=#thompson-sampling--bayesian-alternative>Thompson sampling — Bayesian alternative</a></li></ul></li><li><a href=#content-based-fallback>Content-Based Fallback</a></li><li><a href=#the-cold-to-warm-production-stack>The Cold-to-Warm Production Stack</a></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#my-platform-has-no-related-domain-to-transfer-from-where-do-i-start>My platform has no related domain to transfer from. Where do I start?</a></li><li><a href=#how-many-interactions-before-melu-outperforms-a-content-baseline>How many interactions before MeLU outperforms a content baseline?</a></li><li><a href=#is-fomaml-really-good-enough-or-should-i-bite-the-bullet-on-second-order-maml>Is FOMAML really good enough, or should I bite the bullet on second-order MAML?</a></li><li><a href=#how-do-i-detect-negative-transfer-in-cross-domain>How do I detect negative transfer in cross-domain?</a></li><li><a href=#are-bandits-worth-it-for-top-k-recommendation-or-just-for-single-pick-problems>Are bandits worth it for top-K recommendation, or just for single-pick problems?</a></li><li><a href=#how-do-i-evaluate-a-cold-start-system-offline>How do I evaluate a cold-start system offline?</a></li></ul></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>15 min</strong></div><div class=row><span>Word count</span><strong>3099</strong></div><div class=row><span>Published</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

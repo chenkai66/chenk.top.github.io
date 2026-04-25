@@ -1,407 +1,108 @@
-<!doctype html>
-<html lang="zh" data-translation="/en/aliyun-bailian/04-wanxiang-video-generation/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>阿里云百炼实战（四）：万相视频生成端到端 · Chen Kai Blog</title>
-<meta name="description" content="万相文生视频 / 图生视频生产化：异步任务模式、退避轮询、扛得住现实的 prompt 模式、URL 过期前必做的 OSS 写穿。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="阿里云百炼实战（四）：万相视频生成端到端">
-<meta property="og:description" content="万相文生视频 / 图生视频生产化：异步任务模式、退避轮询、扛得住现实的 prompt 模式、URL 过期前必做的 OSS 写穿。">
-<meta property="og:url" content="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Aliyun Bailian</a>
-         · Chapter 4
-      </div>
-      <h1>阿里云百炼实战（四）：万相视频生成端到端</h1>
-      <p class="deck">万相文生视频 / 图生视频生产化：异步任务模式、退避轮询、扛得住现实的 prompt 模式、URL 过期前必做的 OSS 写穿。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-28">February 28, 2026</time> · 4 min read · 1700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC/" class="tag">#阿里云百炼</a><a href="/zh/tags/%E4%B8%87%E7%9B%B8/" class="tag">#万相</a><a href="/zh/tags/%E8%A7%86%E9%A2%91%E7%94%9F%E6%88%90/" class="tag">#视频生成</a><a href="/zh/tags/async/" class="tag">#Async</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/en/aliyun-bailian/04-wanxiang-video-generation/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>万相是给我们营销流水线创造最多价值、也制造最多生产事故的 API。模型本身真的好——<code>wan2.5-t2v-plus</code> 出 720p 片段大多数时候能冒充真实视频团队的产物——但周边是异步、原生协议、URL 会过期、限流非显然。这篇是经过六个月&quot;凌晨两点为啥又出事&quot;工单打磨的、文档真正实操版本。</p>
-<h2 id="模型阵容">模型阵容</h2>
-<p>三个，全都原生（无 OpenAI 兼容），全都异步：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png" alt="万相模型阵容" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><code>wan2.5-t2v-plus</code> 我用得最多——文生视频最灵活、不用设计师介入也能交清楚 brief。<code>wan2.5-i2v-plus</code> 用在营销已经有 hero 静态图想动起来（产品照变 5 秒 turntable）。<code>wan2.5-kf2v-plus</code> 用于过渡：给首末帧，得到中间运动。</p>
-<h2 id="端到端流程">端到端流程</h2>
-<p>只有一个流程，每条视频都走：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig2_async_video_flow.png" alt="万相请求流" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>最小可跑 Python：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">dashscope</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dashscope</span> <span class="kn">import</span> <span class="n">VideoSynthesis</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">dashscope</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">t2v</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;1280*720&#34;</span><span class="p">,</span> <span class="n">duration</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">VideoSynthesis</span><span class="o">.</span><span class="n">async_call</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;wan2.5-t2v-plus&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">task_id</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">task_id</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;task:&#34;</span><span class="p">,</span> <span class="n">task_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">delay</span> <span class="o">=</span> <span class="mi">5</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">info</span> <span class="o">=</span> <span class="n">VideoSynthesis</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">task</span><span class="o">=</span><span class="n">task_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">status</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">task_status</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&#34;SUCCEEDED&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">info</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">url</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&#34;FAILED&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delay</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">delay</span> <span class="o">*</span> <span class="mf">1.45</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&#34;任务未在限时内完成&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">url</span> <span class="o">=</span> <span class="n">t2v</span><span class="p">(</span><span class="s2">&#34;杭州茶园日出慢动作，无人机航拍后退，金色时刻，电影感，35mm 胶片颗粒&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="退避轮询选个合理日程">退避轮询——选个合理日程</h2>
-<p>每秒一查浪费、还会限流。每 30 秒一查浪费用户时间。我用的退避：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png" alt="轮询日程" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>5 秒起步，每次 ×1.45，封顶 60 秒。720p 5 秒视频通常 30-90 秒完成，中位用户等 4 次轮询。</p>
-<p>后端服务里通常<strong>不该</strong>在请求 handler 里轮询。模式应该是：</p>
-<ol>
-<li>用户提交 → 你 POST 到万相，把 <code>task_id</code> 存数据库。</li>
-<li>立刻返回任务 URL。</li>
-<li>后台 worker 轮询，成功后更新 DB。</li>
-<li>前端轮询<em>你的</em> DB，不是万相。</li>
-</ol>
-<p>这样就有了重试、可观察性、以及 URL 过期前的存放点。</p>
-<h2 id="立刻保存-url24-小时过期">立刻保存 URL——24 小时过期</h2>
-<p>我见过最贵的生产 bug：拿到 <code>result_url</code> 就显示在站点上，24 小时后页面坏了，因为 URL 失效。万相返回的是签名时限 URL。<strong>成功后立刻 copy 到自己 OSS 桶：</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="n">result_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="kn">import</span> <span class="nn">oss2</span><span class="o">,</span> <span class="nn">requests</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">auth</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Auth</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_AK&#34;</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_SK&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bucket</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Bucket</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="s2">&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class="p">,</span> <span class="s2">&#34;your-bucket&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bucket</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;oss://your-bucket/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>我在轮询 worker 里同步做这步，archive 失败任务就不算成功。</p>
-<h2 id="扛得住现实的-prompt-模式">扛得住现实的 prompt 模式</h2>
-<p>万相质量很大一部分在 prompt 上。几个月迭代后管用的结构：</p>
-<pre tabindex="0"><code>[镜头类型], [主体], [动作], [场景 / 环境],
+<!doctype html><html lang=zh data-translation=/en/aliyun-bailian/04-wanxiang-video-generation/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云百炼实战（四）：万相视频生成端到端 · Chen Kai Blog</title>
+<meta name=description content="万相文生视频 / 图生视频生产化：异步任务模式、退避轮询、扛得住现实的 prompt 模式、URL 过期前必做的 OSS 写穿。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><meta property="og:type" content="article"><meta property="og:title" content="阿里云百炼实战（四）：万相视频生成端到端"><meta property="og:description" content="万相文生视频 / 图生视频生产化：异步任务模式、退避轮询、扛得住现实的 prompt 模式、URL 过期前必做的 OSS 写穿。"><meta property="og:url" content="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Aliyun Bailian</a>
+· Chapter 4</div><h1>阿里云百炼实战（四）：万相视频生成端到端</h1><p class=deck>万相文生视频 / 图生视频生产化：异步任务模式、退避轮询、扛得住现实的 prompt 模式、URL 过期前必做的 OSS 写穿。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-28>February 28, 2026</time> · 4 min read · 1641 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC/ class=tag>#阿里云百炼</a><a href=/zh/tags/%E4%B8%87%E7%9B%B8/ class=tag>#万相</a><a href=/zh/tags/%E8%A7%86%E9%A2%91%E7%94%9F%E6%88%90/ class=tag>#视频生成</a><a href=/zh/tags/async/ class=tag>#Async</a></div><a class="pill pill-outline" href=/en/aliyun-bailian/04-wanxiang-video-generation/>Read in English →</a></div></header><div class=prose><p>万相是给我们营销流水线创造最多价值、也制造最多生产事故的 API。模型本身真的好——<code>wan2.5-t2v-plus</code> 出 720p 片段大多数时候能冒充真实视频团队的产物——但周边是异步、原生协议、URL 会过期、限流非显然。这篇是经过六个月"凌晨两点为啥又出事"工单打磨的、文档真正实操版本。</p><h2 id=模型阵容>模型阵容</h2><p>三个，全都原生（无 OpenAI 兼容），全都异步：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png alt=万相模型阵容 loading=lazy decoding=async></figure></p><p><code>wan2.5-t2v-plus</code> 我用得最多——文生视频最灵活、不用设计师介入也能交清楚 brief。<code>wan2.5-i2v-plus</code> 用在营销已经有 hero 静态图想动起来（产品照变 5 秒 turntable）。<code>wan2.5-kf2v-plus</code> 用于过渡：给首末帧，得到中间运动。</p><h2 id=端到端流程>端到端流程</h2><p>只有一个流程，每条视频都走：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig2_async_video_flow.png alt=万相请求流 loading=lazy decoding=async></figure></p><p>最小可跑 Python：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span><span class=o>,</span> <span class=nn>time</span><span class=o>,</span> <span class=nn>requests</span><span class=o>,</span> <span class=nn>dashscope</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>dashscope</span> <span class=kn>import</span> <span class=n>VideoSynthesis</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>dashscope</span><span class=o>.</span><span class=n>api_key</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DASHSCOPE_API_KEY&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>t2v</span><span class=p>(</span><span class=n>prompt</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>size</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;1280*720&#34;</span><span class=p>,</span> <span class=n>duration</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>resp</span> <span class=o>=</span> <span class=n>VideoSynthesis</span><span class=o>.</span><span class=n>async_call</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>=</span><span class=s2>&#34;wan2.5-t2v-plus&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>prompt</span><span class=o>=</span><span class=n>prompt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>size</span><span class=o>=</span><span class=n>size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>duration</span><span class=o>=</span><span class=n>duration</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>task_id</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>task_id</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;task:&#34;</span><span class=p>,</span> <span class=n>task_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>delay</span> <span class=o>=</span> <span class=mi>5</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>60</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>info</span> <span class=o>=</span> <span class=n>VideoSynthesis</span><span class=o>.</span><span class=n>fetch</span><span class=p>(</span><span class=n>task</span><span class=o>=</span><span class=n>task_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>status</span> <span class=o>=</span> <span class=n>info</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>task_status</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=n>status</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>status</span> <span class=o>==</span> <span class=s2>&#34;SUCCEEDED&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>info</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>results</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>url</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>status</span> <span class=o>==</span> <span class=s2>&#34;FAILED&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=n>info</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>message</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>delay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>delay</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>delay</span> <span class=o>*</span> <span class=mf>1.45</span><span class=p>,</span> <span class=mi>60</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>TimeoutError</span><span class=p>(</span><span class=s2>&#34;任务未在限时内完成&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>url</span> <span class=o>=</span> <span class=n>t2v</span><span class=p>(</span><span class=s2>&#34;杭州茶园日出慢动作，无人机航拍后退，金色时刻，电影感，35mm 胶片颗粒&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=退避轮询选个合理日程>退避轮询——选个合理日程</h2><p>每秒一查浪费、还会限流。每 30 秒一查浪费用户时间。我用的退避：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png alt=轮询日程 loading=lazy decoding=async></figure></p><p>5 秒起步，每次 ×1.45，封顶 60 秒。720p 5 秒视频通常 30-90 秒完成，中位用户等 4 次轮询。</p><p>后端服务里通常<strong>不该</strong>在请求 handler 里轮询。模式应该是：</p><ol><li>用户提交 → 你 POST 到万相，把 <code>task_id</code> 存数据库。</li><li>立刻返回任务 URL。</li><li>后台 worker 轮询，成功后更新 DB。</li><li>前端轮询<em>你的</em> DB，不是万相。</li></ol><p>这样就有了重试、可观察性、以及 URL 过期前的存放点。</p><h2 id=立刻保存-url24-小时过期>立刻保存 URL——24 小时过期</h2><p>我见过最贵的生产 bug：拿到 <code>result_url</code> 就显示在站点上，24 小时后页面坏了，因为 URL 失效。万相返回的是签名时限 URL。<strong>成功后立刻 copy 到自己 OSS 桶：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>archive</span><span class=p>(</span><span class=n>result_url</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>oss2</span><span class=o>,</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>result_url</span><span class=p>,</span> <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>60</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>.</span><span class=n>raise_for_status</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_AK&#34;</span><span class=p>],</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_SK&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s2>&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class=p>,</span> <span class=s2>&#34;your-bucket&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>r</span><span class=o>.</span><span class=n>raw</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;oss://your-bucket/</span><span class=si>{</span><span class=n>key</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>我在轮询 worker 里同步做这步，archive 失败任务就不算成功。</p><h2 id=扛得住现实的-prompt-模式>扛得住现实的 prompt 模式</h2><p>万相质量很大一部分在 prompt 上。几个月迭代后管用的结构：</p><pre tabindex=0><code>[镜头类型], [主体], [动作], [场景 / 环境],
 [光线], [运镜], [风格], [质量关键词]
-</code></pre><p>上线过的例子：</p>
-<ul>
-<li><code>广角镜头，一杯珍珠奶茶，凝结水珠从杯壁滑下，放在大理石桌上靠窗，午后柔和逆光，缓慢推近，写实，4K，浅景深</code></li>
-<li><code>中景，一位身着汉服的年轻女子，走过杭州竹林，清晨薄雾，斑驳光影，从背后平稳跟随运镜，电影质感，35mm</code></li>
-</ul>
-<p>伤质量的：</p>
-<ul>
-<li>主 prompt 里带否定词（&ldquo;画面无文字&rdquo;）。要否定就用 <code>negative_prompt</code> 参数。</li>
-<li>主体超过 ~3 个。模型会混淆。</li>
-<li>具体品牌或人名。通用描述更好。</li>
-<li>帧上文字写非中英文（西里尔、阿拉伯、天城文）。万相目前只能稳出中英文字。</li>
-</ul>
-<h2 id="图生视频和首末帧视频">图生视频和首末帧视频</h2>
-<p>同流程，换 <code>model</code> 和输入。I2V 接 <code>image_url</code>（OSS 签名 URL 可以）；KF2V 接 <code>first_frame_url</code> 和 <code>last_frame_url</code>。视频时长上限按模型而异（通常 5 或 10 秒），生成前查模型卡。</p>
-<p>产品演示常用的模式：</p>
-<ol>
-<li>摄影师交一张 hero 静态图。</li>
-<li>Prompt：产品在转盘上慢慢旋转，影棚布光。</li>
-<li>I2V 出 5 秒 turntable。</li>
-<li>挂到产品页。</li>
-</ol>
-<p>成本一条几块钱；替代方案是占用某人半天摄影时间。</p>
-<h2 id="任务-succeeded-但视频不对">任务 SUCCEEDED 但视频不对</h2>
-<p>最常见的&quot;模型出了东西，但忽略了一半 prompt&quot;。原因：</p>
-<ul>
-<li>prompt 太长。万相有软上限，激进精简有效。</li>
-<li>prompt 自相矛盾（&ldquo;白天，黑暗，霓虹&rdquo;）。挑一个。</li>
-<li>模型变体选错。T2V 不会动你的指定图，那是 I2V 的事。</li>
-<li>比例错。<code>size</code> 影响构图，<code>1280*720</code> 和 <code>720*1280</code> 出的取景不同。</li>
-</ul>
-<p>关键 prompt 用不同 <code>seed</code> 出 3 个变体，通常其中一个对。</p>
-<h2 id="成本和限流">成本和限流</h2>
-<p>万相按视频秒数计费。720p 5 秒一条几块钱。并发任务限制按 API key —— 生产流量上线<strong>前</strong>通过控制台申请配额提升。默认（上次我看是）每空间 5 并发，原型够用，真生产瞬间不够。</p>
-<h2 id="下一篇">下一篇</h2>
-<p>第五篇收尾——<strong>Qwen-TTS-Flash</strong>，唯一让我敢上生产的中文方言语音合成。也是只能原生，所以本文模式继续适用。</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/"><span class="title">阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/zh/aliyun-bailian/05-qwen-tts-voice/"><span class="title">阿里云百炼实战（五）：Qwen-TTS 多语言语音合成</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#模型阵容">模型阵容</a></li>
-    <li><a href="#端到端流程">端到端流程</a></li>
-    <li><a href="#退避轮询选个合理日程">退避轮询——选个合理日程</a></li>
-    <li><a href="#立刻保存-url24-小时过期">立刻保存 URL——24 小时过期</a></li>
-    <li><a href="#扛得住现实的-prompt-模式">扛得住现实的 prompt 模式</a></li>
-    <li><a href="#图生视频和首末帧视频">图生视频和首末帧视频</a></li>
-    <li><a href="#任务-succeeded-但视频不对">任务 SUCCEEDED 但视频不对</a></li>
-    <li><a href="#成本和限流">成本和限流</a></li>
-    <li><a href="#下一篇">下一篇</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>4 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1700</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>上线过的例子：</p><ul><li><code>广角镜头，一杯珍珠奶茶，凝结水珠从杯壁滑下，放在大理石桌上靠窗，午后柔和逆光，缓慢推近，写实，4K，浅景深</code></li><li><code>中景，一位身着汉服的年轻女子，走过杭州竹林，清晨薄雾，斑驳光影，从背后平稳跟随运镜，电影质感，35mm</code></li></ul><p>伤质量的：</p><ul><li>主 prompt 里带否定词（&ldquo;画面无文字&rdquo;）。要否定就用 <code>negative_prompt</code> 参数。</li><li>主体超过 ~3 个。模型会混淆。</li><li>具体品牌或人名。通用描述更好。</li><li>帧上文字写非中英文（西里尔、阿拉伯、天城文）。万相目前只能稳出中英文字。</li></ul><h2 id=图生视频和首末帧视频>图生视频和首末帧视频</h2><p>同流程，换 <code>model</code> 和输入。I2V 接 <code>image_url</code>（OSS 签名 URL 可以）；KF2V 接 <code>first_frame_url</code> 和 <code>last_frame_url</code>。视频时长上限按模型而异（通常 5 或 10 秒），生成前查模型卡。</p><p>产品演示常用的模式：</p><ol><li>摄影师交一张 hero 静态图。</li><li>Prompt：产品在转盘上慢慢旋转，影棚布光。</li><li>I2V 出 5 秒 turntable。</li><li>挂到产品页。</li></ol><p>成本一条几块钱；替代方案是占用某人半天摄影时间。</p><h2 id=任务-succeeded-但视频不对>任务 SUCCEEDED 但视频不对</h2><p>最常见的"模型出了东西，但忽略了一半 prompt"。原因：</p><ul><li>prompt 太长。万相有软上限，激进精简有效。</li><li>prompt 自相矛盾（&ldquo;白天，黑暗，霓虹&rdquo;）。挑一个。</li><li>模型变体选错。T2V 不会动你的指定图，那是 I2V 的事。</li><li>比例错。<code>size</code> 影响构图，<code>1280*720</code> 和 <code>720*1280</code> 出的取景不同。</li></ul><p>关键 prompt 用不同 <code>seed</code> 出 3 个变体，通常其中一个对。</p><h2 id=成本和限流>成本和限流</h2><p>万相按视频秒数计费。720p 5 秒一条几块钱。并发任务限制按 API key —— 生产流量上线<strong>前</strong>通过控制台申请配额提升。默认（上次我看是）每空间 5 并发，原型够用，真生产瞬间不够。</p><h2 id=下一篇>下一篇</h2><p>第五篇收尾——<strong>Qwen-TTS-Flash</strong>，唯一让我敢上生产的中文方言语音合成。也是只能原生，所以本文模式继续适用。</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><span class=title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/zh/aliyun-bailian/05-qwen-tts-voice/><span class=title>阿里云百炼实战（五）：Qwen-TTS 多语言语音合成</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#模型阵容>模型阵容</a></li><li><a href=#端到端流程>端到端流程</a></li><li><a href=#退避轮询选个合理日程>退避轮询——选个合理日程</a></li><li><a href=#立刻保存-url24-小时过期>立刻保存 URL——24 小时过期</a></li><li><a href=#扛得住现实的-prompt-模式>扛得住现实的 prompt 模式</a></li><li><a href=#图生视频和首末帧视频>图生视频和首末帧视频</a></li><li><a href=#任务-succeeded-但视频不对>任务 SUCCEEDED 但视频不对</a></li><li><a href=#成本和限流>成本和限流</a></li><li><a href=#下一篇>下一篇</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/zh/series/ class=series-name>Aliyun Bailian</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云百炼实战（一）：平台总览与第一个请求</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云百炼实战（四）：万相视频生成端到端</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/05-qwen-tts-voice/><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云百炼实战（五）：Qwen-TTS 多语言语音合成</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>4 min</strong></div><div class=row><span>Word count</span><strong>1641</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

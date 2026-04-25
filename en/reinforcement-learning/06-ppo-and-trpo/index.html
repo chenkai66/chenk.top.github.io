@@ -1,884 +1,253 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization · Chen Kai Blog</title>
-<meta name="description" content="Why PPO became the most widely used RL algorithm -- from TRPO&#39;s theoretical foundations through natural gradients to PPO&#39;s elegant clipping mechanism, plus its role in RLHF for large language models.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/06-ppo-and-trpo/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/06-ppo-and-trpo/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization">
-<meta property="og:description" content="Why PPO became the most widely used RL algorithm -- from TRPO&#39;s theoretical foundations through natural gradients to PPO&#39;s elegant clipping mechanism, plus its role in RLHF for large language models.">
-<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/06-ppo-and-trpo/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
-         · Chapter 6
-      </div>
-      <h1>Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization</h1>
-      <p class="deck">Why PPO became the most widely used RL algorithm -- from TRPO&#39;s theoretical foundations through natural gradients to PPO&#39;s elegant clipping mechanism, plus its role in RLHF for large language models.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-08-26">August 26, 2025</time> · 17 min read · 3600 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/ppo/" class="tag">#PPO</a><a href="/en/tags/trpo/" class="tag">#TRPO</a><a href="/en/tags/policy-optimization/" class="tag">#Policy Optimization</a><a href="/en/tags/trust-region/" class="tag">#Trust Region</a><a href="/en/tags/rlhf/" class="tag">#RLHF</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Policy gradients (Part 3) optimise the policy directly, sidestepping discrete <code>argmax</code> operators and naturally handling stochastic strategies. They have one fatal flaw: <strong>a single overlong step can destroy the policy</strong>, and because the data distribution is <em>coupled</em> to the policy, recovery is nearly impossible.</p>
-<p><strong>Trust-region methods</strong> make this concrete: bound the change in <em>behaviour</em>, not in parameters, at every update. TRPO does it through a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The cheaper trick won: PPO trains OpenAI Five, ChatGPT&rsquo;s RLHF stage, almost every modern robotics policy, and remains the workhorse of applied deep RL.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>Why vanilla policy gradient is <strong>catastrophically</strong> unstable, with a worked example</li>
-<li><strong>Importance sampling</strong> as the bridge that lets us reuse off-policy data</li>
-<li><strong>TRPO</strong>: monotonic-improvement bound, natural gradient, conjugate gradient, line search</li>
-<li><strong>PPO-Clip</strong> and <strong>PPO-Penalty</strong>: two ways to approximate a trust region with first-order optimisation</li>
-<li><strong>PPO inside RLHF</strong>: how it aligns ChatGPT-class models, and where DPO/IPO/KTO fit</li>
-<li>A practical hyperparameter and debugging guide that mirrors what you&rsquo;d find in <code>cleanrl</code> or Stable Baselines 3</li>
-</ul>
-<p><strong>Prerequisites:</strong> <a href="/en/reinforcement-learning-3-policy-gradient-and-actor-critic/">Part 3</a>
- (REINFORCE, Actor-Critic, advantage). Familiarity with KL divergence and Fisher information helps but is not required &ndash; both are introduced in context.</p>
-<hr>
-<h2 id="why-policy-updates-are-unstable">Why policy updates are unstable</h2>
-<h3 id="a-pathological-example">A pathological example</h3>
-<p>Say the current policy at state $s$ assigns $\pi(a_1|s) = 0.9$ and $\pi(a_2|s) = 0.1$. By bad luck we sample $a_2$ and the environment hands back a reward of $+100$. The REINFORCE estimator multiplies the score $\nabla_\theta \log \pi(a_2|s) = -1/\pi(a_2|s)\cdot\nabla_\theta\pi(a_2|s)$ by $+100$, then takes a gradient step. After one update the probability of $a_2$ may jump from $0.1$ to $0.7$ even though, on expectation, $a_2$ might be far worse than $a_1$.</p>
-<p>Three pathologies are at play here:</p>
-<ol>
-<li><strong>Variance explosion.</strong> The score function carries a $1/\pi$ factor, so rare actions induce gigantic gradient magnitudes &ndash; the same reason &ldquo;off-policy&rdquo; REINFORCE is unstable.</li>
-<li><strong>Distribution shift.</strong> The next batch of trajectories is collected by the <em>new</em> policy. If the new policy is bad, every datapoint we collect from it confirms a worse signal &ndash; a feedback loop.</li>
-<li><strong>Irreversibility.</strong> A supervised model only loses <em>fit</em> on a bad step; an RL agent loses <em>data</em> on a bad step, and policy collapse can take an order of magnitude more samples to undo than to cause.</li>
-</ol>
-<h3 id="parameter-space-lies-policy-space-tells-the-truth">Parameter space lies; policy space tells the truth</h3>
-<p>Consider two Gaussian policies $\pi_1 = \mathcal{N}(0, 0.01)$ and $\pi_2 = \mathcal{N}(0, 10)$. The Euclidean distance between their parameters (mean and log-std) is small, yet $\pi_1$ is essentially deterministic at zero while $\pi_2$ is nearly uniform across the action range. The induced behaviours &ndash; and hence the rewards &ndash; are completely different.</p>
-<p>The lesson: <strong>a fixed step in parameter space can cause an unbounded change in policy behaviour.</strong> Any safety guarantee must therefore live in <em>distribution space</em>. The Kullback-Leibler divergence $D_{KL}(\pi_{\text{old}} \| \pi_\theta)$ is the natural metric.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig1_trust_region.png" alt="Trust region: many small KL-bounded steps stay safe; one large parameter step falls off the cliff" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The figure makes the geometry concrete: the green-to-red surface is a hypothetical $J(\theta)$ landscape with a narrow ridge of high reward and a sharp cliff. Vanilla policy gradient (left) takes a giant step along the gradient direction and lands on the cliff. TRPO (right) constrains every step to a KL ball around the current iterate; the trajectory hugs the ridge and converges to a safe optimum.</p>
-<hr>
-<h2 id="importance-sampling-the-bridge-to-off-policy-data">Importance sampling: the bridge to off-policy data</h2>
-<p>On-policy methods throw away every batch after a single gradient step, because the data distribution shifts. <strong>Importance sampling</strong> lets us re-use a batch by reweighting:</p>
-$$\mathbb{E}_{x \sim q}[f(x)] = \mathbb{E}_{x \sim p}\!\left[\tfrac{q(x)}{p(x)}\, f(x)\right]$$<p>Plugging the old and new policies into the policy-gradient objective gives the <strong>surrogate objective</strong>:</p>
-$$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right]$$<p>The probability ratio $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ is the central object of every algorithm in this post.</p>
-<p>Two facts to keep in mind:</p>
-<ul>
-<li>At $\theta = \theta_{\text{old}}$, $L^{\text{IS}}$ has the <strong>same value and gradient</strong> as the true policy-gradient objective $J(\theta)$ &ndash; so it is locally faithful.</li>
-<li>Far from $\theta_{\text{old}}$, the variance of the IS estimator grows roughly as $\exp(2\,D_{KL})$ (figure below). Tiny KL = trustworthy reuse; large KL = noisy garbage.</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig5_importance_sampling.png" alt="Importance sampling ratio distribution and variance growth versus KL" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The left panel histograms the ratio $r_t$ as the new and old policies drift apart &ndash; the distribution stays tight inside the green PPO clip zone $[0.8, 1.2]$ for $D_{KL}\!\le\!0.02$, and develops a heavy right tail beyond $D_{KL}\!=\!0.05$. The right panel plots the variance of the IS estimator on a log scale; the orange shaded region is the variance &ldquo;saved&rdquo; by clipping. This is the quantitative argument for keeping every update inside a small trust region.</p>
-<hr>
-<h2 id="trpo-trust-region-policy-optimization">TRPO: trust region policy optimization</h2>
-<h3 id="the-monotonic-improvement-bound">The monotonic-improvement bound</h3>
-<p>Schulman et al. (2015) showed &ndash; generalising Kakade &amp; Langford (2002) &ndash; that the true return of the new policy can be bounded below by the surrogate plus a KL penalty:</p>
-$$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$<p>where $C = 4\varepsilon\gamma/(1-\gamma)^2$ depends on the maximum advantage magnitude $\varepsilon$ and the discount factor $\gamma$. The corollary is striking: <strong>as long as we improve the surrogate while keeping $D_{KL}^{\max}$ small, monotonic policy improvement is guaranteed.</strong></p>
-<p>In practice the constant $C$ is too pessimistic to be useful; TRPO replaces the penalty with a hard constraint and tunes it empirically.</p>
-<h3 id="the-constrained-problem">The constrained problem</h3>
-$$\max_\theta \;\; \mathbb{E}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right] \quad\text{s.t.}\quad \bar{D}_{KL}\!\left(\pi_{\text{old}} \,\|\, \pi_\theta\right) \leq \delta$$<p>with $\delta \approx 0.01$. The mean KL is used in place of the maximum because it is much cheaper to estimate from samples.</p>
-<h3 id="natural-gradient-the-right-notion-of-small">Natural gradient: the right notion of &ldquo;small&rdquo;</h3>
-<p>Standard SGD chooses the direction that maximises the linearised objective subject to a Euclidean ball $\|\Delta\theta\|^2 \le c$. <strong>Natural gradient</strong> changes the metric: it constrains the <em>KL ball</em> in distribution space, which is locally a quadratic form with the <strong>Fisher information matrix</strong> as its Hessian:</p>
-$$D_{KL}(\pi_\theta \,\|\, \pi_{\theta+\Delta\theta}) \;\approx\; \tfrac{1}{2}\,\Delta\theta^\top F\,\Delta\theta, \qquad F = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta\,\nabla_\theta \log \pi_\theta^\top\right]$$<p>Solving the constrained problem yields the natural gradient update $\Delta\theta \propto F^{-1}\nabla J$. It is the steepest ascent direction in <strong>policy space</strong>, not parameter space, which is exactly what we want.</p>
-<h3 id="implementation-conjugate-gradient--line-search">Implementation: conjugate gradient + line search</h3>
-<p>For a network with millions of parameters, $F$ has $\sim 10^{12}$ entries &ndash; forming it explicitly is impossible. TRPO sidesteps this with two tricks:</p>
-<ol>
-<li><strong>Conjugate gradient</strong> to solve $Fx = g$ using only Fisher-vector products $Fv$ (cheap to compute via two <code>autograd</code> passes, no matrix is materialised).</li>
-<li><strong>Backtracking line search</strong> along the natural-gradient direction, halving the step until the KL constraint is satisfied <em>and</em> the surrogate improves &ndash; this preserves the monotonicity guarantee even when the quadratic approximation is loose.</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">conjugate_gradient</span><span class="p">(</span><span class="n">fisher_vector_product</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Solve F x = b without materialising F. Costs n_steps * (Fv) ops.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">p</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">rdotr</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_steps</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">Ap</span> <span class="o">=</span> <span class="n">fisher_vector_product</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">alpha</span> <span class="o">=</span> <span class="n">rdotr</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ap</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">+=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">p</span>
-</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">-=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">Ap</span>
-</span></span><span class="line"><span class="cl">        <span class="n">new_rdotr</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">new_rdotr</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">break</span>
-</span></span><span class="line"><span class="cl">        <span class="n">p</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="p">(</span><span class="n">new_rdotr</span> <span class="o">/</span> <span class="n">rdotr</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span>
-</span></span><span class="line"><span class="cl">        <span class="n">rdotr</span> <span class="o">=</span> <span class="n">new_rdotr</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># After CG: step length is fixed by the KL budget delta</span>
-</span></span><span class="line"><span class="cl"><span class="n">step</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">delta</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">fisher_vector_product</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">))</span> <span class="o">*</span> <span class="n">x</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># Backtracking line search ensures both KL &lt;= delta AND surrogate improves.</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Strengths.</strong> Theoretically sound monotonic improvement; very stable on hard control tasks (Humanoid, Ant) where vanilla PG diverges.</p>
-<p><strong>Weaknesses.</strong> ~300 lines of careful code, ~10-20 Hessian-vector products per update, almost no benefit from running multiple epochs over a batch (CG already used the curvature information). Hard to scale to distributed training because conjugate gradient requires per-step synchronisation.</p>
-<hr>
-<h2 id="ppo-keeping-90-of-the-benefit-at-20-of-the-complexity">PPO: keeping 90% of the benefit at 20% of the complexity</h2>
-<p>In 2017 Schulman and colleagues asked: <em>can we get TRPO-like stability using only first-order optimisation?</em> The answer was PPO, and it has dominated the field ever since.</p>
-<h3 id="ppo-clip-the-central-trick">PPO-Clip: the central trick</h3>
-<p>Define the clipped surrogate:</p>
-$$L^{\text{CLIP}}(\theta) = \mathbb{E}\!\left[\min\!\Big(r_t(\theta)\,\hat{A}_t,\;\; \mathrm{clip}\!\left(r_t(\theta),\,1\!-\!\varepsilon,\,1\!+\!\varepsilon\right)\hat{A}_t\Big)\right]$$<p>with $\varepsilon \approx 0.2$. The construction is asymmetric on purpose: the <code>min</code> makes the objective <strong>pessimistic</strong>, picking whichever of the clipped and unclipped quantities is smaller.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig2_ppo_clipping.png" alt="PPO clipped surrogate split by sign of advantage" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The two cases (and a one-line summary of each) are:</p>
-<ul>
-<li><strong>$\hat{A}>0$ (a good action).</strong> The unclipped surrogate keeps growing as $r_t \to \infty$; the clip caps the reward for $r_t > 1+\varepsilon$. The <code>min</code> then <em>takes the cap</em>, so the gradient drops to zero past the cap. Translation: <em>don&rsquo;t push the probability of a sampled good action above $(1+\varepsilon)\pi_{\text{old}}$ on the strength of one minibatch.</em></li>
-<li><strong>$\hat{A}<0$ (a bad action).</strong> Symmetric: the clip caps how negative the loss can get for $r_t < 1-\varepsilon$, so once the new policy has reduced the probability by enough, the gradient stops. <em>Don&rsquo;t crush a single bad-luck action.</em></li>
-</ul>
-<p>The deeper question is: <em>why use <code>min</code>, not <code>max</code>?</em> If we always take whichever surrogate is <strong>larger</strong>, we&rsquo;d reward huge ratios &ndash; the optimiser would happily blow past the trust region. The <code>min</code> bakes in the trust-region intuition without ever computing a KL.</p>
-<h3 id="ppo-penalty-the-adaptive-cousin">PPO-Penalty: the adaptive cousin</h3>
-<p>A second variant &ndash; less popular but useful in some domains &ndash; adds an explicit KL penalty and adapts its coefficient:</p>
-$$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; \beta\,\mathbb{E}\!\left[D_{KL}(\pi_{\text{old}}\,\|\,\pi_\theta)\right]$$<p>with $\beta$ adjusted after every iteration: doubled when measured KL exceeds $1.5\,\delta_{\text{target}}$, halved when below $\delta_{\text{target}}/1.5$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig3_kl_penalty.png" alt="Adaptive KL penalty: objective shape and beta schedule" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The left panel shows how $\beta$ shapes the objective: $\beta=0$ recovers the unconstrained surrogate (and its instability); large $\beta$ makes the optimum hug $\theta_{\text{old}}$. The right panel shows a real adaptive schedule &ndash; $\beta$ moves over orders of magnitude on a log axis to keep the observed KL near its target. Adaptive KL is what early InstructGPT used internally before clip-style PPO became the default for RLHF in libraries like <code>trl</code>.</p>
-<h3 id="surrogate-landscape-why-clip-wins-in-practice">Surrogate landscape: why clip wins in practice</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig6_surrogate_landscape.png" alt="Surrogate vs true objective: unclipped misleads, clipped stays honest" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>This figure is the visual punchline. The black curve is the <em>true</em> return $J(\theta)$ along a 1D slice &ndash; it has a peak followed by a sharp drop into a low-reward region. The orange dashed line is the unclipped IS surrogate, which keeps climbing and would lure SGD to step into the cliff. The blue line is the PPO-clipped surrogate: inside the trust region (green band) it tracks the true objective; outside, it flattens out, removing the gradient that would otherwise carry us off the cliff.</p>
-<h3 id="a-complete-ppo-implementation">A complete PPO implementation</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span><span class="lnt">71
-</span><span class="lnt">72
-</span><span class="lnt">73
-</span><span class="lnt">74
-</span><span class="lnt">75
-</span><span class="lnt">76
-</span><span class="lnt">77
-</span><span class="lnt">78
-</span><span class="lnt">79
-</span><span class="lnt">80
-</span><span class="lnt">81
-</span><span class="lnt">82
-</span><span class="lnt">83
-</span><span class="lnt">84
-</span><span class="lnt">85
-</span><span class="lnt">86
-</span><span class="lnt">87
-</span><span class="lnt">88
-</span><span class="lnt">89
-</span><span class="lnt">90
-</span><span class="lnt">91
-</span><span class="lnt">92
-</span><span class="lnt">93
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">gym</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.distributions</span> <span class="kn">import</span> <span class="n">Categorical</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PPOActorCritic</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Shared trunk, separate actor and critic heads.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">shared</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">actor</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">critic</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actor</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">critic</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PPO</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">3e-4</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">lam</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">eps_clip</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">k_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">c_vf</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">c_ent</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">=</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">lam</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eps_clip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_epochs</span> <span class="o">=</span> <span class="n">eps_clip</span><span class="p">,</span> <span class="n">k_epochs</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">c_vf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_ent</span> <span class="o">=</span> <span class="n">c_vf</span><span class="p">,</span> <span class="n">c_ent</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">PPOActorCritic</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">state</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">probs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dist</span> <span class="o">=</span> <span class="n">Categorical</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">action</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">action</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">action</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">compute_gae</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">dones</span><span class="p">,</span> <span class="n">next_value</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Generalised Advantage Estimation (Schulman et al., 2016).
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">        lam=0  -&gt; 1-step TD  (low variance, biased)
-</span></span></span><span class="line"><span class="cl"><span class="s2">        lam=1  -&gt; Monte-Carlo (unbiased, high variance)
-</span></span></span><span class="line"><span class="cl"><span class="s2">        lam=0.95 is the universal default.
-</span></span></span><span class="line"><span class="cl"><span class="s2">        &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">advantages</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">gae</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">next_value</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rewards</span><span class="p">))):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">delta</span> <span class="o">=</span> <span class="n">rewards</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">values</span><span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dones</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="o">-</span> <span class="n">values</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">gae</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dones</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="o">*</span> <span class="n">gae</span>
-</span></span><span class="line"><span class="cl">            <span class="n">advantages</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">gae</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">advantages</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">old_log_probs</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">dones</span><span class="p">,</span> <span class="n">next_state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">states</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">states</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">actions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">old_log_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">old_log_probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">states</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">next_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">next_state</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">advantages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_gae</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">dones</span><span class="p">,</span> <span class="n">next_val</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">returns</span> <span class="o">=</span> <span class="n">advantages</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Per-batch advantage normalisation -- cheap, vital for stability.</span>
-</span></span><span class="line"><span class="cl">        <span class="n">advantages</span> <span class="o">=</span> <span class="p">(</span><span class="n">advantages</span> <span class="o">-</span> <span class="n">advantages</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">advantages</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k_epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">probs</span><span class="p">,</span> <span class="n">vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dist</span> <span class="o">=</span> <span class="n">Categorical</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">log_probs</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">entropy</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">entropy</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">vals</span> <span class="o">=</span> <span class="n">vals</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1"># Ratios in log space for numerical safety.</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ratios</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_probs</span> <span class="o">-</span> <span class="n">old_log_probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">surr1</span> <span class="o">=</span> <span class="n">ratios</span> <span class="o">*</span> <span class="n">advantages</span>
-</span></span><span class="line"><span class="cl">            <span class="n">surr2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">ratios</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps_clip</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps_clip</span><span class="p">)</span> <span class="o">*</span> <span class="n">advantages</span>
-</span></span><span class="line"><span class="cl">            <span class="n">policy_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">surr1</span><span class="p">,</span> <span class="n">surr2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">value_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">returns</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">policy_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_vf</span> <span class="o">*</span> <span class="n">value_loss</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_ent</span> <span class="o">*</span> <span class="n">entropy</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>A handful of lines beyond a vanilla actor-critic, and you have an algorithm that solves CartPole in 100 episodes and learns a humanoid to walk in $\sim$10 million steps.</p>
-<hr>
-<h2 id="trpo-vs-ppo-head-to-head">TRPO vs PPO: head to head</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Aspect</th>
-          <th>TRPO</th>
-          <th>PPO-Clip</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Solver</td>
-          <td>Conjugate gradient + line search (2nd order)</td>
-          <td>Adam (1st order)</td>
-      </tr>
-      <tr>
-          <td>KL constraint</td>
-          <td>Hard, exactly $\le \delta$</td>
-          <td>Soft, via per-sample clip</td>
-      </tr>
-      <tr>
-          <td>Updates per batch</td>
-          <td>1</td>
-          <td>3-10 epochs</td>
-      </tr>
-      <tr>
-          <td>Hessian-vector products</td>
-          <td>$\sim$10-20</td>
-          <td>0</td>
-      </tr>
-      <tr>
-          <td>Code complexity</td>
-          <td>$\sim$300 LOC</td>
-          <td>$\sim$100 LOC</td>
-      </tr>
-      <tr>
-          <td>Theoretical guarantee</td>
-          <td>Monotonic improvement (under bound)</td>
-          <td>None formally</td>
-      </tr>
-      <tr>
-          <td>GPU/distributed friendliness</td>
-          <td>Poor (CG needs sync)</td>
-          <td>Excellent</td>
-      </tr>
-      <tr>
-          <td>Hyperparameter sensitivity</td>
-          <td>$\delta$ matters</td>
-          <td>$\varepsilon = 0.2$ works almost always</td>
-      </tr>
-  </tbody>
-</table>
-<p>PPO&rsquo;s edge in practice comes from a <em>combination</em> of advantages, not the clip alone:</p>
-<ul>
-<li><strong>Multiple epochs per batch</strong> squeeze more learning from the same trajectories.</li>
-<li><strong>Entropy bonus</strong> keeps exploration alive without bespoke noise schedules.</li>
-<li><strong>No backward-pass overhead per step</strong> &ndash; one Adam call per epoch.</li>
-<li><strong>Trivially parallelisable</strong> &ndash; you can run 64 actors in parallel collecting rollouts.</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig4_benchmark.png" alt="PPO matches or beats TRPO at a fraction of the cost" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The MuJoCo curves (left) and Atari bars (right) show the empirical picture published in the original PPO paper and reproduced by Engstrom et al. (2020): PPO-Clip dominates A2C across the board and edges past TRPO on most tasks while running roughly 10$\times$ faster per wall-clock second.</p>
-<hr>
-<h2 id="ppo-inside-rlhf">PPO inside RLHF</h2>
-<p>PPO&rsquo;s most consequential application is <strong>Reinforcement Learning from Human Feedback</strong> &ndash; the algorithm that turned GPT-3 into ChatGPT.</p>
-<h3 id="the-three-stage-pipeline">The three-stage pipeline</h3>
-<ol>
-<li><strong>Supervised Fine-Tuning (SFT).</strong> Fine-tune a pretrained LLM on high-quality human demonstrations. Output: $\pi_{\text{ref}}$, the reference model.</li>
-<li><strong>Reward modelling.</strong> Collect human preference data of the form <em>&ldquo;response A is better than response B&rdquo;</em>. Train a reward model $R_\phi(x, y)$ via a Bradley-Terry pairwise loss.</li>
-<li><strong>PPO fine-tuning.</strong> Treat the LLM as a policy, the prompt $x$ as state, the response $y$ as action, and $R_\phi(x, y)$ as reward. Run PPO.</li>
-</ol>
-<h3 id="the-rlhf-objective">The RLHF objective</h3>
-$$J(\theta) = \mathbb{E}_{x \sim \mathcal{D},\,y \sim \pi_\theta(\cdot|x)}\!\left[R_\phi(x, y) - \beta\, D_{KL}\!\left(\pi_\theta(\cdot|x)\,\|\,\pi_{\text{ref}}(\cdot|x)\right)\right]$$<p>Two trust regions are at work:</p>
-<ul>
-<li>The <strong>PPO clip</strong> prevents per-update collapse, exactly as in classical RL.</li>
-<li>The <strong>KL-to-reference penalty</strong> $\beta D_{KL}(\pi_\theta\,\|\,\pi_{\text{ref}})$ prevents <em>long-run drift</em> from the SFT model. Without it, PPO finds <strong>reward hacks</strong> &ndash; responses that score high under the reward model but are gibberish, hostile, or sycophantic. The KL penalty is the alignment tax that keeps generations recognisably human-written.</li>
-</ul>
-<h3 id="why-rlhf-is-harder-than-cartpole">Why RLHF is harder than CartPole</h3>
-<ul>
-<li>Each &ldquo;episode&rdquo; is one generation; compute per sample is enormous (forward+backward on a 70B model).</li>
-<li>The reward model is <em>also</em> learnt, and noisy. A small clip range and a substantial KL coefficient ($\beta \in [0.01, 0.2]$) are usually needed.</li>
-<li>Action space is the entire vocabulary (~50K tokens) over hundreds of timesteps. The advantage estimator must be very low-variance &ndash; this is why PPO with GAE and a large batch is preferred to vanilla policy gradient.</li>
-</ul>
-<h3 id="where-dpo-ipo-and-kto-fit">Where DPO, IPO and KTO fit</h3>
-<p>The complexity of running PPO at scale &ndash; four model copies (policy, ref, reward, value), multiple GPUs syncing &ndash; spurred a wave of <em>direct</em> preference learning methods:</p>
-<ul>
-<li><strong>DPO</strong> (Rafailov et al., 2023) reparameterises the optimal RLHF policy in closed form and trains with a <em>supervised</em> contrastive loss &ndash; no reward model, no rollouts.</li>
-<li><strong>IPO</strong> patches DPO&rsquo;s tendency to overfit on confidently labelled pairs.</li>
-<li><strong>KTO</strong> uses single-response signed feedback (&ldquo;good&rdquo;/&ldquo;bad&rdquo;) instead of pairs.</li>
-</ul>
-<p>Where direct methods shine: simpler infra, lower variance. Where PPO still wins: when you need an actual <em>reward signal</em> (online learning, tool-using agents, code/math environments where a verifier provides reward), PPO remains the only general-purpose solution.</p>
-<hr>
-<h2 id="practical-tuning-guide">Practical tuning guide</h2>
-<h3 id="hyperparameter-cheat-sheet">Hyperparameter cheat sheet</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Parameter</th>
-          <th>Typical range</th>
-          <th>Notes</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Learning rate</td>
-          <td>$1\text{e-}4$ to $3\text{e-}4$</td>
-          <td>Sometimes annealed linearly to 0 over training</td>
-      </tr>
-      <tr>
-          <td>Clip $\varepsilon$</td>
-          <td>0.1 &ndash; 0.3</td>
-          <td>0.2 works in 90% of cases</td>
-      </tr>
-      <tr>
-          <td>GAE $\lambda$</td>
-          <td>0.9 &ndash; 0.99</td>
-          <td>0.95 default; closer to 1 when value function is unreliable</td>
-      </tr>
-      <tr>
-          <td>Discount $\gamma$</td>
-          <td>0.99 &ndash; 0.999</td>
-          <td>Longer-horizon tasks need larger $\gamma$</td>
-      </tr>
-      <tr>
-          <td>Rollout batch</td>
-          <td>2048 &ndash; 8192 (single env: longer)</td>
-          <td>Larger = lower-variance advantage</td>
-      </tr>
-      <tr>
-          <td>PPO epochs</td>
-          <td>3 &ndash; 10</td>
-          <td>More than 15 reliably overfits</td>
-      </tr>
-      <tr>
-          <td>Mini-batch size</td>
-          <td>64 &ndash; 256</td>
-          <td>Independent of rollout batch</td>
-      </tr>
-      <tr>
-          <td>Entropy coef</td>
-          <td>0.0 &ndash; 0.01</td>
-          <td>Atari needs more (~0.01); MuJoCo often 0</td>
-      </tr>
-      <tr>
-          <td>Value loss coef</td>
-          <td>0.5 &ndash; 1.0</td>
-          <td>Higher when critic is hard to learn</td>
-      </tr>
-      <tr>
-          <td>Grad clip norm</td>
-          <td>0.5 &ndash; 1.0</td>
-          <td>A &ldquo;safety belt&rdquo; for outlier batches</td>
-      </tr>
-  </tbody>
-</table>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig7_hyperparameter.png" alt="Hyperparameter sensitivity: clip range, learning rate, and the epochs x batch grid" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The sensitivity plot shows three classic patterns. Clip $\varepsilon$ has a <strong>wide, flat optimum</strong> &ndash; you really do not have to tune it. Learning rate is <strong>narrower</strong> &ndash; a factor of 3 misstep costs 5-10% of return. The epochs $\times$ batch heatmap reveals an interaction: too many epochs on a small batch overfits to current data and hurts the policy&rsquo;s KL budget.</p>
-<h3 id="debugging-checklist">Debugging checklist</h3>
-<ul>
-<li><strong>Approximate KL</strong> between old and new policy: should hover around 0.01-0.02 per update. &gt; 0.05 means clip is failing to constrain you &ndash; lower the LR or shrink mini-batches. (Beware the common &ldquo;one-sample&rdquo; KL estimator $\frac{1}{2}(\log r)^2$; the unbiased Schulman estimator $r - 1 - \log r$ is preferred.)</li>
-<li><strong>Clip fraction</strong>: the share of samples that hit the clip boundary. 10-30% is healthy. 0% means you are not using your trust region; &gt; 50% means you are training on the boundary.</li>
-<li><strong>Entropy</strong>: should decay smoothly. A sudden drop to near-zero is <em>premature convergence</em> &ndash; raise the entropy coefficient.</li>
-<li><strong>Explained variance</strong> of the value function: $1 - \mathrm{Var}(R - V)/\mathrm{Var}(R)$. Should rise above 0.5 within a few hundred updates; if stuck near 0, your critic is broken.</li>
-<li><strong>Advantage normalisation</strong>: do it per <em>minibatch</em>, not per epoch. Forgetting the per-batch normalisation is the single most common implementation bug.</li>
-</ul>
-<h3 id="common-failure-modes">Common failure modes</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Symptom</th>
-          <th>Likely cause</th>
-          <th>Fix</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Reward grows then crashes</td>
-          <td>KL too aggressive, clip ineffective</td>
-          <td>Smaller LR; fewer epochs per batch</td>
-      </tr>
-      <tr>
-          <td>Reward never moves</td>
-          <td>Advantage normalised across batch=0 reward</td>
-          <td>Check rewards aren&rsquo;t constant; widen exploration</td>
-      </tr>
-      <tr>
-          <td>Entropy collapses to 0 in 50 steps</td>
-          <td>No entropy bonus; greedy from start</td>
-          <td>Add <code>c_ent</code> $\ge 0.005$, raise temperature</td>
-      </tr>
-      <tr>
-          <td>Critic predictions explode</td>
-          <td>No reward normalisation; large unbounded rewards</td>
-          <td>Clip or normalise rewards (running stats)</td>
-      </tr>
-      <tr>
-          <td>Works on CartPole, fails on continuous control</td>
-          <td>Discrete-style network for Gaussian policy</td>
-          <td>Use <code>tanh</code> squashing, learnable log-std</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="summary">Summary</h2>
-<p>Trust-region methods rescued policy gradients from their most embarrassing failure mode &ndash; one bad step erases an hour of training. Two ideas carry the field:</p>
-<ul>
-<li><strong>TRPO</strong> turns the policy-improvement bound of Kakade-Langford into an algorithm: optimise the surrogate, hard-constrain the KL, solve via natural gradient. Theoretically beautiful, operationally heavy.</li>
-<li><strong>PPO</strong> trades the hard constraint for a clipped surrogate plus first-order optimisation. It loses the formal monotonic-improvement guarantee but gains everything that matters in practice: simple code, multi-epoch updates, parallel rollouts, and robust defaults.</li>
-</ul>
-<p>The deeper engineering lesson is universal: <strong>a simple, locally-honest approximation often beats a complex, globally-correct one</strong> &ndash; especially when the &ldquo;correct&rdquo; method is two orders of magnitude more expensive per step. PPO&rsquo;s victory mirrors Adam&rsquo;s victory over second-order optimisers in deep learning.</p>
-<p>PPO&rsquo;s reach now extends well beyond classical RL. Every major aligned LLM trained in the past three years &ndash; ChatGPT, Claude, Gemini, the Llama-2 chat models &ndash; ran a PPO loop somewhere in its post-training pipeline. The clip is, quite literally, what keeps modern AI assistants from going feral on their reward model.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Schulman, J., Levine, S., Moritz, P., Jordan, M., &amp; Abbeel, P. (2015). Trust Region Policy Optimization. <em>ICML</em>. <a href="https://arxiv.org/abs/1502.05477" target="_blank" rel="noopener noreferrer">arXiv:1502.05477 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Schulman, J., Wolski, F., Dhariwal, P., Radford, A., &amp; Klimov, O. (2017). Proximal Policy Optimization Algorithms. <a href="https://arxiv.org/abs/1707.06347" target="_blank" rel="noopener noreferrer">arXiv:1707.06347 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Schulman, J., Moritz, P., Levine, S., Jordan, M., &amp; Abbeel, P. (2016). High-Dimensional Continuous Control Using Generalized Advantage Estimation. <em>ICLR</em>. <a href="https://arxiv.org/abs/1506.02438" target="_blank" rel="noopener noreferrer">arXiv:1506.02438 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Kakade, S., &amp; Langford, J. (2002). Approximately Optimal Approximate Reinforcement Learning. <em>ICML</em>.</li>
-<li>Engstrom, L., Ilyas, A., Santurkar, S., Tsipras, D., Janoos, F., Rudolph, L., &amp; Madry, A. (2020). Implementation Matters in Deep Policy Gradients: A Case Study on PPO and TRPO. <em>ICLR</em>. <a href="https://arxiv.org/abs/2005.12729" target="_blank" rel="noopener noreferrer">arXiv:2005.12729 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ouyang, L., et al. (2022). Training Language Models to Follow Instructions with Human Feedback. <em>NeurIPS</em>. <a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener noreferrer">arXiv:2203.02155 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Ermon, S., &amp; Finn, C. (2023). Direct Preference Optimization: Your Language Model is Secretly a Reward Model. <em>NeurIPS</em>. <a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener noreferrer">arXiv:2305.18290 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Huang, S., Dossa, R., Ye, C., Braga, J., Chakraborty, D., Mehta, K., &amp; Araújo, J. G. (2022). The 37 Implementation Details of PPO. <em>ICLR Blog Post</em>. <a href="https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/" target="_blank" rel="noopener noreferrer">iclr-blog-track.github.io <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Fundamentals and Core Concepts</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/en/reinforcement-learning-2-q-learning-and-dqn/">Q-Learning and DQN</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><a href="/en/reinforcement-learning-3-policy-gradient-and-actor-critic/">Policy Gradient and Actor-Critic</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/en/reinforcement-learning-4-exploration-and-curiosity-driven-learning/">Exploration and Curiosity-Driven Learning</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/en/reinforcement-learning-5-model-based-rl-and-world-models/">Model-Based RL and World Models</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>6</strong></td>
-          <td><strong>PPO and TRPO (you are here)</strong></td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#why-policy-updates-are-unstable">Why policy updates are unstable</a>
-      <ul>
-        <li><a href="#a-pathological-example">A pathological example</a></li>
-        <li><a href="#parameter-space-lies-policy-space-tells-the-truth">Parameter space lies; policy space tells the truth</a></li>
-      </ul>
-    </li>
-    <li><a href="#importance-sampling-the-bridge-to-off-policy-data">Importance sampling: the bridge to off-policy data</a></li>
-    <li><a href="#trpo-trust-region-policy-optimization">TRPO: trust region policy optimization</a>
-      <ul>
-        <li><a href="#the-monotonic-improvement-bound">The monotonic-improvement bound</a></li>
-        <li><a href="#the-constrained-problem">The constrained problem</a></li>
-        <li><a href="#natural-gradient-the-right-notion-of-small">Natural gradient: the right notion of &ldquo;small&rdquo;</a></li>
-        <li><a href="#implementation-conjugate-gradient--line-search">Implementation: conjugate gradient + line search</a></li>
-      </ul>
-    </li>
-    <li><a href="#ppo-keeping-90-of-the-benefit-at-20-of-the-complexity">PPO: keeping 90% of the benefit at 20% of the complexity</a>
-      <ul>
-        <li><a href="#ppo-clip-the-central-trick">PPO-Clip: the central trick</a></li>
-        <li><a href="#ppo-penalty-the-adaptive-cousin">PPO-Penalty: the adaptive cousin</a></li>
-        <li><a href="#surrogate-landscape-why-clip-wins-in-practice">Surrogate landscape: why clip wins in practice</a></li>
-        <li><a href="#a-complete-ppo-implementation">A complete PPO implementation</a></li>
-      </ul>
-    </li>
-    <li><a href="#trpo-vs-ppo-head-to-head">TRPO vs PPO: head to head</a></li>
-    <li><a href="#ppo-inside-rlhf">PPO inside RLHF</a>
-      <ul>
-        <li><a href="#the-three-stage-pipeline">The three-stage pipeline</a></li>
-        <li><a href="#the-rlhf-objective">The RLHF objective</a></li>
-        <li><a href="#why-rlhf-is-harder-than-cartpole">Why RLHF is harder than CartPole</a></li>
-        <li><a href="#where-dpo-ipo-and-kto-fit">Where DPO, IPO and KTO fit</a></li>
-      </ul>
-    </li>
-    <li><a href="#practical-tuning-guide">Practical tuning guide</a>
-      <ul>
-        <li><a href="#hyperparameter-cheat-sheet">Hyperparameter cheat sheet</a></li>
-        <li><a href="#debugging-checklist">Debugging checklist</a></li>
-        <li><a href="#common-failure-modes">Common failure modes</a></li>
-      </ul>
-    </li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>17 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3600</strong></div>
-      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization · Chen Kai Blog</title>
+<meta name=description content="Why PPO became the most widely used RL algorithm -- from TRPO's theoretical foundations through natural gradients to PPO's elegant clipping mechanism, plus its role in RLHF for large language models."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/reinforcement-learning/06-ppo-and-trpo/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/reinforcement-learning/06-ppo-and-trpo/><meta property="og:type" content="article"><meta property="og:title" content="Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization"><meta property="og:description" content="Why PPO became the most widely used RL algorithm -- from TRPO's theoretical foundations through natural gradients to PPO's elegant clipping mechanism, plus its role in RLHF for large language models."><meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/06-ppo-and-trpo/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Reinforcement Learning</a>
+· Chapter 6</div><h1>Reinforcement Learning (6): PPO and TRPO -- Trust Region Policy Optimization</h1><p class=deck>Why PPO became the most widely used RL algorithm -- from TRPO's theoretical foundations through natural gradients to PPO's elegant clipping mechanism, plus its role in RLHF for large language models.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-08-26>August 26, 2025</time> · 17 min read · 3504 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/reinforcement-learning/ class=tag>#Reinforcement Learning</a><a href=/en/tags/ppo/ class=tag>#PPO</a><a href=/en/tags/trpo/ class=tag>#TRPO</a><a href=/en/tags/policy-optimization/ class=tag>#Policy Optimization</a><a href=/en/tags/trust-region/ class=tag>#Trust Region</a><a href=/en/tags/rlhf/ class=tag>#RLHF</a></div></div></header><div class=prose><p>Policy gradients (Part 3) optimise the policy directly, sidestepping discrete <code>argmax</code> operators and naturally handling stochastic strategies. They have one fatal flaw: <strong>a single overlong step can destroy the policy</strong>, and because the data distribution is <em>coupled</em> to the policy, recovery is nearly impossible.</p><p><strong>Trust-region methods</strong> make this concrete: bound the change in <em>behaviour</em>, not in parameters, at every update. TRPO does it through a hard KL constraint and a second-order solver. PPO mimics the same effect with one line of clipped arithmetic. The cheaper trick won: PPO trains OpenAI Five, ChatGPT&rsquo;s RLHF stage, almost every modern robotics policy, and remains the workhorse of applied deep RL.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>Why vanilla policy gradient is <strong>catastrophically</strong> unstable, with a worked example</li><li><strong>Importance sampling</strong> as the bridge that lets us reuse off-policy data</li><li><strong>TRPO</strong>: monotonic-improvement bound, natural gradient, conjugate gradient, line search</li><li><strong>PPO-Clip</strong> and <strong>PPO-Penalty</strong>: two ways to approximate a trust region with first-order optimisation</li><li><strong>PPO inside RLHF</strong>: how it aligns ChatGPT-class models, and where DPO/IPO/KTO fit</li><li>A practical hyperparameter and debugging guide that mirrors what you&rsquo;d find in <code>cleanrl</code> or Stable Baselines 3</li></ul><p><strong>Prerequisites:</strong> <a href=/en/reinforcement-learning-3-policy-gradient-and-actor-critic/>Part 3</a>
+(REINFORCE, Actor-Critic, advantage). Familiarity with KL divergence and Fisher information helps but is not required &ndash; both are introduced in context.</p><hr><h2 id=why-policy-updates-are-unstable>Why policy updates are unstable</h2><h3 id=a-pathological-example>A pathological example</h3><p>Say the current policy at state $s$ assigns $\pi(a_1|s) = 0.9$ and $\pi(a_2|s) = 0.1$. By bad luck we sample $a_2$ and the environment hands back a reward of $+100$. The REINFORCE estimator multiplies the score $\nabla_\theta \log \pi(a_2|s) = -1/\pi(a_2|s)\cdot\nabla_\theta\pi(a_2|s)$ by $+100$, then takes a gradient step. After one update the probability of $a_2$ may jump from $0.1$ to $0.7$ even though, on expectation, $a_2$ might be far worse than $a_1$.</p><p>Three pathologies are at play here:</p><ol><li><strong>Variance explosion.</strong> The score function carries a $1/\pi$ factor, so rare actions induce gigantic gradient magnitudes &ndash; the same reason &ldquo;off-policy&rdquo; REINFORCE is unstable.</li><li><strong>Distribution shift.</strong> The next batch of trajectories is collected by the <em>new</em> policy. If the new policy is bad, every datapoint we collect from it confirms a worse signal &ndash; a feedback loop.</li><li><strong>Irreversibility.</strong> A supervised model only loses <em>fit</em> on a bad step; an RL agent loses <em>data</em> on a bad step, and policy collapse can take an order of magnitude more samples to undo than to cause.</li></ol><h3 id=parameter-space-lies-policy-space-tells-the-truth>Parameter space lies; policy space tells the truth</h3><p>Consider two Gaussian policies $\pi_1 = \mathcal{N}(0, 0.01)$ and $\pi_2 = \mathcal{N}(0, 10)$. The Euclidean distance between their parameters (mean and log-std) is small, yet $\pi_1$ is essentially deterministic at zero while $\pi_2$ is nearly uniform across the action range. The induced behaviours &ndash; and hence the rewards &ndash; are completely different.</p><p>The lesson: <strong>a fixed step in parameter space can cause an unbounded change in policy behaviour.</strong> Any safety guarantee must therefore live in <em>distribution space</em>. The Kullback-Leibler divergence $D_{KL}(\pi_{\text{old}} \| \pi_\theta)$ is the natural metric.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig1_trust_region.png alt="Trust region: many small KL-bounded steps stay safe; one large parameter step falls off the cliff" loading=lazy decoding=async></figure></p><p>The figure makes the geometry concrete: the green-to-red surface is a hypothetical $J(\theta)$ landscape with a narrow ridge of high reward and a sharp cliff. Vanilla policy gradient (left) takes a giant step along the gradient direction and lands on the cliff. TRPO (right) constrains every step to a KL ball around the current iterate; the trajectory hugs the ridge and converges to a safe optimum.</p><hr><h2 id=importance-sampling-the-bridge-to-off-policy-data>Importance sampling: the bridge to off-policy data</h2><p>On-policy methods throw away every batch after a single gradient step, because the data distribution shifts. <strong>Importance sampling</strong> lets us re-use a batch by reweighting:</p>$$\mathbb{E}_{x \sim q}[f(x)] = \mathbb{E}_{x \sim p}\!\left[\tfrac{q(x)}{p(x)}\, f(x)\right]$$<p>Plugging the old and new policies into the policy-gradient objective gives the <strong>surrogate objective</strong>:</p>$$L^{\text{IS}}(\theta) = \mathbb{E}_{(s,a) \sim \pi_{\text{old}}}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right]$$<p>The probability ratio $r_t(\theta) = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ is the central object of every algorithm in this post.</p><p>Two facts to keep in mind:</p><ul><li>At $\theta = \theta_{\text{old}}$, $L^{\text{IS}}$ has the <strong>same value and gradient</strong> as the true policy-gradient objective $J(\theta)$ &ndash; so it is locally faithful.</li><li>Far from $\theta_{\text{old}}$, the variance of the IS estimator grows roughly as $\exp(2\,D_{KL})$ (figure below). Tiny KL = trustworthy reuse; large KL = noisy garbage.</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig5_importance_sampling.png alt="Importance sampling ratio distribution and variance growth versus KL" loading=lazy decoding=async></figure></p><p>The left panel histograms the ratio $r_t$ as the new and old policies drift apart &ndash; the distribution stays tight inside the green PPO clip zone $[0.8, 1.2]$ for $D_{KL}\!\le\!0.02$, and develops a heavy right tail beyond $D_{KL}\!=\!0.05$. The right panel plots the variance of the IS estimator on a log scale; the orange shaded region is the variance &ldquo;saved&rdquo; by clipping. This is the quantitative argument for keeping every update inside a small trust region.</p><hr><h2 id=trpo-trust-region-policy-optimization>TRPO: trust region policy optimization</h2><h3 id=the-monotonic-improvement-bound>The monotonic-improvement bound</h3><p>Schulman et al. (2015) showed &ndash; generalising Kakade & Langford (2002) &ndash; that the true return of the new policy can be bounded below by the surrogate plus a KL penalty:</p>$$J(\pi_{\text{new}}) \;\geq\; L_{\pi_{\text{old}}}(\pi_{\text{new}}) \;-\; C \cdot D_{KL}^{\max}\!\left(\pi_{\text{old}} \,\|\, \pi_{\text{new}}\right)$$<p>where $C = 4\varepsilon\gamma/(1-\gamma)^2$ depends on the maximum advantage magnitude $\varepsilon$ and the discount factor $\gamma$. The corollary is striking: <strong>as long as we improve the surrogate while keeping $D_{KL}^{\max}$ small, monotonic policy improvement is guaranteed.</strong></p><p>In practice the constant $C$ is too pessimistic to be useful; TRPO replaces the penalty with a hard constraint and tunes it empirically.</p><h3 id=the-constrained-problem>The constrained problem</h3>$$\max_\theta \;\; \mathbb{E}\!\left[\tfrac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)}\,\hat{A}(s,a)\right] \quad\text{s.t.}\quad \bar{D}_{KL}\!\left(\pi_{\text{old}} \,\|\, \pi_\theta\right) \leq \delta$$<p>with $\delta \approx 0.01$. The mean KL is used in place of the maximum because it is much cheaper to estimate from samples.</p><h3 id=natural-gradient-the-right-notion-of-small>Natural gradient: the right notion of &ldquo;small&rdquo;</h3><p>Standard SGD chooses the direction that maximises the linearised objective subject to a Euclidean ball $\|\Delta\theta\|^2 \le c$. <strong>Natural gradient</strong> changes the metric: it constrains the <em>KL ball</em> in distribution space, which is locally a quadratic form with the <strong>Fisher information matrix</strong> as its Hessian:</p>$$D_{KL}(\pi_\theta \,\|\, \pi_{\theta+\Delta\theta}) \;\approx\; \tfrac{1}{2}\,\Delta\theta^\top F\,\Delta\theta, \qquad F = \mathbb{E}\!\left[\nabla_\theta \log \pi_\theta\,\nabla_\theta \log \pi_\theta^\top\right]$$<p>Solving the constrained problem yields the natural gradient update $\Delta\theta \propto F^{-1}\nabla J$. It is the steepest ascent direction in <strong>policy space</strong>, not parameter space, which is exactly what we want.</p><h3 id=implementation-conjugate-gradient--line-search>Implementation: conjugate gradient + line search</h3><p>For a network with millions of parameters, $F$ has $\sim 10^{12}$ entries &ndash; forming it explicitly is impossible. TRPO sidesteps this with two tricks:</p><ol><li><strong>Conjugate gradient</strong> to solve $Fx = g$ using only Fisher-vector products $Fv$ (cheap to compute via two <code>autograd</code> passes, no matrix is materialised).</li><li><strong>Backtracking line search</strong> along the natural-gradient direction, halving the step until the KL constraint is satisfied <em>and</em> the surrogate improves &ndash; this preserves the monotonicity guarantee even when the quadratic approximation is loose.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>conjugate_gradient</span><span class=p>(</span><span class=n>fisher_vector_product</span><span class=p>,</span> <span class=n>b</span><span class=p>,</span> <span class=n>n_steps</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>tol</span><span class=o>=</span><span class=mf>1e-10</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Solve F x = b without materialising F. Costs n_steps * (Fv) ops.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span> <span class=o>=</span> <span class=n>b</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>p</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>rdotr</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>r</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>Ap</span> <span class=o>=</span> <span class=n>fisher_vector_product</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>alpha</span> <span class=o>=</span> <span class=n>rdotr</span> <span class=o>/</span> <span class=p>(</span><span class=n>p</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>Ap</span><span class=p>)</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>+=</span> <span class=n>alpha</span> <span class=o>*</span> <span class=n>p</span>
+</span></span><span class=line><span class=cl>        <span class=n>r</span> <span class=o>-=</span> <span class=n>alpha</span> <span class=o>*</span> <span class=n>Ap</span>
+</span></span><span class=line><span class=cl>        <span class=n>new_rdotr</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>r</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>new_rdotr</span> <span class=o>&lt;</span> <span class=n>tol</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=n>p</span> <span class=o>=</span> <span class=n>r</span> <span class=o>+</span> <span class=p>(</span><span class=n>new_rdotr</span> <span class=o>/</span> <span class=n>rdotr</span><span class=p>)</span> <span class=o>*</span> <span class=n>p</span>
+</span></span><span class=line><span class=cl>        <span class=n>rdotr</span> <span class=o>=</span> <span class=n>new_rdotr</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># After CG: step length is fixed by the KL budget delta</span>
+</span></span><span class=line><span class=cl><span class=n>step</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>delta</span> <span class=o>/</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>dot</span><span class=p>(</span><span class=n>fisher_vector_product</span><span class=p>(</span><span class=n>x</span><span class=p>))</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>))</span> <span class=o>*</span> <span class=n>x</span>
+</span></span><span class=line><span class=cl><span class=c1># Backtracking line search ensures both KL &lt;= delta AND surrogate improves.</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Strengths.</strong> Theoretically sound monotonic improvement; very stable on hard control tasks (Humanoid, Ant) where vanilla PG diverges.</p><p><strong>Weaknesses.</strong> ~300 lines of careful code, ~10-20 Hessian-vector products per update, almost no benefit from running multiple epochs over a batch (CG already used the curvature information). Hard to scale to distributed training because conjugate gradient requires per-step synchronisation.</p><hr><h2 id=ppo-keeping-90-of-the-benefit-at-20-of-the-complexity>PPO: keeping 90% of the benefit at 20% of the complexity</h2><p>In 2017 Schulman and colleagues asked: <em>can we get TRPO-like stability using only first-order optimisation?</em> The answer was PPO, and it has dominated the field ever since.</p><h3 id=ppo-clip-the-central-trick>PPO-Clip: the central trick</h3><p>Define the clipped surrogate:</p>$$L^{\text{CLIP}}(\theta) = \mathbb{E}\!\left[\min\!\Big(r_t(\theta)\,\hat{A}_t,\;\; \mathrm{clip}\!\left(r_t(\theta),\,1\!-\!\varepsilon,\,1\!+\!\varepsilon\right)\hat{A}_t\Big)\right]$$<p>with $\varepsilon \approx 0.2$. The construction is asymmetric on purpose: the <code>min</code> makes the objective <strong>pessimistic</strong>, picking whichever of the clipped and unclipped quantities is smaller.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig2_ppo_clipping.png alt="PPO clipped surrogate split by sign of advantage" loading=lazy decoding=async></figure></p><p>The two cases (and a one-line summary of each) are:</p><ul><li><strong>$\hat{A}>0$ (a good action).</strong> The unclipped surrogate keeps growing as $r_t \to \infty$; the clip caps the reward for $r_t > 1+\varepsilon$. The <code>min</code> then <em>takes the cap</em>, so the gradient drops to zero past the cap. Translation: <em>don&rsquo;t push the probability of a sampled good action above $(1+\varepsilon)\pi_{\text{old}}$ on the strength of one minibatch.</em></li><li><strong>$\hat{A}<0$ (a bad action).</strong> Symmetric: the clip caps how negative the loss can get for $r_t < 1-\varepsilon$, so once the new policy has reduced the probability by enough, the gradient stops. <em>Don&rsquo;t crush a single bad-luck action.</em></li></ul><p>The deeper question is: <em>why use <code>min</code>, not <code>max</code>?</em> If we always take whichever surrogate is <strong>larger</strong>, we&rsquo;d reward huge ratios &ndash; the optimiser would happily blow past the trust region. The <code>min</code> bakes in the trust-region intuition without ever computing a KL.</p><h3 id=ppo-penalty-the-adaptive-cousin>PPO-Penalty: the adaptive cousin</h3><p>A second variant &ndash; less popular but useful in some domains &ndash; adds an explicit KL penalty and adapts its coefficient:</p>$$L^{\text{KL}}(\theta) = \mathbb{E}\!\left[r_t(\theta)\,\hat{A}_t\right] \;-\; \beta\,\mathbb{E}\!\left[D_{KL}(\pi_{\text{old}}\,\|\,\pi_\theta)\right]$$<p>with $\beta$ adjusted after every iteration: doubled when measured KL exceeds $1.5\,\delta_{\text{target}}$, halved when below $\delta_{\text{target}}/1.5$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig3_kl_penalty.png alt="Adaptive KL penalty: objective shape and beta schedule" loading=lazy decoding=async></figure></p><p>The left panel shows how $\beta$ shapes the objective: $\beta=0$ recovers the unconstrained surrogate (and its instability); large $\beta$ makes the optimum hug $\theta_{\text{old}}$. The right panel shows a real adaptive schedule &ndash; $\beta$ moves over orders of magnitude on a log axis to keep the observed KL near its target. Adaptive KL is what early InstructGPT used internally before clip-style PPO became the default for RLHF in libraries like <code>trl</code>.</p><h3 id=surrogate-landscape-why-clip-wins-in-practice>Surrogate landscape: why clip wins in practice</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig6_surrogate_landscape.png alt="Surrogate vs true objective: unclipped misleads, clipped stays honest" loading=lazy decoding=async></figure></p><p>This figure is the visual punchline. The black curve is the <em>true</em> return $J(\theta)$ along a 1D slice &ndash; it has a peak followed by a sharp drop into a low-reward region. The orange dashed line is the unclipped IS surrogate, which keeps climbing and would lure SGD to step into the cliff. The blue line is the PPO-clipped surrogate: inside the trust region (green band) it tracks the true objective; outside, it flattens out, removing the gradient that would otherwise carry us off the cliff.</p><h3 id=a-complete-ppo-implementation>A complete PPO implementation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span><span class=lnt>88
+</span><span class=lnt>89
+</span><span class=lnt>90
+</span><span class=lnt>91
+</span><span class=lnt>92
+</span><span class=lnt>93
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>gym</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.optim</span> <span class=k>as</span> <span class=nn>optim</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.distributions</span> <span class=kn>import</span> <span class=n>Categorical</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PPOActorCritic</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Shared trunk, separate actor and critic heads.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>hidden</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>shared</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>actor</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>critic</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>shared</span><span class=p>(</span><span class=n>state</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>actor</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>),</span> <span class=bp>self</span><span class=o>.</span><span class=n>critic</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PPO</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>3e-4</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.99</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>lam</span><span class=o>=</span><span class=mf>0.95</span><span class=p>,</span> <span class=n>eps_clip</span><span class=o>=</span><span class=mf>0.2</span><span class=p>,</span> <span class=n>k_epochs</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>c_vf</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>c_ent</span><span class=o>=</span><span class=mf>0.01</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>lam</span> <span class=o>=</span> <span class=n>gamma</span><span class=p>,</span> <span class=n>lam</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>eps_clip</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k_epochs</span> <span class=o>=</span> <span class=n>eps_clip</span><span class=p>,</span> <span class=n>k_epochs</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>c_vf</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>c_ent</span> <span class=o>=</span> <span class=n>c_vf</span><span class=p>,</span> <span class=n>c_ent</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>policy</span> <span class=o>=</span> <span class=n>PPOActorCritic</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span> <span class=o>=</span> <span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select_action</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>state</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>state</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>probs</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>state</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>dist</span> <span class=o>=</span> <span class=n>Categorical</span><span class=p>(</span><span class=n>probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>action</span> <span class=o>=</span> <span class=n>dist</span><span class=o>.</span><span class=n>sample</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>action</span><span class=o>.</span><span class=n>item</span><span class=p>(),</span> <span class=n>dist</span><span class=o>.</span><span class=n>log_prob</span><span class=p>(</span><span class=n>action</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>compute_gae</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>rewards</span><span class=p>,</span> <span class=n>values</span><span class=p>,</span> <span class=n>dones</span><span class=p>,</span> <span class=n>next_value</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Generalised Advantage Estimation (Schulman et al., 2016).
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>        lam=0  -&gt; 1-step TD  (low variance, biased)
+</span></span></span><span class=line><span class=cl><span class=s2>        lam=1  -&gt; Monte-Carlo (unbiased, high variance)
+</span></span></span><span class=line><span class=cl><span class=s2>        lam=0.95 is the universal default.
+</span></span></span><span class=line><span class=cl><span class=s2>        &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>advantages</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=n>gae</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=n>values</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>values</span><span class=p>)</span> <span class=o>+</span> <span class=p>[</span><span class=n>next_value</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>reversed</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>rewards</span><span class=p>))):</span>
+</span></span><span class=line><span class=cl>            <span class=n>delta</span> <span class=o>=</span> <span class=n>rewards</span><span class=p>[</span><span class=n>t</span><span class=p>]</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span> <span class=o>*</span> <span class=n>values</span><span class=p>[</span><span class=n>t</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>dones</span><span class=p>[</span><span class=n>t</span><span class=p>])</span> <span class=o>-</span> <span class=n>values</span><span class=p>[</span><span class=n>t</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>gae</span> <span class=o>=</span> <span class=n>delta</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>lam</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>dones</span><span class=p>[</span><span class=n>t</span><span class=p>])</span> <span class=o>*</span> <span class=n>gae</span>
+</span></span><span class=line><span class=cl>            <span class=n>advantages</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>gae</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>advantages</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>states</span><span class=p>,</span> <span class=n>actions</span><span class=p>,</span> <span class=n>old_log_probs</span><span class=p>,</span> <span class=n>rewards</span><span class=p>,</span> <span class=n>dones</span><span class=p>,</span> <span class=n>next_state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>states</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>states</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>actions</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>(</span><span class=n>actions</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>old_log_probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>old_log_probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>values</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>states</span><span class=p>)[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>next_val</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>next_state</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>))[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>advantages</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>compute_gae</span><span class=p>(</span><span class=n>rewards</span><span class=p>,</span> <span class=n>values</span><span class=p>,</span> <span class=n>dones</span><span class=p>,</span> <span class=n>next_val</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>returns</span> <span class=o>=</span> <span class=n>advantages</span> <span class=o>+</span> <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>values</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Per-batch advantage normalisation -- cheap, vital for stability.</span>
+</span></span><span class=line><span class=cl>        <span class=n>advantages</span> <span class=o>=</span> <span class=p>(</span><span class=n>advantages</span> <span class=o>-</span> <span class=n>advantages</span><span class=o>.</span><span class=n>mean</span><span class=p>())</span> <span class=o>/</span> <span class=p>(</span><span class=n>advantages</span><span class=o>.</span><span class=n>std</span><span class=p>()</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>k_epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>probs</span><span class=p>,</span> <span class=n>vals</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=p>(</span><span class=n>states</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>dist</span> <span class=o>=</span> <span class=n>Categorical</span><span class=p>(</span><span class=n>probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>log_probs</span> <span class=o>=</span> <span class=n>dist</span><span class=o>.</span><span class=n>log_prob</span><span class=p>(</span><span class=n>actions</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>entropy</span> <span class=o>=</span> <span class=n>dist</span><span class=o>.</span><span class=n>entropy</span><span class=p>()</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>vals</span> <span class=o>=</span> <span class=n>vals</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># Ratios in log space for numerical safety.</span>
+</span></span><span class=line><span class=cl>            <span class=n>ratios</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_probs</span> <span class=o>-</span> <span class=n>old_log_probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>surr1</span> <span class=o>=</span> <span class=n>ratios</span> <span class=o>*</span> <span class=n>advantages</span>
+</span></span><span class=line><span class=cl>            <span class=n>surr2</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>clamp</span><span class=p>(</span><span class=n>ratios</span><span class=p>,</span> <span class=mi>1</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>eps_clip</span><span class=p>,</span> <span class=mi>1</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>eps_clip</span><span class=p>)</span> <span class=o>*</span> <span class=n>advantages</span>
+</span></span><span class=line><span class=cl>            <span class=n>policy_loss</span> <span class=o>=</span> <span class=o>-</span><span class=n>torch</span><span class=o>.</span><span class=n>min</span><span class=p>(</span><span class=n>surr1</span><span class=p>,</span> <span class=n>surr2</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>value_loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>mse_loss</span><span class=p>(</span><span class=n>vals</span><span class=p>,</span> <span class=n>returns</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>policy_loss</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>c_vf</span> <span class=o>*</span> <span class=n>value_loss</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>c_ent</span> <span class=o>*</span> <span class=n>entropy</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>A handful of lines beyond a vanilla actor-critic, and you have an algorithm that solves CartPole in 100 episodes and learns a humanoid to walk in $\sim$10 million steps.</p><hr><h2 id=trpo-vs-ppo-head-to-head>TRPO vs PPO: head to head</h2><table><thead><tr><th>Aspect</th><th>TRPO</th><th>PPO-Clip</th></tr></thead><tbody><tr><td>Solver</td><td>Conjugate gradient + line search (2nd order)</td><td>Adam (1st order)</td></tr><tr><td>KL constraint</td><td>Hard, exactly $\le \delta$</td><td>Soft, via per-sample clip</td></tr><tr><td>Updates per batch</td><td>1</td><td>3-10 epochs</td></tr><tr><td>Hessian-vector products</td><td>$\sim$10-20</td><td>0</td></tr><tr><td>Code complexity</td><td>$\sim$300 LOC</td><td>$\sim$100 LOC</td></tr><tr><td>Theoretical guarantee</td><td>Monotonic improvement (under bound)</td><td>None formally</td></tr><tr><td>GPU/distributed friendliness</td><td>Poor (CG needs sync)</td><td>Excellent</td></tr><tr><td>Hyperparameter sensitivity</td><td>$\delta$ matters</td><td>$\varepsilon = 0.2$ works almost always</td></tr></tbody></table><p>PPO&rsquo;s edge in practice comes from a <em>combination</em> of advantages, not the clip alone:</p><ul><li><strong>Multiple epochs per batch</strong> squeeze more learning from the same trajectories.</li><li><strong>Entropy bonus</strong> keeps exploration alive without bespoke noise schedules.</li><li><strong>No backward-pass overhead per step</strong> &ndash; one Adam call per epoch.</li><li><strong>Trivially parallelisable</strong> &ndash; you can run 64 actors in parallel collecting rollouts.</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig4_benchmark.png alt="PPO matches or beats TRPO at a fraction of the cost" loading=lazy decoding=async></figure></p><p>The MuJoCo curves (left) and Atari bars (right) show the empirical picture published in the original PPO paper and reproduced by Engstrom et al. (2020): PPO-Clip dominates A2C across the board and edges past TRPO on most tasks while running roughly 10$\times$ faster per wall-clock second.</p><hr><h2 id=ppo-inside-rlhf>PPO inside RLHF</h2><p>PPO&rsquo;s most consequential application is <strong>Reinforcement Learning from Human Feedback</strong> &ndash; the algorithm that turned GPT-3 into ChatGPT.</p><h3 id=the-three-stage-pipeline>The three-stage pipeline</h3><ol><li><strong>Supervised Fine-Tuning (SFT).</strong> Fine-tune a pretrained LLM on high-quality human demonstrations. Output: $\pi_{\text{ref}}$, the reference model.</li><li><strong>Reward modelling.</strong> Collect human preference data of the form <em>&ldquo;response A is better than response B&rdquo;</em>. Train a reward model $R_\phi(x, y)$ via a Bradley-Terry pairwise loss.</li><li><strong>PPO fine-tuning.</strong> Treat the LLM as a policy, the prompt $x$ as state, the response $y$ as action, and $R_\phi(x, y)$ as reward. Run PPO.</li></ol><h3 id=the-rlhf-objective>The RLHF objective</h3>$$J(\theta) = \mathbb{E}_{x \sim \mathcal{D},\,y \sim \pi_\theta(\cdot|x)}\!\left[R_\phi(x, y) - \beta\, D_{KL}\!\left(\pi_\theta(\cdot|x)\,\|\,\pi_{\text{ref}}(\cdot|x)\right)\right]$$<p>Two trust regions are at work:</p><ul><li>The <strong>PPO clip</strong> prevents per-update collapse, exactly as in classical RL.</li><li>The <strong>KL-to-reference penalty</strong> $\beta D_{KL}(\pi_\theta\,\|\,\pi_{\text{ref}})$ prevents <em>long-run drift</em> from the SFT model. Without it, PPO finds <strong>reward hacks</strong> &ndash; responses that score high under the reward model but are gibberish, hostile, or sycophantic. The KL penalty is the alignment tax that keeps generations recognisably human-written.</li></ul><h3 id=why-rlhf-is-harder-than-cartpole>Why RLHF is harder than CartPole</h3><ul><li>Each &ldquo;episode&rdquo; is one generation; compute per sample is enormous (forward+backward on a 70B model).</li><li>The reward model is <em>also</em> learnt, and noisy. A small clip range and a substantial KL coefficient ($\beta \in [0.01, 0.2]$) are usually needed.</li><li>Action space is the entire vocabulary (~50K tokens) over hundreds of timesteps. The advantage estimator must be very low-variance &ndash; this is why PPO with GAE and a large batch is preferred to vanilla policy gradient.</li></ul><h3 id=where-dpo-ipo-and-kto-fit>Where DPO, IPO and KTO fit</h3><p>The complexity of running PPO at scale &ndash; four model copies (policy, ref, reward, value), multiple GPUs syncing &ndash; spurred a wave of <em>direct</em> preference learning methods:</p><ul><li><strong>DPO</strong> (Rafailov et al., 2023) reparameterises the optimal RLHF policy in closed form and trains with a <em>supervised</em> contrastive loss &ndash; no reward model, no rollouts.</li><li><strong>IPO</strong> patches DPO&rsquo;s tendency to overfit on confidently labelled pairs.</li><li><strong>KTO</strong> uses single-response signed feedback (&ldquo;good&rdquo;/&ldquo;bad&rdquo;) instead of pairs.</li></ul><p>Where direct methods shine: simpler infra, lower variance. Where PPO still wins: when you need an actual <em>reward signal</em> (online learning, tool-using agents, code/math environments where a verifier provides reward), PPO remains the only general-purpose solution.</p><hr><h2 id=practical-tuning-guide>Practical tuning guide</h2><h3 id=hyperparameter-cheat-sheet>Hyperparameter cheat sheet</h3><table><thead><tr><th>Parameter</th><th>Typical range</th><th>Notes</th></tr></thead><tbody><tr><td>Learning rate</td><td>$1\text{e-}4$ to $3\text{e-}4$</td><td>Sometimes annealed linearly to 0 over training</td></tr><tr><td>Clip $\varepsilon$</td><td>0.1 &ndash; 0.3</td><td>0.2 works in 90% of cases</td></tr><tr><td>GAE $\lambda$</td><td>0.9 &ndash; 0.99</td><td>0.95 default; closer to 1 when value function is unreliable</td></tr><tr><td>Discount $\gamma$</td><td>0.99 &ndash; 0.999</td><td>Longer-horizon tasks need larger $\gamma$</td></tr><tr><td>Rollout batch</td><td>2048 &ndash; 8192 (single env: longer)</td><td>Larger = lower-variance advantage</td></tr><tr><td>PPO epochs</td><td>3 &ndash; 10</td><td>More than 15 reliably overfits</td></tr><tr><td>Mini-batch size</td><td>64 &ndash; 256</td><td>Independent of rollout batch</td></tr><tr><td>Entropy coef</td><td>0.0 &ndash; 0.01</td><td>Atari needs more (~0.01); MuJoCo often 0</td></tr><tr><td>Value loss coef</td><td>0.5 &ndash; 1.0</td><td>Higher when critic is hard to learn</td></tr><tr><td>Grad clip norm</td><td>0.5 &ndash; 1.0</td><td>A &ldquo;safety belt&rdquo; for outlier batches</td></tr></tbody></table><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/06-ppo-and-trpo/fig7_hyperparameter.png alt="Hyperparameter sensitivity: clip range, learning rate, and the epochs x batch grid" loading=lazy decoding=async></figure></p><p>The sensitivity plot shows three classic patterns. Clip $\varepsilon$ has a <strong>wide, flat optimum</strong> &ndash; you really do not have to tune it. Learning rate is <strong>narrower</strong> &ndash; a factor of 3 misstep costs 5-10% of return. The epochs $\times$ batch heatmap reveals an interaction: too many epochs on a small batch overfits to current data and hurts the policy&rsquo;s KL budget.</p><h3 id=debugging-checklist>Debugging checklist</h3><ul><li><strong>Approximate KL</strong> between old and new policy: should hover around 0.01-0.02 per update. > 0.05 means clip is failing to constrain you &ndash; lower the LR or shrink mini-batches. (Beware the common &ldquo;one-sample&rdquo; KL estimator $\frac{1}{2}(\log r)^2$; the unbiased Schulman estimator $r - 1 - \log r$ is preferred.)</li><li><strong>Clip fraction</strong>: the share of samples that hit the clip boundary. 10-30% is healthy. 0% means you are not using your trust region; > 50% means you are training on the boundary.</li><li><strong>Entropy</strong>: should decay smoothly. A sudden drop to near-zero is <em>premature convergence</em> &ndash; raise the entropy coefficient.</li><li><strong>Explained variance</strong> of the value function: $1 - \mathrm{Var}(R - V)/\mathrm{Var}(R)$. Should rise above 0.5 within a few hundred updates; if stuck near 0, your critic is broken.</li><li><strong>Advantage normalisation</strong>: do it per <em>minibatch</em>, not per epoch. Forgetting the per-batch normalisation is the single most common implementation bug.</li></ul><h3 id=common-failure-modes>Common failure modes</h3><table><thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead><tbody><tr><td>Reward grows then crashes</td><td>KL too aggressive, clip ineffective</td><td>Smaller LR; fewer epochs per batch</td></tr><tr><td>Reward never moves</td><td>Advantage normalised across batch=0 reward</td><td>Check rewards aren&rsquo;t constant; widen exploration</td></tr><tr><td>Entropy collapses to 0 in 50 steps</td><td>No entropy bonus; greedy from start</td><td>Add <code>c_ent</code> $\ge 0.005$, raise temperature</td></tr><tr><td>Critic predictions explode</td><td>No reward normalisation; large unbounded rewards</td><td>Clip or normalise rewards (running stats)</td></tr><tr><td>Works on CartPole, fails on continuous control</td><td>Discrete-style network for Gaussian policy</td><td>Use <code>tanh</code> squashing, learnable log-std</td></tr></tbody></table><hr><h2 id=summary>Summary</h2><p>Trust-region methods rescued policy gradients from their most embarrassing failure mode &ndash; one bad step erases an hour of training. Two ideas carry the field:</p><ul><li><strong>TRPO</strong> turns the policy-improvement bound of Kakade-Langford into an algorithm: optimise the surrogate, hard-constrain the KL, solve via natural gradient. Theoretically beautiful, operationally heavy.</li><li><strong>PPO</strong> trades the hard constraint for a clipped surrogate plus first-order optimisation. It loses the formal monotonic-improvement guarantee but gains everything that matters in practice: simple code, multi-epoch updates, parallel rollouts, and robust defaults.</li></ul><p>The deeper engineering lesson is universal: <strong>a simple, locally-honest approximation often beats a complex, globally-correct one</strong> &ndash; especially when the &ldquo;correct&rdquo; method is two orders of magnitude more expensive per step. PPO&rsquo;s victory mirrors Adam&rsquo;s victory over second-order optimisers in deep learning.</p><p>PPO&rsquo;s reach now extends well beyond classical RL. Every major aligned LLM trained in the past three years &ndash; ChatGPT, Claude, Gemini, the Llama-2 chat models &ndash; ran a PPO loop somewhere in its post-training pipeline. The clip is, quite literally, what keeps modern AI assistants from going feral on their reward model.</p><hr><h2 id=references>References</h2><ul><li>Schulman, J., Levine, S., Moritz, P., Jordan, M., & Abbeel, P. (2015). Trust Region Policy Optimization. <em>ICML</em>. <a href=https://arxiv.org/abs/1502.05477 target=_blank rel="noopener noreferrer">arXiv:1502.05477 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O. (2017). Proximal Policy Optimization Algorithms. <a href=https://arxiv.org/abs/1707.06347 target=_blank rel="noopener noreferrer">arXiv:1707.06347 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Schulman, J., Moritz, P., Levine, S., Jordan, M., & Abbeel, P. (2016). High-Dimensional Continuous Control Using Generalized Advantage Estimation. <em>ICLR</em>. <a href=https://arxiv.org/abs/1506.02438 target=_blank rel="noopener noreferrer">arXiv:1506.02438 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Kakade, S., & Langford, J. (2002). Approximately Optimal Approximate Reinforcement Learning. <em>ICML</em>.</li><li>Engstrom, L., Ilyas, A., Santurkar, S., Tsipras, D., Janoos, F., Rudolph, L., & Madry, A. (2020). Implementation Matters in Deep Policy Gradients: A Case Study on PPO and TRPO. <em>ICLR</em>. <a href=https://arxiv.org/abs/2005.12729 target=_blank rel="noopener noreferrer">arXiv:2005.12729 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ouyang, L., et al. (2022). Training Language Models to Follow Instructions with Human Feedback. <em>NeurIPS</em>. <a href=https://arxiv.org/abs/2203.02155 target=_blank rel="noopener noreferrer">arXiv:2203.02155 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Ermon, S., & Finn, C. (2023). Direct Preference Optimization: Your Language Model is Secretly a Reward Model. <em>NeurIPS</em>. <a href=https://arxiv.org/abs/2305.18290 target=_blank rel="noopener noreferrer">arXiv:2305.18290 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Huang, S., Dossa, R., Ye, C., Braga, J., Chakraborty, D., Mehta, K., & Araújo, J. G. (2022). The 37 Implementation Details of PPO. <em>ICLR Blog Post</em>. <a href=https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/ target=_blank rel="noopener noreferrer">iclr-blog-track.github.io <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th></tr></thead><tbody><tr><td>1</td><td><a href=/en/reinforcement-learning-1-fundamentals-and-core-concepts/>Fundamentals and Core Concepts</a></td></tr><tr><td>2</td><td><a href=/en/reinforcement-learning-2-q-learning-and-dqn/>Q-Learning and DQN</a></td></tr><tr><td>3</td><td><a href=/en/reinforcement-learning-3-policy-gradient-and-actor-critic/>Policy Gradient and Actor-Critic</a></td></tr><tr><td>4</td><td><a href=/en/reinforcement-learning-4-exploration-and-curiosity-driven-learning/>Exploration and Curiosity-Driven Learning</a></td></tr><tr><td>5</td><td><a href=/en/reinforcement-learning-5-model-based-rl-and-world-models/>Model-Based RL and World Models</a></td></tr><tr><td><strong>6</strong></td><td><strong>PPO and TRPO (you are here)</strong></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#why-policy-updates-are-unstable>Why policy updates are unstable</a><ul><li><a href=#a-pathological-example>A pathological example</a></li><li><a href=#parameter-space-lies-policy-space-tells-the-truth>Parameter space lies; policy space tells the truth</a></li></ul></li><li><a href=#importance-sampling-the-bridge-to-off-policy-data>Importance sampling: the bridge to off-policy data</a></li><li><a href=#trpo-trust-region-policy-optimization>TRPO: trust region policy optimization</a><ul><li><a href=#the-monotonic-improvement-bound>The monotonic-improvement bound</a></li><li><a href=#the-constrained-problem>The constrained problem</a></li><li><a href=#natural-gradient-the-right-notion-of-small>Natural gradient: the right notion of &ldquo;small&rdquo;</a></li><li><a href=#implementation-conjugate-gradient--line-search>Implementation: conjugate gradient + line search</a></li></ul></li><li><a href=#ppo-keeping-90-of-the-benefit-at-20-of-the-complexity>PPO: keeping 90% of the benefit at 20% of the complexity</a><ul><li><a href=#ppo-clip-the-central-trick>PPO-Clip: the central trick</a></li><li><a href=#ppo-penalty-the-adaptive-cousin>PPO-Penalty: the adaptive cousin</a></li><li><a href=#surrogate-landscape-why-clip-wins-in-practice>Surrogate landscape: why clip wins in practice</a></li><li><a href=#a-complete-ppo-implementation>A complete PPO implementation</a></li></ul></li><li><a href=#trpo-vs-ppo-head-to-head>TRPO vs PPO: head to head</a></li><li><a href=#ppo-inside-rlhf>PPO inside RLHF</a><ul><li><a href=#the-three-stage-pipeline>The three-stage pipeline</a></li><li><a href=#the-rlhf-objective>The RLHF objective</a></li><li><a href=#why-rlhf-is-harder-than-cartpole>Why RLHF is harder than CartPole</a></li><li><a href=#where-dpo-ipo-and-kto-fit>Where DPO, IPO and KTO fit</a></li></ul></li><li><a href=#practical-tuning-guide>Practical tuning guide</a><ul><li><a href=#hyperparameter-cheat-sheet>Hyperparameter cheat sheet</a></li><li><a href=#debugging-checklist>Debugging checklist</a></li><li><a href=#common-failure-modes>Common failure modes</a></li></ul></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>17 min</strong></div><div class=row><span>Word count</span><strong>3504</strong></div><div class=row><span>Published</span><strong>Aug 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

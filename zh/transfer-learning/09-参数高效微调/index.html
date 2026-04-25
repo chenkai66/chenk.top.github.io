@@ -1,746 +1,158 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>迁移学习（九）：参数高效微调 · Chen Kai Blog</title>
-<meta name="description" content="从低秩适配的数学原理出发，系统讲解 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、BitFit、QLoRA 等参数高效微调方法，附 LoRA 从零实现与方法选型指南。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="迁移学习（九）：参数高效微调">
-<meta property="og:description" content="从低秩适配的数学原理出发，系统讲解 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、BitFit、QLoRA 等参数高效微调方法，附 LoRA 从零实现与方法选型指南。">
-<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
-         · Chapter 9
-      </div>
-      <h1>迁移学习（九）：参数高效微调</h1>
-      <p class="deck">从低秩适配的数学原理出发，系统讲解 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、BitFit、QLoRA 等参数高效微调方法，附 LoRA 从零实现与方法选型指南。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-06-18">June 18, 2025</time> · 11 min read · 5300 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/peft/" class="tag">#PEFT</a><a href="/zh/tags/%E5%8F%82%E6%95%B0%E6%95%88%E7%8E%87/" class="tag">#参数效率</a><a href="/zh/tags/lora/" class="tag">#LoRA</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/adapter/" class="tag">#Adapter</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>GPT-3 有 1750 亿参数，全量微调一次要占 700 GB 显存，再加上梯度和优化器状态，单卡根本放不下；要为 100 个客户分别定制一份模型，光存储就 70 TB 起步。**参数高效微调（Parameter-Efficient Fine-Tuning，PEFT）**给出的答案是：把预训练权重冻住，只训练一份不到 1% 的&quot;增量&quot;，单张消费级显卡就能微调几十亿乃至几百亿参数的模型，性能几乎不掉。</p>
-<p>本文从低秩假设的数学动因讲起，依次推导 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、P-Tuning v2、BitFit、QLoRA 的设计逻辑，给出 LoRA 的从零实现，最后用 GLUE 上的实测数据告诉你&quot;什么场景该选什么方法&quot;。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li>为什么&quot;权重更新是低秩的&quot;这个假设站得住脚</li>
-<li>LoRA 的数学推导、初始化、缩放因子与权重合并</li>
-<li>Adapter 瓶颈结构的设计与插入位置</li>
-<li>Prefix-Tuning、Prompt-Tuning、P-Tuning v2 的区别</li>
-<li>QLoRA 如何把 65B 模型塞进单张 48 GB 显卡</li>
-<li>各方法在 GLUE 上的性能对比与选型建议</li>
-</ul>
-<h2 id="预备知识">预备知识</h2>
-<ul>
-<li>Transformer 结构（Attention、FFN、残差与 LayerNorm）</li>
-<li>矩阵分解基础（秩、SVD）</li>
-<li>迁移学习基础（本系列第 1-6 篇）</li>
-</ul>
-<hr>
-<h2 id="全量微调的困境">全量微调的困境</h2>
-<p>形式化地，全量微调对所有参数 $\boldsymbol{\theta}$ 做优化：</p>
-$$\boldsymbol{\theta}^* = \arg\min_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta}).$$<p>代价是真实的：</p>
-<ul>
-<li><strong>显存爆炸</strong>：175B 模型 FP32 权重 ~700 GB，加上梯度与 Adam 的两份动量，全量微调需要数 TB 显存。</li>
-<li><strong>存储成本</strong>：每个任务一份完整 checkpoint，100 个任务就是 70 TB。</li>
-<li><strong>灾难性遗忘</strong>：所有参数都在动，预训练知识容易被破坏。</li>
-<li><strong>服务复杂度</strong>：上线时无法用单一基座 + 路由的方式同时服务多个任务。</li>
-</ul>
-<p>PEFT 把问题改写成加性分解：</p>
-$$\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 + \Delta\boldsymbol{\theta},
-\qquad |\Delta\boldsymbol{\theta}| \ll |\boldsymbol{\theta}_0|.$$<p>预训练权重 $\boldsymbol{\theta}_0$ 冻结、共享，每个任务只训练并存储一份很小的 $\Delta\boldsymbol{\theta}$。&ldquo;基座 + 增量&quot;的范式让模型部署从奢侈品变成了日用品。</p>
-<table>
-  <thead>
-      <tr>
-          <th>方法</th>
-          <th>可训练参数占比</th>
-          <th>存储节省</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>全量微调</td>
-          <td>100%</td>
-          <td>0%</td>
-      </tr>
-      <tr>
-          <td>LoRA</td>
-          <td>0.1% - 1%</td>
-          <td>99% - 99.9%</td>
-      </tr>
-      <tr>
-          <td>Adapter</td>
-          <td>0.5% - 2%</td>
-          <td>98% - 99.5%</td>
-      </tr>
-      <tr>
-          <td>Prefix-Tuning</td>
-          <td>~0.1%</td>
-          <td>~99.9%</td>
-      </tr>
-      <tr>
-          <td>Prompt-Tuning</td>
-          <td>&lt;0.01%</td>
-          <td>&gt;99.99%</td>
-      </tr>
-      <tr>
-          <td>BitFit</td>
-          <td>~0.1%</td>
-          <td>~99.9%</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="lora低秩适配">LoRA：低秩适配</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig1_lora_decomposition.png" alt="LoRA 低秩分解：W = W_0 &#43; (alpha/r) * B * A" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="一句话讲清楚">一句话讲清楚</h3>
-<p>LoRA 假设 <em>权重更新</em> $\Delta\mathbf{W}$ 本身是低秩的，于是用两个&quot;瘦长矩阵&quot;的乘积来参数化它：</p>
-$$\mathbf{W}' = \mathbf{W}_0 + \frac{\alpha}{r}\, \mathbf{B}\mathbf{A},
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>迁移学习（九）：参数高效微调 · Chen Kai Blog</title>
+<meta name=description content="从低秩适配的数学原理出发，系统讲解 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、BitFit、QLoRA 等参数高效微调方法，附 LoRA 从零实现与方法选型指南。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/><meta property="og:type" content="article"><meta property="og:title" content="迁移学习（九）：参数高效微调"><meta property="og:description" content="从低秩适配的数学原理出发，系统讲解 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、BitFit、QLoRA 等参数高效微调方法，附 LoRA 从零实现与方法选型指南。"><meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>迁移学习</a>
+· Chapter 9</div><h1>迁移学习（九）：参数高效微调</h1><p class=deck>从低秩适配的数学原理出发，系统讲解 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、BitFit、QLoRA 等参数高效微调方法，附 LoRA 从零实现与方法选型指南。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-06-18>June 18, 2025</time> · 11 min read · 5209 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/peft/ class=tag>#PEFT</a><a href=/zh/tags/%E5%8F%82%E6%95%B0%E6%95%88%E7%8E%87/ class=tag>#参数效率</a><a href=/zh/tags/lora/ class=tag>#LoRA</a><a href=/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/ class=tag>#迁移学习</a><a href=/zh/tags/adapter/ class=tag>#Adapter</a></div></div></header><div class=prose><p>GPT-3 有 1750 亿参数，全量微调一次要占 700 GB 显存，再加上梯度和优化器状态，单卡根本放不下；要为 100 个客户分别定制一份模型，光存储就 70 TB 起步。**参数高效微调（Parameter-Efficient Fine-Tuning，PEFT）**给出的答案是：把预训练权重冻住，只训练一份不到 1% 的"增量"，单张消费级显卡就能微调几十亿乃至几百亿参数的模型，性能几乎不掉。</p><p>本文从低秩假设的数学动因讲起，依次推导 LoRA、Adapter、Prefix-Tuning、Prompt-Tuning、P-Tuning v2、BitFit、QLoRA 的设计逻辑，给出 LoRA 的从零实现，最后用 GLUE 上的实测数据告诉你"什么场景该选什么方法"。</p><h2 id=你将学到>你将学到</h2><ul><li>为什么"权重更新是低秩的"这个假设站得住脚</li><li>LoRA 的数学推导、初始化、缩放因子与权重合并</li><li>Adapter 瓶颈结构的设计与插入位置</li><li>Prefix-Tuning、Prompt-Tuning、P-Tuning v2 的区别</li><li>QLoRA 如何把 65B 模型塞进单张 48 GB 显卡</li><li>各方法在 GLUE 上的性能对比与选型建议</li></ul><h2 id=预备知识>预备知识</h2><ul><li>Transformer 结构（Attention、FFN、残差与 LayerNorm）</li><li>矩阵分解基础（秩、SVD）</li><li>迁移学习基础（本系列第 1-6 篇）</li></ul><hr><h2 id=全量微调的困境>全量微调的困境</h2><p>形式化地，全量微调对所有参数 $\boldsymbol{\theta}$ 做优化：</p>$$\boldsymbol{\theta}^* = \arg\min_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta}).$$<p>代价是真实的：</p><ul><li><strong>显存爆炸</strong>：175B 模型 FP32 权重 ~700 GB，加上梯度与 Adam 的两份动量，全量微调需要数 TB 显存。</li><li><strong>存储成本</strong>：每个任务一份完整 checkpoint，100 个任务就是 70 TB。</li><li><strong>灾难性遗忘</strong>：所有参数都在动，预训练知识容易被破坏。</li><li><strong>服务复杂度</strong>：上线时无法用单一基座 + 路由的方式同时服务多个任务。</li></ul><p>PEFT 把问题改写成加性分解：</p>$$\boldsymbol{\theta}^* = \boldsymbol{\theta}_0 + \Delta\boldsymbol{\theta},
+\qquad |\Delta\boldsymbol{\theta}| \ll |\boldsymbol{\theta}_0|.$$<p>预训练权重 $\boldsymbol{\theta}_0$ 冻结、共享，每个任务只训练并存储一份很小的 $\Delta\boldsymbol{\theta}$。&ldquo;基座 + 增量"的范式让模型部署从奢侈品变成了日用品。</p><table><thead><tr><th>方法</th><th>可训练参数占比</th><th>存储节省</th></tr></thead><tbody><tr><td>全量微调</td><td>100%</td><td>0%</td></tr><tr><td>LoRA</td><td>0.1% - 1%</td><td>99% - 99.9%</td></tr><tr><td>Adapter</td><td>0.5% - 2%</td><td>98% - 99.5%</td></tr><tr><td>Prefix-Tuning</td><td>~0.1%</td><td>~99.9%</td></tr><tr><td>Prompt-Tuning</td><td>&lt;0.01%</td><td>>99.99%</td></tr><tr><td>BitFit</td><td>~0.1%</td><td>~99.9%</td></tr></tbody></table><hr><h2 id=lora低秩适配>LoRA：低秩适配</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig1_lora_decomposition.png alt="LoRA 低秩分解：W = W_0 + (alpha/r) * B * A" loading=lazy decoding=async></figure></p><h3 id=一句话讲清楚>一句话讲清楚</h3><p>LoRA 假设 <em>权重更新</em> $\Delta\mathbf{W}$ 本身是低秩的，于是用两个"瘦长矩阵"的乘积来参数化它：</p>$$\mathbf{W}' = \mathbf{W}_0 + \frac{\alpha}{r}\, \mathbf{B}\mathbf{A},
 \qquad \mathbf{A} \in \mathbb{R}^{r \times d_{\text{in}}},\;
-        \mathbf{B} \in \mathbb{R}^{d_{\text{out}} \times r},\;
-        r \ll \min(d_{\text{in}}, d_{\text{out}}).$$<p>冻结的 $\mathbf{W}_0$ 有 $d_{\text{in}} d_{\text{out}}$ 个参数；可训练的增量只有 $r(d_{\text{in}} + d_{\text{out}})$ 个。以 $d=4096, r=8$ 为例，LoRA 引入的参数仅占原矩阵的 <strong>0.39%</strong>。</p>
-<h3 id="为什么低秩是个好假设">为什么&quot;低秩&quot;是个好假设</h3>
-<p>两个经验结果支撑了这个假设：</p>
-<ol>
-<li><strong>本征维度（Aghajanyan 等，2020）</strong>：微调过程实际上只在权重空间的一个低维子空间里走动。在不少任务上，几百个参数的子空间就足以追平全量微调。</li>
-<li><strong>预训练矩阵的奇异值谱</strong>：注意力投影矩阵的奇异值衰减很快，少数方向承载了大部分能量；而&quot;在已经很专业的模型上做任务适配&quot;所需要的更新方向，比这个还要更集中。</li>
-</ol>
-<p>直觉上，预训练模型已经几乎什么都会了，下游任务只是让它&quot;换一个角度看问题&rdquo;，自然不需要动太多自由度。</p>
-<h3 id="初始化缩放与前向">初始化、缩放与前向</h3>
-<p>落地 LoRA 时有几个细节决定成败：</p>
-<ul>
-<li><strong>初始化</strong>：$\mathbf{A} \sim \mathcal{N}(0, \sigma^2)$（Kaiming 风格），$\mathbf{B} = \mathbf{0}$。这样保证了第 0 步时 $\Delta\mathbf{W} = \mathbf{0}$，模型从预训练行为开始训练，不会一步把它打坏。</li>
-<li><strong>前向计算</strong>：$\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \tfrac{\alpha}{r}\,\mathbf{B}(\mathbf{A}\mathbf{x})$。<strong>绝对不要显式构造 $\mathbf{B}\mathbf{A}$</strong>——它就是那个 $d_{\text{out}}\times d_{\text{in}}$ 的稠密矩阵，正是我们要避免的。</li>
-<li><strong>缩放因子 $\alpha/r$</strong>：把&quot;学习率&quot;和&quot;秩&quot;解耦。秩翻倍时，等效学习率不变，因此 $\alpha$ 可以在不同 rank 之间复用。</li>
-<li><strong>权重合并</strong>：推理时执行 $\mathbf{W}_{\text{merged}} = \mathbf{W}_0 + (\alpha/r)\,\mathbf{B}\mathbf{A}$，把增量合并回原权重。<strong>推理时延零额外开销</strong>——你交付的依旧是单个权重矩阵。</li>
-<li><strong>该装在哪</strong>：实测把 LoRA 装在 Attention 的 <strong>query</strong> 和 <strong>value</strong> 投影上效果最好；只装其中一个不够，装到所有线性层收益边际明显，性价比反而下降。</li>
-</ul>
-<h3 id="体感对比到底小多少">体感对比：到底小多少？</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig2_param_count.png" alt="不同方法的可训练参数量（对数刻度）" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>以 GPT-3 175B 为基座，全量微调与 LoRA $r=8$ 的可训练参数差距大约是 <strong>五个数量级</strong>——但稍后我们会看到，在 GLUE 上得分几乎一样。</p>
-<hr>
-<h2 id="adapter在-block-中插入瓶颈模块">Adapter：在 Block 中插入瓶颈模块</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig3_adapter_placement.png" alt="Adapter 在 Transformer Block 中的位置" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Houlsby 等人（2019）走的是另一条路：不修改原有权重，而是<strong>在每个 Transformer Block 里插入小型可训练模块</strong>。Adapter 是一个带残差的瓶颈结构：</p>
-$$\text{Adapter}(\mathbf{h}) = \mathbf{h} + \mathbf{W}_{\text{up}}\, \sigma(\mathbf{W}_{\text{down}}\, \mathbf{h}),
+\mathbf{B} \in \mathbb{R}^{d_{\text{out}} \times r},\;
+r \ll \min(d_{\text{in}}, d_{\text{out}}).$$<p>冻结的 $\mathbf{W}_0$ 有 $d_{\text{in}} d_{\text{out}}$ 个参数；可训练的增量只有 $r(d_{\text{in}} + d_{\text{out}})$ 个。以 $d=4096, r=8$ 为例，LoRA 引入的参数仅占原矩阵的 <strong>0.39%</strong>。</p><h3 id=为什么低秩是个好假设>为什么"低秩"是个好假设</h3><p>两个经验结果支撑了这个假设：</p><ol><li><strong>本征维度（Aghajanyan 等，2020）</strong>：微调过程实际上只在权重空间的一个低维子空间里走动。在不少任务上，几百个参数的子空间就足以追平全量微调。</li><li><strong>预训练矩阵的奇异值谱</strong>：注意力投影矩阵的奇异值衰减很快，少数方向承载了大部分能量；而"在已经很专业的模型上做任务适配"所需要的更新方向，比这个还要更集中。</li></ol><p>直觉上，预训练模型已经几乎什么都会了，下游任务只是让它"换一个角度看问题&rdquo;，自然不需要动太多自由度。</p><h3 id=初始化缩放与前向>初始化、缩放与前向</h3><p>落地 LoRA 时有几个细节决定成败：</p><ul><li><strong>初始化</strong>：$\mathbf{A} \sim \mathcal{N}(0, \sigma^2)$（Kaiming 风格），$\mathbf{B} = \mathbf{0}$。这样保证了第 0 步时 $\Delta\mathbf{W} = \mathbf{0}$，模型从预训练行为开始训练，不会一步把它打坏。</li><li><strong>前向计算</strong>：$\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \tfrac{\alpha}{r}\,\mathbf{B}(\mathbf{A}\mathbf{x})$。<strong>绝对不要显式构造 $\mathbf{B}\mathbf{A}$</strong>——它就是那个 $d_{\text{out}}\times d_{\text{in}}$ 的稠密矩阵，正是我们要避免的。</li><li><strong>缩放因子 $\alpha/r$</strong>：把"学习率"和"秩"解耦。秩翻倍时，等效学习率不变，因此 $\alpha$ 可以在不同 rank 之间复用。</li><li><strong>权重合并</strong>：推理时执行 $\mathbf{W}_{\text{merged}} = \mathbf{W}_0 + (\alpha/r)\,\mathbf{B}\mathbf{A}$，把增量合并回原权重。<strong>推理时延零额外开销</strong>——你交付的依旧是单个权重矩阵。</li><li><strong>该装在哪</strong>：实测把 LoRA 装在 Attention 的 <strong>query</strong> 和 <strong>value</strong> 投影上效果最好；只装其中一个不够，装到所有线性层收益边际明显，性价比反而下降。</li></ul><h3 id=体感对比到底小多少>体感对比：到底小多少？</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig2_param_count.png alt=不同方法的可训练参数量（对数刻度） loading=lazy decoding=async></figure></p><p>以 GPT-3 175B 为基座，全量微调与 LoRA $r=8$ 的可训练参数差距大约是 <strong>五个数量级</strong>——但稍后我们会看到，在 GLUE 上得分几乎一样。</p><hr><h2 id=adapter在-block-中插入瓶颈模块>Adapter：在 Block 中插入瓶颈模块</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig3_adapter_placement.png alt="Adapter 在 Transformer Block 中的位置" loading=lazy decoding=async></figure></p><p>Houlsby 等人（2019）走的是另一条路：不修改原有权重，而是<strong>在每个 Transformer Block 里插入小型可训练模块</strong>。Adapter 是一个带残差的瓶颈结构：</p>$$\text{Adapter}(\mathbf{h}) = \mathbf{h} + \mathbf{W}_{\text{up}}\, \sigma(\mathbf{W}_{\text{down}}\, \mathbf{h}),
 \qquad \mathbf{W}_{\text{down}} \in \mathbb{R}^{m \times d},\;
-        \mathbf{W}_{\text{up}} \in \mathbb{R}^{d \times m},\; m \ll d.$$<p>&ldquo;先降维再升维&quot;的把戏和 LoRA 一脉相承，区别在于：Adapter 是新加一层，LoRA 是改写一层。把 $\mathbf{W}_{\text{up}}$ 初始化在零附近，可以让新插入的 Adapter 一开始相当于恒等映射，不会破坏预训练行为。</p>
-<p><strong>Adapter vs LoRA</strong>：</p>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th>Adapter</th>
-          <th>LoRA</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>改了什么</td>
-          <td>新加一层</td>
-          <td>重新参数化已有权重</td>
-      </tr>
-      <tr>
-          <td>推理时延</td>
-          <td>增加（串行多了一层）</td>
-          <td>无（合并进 $W_0$）</td>
-      </tr>
-      <tr>
-          <td>单任务存储</td>
-          <td>每层 ~$2md$ 参数</td>
-          <td>每层 ~$r(d_\text{in}+d_\text{out})$ 参数</td>
-      </tr>
-      <tr>
-          <td>适合</td>
-          <td>编码器（BERT 系）</td>
-          <td>生成式（GPT 系）</td>
-      </tr>
-  </tbody>
-</table>
-<p>后续两个变体值得了解。<strong>Pfeiffer Adapter</strong> 每个 Block 只在 FFN 之后保留一个 Adapter，参数减半但效果几乎不掉。<strong>并行 Adapter</strong>（He 等，2021）把瓶颈与 FFN 并行计算，避免 GPU 上的串行依赖，把推理延迟拉得很接近 LoRA。</p>
-<hr>
-<h2 id="prefix-tuning前置软-token">Prefix-Tuning：前置软 Token</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig4_prefix_tuning.png" alt="Prefix-Tuning：每层都加可学习的虚拟 token" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Prefix-Tuning（Li &amp; Liang, 2021）干脆不动模型权重，而是在<strong>每一层</strong>的 key/value 序列前面，拼接 $m$ 个<strong>可学习的&quot;虚拟 token&rdquo;</strong>：</p>
-$$\bigl[\mathbf{P}_1, \ldots, \mathbf{P}_m,\; \mathbf{x}_1, \ldots, \mathbf{x}_n\bigr] \to \text{Transformer}.$$<p>只有这些前缀矩阵参与训练，参数总量是 $m \times d \times L \times 2$（key + value，$L$ 层）。两个工程细节：</p>
-<ul>
-<li>直接优化前缀向量训练不稳。原论文先把前缀过一个小 MLP 再喂给模型，推理时把 MLP 丢掉、只保留 MLP 输出的前缀向量。</li>
-<li>前缀容量有限，硬任务上比 LoRA 差 0.5-1 分。</li>
-</ul>
-<p>直觉上，这些前缀就像每层注意力的&quot;调音器&quot;——它们从第一层开始就引导模型对真实 token 的注意力分布，相当于把任务知识压缩在了 K/V 缓存里。</p>
-<hr>
-<h2 id="prompt-tuning-与-p-tuning-v2">Prompt-Tuning 与 P-Tuning v2</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig5_prompt_vs_ptuning.png" alt="Prompt-Tuning 只调输入层；P-Tuning v2 每层都调" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Prompt-Tuning</strong>（Lester 等，2021）是极简版本：只在<strong>输入层</strong>前加 $m$ 个可学习 prompt，参数量仅 $m \times d$，往往只有几千个。</p>
-<p>代价是它<strong>只在足够大的模型上才好用</strong>。Lester 等人的实验显示，模型规模越大，与全量微调的差距越小：1B 以下差距明显，10B 以上几乎可以忽略。直觉上，参数量大的模型自带&quot;翻译任意连续向量&quot;的能力，小模型则需要更局部、更具体的修改。</p>
-<p><strong>P-Tuning v2</strong>（Liu 等，2022）是 Prompt-Tuning 与 Prefix-Tuning 的折中：在<strong>每一层</strong>都加可学习 prompt，而不只是输入层。结果是无论模型大小、无论任务难易，都能追平全量微调，可训练参数依然只有 ~0.1%。</p>
-<h2 id="bitfit只调-bias">BitFit：只调 Bias</h2>
-<p>最极简的方法：<strong>只微调偏置项</strong>（Zaken 等，2021）。BERT 的偏置约占总参数的 0.08%，但在小数据 GLUE 任务上能与全量微调打平。原理也直观——偏置改变了每个非线性的输入分布，相当于不改&quot;线性映射本身&quot;的前提下，重新分配激活路径。它当 baseline 极其便宜；当主力方法时，比 LoRA 略弱。</p>
-<hr>
-<h2 id="qlora量化--lora">QLoRA：量化 + LoRA</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig6_qlora_stack.png" alt="QLoRA：4-bit 基座 &#43; 分页优化器 &#43; bf16 LoRA 适配器" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>QLoRA（Dettmers 等，2023）让单张 48 GB 显卡微调 65B 模型成为可能。它把三件事组合在一起：</p>
-<ol>
-<li><strong>NF4（4-bit NormalFloat）量化</strong>冻结的基座权重。NF4 是在&quot;预训练权重近似零均值高斯&quot;的假设下信息论最优的码本——而这个假设大体成立。</li>
-<li><strong>双重量化</strong>：把每个 block 的量化常数本身再量化一次，每个参数再省 ~0.4 bit。</li>
-<li><strong>分页优化器</strong>：让 Adam 的状态在 CPU 与 GPU 之间通过统一内存分页，长序列时不再 OOM。</li>
-</ol>
-<p>关键点是：<strong>梯度仍然能穿过量化矩阵传到上面 bf16 的 LoRA 适配器</strong>。基座永远不需要 FP16 副本，只有小小的 LoRA 参数需要。右图说明了重量级：65B 全量微调要 ~700 GB 显存，QLoRA 只要 ~50 GB。</p>
-<p>QLoRA 在 Vicuna 评测上与全量微调相比性能下降 &lt;2%，硬件成本却下降了一两个数量级。</p>
-<hr>
-<h2 id="实现从零写一遍-lora">实现：从零写一遍 LoRA</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LoRALayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;W&#39; = W_0 + (alpha / r) * B @ A.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    基座权重冻结；只有 A、B 参与梯度计算。
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">16.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_features</span> <span class="o">=</span> <span class="n">in_features</span><span class="p">,</span> <span class="n">out_features</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">rank</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 冻结的预训练权重（之后从原 Linear 拷贝进来）</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">out_features</span><span class="p">,</span> <span class="n">in_features</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">out_features</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 可训练的低秩因子</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="n">in_features</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">out_features</span><span class="p">,</span> <span class="n">rank</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span> <span class="k">if</span> <span class="n">dropout</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_merged</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">base</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merged</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">base</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 关键：绝不显式构造 B @ A</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">base</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">*</span> <span class="n">delta</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">merge_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;把 LoRA 增量合并回原权重，推理零额外开销。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merged</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="o">.</span><span class="n">zero_</span><span class="p">();</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_merged</span> <span class="o">=</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">apply_lora</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">16.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">               <span class="n">targets</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&#34;query&#34;</span><span class="p">,</span> <span class="s2">&#34;value&#34;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;递归地把目标 nn.Linear 替换成 LoRALayer。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">t</span> <span class="ow">in</span> <span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">lora</span> <span class="o">=</span> <span class="n">LoRALayer</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">out_features</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">lora</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">lora</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="nb">setattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">lora</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">apply_lora</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>三个值得注意的细节：</p>
-<ol>
-<li>前向<strong>永远不构造 $\mathbf{B}\mathbf{A}$</strong>——先左乘 $\mathbf{A}$ 得到一个宽度只有 $r$ 的中间张量，再乘 $\mathbf{B}$。</li>
-<li><code>merge_weights</code> 是一次性的、原地的合并。合并之后这个 Layer 与 <code>nn.Linear</code> 在数值上完全等价，部署时延和不用 LoRA 一模一样。</li>
-<li><code>apply_lora</code> 沿模型树递归，只替换名字含 <code>&quot;query&quot;</code> / <code>&quot;value&quot;</code> 的层——这是 LoRA 论文给出的默认推荐。</li>
-</ol>
-<hr>
-<h2 id="方法对比一张图看懂-glue-上的取舍">方法对比：一张图看懂 GLUE 上的取舍</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig7_glue_comparison.png" alt="PEFT 方法在 GLUE 上的效率-准确率关系" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>把 RoBERTa-base 在 GLUE 上的近似结果画成气泡图，整个设计空间就清楚了：</p>
-<ul>
-<li><strong>LoRA $r=8$</strong>：仅训练 0.24% 的参数，与全量微调差距小于 0.1 分，性价比之王。</li>
-<li><strong>Adapter</strong>：与 LoRA 准确率相当，但参数量约 4 倍、推理还有额外延迟。</li>
-<li><strong>Prefix-Tuning</strong>：用很小的精度让步换来极少的参数，适合需要存几百份任务适配器的场景。</li>
-<li><strong>Prompt-Tuning</strong>：在 RoBERTa-base 这种规模上不够看；底座越大它越好用。</li>
-<li><strong>BitFit</strong>：作为最朴素的 baseline，效果好得令人意外。</li>
-</ul>
-<h2 id="选型指南">选型指南</h2>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>首选</th>
-          <th>原因</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>GPT 类生成模型微调</td>
-          <td>LoRA（q,v）</td>
-          <td>零延迟、易合并、可扩展到 70B+</td>
-      </tr>
-      <tr>
-          <td>BERT 类多任务分类</td>
-          <td>Adapter（Pfeiffer）</td>
-          <td>单任务存储极小，工具链成熟</td>
-      </tr>
-      <tr>
-          <td>超大基座（&gt;10B），多任务</td>
-          <td>Prompt-Tuning</td>
-          <td>存储开销可忽略，规模越大越好</td>
-      </tr>
-      <tr>
-          <td>推理时延零容忍</td>
-          <td>LoRA + 合并</td>
-          <td>最终模型就是单个权重矩阵</td>
-      </tr>
-      <tr>
-          <td>小样本（千例量级）</td>
-          <td>Prefix-Tuning 或 BitFit</td>
-          <td>强归纳偏置，过拟合风险低</td>
-      </tr>
-      <tr>
-          <td>单卡 24-48 GB，30B+ 模型</td>
-          <td>QLoRA</td>
-          <td>NF4 + 分页 Adam 解锁这个尺寸段</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>LoRA 秩的选择</strong>：默认从 $r=8$ 开始。如果验证集差距超过 0.5 分，提到 16；显存吃紧降到 4。大模型反而<strong>更喜欢小 r</strong>——任务适配的本征维度并不会随模型尺寸线性增长。</p>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="相对全量微调peft-会损失多少性能">相对全量微调，PEFT 会损失多少性能？</h3>
-<p>模型规模 &gt;10B 时通常 &lt;1 分，常常落在噪声范围内；&lt;1B 时差距可能 2-5 分，特别是数据量小的任务。</p>
-<h3 id="lora-的学习率怎么设">LoRA 的学习率怎么设？</h3>
-<p>比全量微调高 1-2 个数量级。可训练参数从零附近出发，可以承受更大的步长而不发散。常用配置：$\text{lr} = 1\text{e-}4$ 到 $5\text{e-}4$，配 cosine 衰减。</p>
-<h3 id="peft-能和量化结合吗">PEFT 能和量化结合吗？</h3>
-<p>这正是 QLoRA 在做的事——NF4 + 双重量化 + bf16 LoRA，把 65B 模型微调塞进单张 48 GB GPU，性能下降 &lt;2%。</p>
-<h3 id="要不要把-lora-装到所有线性层">要不要把 LoRA 装到所有线性层？</h3>
-<p>不必。原论文实测 query+value 已经拿到大部分增益；加 key 和 output 边际很小，参数翻倍。Decoder-only LLM 上有时再加 MLP up/down 投影对长上下文任务略有帮助。</p>
-<h3 id="服务端-adapter-vs-lora">服务端 Adapter vs LoRA？</h3>
-<p>LoRA 合并后无任何额外延迟，与全量微调推理性能一致；Adapter 因为多了一层串行子层，延迟会增加 1-3%（并行 Adapter 能压到 1% 以下）。</p>
-<hr>
-<h2 id="小结">小结</h2>
-<p>PEFT 的核心思想可以浓缩为一句话：<strong>预训练模型已经几乎什么都会了，下游任务只需要一个低维的&quot;调音&quot;</strong>。</p>
-<ul>
-<li>LoRA 用低秩分解参数化这个调音，零延迟、易合并，是当前事实上的默认方法</li>
-<li>Adapter 用瓶颈模块在 Block 内插入调音，存储开销小但有推理延迟</li>
-<li>Prefix-Tuning / Prompt-Tuning / P-Tuning v2 把调音做成&quot;软 token&quot;，参数极少</li>
-<li>BitFit 极简到只调 bias，作为 baseline 出奇地有用</li>
-<li>QLoRA 把 4-bit 量化叠加到 LoRA 上，把单卡微调的尺寸上限推到了 65B</li>
-</ul>
-<p>下一篇我们进入持续学习，看模型如何在不忘旧知识的前提下不断吸收新任务。</p>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Hu, E. J., et al. (2021). LoRA: Low-Rank Adaptation of Large Language Models. <em>ICLR</em>.</li>
-<li>Aghajanyan, A., Gupta, S., &amp; Zettlemoyer, L. (2020). Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning. <em>ACL</em>.</li>
-<li>Houlsby, N., et al. (2019). Parameter-Efficient Transfer Learning for NLP. <em>ICML</em>.</li>
-<li>Pfeiffer, J., et al. (2021). AdapterFusion: Non-Destructive Task Composition for Transfer Learning. <em>EACL</em>.</li>
-<li>He, J., et al. (2021). Towards a Unified View of Parameter-Efficient Transfer Learning. <em>ICLR</em>.</li>
-<li>Li, X. L., &amp; Liang, P. (2021). Prefix-Tuning: Optimizing Continuous Prompts for Generation. <em>ACL</em>.</li>
-<li>Lester, B., Al-Rfou, R., &amp; Constant, N. (2021). The Power of Scale for Parameter-Efficient Prompt Tuning. <em>EMNLP</em>.</li>
-<li>Liu, X., et al. (2022). P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-Tuning Universally Across Scales and Tasks. <em>ACL</em>.</li>
-<li>Zaken, E. B., Ravfogel, S., &amp; Goldberg, Y. (2021). BitFit: Simple Parameter-Efficient Fine-Tuning for Transformer-Based Masked Language-Models. <em>ACL</em>.</li>
-<li>Dettmers, T., et al. (2023). QLoRA: Efficient Finetuning of Quantized LLMs. <em>NeurIPS</em>.</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>部分</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
-</td>
-          <td>基础与核心概念</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
-</td>
-          <td>预训练与微调</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/">3</a>
-</td>
-          <td>域适应</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
-</td>
-          <td>小样本学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
-</td>
-          <td>知识蒸馏</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/">6</a>
-</td>
-          <td>多任务学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/">7</a>
-</td>
-          <td>零样本学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
-</td>
-          <td>多模态迁移</td>
-      </tr>
-      <tr>
-          <td><strong>9</strong></td>
-          <td><strong>参数高效微调（本文）</strong></td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/">10</a>
-</td>
-          <td>持续学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/">11</a>
-</td>
-          <td>跨语言迁移</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">12</a>
-</td>
-          <td>工业应用与最佳实践</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#预备知识">预备知识</a></li>
-    <li><a href="#全量微调的困境">全量微调的困境</a></li>
-    <li><a href="#lora低秩适配">LoRA：低秩适配</a>
-      <ul>
-        <li><a href="#一句话讲清楚">一句话讲清楚</a></li>
-        <li><a href="#为什么低秩是个好假设">为什么&quot;低秩&quot;是个好假设</a></li>
-        <li><a href="#初始化缩放与前向">初始化、缩放与前向</a></li>
-        <li><a href="#体感对比到底小多少">体感对比：到底小多少？</a></li>
-      </ul>
-    </li>
-    <li><a href="#adapter在-block-中插入瓶颈模块">Adapter：在 Block 中插入瓶颈模块</a></li>
-    <li><a href="#prefix-tuning前置软-token">Prefix-Tuning：前置软 Token</a></li>
-    <li><a href="#prompt-tuning-与-p-tuning-v2">Prompt-Tuning 与 P-Tuning v2</a></li>
-    <li><a href="#bitfit只调-bias">BitFit：只调 Bias</a></li>
-    <li><a href="#qlora量化--lora">QLoRA：量化 + LoRA</a></li>
-    <li><a href="#实现从零写一遍-lora">实现：从零写一遍 LoRA</a></li>
-    <li><a href="#方法对比一张图看懂-glue-上的取舍">方法对比：一张图看懂 GLUE 上的取舍</a></li>
-    <li><a href="#选型指南">选型指南</a></li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#相对全量微调peft-会损失多少性能">相对全量微调，PEFT 会损失多少性能？</a></li>
-        <li><a href="#lora-的学习率怎么设">LoRA 的学习率怎么设？</a></li>
-        <li><a href="#peft-能和量化结合吗">PEFT 能和量化结合吗？</a></li>
-        <li><a href="#要不要把-lora-装到所有线性层">要不要把 LoRA 装到所有线性层？</a></li>
-        <li><a href="#服务端-adapter-vs-lora">服务端 Adapter vs LoRA？</a></li>
-      </ul>
-    </li>
-    <li><a href="#小结">小结</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5300</strong></div>
-      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+\mathbf{W}_{\text{up}} \in \mathbb{R}^{d \times m},\; m \ll d.$$<p>&ldquo;先降维再升维"的把戏和 LoRA 一脉相承，区别在于：Adapter 是新加一层，LoRA 是改写一层。把 $\mathbf{W}_{\text{up}}$ 初始化在零附近，可以让新插入的 Adapter 一开始相当于恒等映射，不会破坏预训练行为。</p><p><strong>Adapter vs LoRA</strong>：</p><table><thead><tr><th></th><th>Adapter</th><th>LoRA</th></tr></thead><tbody><tr><td>改了什么</td><td>新加一层</td><td>重新参数化已有权重</td></tr><tr><td>推理时延</td><td>增加（串行多了一层）</td><td>无（合并进 $W_0$）</td></tr><tr><td>单任务存储</td><td>每层 ~$2md$ 参数</td><td>每层 ~$r(d_\text{in}+d_\text{out})$ 参数</td></tr><tr><td>适合</td><td>编码器（BERT 系）</td><td>生成式（GPT 系）</td></tr></tbody></table><p>后续两个变体值得了解。<strong>Pfeiffer Adapter</strong> 每个 Block 只在 FFN 之后保留一个 Adapter，参数减半但效果几乎不掉。<strong>并行 Adapter</strong>（He 等，2021）把瓶颈与 FFN 并行计算，避免 GPU 上的串行依赖，把推理延迟拉得很接近 LoRA。</p><hr><h2 id=prefix-tuning前置软-token>Prefix-Tuning：前置软 Token</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig4_prefix_tuning.png alt="Prefix-Tuning：每层都加可学习的虚拟 token" loading=lazy decoding=async></figure></p><p>Prefix-Tuning（Li & Liang, 2021）干脆不动模型权重，而是在<strong>每一层</strong>的 key/value 序列前面，拼接 $m$ 个<strong>可学习的"虚拟 token&rdquo;</strong>：</p>$$\bigl[\mathbf{P}_1, \ldots, \mathbf{P}_m,\; \mathbf{x}_1, \ldots, \mathbf{x}_n\bigr] \to \text{Transformer}.$$<p>只有这些前缀矩阵参与训练，参数总量是 $m \times d \times L \times 2$（key + value，$L$ 层）。两个工程细节：</p><ul><li>直接优化前缀向量训练不稳。原论文先把前缀过一个小 MLP 再喂给模型，推理时把 MLP 丢掉、只保留 MLP 输出的前缀向量。</li><li>前缀容量有限，硬任务上比 LoRA 差 0.5-1 分。</li></ul><p>直觉上，这些前缀就像每层注意力的"调音器"——它们从第一层开始就引导模型对真实 token 的注意力分布，相当于把任务知识压缩在了 K/V 缓存里。</p><hr><h2 id=prompt-tuning-与-p-tuning-v2>Prompt-Tuning 与 P-Tuning v2</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig5_prompt_vs_ptuning.png alt="Prompt-Tuning 只调输入层；P-Tuning v2 每层都调" loading=lazy decoding=async></figure></p><p><strong>Prompt-Tuning</strong>（Lester 等，2021）是极简版本：只在<strong>输入层</strong>前加 $m$ 个可学习 prompt，参数量仅 $m \times d$，往往只有几千个。</p><p>代价是它<strong>只在足够大的模型上才好用</strong>。Lester 等人的实验显示，模型规模越大，与全量微调的差距越小：1B 以下差距明显，10B 以上几乎可以忽略。直觉上，参数量大的模型自带"翻译任意连续向量"的能力，小模型则需要更局部、更具体的修改。</p><p><strong>P-Tuning v2</strong>（Liu 等，2022）是 Prompt-Tuning 与 Prefix-Tuning 的折中：在<strong>每一层</strong>都加可学习 prompt，而不只是输入层。结果是无论模型大小、无论任务难易，都能追平全量微调，可训练参数依然只有 ~0.1%。</p><h2 id=bitfit只调-bias>BitFit：只调 Bias</h2><p>最极简的方法：<strong>只微调偏置项</strong>（Zaken 等，2021）。BERT 的偏置约占总参数的 0.08%，但在小数据 GLUE 任务上能与全量微调打平。原理也直观——偏置改变了每个非线性的输入分布，相当于不改"线性映射本身"的前提下，重新分配激活路径。它当 baseline 极其便宜；当主力方法时，比 LoRA 略弱。</p><hr><h2 id=qlora量化--lora>QLoRA：量化 + LoRA</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig6_qlora_stack.png alt="QLoRA：4-bit 基座 + 分页优化器 + bf16 LoRA 适配器" loading=lazy decoding=async></figure></p><p>QLoRA（Dettmers 等，2023）让单张 48 GB 显卡微调 65B 模型成为可能。它把三件事组合在一起：</p><ol><li><strong>NF4（4-bit NormalFloat）量化</strong>冻结的基座权重。NF4 是在"预训练权重近似零均值高斯"的假设下信息论最优的码本——而这个假设大体成立。</li><li><strong>双重量化</strong>：把每个 block 的量化常数本身再量化一次，每个参数再省 ~0.4 bit。</li><li><strong>分页优化器</strong>：让 Adam 的状态在 CPU 与 GPU 之间通过统一内存分页，长序列时不再 OOM。</li></ol><p>关键点是：<strong>梯度仍然能穿过量化矩阵传到上面 bf16 的 LoRA 适配器</strong>。基座永远不需要 FP16 副本，只有小小的 LoRA 参数需要。右图说明了重量级：65B 全量微调要 ~700 GB 显存，QLoRA 只要 ~50 GB。</p><p>QLoRA 在 Vicuna 评测上与全量微调相比性能下降 &lt;2%，硬件成本却下降了一两个数量级。</p><hr><h2 id=实现从零写一遍-lora>实现：从零写一遍 LoRA</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>LoRALayer</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;W&#39; = W_0 + (alpha / r) * B @ A.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    基座权重冻结；只有 A、B 参与梯度计算。
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>in_features</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>out_features</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>rank</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>,</span> <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>16.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>in_features</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>out_features</span> <span class=o>=</span> <span class=n>in_features</span><span class=p>,</span> <span class=n>out_features</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>rank</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>rank</span><span class=p>,</span> <span class=n>alpha</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>=</span> <span class=n>alpha</span> <span class=o>/</span> <span class=n>rank</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 冻结的预训练权重（之后从原 Linear 拷贝进来）</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>weight</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>out_features</span><span class=p>,</span> <span class=n>in_features</span><span class=p>),</span> <span class=n>requires_grad</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bias</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>out_features</span><span class=p>),</span> <span class=n>requires_grad</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 可训练的低秩因子</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>rank</span><span class=p>,</span> <span class=n>in_features</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>out_features</span><span class=p>,</span> <span class=n>rank</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>kaiming_uniform_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=p>,</span> <span class=n>a</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=mi>5</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span> <span class=k>if</span> <span class=n>dropout</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>nn</span><span class=o>.</span><span class=n>Identity</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_merged</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>base</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>linear</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>weight</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>bias</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_merged</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>base</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 关键：绝不显式构造 B @ A</span>
+</span></span><span class=line><span class=cl>        <span class=n>delta</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=o>.</span><span class=n>T</span><span class=p>)</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>base</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>*</span> <span class=n>delta</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>merge_weights</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;把 LoRA 增量合并回原权重，推理零额外开销。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_merged</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>add_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=o>.</span><span class=n>zero_</span><span class=p>();</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span><span class=o>.</span><span class=n>zero_</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_merged</span> <span class=o>=</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>apply_lora</span><span class=p>(</span><span class=n>module</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>,</span> <span class=n>rank</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>,</span> <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>16.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>               <span class=n>targets</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>&#34;query&#34;</span><span class=p>,</span> <span class=s2>&#34;value&#34;</span><span class=p>))</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;递归地把目标 nn.Linear 替换成 LoRALayer。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>child</span> <span class=ow>in</span> <span class=n>module</span><span class=o>.</span><span class=n>named_children</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>child</span><span class=p>,</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>)</span> <span class=ow>and</span> <span class=nb>any</span><span class=p>(</span><span class=n>t</span> <span class=ow>in</span> <span class=n>name</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>targets</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>lora</span> <span class=o>=</span> <span class=n>LoRALayer</span><span class=p>(</span><span class=n>child</span><span class=o>.</span><span class=n>in_features</span><span class=p>,</span> <span class=n>child</span><span class=o>.</span><span class=n>out_features</span><span class=p>,</span> <span class=n>rank</span><span class=p>,</span> <span class=n>alpha</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>lora</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>data</span><span class=o>.</span><span class=n>copy_</span><span class=p>(</span><span class=n>child</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>child</span><span class=o>.</span><span class=n>bias</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>lora</span><span class=o>.</span><span class=n>bias</span><span class=o>.</span><span class=n>data</span><span class=o>.</span><span class=n>copy_</span><span class=p>(</span><span class=n>child</span><span class=o>.</span><span class=n>bias</span><span class=o>.</span><span class=n>data</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=nb>setattr</span><span class=p>(</span><span class=n>module</span><span class=p>,</span> <span class=n>name</span><span class=p>,</span> <span class=n>lora</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>apply_lora</span><span class=p>(</span><span class=n>child</span><span class=p>,</span> <span class=n>rank</span><span class=p>,</span> <span class=n>alpha</span><span class=p>,</span> <span class=n>targets</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>三个值得注意的细节：</p><ol><li>前向<strong>永远不构造 $\mathbf{B}\mathbf{A}$</strong>——先左乘 $\mathbf{A}$ 得到一个宽度只有 $r$ 的中间张量，再乘 $\mathbf{B}$。</li><li><code>merge_weights</code> 是一次性的、原地的合并。合并之后这个 Layer 与 <code>nn.Linear</code> 在数值上完全等价，部署时延和不用 LoRA 一模一样。</li><li><code>apply_lora</code> 沿模型树递归，只替换名字含 <code>"query"</code> / <code>"value"</code> 的层——这是 LoRA 论文给出的默认推荐。</li></ol><hr><h2 id=方法对比一张图看懂-glue-上的取舍>方法对比：一张图看懂 GLUE 上的取舍</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/09-%E5%8F%82%E6%95%B0%E9%AB%98%E6%95%88%E5%BE%AE%E8%B0%83/fig7_glue_comparison.png alt="PEFT 方法在 GLUE 上的效率-准确率关系" loading=lazy decoding=async></figure></p><p>把 RoBERTa-base 在 GLUE 上的近似结果画成气泡图，整个设计空间就清楚了：</p><ul><li><strong>LoRA $r=8$</strong>：仅训练 0.24% 的参数，与全量微调差距小于 0.1 分，性价比之王。</li><li><strong>Adapter</strong>：与 LoRA 准确率相当，但参数量约 4 倍、推理还有额外延迟。</li><li><strong>Prefix-Tuning</strong>：用很小的精度让步换来极少的参数，适合需要存几百份任务适配器的场景。</li><li><strong>Prompt-Tuning</strong>：在 RoBERTa-base 这种规模上不够看；底座越大它越好用。</li><li><strong>BitFit</strong>：作为最朴素的 baseline，效果好得令人意外。</li></ul><h2 id=选型指南>选型指南</h2><table><thead><tr><th>场景</th><th>首选</th><th>原因</th></tr></thead><tbody><tr><td>GPT 类生成模型微调</td><td>LoRA（q,v）</td><td>零延迟、易合并、可扩展到 70B+</td></tr><tr><td>BERT 类多任务分类</td><td>Adapter（Pfeiffer）</td><td>单任务存储极小，工具链成熟</td></tr><tr><td>超大基座（>10B），多任务</td><td>Prompt-Tuning</td><td>存储开销可忽略，规模越大越好</td></tr><tr><td>推理时延零容忍</td><td>LoRA + 合并</td><td>最终模型就是单个权重矩阵</td></tr><tr><td>小样本（千例量级）</td><td>Prefix-Tuning 或 BitFit</td><td>强归纳偏置，过拟合风险低</td></tr><tr><td>单卡 24-48 GB，30B+ 模型</td><td>QLoRA</td><td>NF4 + 分页 Adam 解锁这个尺寸段</td></tr></tbody></table><p><strong>LoRA 秩的选择</strong>：默认从 $r=8$ 开始。如果验证集差距超过 0.5 分，提到 16；显存吃紧降到 4。大模型反而<strong>更喜欢小 r</strong>——任务适配的本征维度并不会随模型尺寸线性增长。</p><hr><h2 id=qa>Q&amp;A</h2><h3 id=相对全量微调peft-会损失多少性能>相对全量微调，PEFT 会损失多少性能？</h3><p>模型规模 >10B 时通常 &lt;1 分，常常落在噪声范围内；&lt;1B 时差距可能 2-5 分，特别是数据量小的任务。</p><h3 id=lora-的学习率怎么设>LoRA 的学习率怎么设？</h3><p>比全量微调高 1-2 个数量级。可训练参数从零附近出发，可以承受更大的步长而不发散。常用配置：$\text{lr} = 1\text{e-}4$ 到 $5\text{e-}4$，配 cosine 衰减。</p><h3 id=peft-能和量化结合吗>PEFT 能和量化结合吗？</h3><p>这正是 QLoRA 在做的事——NF4 + 双重量化 + bf16 LoRA，把 65B 模型微调塞进单张 48 GB GPU，性能下降 &lt;2%。</p><h3 id=要不要把-lora-装到所有线性层>要不要把 LoRA 装到所有线性层？</h3><p>不必。原论文实测 query+value 已经拿到大部分增益；加 key 和 output 边际很小，参数翻倍。Decoder-only LLM 上有时再加 MLP up/down 投影对长上下文任务略有帮助。</p><h3 id=服务端-adapter-vs-lora>服务端 Adapter vs LoRA？</h3><p>LoRA 合并后无任何额外延迟，与全量微调推理性能一致；Adapter 因为多了一层串行子层，延迟会增加 1-3%（并行 Adapter 能压到 1% 以下）。</p><hr><h2 id=小结>小结</h2><p>PEFT 的核心思想可以浓缩为一句话：<strong>预训练模型已经几乎什么都会了，下游任务只需要一个低维的"调音"</strong>。</p><ul><li>LoRA 用低秩分解参数化这个调音，零延迟、易合并，是当前事实上的默认方法</li><li>Adapter 用瓶颈模块在 Block 内插入调音，存储开销小但有推理延迟</li><li>Prefix-Tuning / Prompt-Tuning / P-Tuning v2 把调音做成"软 token"，参数极少</li><li>BitFit 极简到只调 bias，作为 baseline 出奇地有用</li><li>QLoRA 把 4-bit 量化叠加到 LoRA 上，把单卡微调的尺寸上限推到了 65B</li></ul><p>下一篇我们进入持续学习，看模型如何在不忘旧知识的前提下不断吸收新任务。</p><h2 id=参考文献>参考文献</h2><ul><li>Hu, E. J., et al. (2021). LoRA: Low-Rank Adaptation of Large Language Models. <em>ICLR</em>.</li><li>Aghajanyan, A., Gupta, S., & Zettlemoyer, L. (2020). Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning. <em>ACL</em>.</li><li>Houlsby, N., et al. (2019). Parameter-Efficient Transfer Learning for NLP. <em>ICML</em>.</li><li>Pfeiffer, J., et al. (2021). AdapterFusion: Non-Destructive Task Composition for Transfer Learning. <em>EACL</em>.</li><li>He, J., et al. (2021). Towards a Unified View of Parameter-Efficient Transfer Learning. <em>ICLR</em>.</li><li>Li, X. L., & Liang, P. (2021). Prefix-Tuning: Optimizing Continuous Prompts for Generation. <em>ACL</em>.</li><li>Lester, B., Al-Rfou, R., & Constant, N. (2021). The Power of Scale for Parameter-Efficient Prompt Tuning. <em>EMNLP</em>.</li><li>Liu, X., et al. (2022). P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-Tuning Universally Across Scales and Tasks. <em>ACL</em>.</li><li>Zaken, E. B., Ravfogel, S., & Goldberg, Y. (2021). BitFit: Simple Parameter-Efficient Fine-Tuning for Transformer-Based Masked Language-Models. <em>ACL</em>.</li><li>Dettmers, T., et al. (2023). QLoRA: Efficient Finetuning of Quantized LLMs. <em>NeurIPS</em>.</li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>部分</th><th>主题</th></tr></thead><tbody><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/>1</a></td><td>基础与核心概念</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/>2</a></td><td>预训练与微调</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/>3</a></td><td>域适应</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/>4</a></td><td>小样本学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/>5</a></td><td>知识蒸馏</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/>6</a></td><td>多任务学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/>7</a></td><td>零样本学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/>8</a></td><td>多模态迁移</td></tr><tr><td><strong>9</strong></td><td><strong>参数高效微调（本文）</strong></td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/>10</a></td><td>持续学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%b8%80-%e8%b7%a8%e8%af%ad%e8%a8%80%e8%bf%81%e7%a7%bb/>11</a></td><td>跨语言迁移</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/>12</a></td><td>工业应用与最佳实践</td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#预备知识>预备知识</a></li><li><a href=#全量微调的困境>全量微调的困境</a></li><li><a href=#lora低秩适配>LoRA：低秩适配</a><ul><li><a href=#一句话讲清楚>一句话讲清楚</a></li><li><a href=#为什么低秩是个好假设>为什么"低秩"是个好假设</a></li><li><a href=#初始化缩放与前向>初始化、缩放与前向</a></li><li><a href=#体感对比到底小多少>体感对比：到底小多少？</a></li></ul></li><li><a href=#adapter在-block-中插入瓶颈模块>Adapter：在 Block 中插入瓶颈模块</a></li><li><a href=#prefix-tuning前置软-token>Prefix-Tuning：前置软 Token</a></li><li><a href=#prompt-tuning-与-p-tuning-v2>Prompt-Tuning 与 P-Tuning v2</a></li><li><a href=#bitfit只调-bias>BitFit：只调 Bias</a></li><li><a href=#qlora量化--lora>QLoRA：量化 + LoRA</a></li><li><a href=#实现从零写一遍-lora>实现：从零写一遍 LoRA</a></li><li><a href=#方法对比一张图看懂-glue-上的取舍>方法对比：一张图看懂 GLUE 上的取舍</a></li><li><a href=#选型指南>选型指南</a></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#相对全量微调peft-会损失多少性能>相对全量微调，PEFT 会损失多少性能？</a></li><li><a href=#lora-的学习率怎么设>LoRA 的学习率怎么设？</a></li><li><a href=#peft-能和量化结合吗>PEFT 能和量化结合吗？</a></li><li><a href=#要不要把-lora-装到所有线性层>要不要把 LoRA 装到所有线性层？</a></li><li><a href=#服务端-adapter-vs-lora>服务端 Adapter vs LoRA？</a></li></ul></li><li><a href=#小结>小结</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5209</strong></div><div class=row><span>Published</span><strong>Jun 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

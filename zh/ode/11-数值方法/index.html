@@ -1,610 +1,111 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>常微分方程（十一）：数值方法 · Chen Kai Blog</title>
-<meta name="description" content="从欧拉的切线一步到 Dormand-Prince 自适应积分器：实用数值工具集。收敛阶、A-稳定性、刚性问题，以及何时该用 Radau 或 BDF 取代 RK45。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="常微分方程（十一）：数值方法">
-<meta property="og:description" content="从欧拉的切线一步到 Dormand-Prince 自适应积分器：实用数值工具集。收敛阶、A-稳定性、刚性问题，以及何时该用 Radau 或 BDF 取代 RK45。">
-<meta property="og:url" content="https://www.chenk.top/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">常微分方程</a>
-         · Chapter 11
-      </div>
-      <h1>常微分方程（十一）：数值方法</h1>
-      <p class="deck">从欧拉的切线一步到 Dormand-Prince 自适应积分器：实用数值工具集。收敛阶、A-稳定性、刚性问题，以及何时该用 Radau 或 BDF 取代 RK45。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-12-18">December 18, 2023</time> · 3 min read · 1500 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/ode/" class="tag">#ODE</a><a href="/zh/tags/%E6%AC%A7%E6%8B%89%E6%96%B9%E6%B3%95/" class="tag">#欧拉方法</a><a href="/zh/tags/runge-kutta/" class="tag">#Runge-Kutta</a><a href="/zh/tags/%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/" class="tag">#数值方法</a><a href="/zh/tags/python/" class="tag">#Python</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>科学与工程中几乎所有有意思的微分方程都拒绝给出解析解：非线性向量场、变系数、上万个耦合状态变量——纸笔早在问题本身屈服之前就已经放弃。<strong>数值积分</strong>是穿过这道墙的方式。本章构建、评估、对比那一小套基本能解决你会遇到的所有 ODE 的算法，并给出<strong>判断积分器是否在欺骗你</strong>的诊断手段。</p>
-<h2 id="本章要点">本章要点</h2>
-<ul>
-<li>欧拉方法背后的几何思想，及为什么经典 Runge-Kutta 几乎&quot;白送&quot;地把丢失的精度还给你</li>
-<li>收敛阶$\mathcal{O}(h^p)$的清晰推导，以及它在 log-log 图上的真实含义</li>
-<li>嵌入式 Runge-Kutta 实现的自适应步长（<code>scipy.integrate.solve_ivp</code> 的内核）</li>
-<li><strong>刚性问题</strong>：定义、识别、显式方法为何灾难性失败、隐式方法（BDF、Radau）如何拯救</li>
-<li>复平面上的线性稳定区，以及它如何指导步长选择</li>
-<li>多步法、Hamilton 流的辛积分器简介，外加生产环境的 checklist</li>
-</ul>
-<p><strong>前置知识</strong>：<a href="/zh/ode-chapter-01-origins-and-intuition/">第 1-4 章</a>
-的 ODE 基础；Taylor 展开。</p>
-<hr>
-<h2 id="1-为什么需要数值方法">1. 为什么需要数值方法？</h2>
-<p>之前几章的解析方法——分离变量、积分因子、Laplace 变换、特征展开——很强大但<strong>脆弱</strong>：只对狭窄类别的方程有效，一旦真实问题脱离&quot;对符号友好&quot;的轨道立刻失效。例如$\frac{dy}{dx} = \sin(xy).$无封闭解。Navier-Stokes 方程、三体问题、任何含数种以上化学物种的反应网络、Lorenz 系统——全部击败符号方法。我们只能退而求其次：在网格点$x_n = x_0 + nh$上算<strong>离散近似</strong>$y_n \approx y(x_n)$。</p>
-<p>接下来要回答三个问题：</p>
-<ul>
-<li>更新规则$y_{n+1} = \Phi(y_n, h, f, \ldots)$该怎么选？</li>
-<li>误差如何随$h$标度？</li>
-<li>当方程&quot;刚性&quot;时（小$h$不是为了精度而是为了稳定）方法表现如何？</li>
-</ul>
-<p>我们会一一回答。</p>
-<hr>
-<h2 id="2-前向欧拉几何思想">2. 前向欧拉：几何思想</h2>
-<p>给定$\dot{y} = f(x, y)$、$y(x_0) = y_0$，最简单的更新就是用切线代替曲线：$y_{n+1} = y_n + h\,f(x_n, y_n).$这就是<strong>前向欧拉</strong>，也是所有显式单步格式的原型。直觉：每一步读出当前位置的斜率，沿那个方向走小距离$h$，再读斜率。像在大雾中走山坡，永远只信脚下的坡度。</p>
-<h3 id="精度阶">精度阶</h3>
-<p>将真解 Taylor 展开：$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$与欧拉步$y_{n+1} = y_n + h f(x_n, y_n)$相减得<strong>局部截断误差</strong>$\mathcal{O}(h^2)$/步。在固定区间$[x_0, X]$上走$N=(X-x_0)/h$步，<strong>全局误差</strong>为$\mathcal{O}(h)$。步长减半，误差减半——双倍代价换微薄回报。</p>
-<h3 id="线性稳定性">线性稳定性</h3>
-<p>把欧拉应用于测试方程$\dot{y} = \lambda y$（$\mathrm{Re}\,\lambda<0$）：$y_{n+1} = (1 + h\lambda)\,y_n.$放大因子$R(z) := 1 + z$（$z = h\lambda$）。稳定性要求$|R(z)| \le 1$。对实负$\lambda$有$h < 2/|\lambda|$；对纯虚$\lambda$（振荡问题），<strong>没有任何$h>0$稳定</strong>。欧拉方法<strong>至多是条件稳定</strong>，对纯振荡问题完全无用。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">euler</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;前向欧拉。f(x, y) -&gt; dy/dx。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x0</span><span class="p">],</span> <span class="p">[</span><span class="n">y0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_end</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h_eff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">x_end</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span> <span class="o">*</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span>
-</span></span><span class="line"><span class="cl">        <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="3-heun中点法runge-kutta-家族">3. Heun、中点法、Runge-Kutta 家族</h2>
-<p>要修复欧拉的一阶精度，关键是<strong>每步多算几次</strong>$f$再聪明地组合。显式$s$级 Runge-Kutta 的通用结构：$k_i = f\!\left(x_n + c_i h,\; y_n + h\textstyle\sum_{j<i} a_{ij}k_j\right),\quad y_{n+1} = y_n + h\sum_i b_i k_i.$系数$\{a_{ij}, b_i, c_i\}$排成 <strong>Butcher 表</strong>。</p>
-<h3 id="heun改进欧拉二阶">Heun（改进欧拉），二阶</h3>
-<p>预测-校正两级方法：</p>
-<ol>
-<li>预测：$\tilde y = y_n + h\,f(x_n, y_n)$</li>
-<li>校正：$y_{n+1} = y_n + \tfrac{h}{2}\bigl[f(x_n, y_n) + f(x_n + h, \tilde y)\bigr]$</li>
-</ol>
-<p>局部误差$\mathcal{O}(h^3)$，全局误差$\mathcal{O}(h^2)$。$h$减半，误差减为四分之一。已经好很多。</p>
-<h3 id="经典-rk4四阶">经典 RK4，四阶</h3>
-<p>四级工作马：</p>
-$$k_1 = f(x_n, y_n)$$$$k_2 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)$$$$k_3 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_2\right)$$$$k_4 = f(x_n + h,\; y_n + h k_3)$$$$y_{n+1} = y_n + \tfrac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)$$<p>权重$(1,2,2,1)/6$与 Simpson 积分公式同构（不是巧合）。全局误差$\mathcal{O}(h^4)$，每步 4 次$f$求值——科学计算中最划算的交易之一。对光滑右端的非刚性问题，这个算法已经做了一个多世纪的工程默认值。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">rk4</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x0</span><span class="p">],</span> <span class="p">[</span><span class="n">y0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">while</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_end</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h_eff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">x_end</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">k1</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">k2</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="n">k1</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">k3</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="n">k2</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">k4</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="n">k3</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">h_eff</span><span class="o">*</span><span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">k2</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">k3</span> <span class="o">+</span> <span class="n">k4</span><span class="p">)</span><span class="o">/</span><span class="mi">6</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">h_eff</span>
-</span></span><span class="line"><span class="cl">        <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">);</span> <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="并排对比欧拉-vs-rk4">并排对比：欧拉 vs RK4</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig1_euler_vs_rk4.png" alt="欧拉 vs RK4 在测试方程$\dot y=-2y$上各取若干步长。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>同样的步长、同样的问题（$\dot y=-2y$, $y(0)=1$）。$h=0.5$时欧拉甚至<strong>穿越到负值</strong>——它越过平衡点是因为$h\lambda=-1$恰好在稳定区边界附近。同样$h$下 RK4 与精确曲线<strong>视觉上不可区分</strong>。</em></p>
-<p>这不是小差距。从一阶到四阶意味着固定$h$下的误差预算被<strong>平方两次</strong>。要让欧拉在$h=0.1$时达到 RK4 的精度，需要$h\approx 10^{-5}$——十万倍的代价。</p>
-<hr>
-<h2 id="4-收敛阶可视化">4. 收敛阶可视化</h2>
-<p>最干净的检验方法阶的方式：在一系列步长下计算终点全局误差，画 log-log 图，斜率即为阶数。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig2_error_convergence.png" alt="Log-log 收敛：欧拉$\mathcal{O}(h)$，Heun$\mathcal{O}(h^2)$，RK4$\mathcal{O}(h^4)$。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>三条参考虚线斜率分别为 1、2、4。每个方法的误差紧贴对应直线，直到舍入误差（RK4 在最小$h$处）或稳定性（欧拉在最大$h$处）接管。</em></p>
-<p>两个实用教训：</p>
-<ul>
-<li><strong>阶数是硬上限</strong>：对$p$阶方法，无论怎么调都好不过$\mathcal{O}(h^p)$。要更快收敛只能换更高阶或外推。</li>
-<li><strong>舍入下界真实存在</strong>：光滑问题上 RK4 在$h=10^{-3}$已经摸到机器精度。再降$h$只是让步数变多、舍入累积加剧——<strong>反而会变差</strong>。</li>
-</ul>
-<hr>
-<h2 id="5-自适应步长控制">5. 自适应步长控制</h2>
-<p>真实解并非均匀光滑——有平台、有尖峰、有缓慢长尾。固定$h$要么在平台浪费，要么在尖峰危险。修复方式是<strong>自适应步长</strong>：在线选择$h$使局部误差贴近用户给定容差。</p>
-<p>标准机制是<strong>嵌入式 Runge-Kutta</strong>：两个阶为$p$与$p+1$的方法共享中间级求值，差为局部误差$E_n$的估计。若$E_n>\text{tol}$则拒绝该步、缩小$h$重试；否则接受并选下一步$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$0.9 是安全因子，指数来自$p+1$阶渐近。最流行的嵌入对是 <strong>Dormand-Prince RK4(5)</strong>——<code>solve_ivp</code> 内部的 &ldquo;RK45&rdquo;。每步 6 次$f$求值，同时给出 4 阶与 5 阶估计。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig3_adaptive_step_size.png" alt="自适应 RK45 在尖锐瞬态上的步长位置与步长历史。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>上：在$t=1$附近含 Gauss 脉冲的强迫线性 ODE。红点为积分器实际取的步。下：步长在尖峰处缩小约 100 倍以追踪它，之后再次扩张。固定$h$若小到能追上尖峰，平滑长尾段就要白走数千步。</em></p>
-<hr>
-<h2 id="6-刚性问题显式方法的失败模式">6. 刚性问题：显式方法的失败模式</h2>
-<p>某些方程在缓慢演化之上叠加少量快动力学。快部分衰减后你<strong>很想</strong>走大步——但显式方法不允许，它们要求$h \lesssim 1/|\lambda_{\max}|$永远成立，仅为了数值稳定。这类问题称为<strong>刚性</strong>。</p>
-<p>教科书例子：高非线性的 van der Pol 振子$\ddot{y} - \mu(1-y^2)\dot{y} + y = 0.$$\mu=1000$时慢尺度$\sim \mu$，快尺度$\sim 1/\mu$，比值 $10^6$。用 RK45 积分这个就是灾难。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig4_stiffness.png" alt="刚性问题：显式 RK45 比隐式 BDF 多用约 100 倍步数。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>同一条轨迹，两种方法。BDF（隐式，蓝）整段积分只需几千步；RK45（显式，红）需要数十万步还吃力。这种模式在所有刚性问题上普适。</em></p>
-<p>出路是<strong>隐式</strong>方法。最简单的是<strong>后向欧拉</strong>：$y_{n+1} = y_n + h\,f(x_{n+1}, y_{n+1}),$在<strong>新点</strong>求斜率。代价：每步要解关于$y_{n+1}$的代数方程，通常用 Newton 法。回报：后向欧拉的稳定区是<strong>整个</strong>左半平面（<strong>A-稳定</strong>）。无论问题多刚性，$h$都只受精度约束。</p>
-<h3 id="稳定区可视化">稳定区可视化</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig5_implicit_vs_explicit.png" alt="显式与隐式方法在复平面上的稳定区。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>左：显式方法的稳定区是原点附近的有限椭圆。RK4（蓝）覆盖负实轴$|h\lambda|\le 2.78$左右——较大但仍有界。右：后向欧拉与梯形规则覆盖整个左半平面，这就是 A-稳定的定义。</em></p>
-<p>刚性问题的特征值沿负实轴拉得很远，显式区是窄走廊：要么把$h$缩到能装下（巨大代价），要么用 A-稳定方法（无$h$约束）。</p>
-<p>工业级隐式家族：</p>
-<ul>
-<li><strong>BDF</strong>（后向差分公式，1-5 阶）。LSODE、CVODE、SciPy <code>'BDF'</code> 的默认刚性求解器。</li>
-<li><strong>Radau IIA</strong>（3、5、9 阶）。强稳定性的隐式 RK；SciPy <code>'Radau'</code>。</li>
-<li><strong>隐式中点 / 梯形规则</strong>。A-稳定，二阶，对 Hamilton 系统能量守恒。</li>
-</ul>
-<p>实用准则：若 <code>solve_ivp(..., method='RK45')</code> 永远跑不完或拒绝容差，换 <code>'BDF'</code> 或 <code>'Radau'</code>。若刚/非刚区域交替，<code>'LSODA'</code> 自动检测。</p>
-<hr>
-<h2 id="7-还应该知道的几种方法">7. 还应该知道的几种方法</h2>
-<h3 id="多步法adams-bashforth-和-adams-moulton">多步法：Adams-Bashforth 和 Adams-Moulton</h3>
-<p>不在每步内部多算$f$，而是<strong>复用之前几步的值</strong>：$y_{n+1} = y_n + h \sum_{j=0}^{k-1} \beta_j f(x_{n-j}, y_{n-j}).$Adams-Bashforth（显式）与 Adams-Moulton（隐式）是教科书家族。预测-校正对将 AB 预测与 AM 校正组合。优点：启动后每步只需 1 次$f$求值；缺点：在不连续点附近脆弱，且需要单独的启动过程。</p>
-<h3 id="hamilton-流的辛积分器">Hamilton 流的辛积分器</h3>
-<p>对能量守恒系统（行星轨道、分子动力学、格点规范理论），常规方法引起<strong>能量漂移</strong>：守恒量随舍入累积慢慢增减。<strong>辛</strong>积分器保持相空间的辛 2-形式；它们也无法严格守恒能量，但能把能量误差限制在真值附近的有界振荡内，<strong>即便积分上百万周期</strong>。</p>
-<p>最简例子是$\ddot q = -\nabla V(q)$的 <strong>Stormer-Verlet（leapfrog）</strong>：$p_{n+1/2} = p_n - \tfrac{h}{2}\nabla V(q_n),\quad q_{n+1} = q_n + h\,p_{n+1/2},\quad p_{n+1} = p_{n+1/2} - \tfrac{h}{2}\nabla V(q_{n+1}).$二阶精度、时间可逆、辛。N 体天体物理的标准工具。</p>
-<hr>
-<h2 id="8-scipy-实战">8. SciPy 实战</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 通用非刚性问题：默认 RK45 即可。</span>
-</span></span><span class="line"><span class="cl"><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                <span class="n">t_eval</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 刚性问题：换 BDF 或 Radau。</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">vdp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">mu</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl"><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="n">vdp</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3000</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                <span class="n">method</span><span class="o">=</span><span class="s1">&#39;BDF&#39;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 不知道刚不刚？让 LSODA 自己决定。</span>
-</span></span><span class="line"><span class="cl"><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span> <span class="n">y0</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;LSODA&#39;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>solve_ivp</code> 最常用选项：</p>
-<ul>
-<li><code>method</code>：<code>'RK45'</code>（默认）、<code>'RK23'</code>、<code>'DOP853'</code>（八阶高精度）、<code>'Radau'</code>、<code>'BDF'</code>、<code>'LSODA'</code>。</li>
-<li><code>rtol</code>、<code>atol</code>：相对/绝对容差（按分量）。默认值偏松（$10^{-3}, 10^{-6}$）；正经计算应收紧到$10^{-8}, 10^{-10}$或更低。</li>
-<li><code>dense_output=True</code>：返回插值器 <code>sol.sol(t)</code>，可在任意$t$查询，不限于积分器自选的步。</li>
-<li><code>events</code>：传入函数，求解器自动定位其零点（碰撞、反弹、阈值穿越）。</li>
-<li><code>jac</code>：为隐式方法提供解析 Jacobi 矩阵，相对差分 Jacobi 大幅提速。</li>
-</ul>
-<h3 id="实用可靠性-checklist">实用可靠性 checklist</h3>
-<ol>
-<li><strong>用两套不同容差各跑一次</strong>。若 <code>rtol</code> 缩小 100 倍后答案明显改变，说明松的那次是错的。</li>
-<li><strong>画步长历史</strong>。求解器死磕 <code>min_step</code> 必有问题。<code>nfev</code>（求值次数）爆表通常意味着用了显式方法去碰刚性问题。</li>
-<li><strong>必须检查 <code>success</code></strong>。<code>solve_ivp</code> 失败时<strong>默认沉默返回</strong>，必须自己 assert。</li>
-<li><strong>长积分要用稠密输出 + 粗网格复核</strong>。漂移在单步检查中不可见，但在$10^6$周期积累后会很明显。</li>
-</ol>
-<hr>
-<h2 id="9-方法选择速查表">9. 方法选择速查表</h2>
-<table>
-  <thead>
-      <tr>
-          <th>方法</th>
-          <th>阶</th>
-          <th>类型</th>
-          <th>刚性稳定？</th>
-          <th>适用场景</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>前向欧拉</td>
-          <td>1</td>
-          <td>显式</td>
-          <td>否</td>
-          <td>教学，从不上生产</td>
-      </tr>
-      <tr>
-          <td>Heun（改进欧拉）</td>
-          <td>2</td>
-          <td>显式</td>
-          <td>否</td>
-          <td>玩具问题</td>
-      </tr>
-      <tr>
-          <td>经典 RK4</td>
-          <td>4</td>
-          <td>显式</td>
-          <td>否</td>
-          <td>光滑非刚性</td>
-      </tr>
-      <tr>
-          <td>Dormand-Prince RK4(5)</td>
-          <td>4(5)</td>
-          <td>显式自适应</td>
-          <td>否</td>
-          <td>工作马默认值</td>
-      </tr>
-      <tr>
-          <td>DOP853</td>
-          <td>8(5,3)</td>
-          <td>显式自适应</td>
-          <td>否</td>
-          <td>苛求精度的非刚性</td>
-      </tr>
-      <tr>
-          <td>后向欧拉</td>
-          <td>1</td>
-          <td>隐式</td>
-          <td>是（A-稳定）</td>
-          <td>最简刚性求解器</td>
-      </tr>
-      <tr>
-          <td>梯形 / Crank-Nicolson</td>
-          <td>2</td>
-          <td>隐式</td>
-          <td>是（A-稳定）</td>
-          <td>轻度刚性、保守</td>
-      </tr>
-      <tr>
-          <td>BDF（1-5 阶）</td>
-          <td>至 5</td>
-          <td>隐式多步</td>
-          <td>是</td>
-          <td>工业刚性默认</td>
-      </tr>
-      <tr>
-          <td>Radau IIA</td>
-          <td>3, 5, 9</td>
-          <td>隐式 RK</td>
-          <td>是（L-稳定）</td>
-          <td>极刚 + 高精度</td>
-      </tr>
-      <tr>
-          <td>Stormer-Verlet</td>
-          <td>2</td>
-          <td>辛</td>
-          <td>—</td>
-          <td>Hamilton / 轨道</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>一句话建议</strong>：先用 <code>solve_ivp(method='RK45')</code>；若慢或不稳定换 <code>'BDF'</code>；若关心守恒量再看辛方法。</p>
-<hr>
-<h2 id="习题">习题</h2>
-<ol>
-<li><strong>阶数验证</strong>。实现 <code>euler</code>、<code>heun</code>、<code>rk4</code>。在$\dot y=-2y$, $y(0)=1$, $[0,3]$上取$h\in\{0.5, 0.25, 0.125, 0.0625\}$，画 log-log 误差并验证斜率为 1、2、4。</li>
-<li><strong>稳定边界实测</strong>。把欧拉应用到$\dot y=\lambda y$（$\lambda=-10$），找出欧拉失稳的临界步长$h_*$并验证它与$2/|\lambda|$一致。</li>
-<li><strong>刚性系统两种解法</strong>。用 <code>'RK45'</code> 与 <code>'BDF'</code> 各解一次 Robertson 化学动力学
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>常微分方程（十一）：数值方法 · Chen Kai Blog</title>
+<meta name=description content="从欧拉的切线一步到 Dormand-Prince 自适应积分器：实用数值工具集。收敛阶、A-稳定性、刚性问题，以及何时该用 Radau 或 BDF 取代 RK45。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/><meta property="og:type" content="article"><meta property="og:title" content="常微分方程（十一）：数值方法"><meta property="og:description" content="从欧拉的切线一步到 Dormand-Prince 自适应积分器：实用数值工具集。收敛阶、A-稳定性、刚性问题，以及何时该用 Radau 或 BDF 取代 RK45。"><meta property="og:url" content="https://www.chenk.top/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>常微分方程</a>
+· Chapter 11</div><h1>常微分方程（十一）：数值方法</h1><p class=deck>从欧拉的切线一步到 Dormand-Prince 自适应积分器：实用数值工具集。收敛阶、A-稳定性、刚性问题，以及何时该用 Radau 或 BDF 取代 RK45。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-12-18>December 18, 2023</time> · 3 min read · 1424 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ode/ class=tag>#ODE</a><a href=/zh/tags/%E6%AC%A7%E6%8B%89%E6%96%B9%E6%B3%95/ class=tag>#欧拉方法</a><a href=/zh/tags/runge-kutta/ class=tag>#Runge-Kutta</a><a href=/zh/tags/%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/ class=tag>#数值方法</a><a href=/zh/tags/python/ class=tag>#Python</a></div></div></header><div class=prose><p>科学与工程中几乎所有有意思的微分方程都拒绝给出解析解：非线性向量场、变系数、上万个耦合状态变量——纸笔早在问题本身屈服之前就已经放弃。<strong>数值积分</strong>是穿过这道墙的方式。本章构建、评估、对比那一小套基本能解决你会遇到的所有 ODE 的算法，并给出<strong>判断积分器是否在欺骗你</strong>的诊断手段。</p><h2 id=本章要点>本章要点</h2><ul><li>欧拉方法背后的几何思想，及为什么经典 Runge-Kutta 几乎"白送"地把丢失的精度还给你</li><li>收敛阶$\mathcal{O}(h^p)$的清晰推导，以及它在 log-log 图上的真实含义</li><li>嵌入式 Runge-Kutta 实现的自适应步长（<code>scipy.integrate.solve_ivp</code> 的内核）</li><li><strong>刚性问题</strong>：定义、识别、显式方法为何灾难性失败、隐式方法（BDF、Radau）如何拯救</li><li>复平面上的线性稳定区，以及它如何指导步长选择</li><li>多步法、Hamilton 流的辛积分器简介，外加生产环境的 checklist</li></ul><p><strong>前置知识</strong>：<a href=/zh/ode-chapter-01-origins-and-intuition/>第 1-4 章</a>
+的 ODE 基础；Taylor 展开。</p><hr><h2 id=1-为什么需要数值方法>1. 为什么需要数值方法？</h2><p>之前几章的解析方法——分离变量、积分因子、Laplace 变换、特征展开——很强大但<strong>脆弱</strong>：只对狭窄类别的方程有效，一旦真实问题脱离"对符号友好"的轨道立刻失效。例如$\frac{dy}{dx} = \sin(xy).$无封闭解。Navier-Stokes 方程、三体问题、任何含数种以上化学物种的反应网络、Lorenz 系统——全部击败符号方法。我们只能退而求其次：在网格点$x_n = x_0 + nh$上算<strong>离散近似</strong>$y_n \approx y(x_n)$。</p><p>接下来要回答三个问题：</p><ul><li>更新规则$y_{n+1} = \Phi(y_n, h, f, \ldots)$该怎么选？</li><li>误差如何随$h$标度？</li><li>当方程"刚性"时（小$h$不是为了精度而是为了稳定）方法表现如何？</li></ul><p>我们会一一回答。</p><hr><h2 id=2-前向欧拉几何思想>2. 前向欧拉：几何思想</h2><p>给定$\dot{y} = f(x, y)$、$y(x_0) = y_0$，最简单的更新就是用切线代替曲线：$y_{n+1} = y_n + h\,f(x_n, y_n).$这就是<strong>前向欧拉</strong>，也是所有显式单步格式的原型。直觉：每一步读出当前位置的斜率，沿那个方向走小距离$h$，再读斜率。像在大雾中走山坡，永远只信脚下的坡度。</p><h3 id=精度阶>精度阶</h3><p>将真解 Taylor 展开：$y(x_n + h) = y(x_n) + h\,y'(x_n) + \tfrac{h^2}{2}y''(x_n) + \mathcal{O}(h^3).$与欧拉步$y_{n+1} = y_n + h f(x_n, y_n)$相减得<strong>局部截断误差</strong>$\mathcal{O}(h^2)$/步。在固定区间$[x_0, X]$上走$N=(X-x_0)/h$步，<strong>全局误差</strong>为$\mathcal{O}(h)$。步长减半，误差减半——双倍代价换微薄回报。</p><h3 id=线性稳定性>线性稳定性</h3><p>把欧拉应用于测试方程$\dot{y} = \lambda y$（$\mathrm{Re}\,\lambda<0$）：$y_{n+1} = (1 + h\lambda)\,y_n.$放大因子$R(z) := 1 + z$（$z = h\lambda$）。稳定性要求$|R(z)| \le 1$。对实负$\lambda$有$h < 2/|\lambda|$；对纯虚$\lambda$（振荡问题），<strong>没有任何$h>0$稳定</strong>。欧拉方法<strong>至多是条件稳定</strong>，对纯振荡问题完全无用。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>euler</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>y0</span><span class=p>,</span> <span class=n>x_end</span><span class=p>,</span> <span class=n>h</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;前向欧拉。f(x, y) -&gt; dy/dx。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>xs</span><span class=p>,</span> <span class=n>ys</span> <span class=o>=</span> <span class=p>[</span><span class=n>x0</span><span class=p>],</span> <span class=p>[</span><span class=n>y0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x0</span><span class=p>,</span> <span class=n>y0</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>x</span> <span class=o>&lt;</span> <span class=n>x_end</span> <span class=o>-</span> <span class=mf>1e-12</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>h_eff</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>x_end</span> <span class=o>-</span> <span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>h_eff</span> <span class=o>*</span> <span class=n>f</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=n>h_eff</span>
+</span></span><span class=line><span class=cl>        <span class=n>xs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=p>);</span> <span class=n>ys</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>xs</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>ys</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=3-heun中点法runge-kutta-家族>3. Heun、中点法、Runge-Kutta 家族</h2><p>要修复欧拉的一阶精度，关键是<strong>每步多算几次</strong>$f$再聪明地组合。显式$s$级 Runge-Kutta 的通用结构：$k_i = f\!\left(x_n + c_i h,\; y_n + h\textstyle\sum_{j<i} a_{ij}k_j\right),\quad y_{n+1}=y_n + h\sum_i b_i k_i.$系数$\{a_{ij}, b_i, c_i\}$排成 <strong>Butcher 表</strong>。</p><h3 id=heun改进欧拉二阶>Heun（改进欧拉），二阶</h3><p>预测-校正两级方法：</p><ol><li>预测：$\tilde y = y_n + h\,f(x_n, y_n)$</li><li>校正：$y_{n+1} = y_n + \tfrac{h}{2}\bigl[f(x_n, y_n) + f(x_n + h, \tilde y)\bigr]$</li></ol><p>局部误差$\mathcal{O}(h^3)$，全局误差$\mathcal{O}(h^2)$。$h$减半，误差减为四分之一。已经好很多。</p><h3 id=经典-rk4四阶>经典 RK4，四阶</h3><p>四级工作马：</p>$$k_1 = f(x_n, y_n)$$$$k_2 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_1\right)$$$$k_3 = f\!\left(x_n + \tfrac{h}{2},\; y_n + \tfrac{h}{2}k_2\right)$$$$k_4 = f(x_n + h,\; y_n + h k_3)$$$$y_{n+1} = y_n + \tfrac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4)$$<p>权重$(1,2,2,1)/6$与 Simpson 积分公式同构（不是巧合）。全局误差$\mathcal{O}(h^4)$，每步 4 次$f$求值——科学计算中最划算的交易之一。对光滑右端的非刚性问题，这个算法已经做了一个多世纪的工程默认值。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>rk4</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>y0</span><span class=p>,</span> <span class=n>x_end</span><span class=p>,</span> <span class=n>h</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>xs</span><span class=p>,</span> <span class=n>ys</span> <span class=o>=</span> <span class=p>[</span><span class=n>x0</span><span class=p>],</span> <span class=p>[</span><span class=n>y0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x0</span><span class=p>,</span> <span class=n>y0</span>
+</span></span><span class=line><span class=cl>    <span class=k>while</span> <span class=n>x</span> <span class=o>&lt;</span> <span class=n>x_end</span> <span class=o>-</span> <span class=mf>1e-12</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>h_eff</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>x_end</span> <span class=o>-</span> <span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>k1</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>k2</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span><span class=n>x</span> <span class=o>+</span> <span class=n>h_eff</span><span class=o>/</span><span class=mi>2</span><span class=p>,</span> <span class=n>y</span> <span class=o>+</span> <span class=n>h_eff</span><span class=o>*</span><span class=n>k1</span><span class=o>/</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>k3</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span><span class=n>x</span> <span class=o>+</span> <span class=n>h_eff</span><span class=o>/</span><span class=mi>2</span><span class=p>,</span> <span class=n>y</span> <span class=o>+</span> <span class=n>h_eff</span><span class=o>*</span><span class=n>k2</span><span class=o>/</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>k4</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span><span class=n>x</span> <span class=o>+</span> <span class=n>h_eff</span><span class=p>,</span> <span class=n>y</span> <span class=o>+</span> <span class=n>h_eff</span><span class=o>*</span><span class=n>k3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=n>y</span> <span class=o>+</span> <span class=n>h_eff</span><span class=o>*</span><span class=p>(</span><span class=n>k1</span> <span class=o>+</span> <span class=mi>2</span><span class=o>*</span><span class=n>k2</span> <span class=o>+</span> <span class=mi>2</span><span class=o>*</span><span class=n>k3</span> <span class=o>+</span> <span class=n>k4</span><span class=p>)</span><span class=o>/</span><span class=mi>6</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>x</span> <span class=o>+</span> <span class=n>h_eff</span>
+</span></span><span class=line><span class=cl>        <span class=n>xs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=p>);</span> <span class=n>ys</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>xs</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>ys</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=并排对比欧拉-vs-rk4>并排对比：欧拉 vs RK4</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig1_euler_vs_rk4.png alt="欧拉 vs RK4 在测试方程$\dot y=-2y$上各取若干步长。" loading=lazy decoding=async></figure><em>同样的步长、同样的问题（$\dot y=-2y$, $y(0)=1$）。$h=0.5$时欧拉甚至<strong>穿越到负值</strong>——它越过平衡点是因为$h\lambda=-1$恰好在稳定区边界附近。同样$h$下 RK4 与精确曲线<strong>视觉上不可区分</strong>。</em></p><p>这不是小差距。从一阶到四阶意味着固定$h$下的误差预算被<strong>平方两次</strong>。要让欧拉在$h=0.1$时达到 RK4 的精度，需要$h\approx 10^{-5}$——十万倍的代价。</p><hr><h2 id=4-收敛阶可视化>4. 收敛阶可视化</h2><p>最干净的检验方法阶的方式：在一系列步长下计算终点全局误差，画 log-log 图，斜率即为阶数。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig2_error_convergence.png alt="Log-log 收敛：欧拉$\mathcal{O}(h)$，Heun$\mathcal{O}(h^2)$，RK4$\mathcal{O}(h^4)$。" loading=lazy decoding=async></figure><em>三条参考虚线斜率分别为 1、2、4。每个方法的误差紧贴对应直线，直到舍入误差（RK4 在最小$h$处）或稳定性（欧拉在最大$h$处）接管。</em></p><p>两个实用教训：</p><ul><li><strong>阶数是硬上限</strong>：对$p$阶方法，无论怎么调都好不过$\mathcal{O}(h^p)$。要更快收敛只能换更高阶或外推。</li><li><strong>舍入下界真实存在</strong>：光滑问题上 RK4 在$h=10^{-3}$已经摸到机器精度。再降$h$只是让步数变多、舍入累积加剧——<strong>反而会变差</strong>。</li></ul><hr><h2 id=5-自适应步长控制>5. 自适应步长控制</h2><p>真实解并非均匀光滑——有平台、有尖峰、有缓慢长尾。固定$h$要么在平台浪费，要么在尖峰危险。修复方式是<strong>自适应步长</strong>：在线选择$h$使局部误差贴近用户给定容差。</p><p>标准机制是<strong>嵌入式 Runge-Kutta</strong>：两个阶为$p$与$p+1$的方法共享中间级求值，差为局部误差$E_n$的估计。若$E_n>\text{tol}$则拒绝该步、缩小$h$重试；否则接受并选下一步$h_\text{new} = 0.9\,h\,\bigl(\text{tol}/E_n\bigr)^{1/(p+1)}.$0.9 是安全因子，指数来自$p+1$阶渐近。最流行的嵌入对是 <strong>Dormand-Prince RK4(5)</strong>——<code>solve_ivp</code> 内部的 &ldquo;RK45&rdquo;。每步 6 次$f$求值，同时给出 4 阶与 5 阶估计。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig3_adaptive_step_size.png alt="自适应 RK45 在尖锐瞬态上的步长位置与步长历史。" loading=lazy decoding=async></figure><em>上：在$t=1$附近含 Gauss 脉冲的强迫线性 ODE。红点为积分器实际取的步。下：步长在尖峰处缩小约 100 倍以追踪它，之后再次扩张。固定$h$若小到能追上尖峰，平滑长尾段就要白走数千步。</em></p><hr><h2 id=6-刚性问题显式方法的失败模式>6. 刚性问题：显式方法的失败模式</h2><p>某些方程在缓慢演化之上叠加少量快动力学。快部分衰减后你<strong>很想</strong>走大步——但显式方法不允许，它们要求$h \lesssim 1/|\lambda_{\max}|$永远成立，仅为了数值稳定。这类问题称为<strong>刚性</strong>。</p><p>教科书例子：高非线性的 van der Pol 振子$\ddot{y} - \mu(1-y^2)\dot{y} + y = 0.$$\mu=1000$时慢尺度$\sim \mu$，快尺度$\sim 1/\mu$，比值 $10^6$。用 RK45 积分这个就是灾难。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig4_stiffness.png alt="刚性问题：显式 RK45 比隐式 BDF 多用约 100 倍步数。" loading=lazy decoding=async></figure><em>同一条轨迹，两种方法。BDF（隐式，蓝）整段积分只需几千步；RK45（显式，红）需要数十万步还吃力。这种模式在所有刚性问题上普适。</em></p><p>出路是<strong>隐式</strong>方法。最简单的是<strong>后向欧拉</strong>：$y_{n+1} = y_n + h\,f(x_{n+1}, y_{n+1}),$在<strong>新点</strong>求斜率。代价：每步要解关于$y_{n+1}$的代数方程，通常用 Newton 法。回报：后向欧拉的稳定区是<strong>整个</strong>左半平面（<strong>A-稳定</strong>）。无论问题多刚性，$h$都只受精度约束。</p><h3 id=稳定区可视化>稳定区可视化</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/11-%E6%95%B0%E5%80%BC%E6%96%B9%E6%B3%95/fig5_implicit_vs_explicit.png alt=显式与隐式方法在复平面上的稳定区。 loading=lazy decoding=async></figure><em>左：显式方法的稳定区是原点附近的有限椭圆。RK4（蓝）覆盖负实轴$|h\lambda|\le 2.78$左右——较大但仍有界。右：后向欧拉与梯形规则覆盖整个左半平面，这就是 A-稳定的定义。</em></p><p>刚性问题的特征值沿负实轴拉得很远，显式区是窄走廊：要么把$h$缩到能装下（巨大代价），要么用 A-稳定方法（无$h$约束）。</p><p>工业级隐式家族：</p><ul><li><strong>BDF</strong>（后向差分公式，1-5 阶）。LSODE、CVODE、SciPy <code>'BDF'</code> 的默认刚性求解器。</li><li><strong>Radau IIA</strong>（3、5、9 阶）。强稳定性的隐式 RK；SciPy <code>'Radau'</code>。</li><li><strong>隐式中点 / 梯形规则</strong>。A-稳定，二阶，对 Hamilton 系统能量守恒。</li></ul><p>实用准则：若 <code>solve_ivp(..., method='RK45')</code> 永远跑不完或拒绝容差，换 <code>'BDF'</code> 或 <code>'Radau'</code>。若刚/非刚区域交替，<code>'LSODA'</code> 自动检测。</p><hr><h2 id=7-还应该知道的几种方法>7. 还应该知道的几种方法</h2><h3 id=多步法adams-bashforth-和-adams-moulton>多步法：Adams-Bashforth 和 Adams-Moulton</h3><p>不在每步内部多算$f$，而是<strong>复用之前几步的值</strong>：$y_{n+1} = y_n + h \sum_{j=0}^{k-1} \beta_j f(x_{n-j}, y_{n-j}).$Adams-Bashforth（显式）与 Adams-Moulton（隐式）是教科书家族。预测-校正对将 AB 预测与 AM 校正组合。优点：启动后每步只需 1 次$f$求值；缺点：在不连续点附近脆弱，且需要单独的启动过程。</p><h3 id=hamilton-流的辛积分器>Hamilton 流的辛积分器</h3><p>对能量守恒系统（行星轨道、分子动力学、格点规范理论），常规方法引起<strong>能量漂移</strong>：守恒量随舍入累积慢慢增减。<strong>辛</strong>积分器保持相空间的辛 2-形式；它们也无法严格守恒能量，但能把能量误差限制在真值附近的有界振荡内，<strong>即便积分上百万周期</strong>。</p><p>最简例子是$\ddot q = -\nabla V(q)$的 <strong>Stormer-Verlet（leapfrog）</strong>：$p_{n+1/2} = p_n - \tfrac{h}{2}\nabla V(q_n),\quad q_{n+1} = q_n + h\,p_{n+1/2},\quad p_{n+1} = p_{n+1/2} - \tfrac{h}{2}\nabla V(q_{n+1}).$二阶精度、时间可逆、辛。N 体天体物理的标准工具。</p><hr><h2 id=8-scipy-实战>8. SciPy 实战</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.integrate</span> <span class=kn>import</span> <span class=n>solve_ivp</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 通用非刚性问题：默认 RK45 即可。</span>
+</span></span><span class=line><span class=cl><span class=n>sol</span> <span class=o>=</span> <span class=n>solve_ivp</span><span class=p>(</span><span class=k>lambda</span> <span class=n>t</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=o>-</span><span class=mi>2</span><span class=o>*</span><span class=n>y</span><span class=p>,</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>5</span><span class=p>],</span> <span class=p>[</span><span class=mf>1.0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                <span class=n>t_eval</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>100</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                <span class=n>rtol</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>,</span> <span class=n>atol</span><span class=o>=</span><span class=mf>1e-10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 刚性问题：换 BDF 或 Radau。</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>vdp</span><span class=p>(</span><span class=n>t</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>mu</span><span class=o>=</span><span class=mi>1000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>[</span><span class=n>y</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>mu</span><span class=o>*</span><span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>y</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>**</span><span class=mi>2</span><span class=p>)</span><span class=o>*</span><span class=n>y</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>y</span><span class=p>[</span><span class=mi>0</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl><span class=n>sol</span> <span class=o>=</span> <span class=n>solve_ivp</span><span class=p>(</span><span class=n>vdp</span><span class=p>,</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>3000</span><span class=p>],</span> <span class=p>[</span><span class=mf>2.0</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                <span class=n>method</span><span class=o>=</span><span class=s1>&#39;BDF&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>rtol</span><span class=o>=</span><span class=mf>1e-6</span><span class=p>,</span> <span class=n>atol</span><span class=o>=</span><span class=mf>1e-9</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 不知道刚不刚？让 LSODA 自己决定。</span>
+</span></span><span class=line><span class=cl><span class=n>sol</span> <span class=o>=</span> <span class=n>solve_ivp</span><span class=p>(</span><span class=n>rhs</span><span class=p>,</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=n>T</span><span class=p>],</span> <span class=n>y0</span><span class=p>,</span> <span class=n>method</span><span class=o>=</span><span class=s1>&#39;LSODA&#39;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>solve_ivp</code> 最常用选项：</p><ul><li><code>method</code>：<code>'RK45'</code>（默认）、<code>'RK23'</code>、<code>'DOP853'</code>（八阶高精度）、<code>'Radau'</code>、<code>'BDF'</code>、<code>'LSODA'</code>。</li><li><code>rtol</code>、<code>atol</code>：相对/绝对容差（按分量）。默认值偏松（$10^{-3}, 10^{-6}$）；正经计算应收紧到$10^{-8}, 10^{-10}$或更低。</li><li><code>dense_output=True</code>：返回插值器 <code>sol.sol(t)</code>，可在任意$t$查询，不限于积分器自选的步。</li><li><code>events</code>：传入函数，求解器自动定位其零点（碰撞、反弹、阈值穿越）。</li><li><code>jac</code>：为隐式方法提供解析 Jacobi 矩阵，相对差分 Jacobi 大幅提速。</li></ul><h3 id=实用可靠性-checklist>实用可靠性 checklist</h3><ol><li><strong>用两套不同容差各跑一次</strong>。若 <code>rtol</code> 缩小 100 倍后答案明显改变，说明松的那次是错的。</li><li><strong>画步长历史</strong>。求解器死磕 <code>min_step</code> 必有问题。<code>nfev</code>（求值次数）爆表通常意味着用了显式方法去碰刚性问题。</li><li><strong>必须检查 <code>success</code></strong>。<code>solve_ivp</code> 失败时<strong>默认沉默返回</strong>，必须自己 assert。</li><li><strong>长积分要用稠密输出 + 粗网格复核</strong>。漂移在单步检查中不可见，但在$10^6$周期积累后会很明显。</li></ol><hr><h2 id=9-方法选择速查表>9. 方法选择速查表</h2><table><thead><tr><th>方法</th><th>阶</th><th>类型</th><th>刚性稳定？</th><th>适用场景</th></tr></thead><tbody><tr><td>前向欧拉</td><td>1</td><td>显式</td><td>否</td><td>教学，从不上生产</td></tr><tr><td>Heun（改进欧拉）</td><td>2</td><td>显式</td><td>否</td><td>玩具问题</td></tr><tr><td>经典 RK4</td><td>4</td><td>显式</td><td>否</td><td>光滑非刚性</td></tr><tr><td>Dormand-Prince RK4(5)</td><td>4(5)</td><td>显式自适应</td><td>否</td><td>工作马默认值</td></tr><tr><td>DOP853</td><td>8(5,3)</td><td>显式自适应</td><td>否</td><td>苛求精度的非刚性</td></tr><tr><td>后向欧拉</td><td>1</td><td>隐式</td><td>是（A-稳定）</td><td>最简刚性求解器</td></tr><tr><td>梯形 / Crank-Nicolson</td><td>2</td><td>隐式</td><td>是（A-稳定）</td><td>轻度刚性、保守</td></tr><tr><td>BDF（1-5 阶）</td><td>至 5</td><td>隐式多步</td><td>是</td><td>工业刚性默认</td></tr><tr><td>Radau IIA</td><td>3, 5, 9</td><td>隐式 RK</td><td>是（L-稳定）</td><td>极刚 + 高精度</td></tr><tr><td>Stormer-Verlet</td><td>2</td><td>辛</td><td>—</td><td>Hamilton / 轨道</td></tr></tbody></table><p><strong>一句话建议</strong>：先用 <code>solve_ivp(method='RK45')</code>；若慢或不稳定换 <code>'BDF'</code>；若关心守恒量再看辛方法。</p><hr><h2 id=习题>习题</h2><ol><li><strong>阶数验证</strong>。实现 <code>euler</code>、<code>heun</code>、<code>rk4</code>。在$\dot y=-2y$, $y(0)=1$, $[0,3]$上取$h\in\{0.5, 0.25, 0.125, 0.0625\}$，画 log-log 误差并验证斜率为 1、2、4。</li><li><strong>稳定边界实测</strong>。把欧拉应用到$\dot y=\lambda y$（$\lambda=-10$），找出欧拉失稳的临界步长$h_*$并验证它与$2/|\lambda|$一致。</li><li><strong>刚性系统两种解法</strong>。用 <code>'RK45'</code> 与 <code>'BDF'</code> 各解一次 Robertson 化学动力学
 $$\dot y_1 = -0.04 y_1 + 10^4 y_2 y_3,\quad \dot y_2 = 0.04 y_1 - 10^4 y_2 y_3 - 3\times 10^7 y_2^2,\quad \dot y_3 = 3\times 10^7 y_2^2,$$
-取$y(0)=(1,0,0)$, 区间$[0,10^{11}]$。比较运行时间与步数。</li>
-<li><strong>自适应 vs 固定</strong>。用 <code>solve_ivp</code> 在 <code>rtol=1e-6</code> 下积分$\dot y=-y+100\,e^{-(t-1)^2/0.005}$, $[0,3]$。再用足以达到同等精度的固定步长 RK4 重做。汇报步数。</li>
-<li><strong>辛 vs RK4 在 Kepler 轨道上</strong>。同步长用 leapfrog 与 RK4 各积分$10^4$周期的圆 Kepler 轨道，画出能量随时间的曲线。</li>
-</ol>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Hairer, E., Norsett, S. P. &amp; Wanner, G. (1993). <em>Solving Ordinary Differential Equations I: Nonstiff Problems</em>（第 2 版）. Springer.</li>
-<li>Hairer, E. &amp; Wanner, G. (1996). <em>Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems</em>（第 2 版）. Springer. 上述两卷为本领域圣经。</li>
-<li>Ascher, U. &amp; Petzold, L. (1998). <em>Computer Methods for Ordinary Differential Equations and Differential-Algebraic Equations</em>. SIAM.</li>
-<li>Hairer, E., Lubich, C. &amp; Wanner, G. (2006). <em>Geometric Numerical Integration</em>（第 2 版）. Springer. 辛方法权威参考。</li>
-<li>SciPy 文档：<code>scipy.integrate.solve_ivp</code> 与其方法类源码。</li>
-</ul>
-<hr>
-<p><strong>系列导航</strong></p>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th></th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>上一章</td>
-          <td><a href="/zh/ode-chapter-10-bifurcation-theory/">第 10 章：分岔理论</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>当前</strong></td>
-          <td>第十一章：数值方法</td>
-      </tr>
-      <tr>
-          <td>下一章</td>
-          <td><a href="/zh/ode-chapter-12-boundary-value-problems/">第 12 章：边值问题</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#本章要点">本章要点</a></li>
-    <li><a href="#1-为什么需要数值方法">1. 为什么需要数值方法？</a></li>
-    <li><a href="#2-前向欧拉几何思想">2. 前向欧拉：几何思想</a>
-      <ul>
-        <li><a href="#精度阶">精度阶</a></li>
-        <li><a href="#线性稳定性">线性稳定性</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-heun中点法runge-kutta-家族">3. Heun、中点法、Runge-Kutta 家族</a>
-      <ul>
-        <li><a href="#heun改进欧拉二阶">Heun（改进欧拉），二阶</a></li>
-        <li><a href="#经典-rk4四阶">经典 RK4，四阶</a></li>
-        <li><a href="#并排对比欧拉-vs-rk4">并排对比：欧拉 vs RK4</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-收敛阶可视化">4. 收敛阶可视化</a></li>
-    <li><a href="#5-自适应步长控制">5. 自适应步长控制</a></li>
-    <li><a href="#6-刚性问题显式方法的失败模式">6. 刚性问题：显式方法的失败模式</a>
-      <ul>
-        <li><a href="#稳定区可视化">稳定区可视化</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-还应该知道的几种方法">7. 还应该知道的几种方法</a>
-      <ul>
-        <li><a href="#多步法adams-bashforth-和-adams-moulton">多步法：Adams-Bashforth 和 Adams-Moulton</a></li>
-        <li><a href="#hamilton-流的辛积分器">Hamilton 流的辛积分器</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-scipy-实战">8. SciPy 实战</a>
-      <ul>
-        <li><a href="#实用可靠性-checklist">实用可靠性 checklist</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-方法选择速查表">9. 方法选择速查表</a></li>
-    <li><a href="#习题">习题</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">常微分方程</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>3 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1500</strong></div>
-      <div class="row"><span>Published</span><strong>Dec 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+取$y(0)=(1,0,0)$, 区间$[0,10^{11}]$。比较运行时间与步数。</li><li><strong>自适应 vs 固定</strong>。用 <code>solve_ivp</code> 在 <code>rtol=1e-6</code> 下积分$\dot y=-y+100\,e^{-(t-1)^2/0.005}$, $[0,3]$。再用足以达到同等精度的固定步长 RK4 重做。汇报步数。</li><li><strong>辛 vs RK4 在 Kepler 轨道上</strong>。同步长用 leapfrog 与 RK4 各积分$10^4$周期的圆 Kepler 轨道，画出能量随时间的曲线。</li></ol><hr><h2 id=参考文献>参考文献</h2><ul><li>Hairer, E., Norsett, S. P. & Wanner, G. (1993). <em>Solving Ordinary Differential Equations I: Nonstiff Problems</em>（第 2 版）. Springer.</li><li>Hairer, E. & Wanner, G. (1996). <em>Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems</em>（第 2 版）. Springer. 上述两卷为本领域圣经。</li><li>Ascher, U. & Petzold, L. (1998). <em>Computer Methods for Ordinary Differential Equations and Differential-Algebraic Equations</em>. SIAM.</li><li>Hairer, E., Lubich, C. & Wanner, G. (2006). <em>Geometric Numerical Integration</em>（第 2 版）. Springer. 辛方法权威参考。</li><li>SciPy 文档：<code>scipy.integrate.solve_ivp</code> 与其方法类源码。</li></ul><hr><p><strong>系列导航</strong></p><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>上一章</td><td><a href=/zh/ode-chapter-10-bifurcation-theory/>第 10 章：分岔理论</a></td></tr><tr><td><strong>当前</strong></td><td>第十一章：数值方法</td></tr><tr><td>下一章</td><td><a href=/zh/ode-chapter-12-boundary-value-problems/>第 12 章：边值问题</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#本章要点>本章要点</a></li><li><a href=#1-为什么需要数值方法>1. 为什么需要数值方法？</a></li><li><a href=#2-前向欧拉几何思想>2. 前向欧拉：几何思想</a><ul><li><a href=#精度阶>精度阶</a></li><li><a href=#线性稳定性>线性稳定性</a></li></ul></li><li><a href=#3-heun中点法runge-kutta-家族>3. Heun、中点法、Runge-Kutta 家族</a><ul><li><a href=#heun改进欧拉二阶>Heun（改进欧拉），二阶</a></li><li><a href=#经典-rk4四阶>经典 RK4，四阶</a></li><li><a href=#并排对比欧拉-vs-rk4>并排对比：欧拉 vs RK4</a></li></ul></li><li><a href=#4-收敛阶可视化>4. 收敛阶可视化</a></li><li><a href=#5-自适应步长控制>5. 自适应步长控制</a></li><li><a href=#6-刚性问题显式方法的失败模式>6. 刚性问题：显式方法的失败模式</a><ul><li><a href=#稳定区可视化>稳定区可视化</a></li></ul></li><li><a href=#7-还应该知道的几种方法>7. 还应该知道的几种方法</a><ul><li><a href=#多步法adams-bashforth-和-adams-moulton>多步法：Adams-Bashforth 和 Adams-Moulton</a></li><li><a href=#hamilton-流的辛积分器>Hamilton 流的辛积分器</a></li></ul></li><li><a href=#8-scipy-实战>8. SciPy 实战</a><ul><li><a href=#实用可靠性-checklist>实用可靠性 checklist</a></li></ul></li><li><a href=#9-方法选择速查表>9. 方法选择速查表</a></li><li><a href=#习题>习题</a></li><li><a href=#参考文献>参考文献</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>3 min</strong></div><div class=row><span>Word count</span><strong>1424</strong></div><div class=row><span>Published</span><strong>Dec 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

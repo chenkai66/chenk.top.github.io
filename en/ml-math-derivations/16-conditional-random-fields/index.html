@@ -1,563 +1,108 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>ML Math Derivations (16): Conditional Random Fields · Chen Kai Blog</title>
-<meta name="description" content="Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/16-conditional-random-fields/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/16-conditional-random-fields/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="ML Math Derivations (16): Conditional Random Fields">
-<meta property="og:description" content="Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding.">
-<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/16-conditional-random-fields/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
-         · Chapter 16
-      </div>
-      <h1>ML Math Derivations (16): Conditional Random Fields</h1>
-      <p class="deck">Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-04">February 4, 2026</time> · 14 min read · 2900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a><a href="/en/tags/conditional-random-fields/" class="tag">#Conditional Random Fields</a><a href="/en/tags/crf/" class="tag">#CRF</a><a href="/en/tags/sequence-labeling/" class="tag">#Sequence Labeling</a><a href="/en/tags/named-entity-recognition/" class="tag">#Named Entity Recognition</a><a href="/en/tags/lbfgs/" class="tag">#LBFGS</a><a href="/en/tags/potential-functions/" class="tag">#Potential Functions</a><a href="/en/tags/mathematical-derivations/" class="tag">#Mathematical Derivations</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="what-this-article-covers">What This Article Covers</h2>
-<p>Named entity recognition, POS tagging, information extraction &ndash; every one of these tasks asks you to label each element of a sequence. HMMs (<a href="/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/">Part 15</a>
-) attack this problem <strong>generatively</strong> by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether <em>bank</em> is a noun or a verb depends on the preceding word, the following word, the suffix, capitalisation, dictionary lookups &ndash; all of these features at once.</p>
-<p><strong>Conditional Random Fields (CRFs)</strong> drop the generative ambition entirely and model $P(\mathbf{Y}\mid\mathbf{X})$ directly. Once you no longer need a generative story for $\mathbf{X}$, you can pile on as many overlapping features of $\mathbf{X}$ as you like.</p>
-<p><strong>What you will learn:</strong></p>
-<ol>
-<li>Why CRF&rsquo;s discriminative formulation beats HMM&rsquo;s generative one for labeling tasks</li>
-<li>How transition and state feature functions define CRF&rsquo;s scoring mechanism</li>
-<li>The forward-backward algorithm &ndash; now used to compute $Z(\mathbf{X})$ and marginals</li>
-<li>How the gradient of the log-likelihood reduces to <strong>empirical minus expected</strong> feature counts</li>
-<li>Viterbi decoding for finding the highest-scoring label sequence</li>
-</ol>
-<p><strong>Prerequisites:</strong> Probability basics (conditional probability, Bayes&rsquo; rule), familiarity with HMMs (<a href="/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/">Part 15</a>
-), and comfort with matrix notation.</p>
-<hr>
-<h2 id="1-from-hmm-to-crf-generative-vs-discriminative">1. From HMM to CRF: Generative vs Discriminative</h2>
-<h3 id="11-what-hmm-forces-you-to-assume">1.1 What HMM forces you to assume</h3>
-<p>HMM models the <strong>joint</strong> probability of observations $\mathbf{X}$ and labels $\mathbf{Y}$:</p>
-$$P(\mathbf{X}, \mathbf{Y}) = P(y_1) \prod_{t=2}^{T} P(y_t \mid y_{t-1}) \prod_{t=1}^{T} P(x_t \mid y_t)$$<p>To predict labels you go via Bayes&rsquo; rule: $\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y}\mid\mathbf{X})$. Two assumptions make the joint tractable but also restrictive:</p>
-<ul>
-<li><strong>Observation independence:</strong> $P(x_t \mid y_{1:T}, x_{\setminus t}) = P(x_t \mid y_t)$. Each token sees only its own label.</li>
-<li><strong>First-order Markov:</strong> $P(y_t \mid y_{1:t-1}) = P(y_t \mid y_{t-1})$. Each label sees only the previous label.</li>
-</ul>
-<p>The Markov assumption is mostly fine. The observation independence assumption is the killer: it forbids any feature that looks at neighbouring tokens, suffixes, or gazetteers conditionally on the current label.</p>
-<h3 id="12-the-crf-idea-model-pmathbfymidmathbfx-directly">1.2 The CRF idea: model $P(\mathbf{Y}\mid\mathbf{X})$ directly</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig1_chain_structure.png" alt="Linear-chain CRF vs HMM structure" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A linear-chain CRF defines</p>
-$$P(\mathbf{Y} \mid \mathbf{X}) \;=\; \frac{1}{Z(\mathbf{X})} \exp\!\left(\sum_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X})\right)$$<p>The figure above shows the structural difference. In HMM (top) every $x_t$ is a child of $y_t$, so the model has to <strong>explain</strong> the observations &ndash; and to keep the joint factorisable each $x_t$ may depend only on $y_t$. In CRF (bottom) the entire observation sequence $\mathbf{X}$ sits in a shared &ldquo;context strip&rdquo;; every clique $(y_{t-1}, y_t, \mathbf{X})$ is allowed to inspect any function of the whole $\mathbf{X}$. We never write down $P(\mathbf{X})$, so we never have to assume anything about how observations were generated.</p>
-<p><strong>What you gain:</strong></p>
-<ul>
-<li><strong>Arbitrary, overlapping features.</strong> Word identity, suffix, prefix, capitalisation, neighbour words, gazetteer matches &ndash; all simultaneously, without double counting penalties.</li>
-<li><strong>Flexible feature engineering.</strong> Global features are first-class.</li>
-<li><strong>Stronger empirical performance.</strong> On standard sequence-labeling benchmarks, CRF typically beats HMM by 5&ndash;10 F1 points.</li>
-</ul>
-<p><strong>What you pay:</strong> the partition function $Z(\mathbf{X})$ is a sum over all $L^T$ label sequences, and you have to compute it (and its gradients) every training iteration. The forward-backward algorithm does exactly this in $O(TL^2)$.</p>
-<h3 id="13-the-path-from-hmm-through-memm-to-crf">1.3 The path from HMM through MEMM to CRF</h3>
-<p>The <strong>Maximum Entropy Markov Model (MEMM)</strong> was the natural intermediate step between HMM and CRF:</p>
-$$P(\mathbf{Y} \mid \mathbf{X}) = \prod_{t=1}^{T} P(y_t \mid y_{t-1}, \mathbf{X})$$<p>MEMM is discriminative <em>and</em> allows arbitrary features of $\mathbf{X}$, but it normalises <strong>locally</strong> at each position. This causes the <strong>label-bias problem</strong>: states with few outgoing transitions concentrate probability mass simply because their per-position softmax has fewer competitors &ndash; regardless of whether the observation supports them.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig5_hmm_memm_crf.png" alt="HMM vs MEMM vs CRF graphical models" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>CRF fixes this with <strong>global normalisation</strong>: the single $Z(\mathbf{X})$ in the denominator forces all paths through the trellis to compete on the same playing field. Bottom line:</p>
-<ul>
-<li><strong>HMM</strong> &ndash; generative, locally normalised, observation-independent.</li>
-<li><strong>MEMM</strong> &ndash; discriminative, locally normalised, label-biased.</li>
-<li><strong>CRF</strong> &ndash; discriminative, globally normalised, no label bias.</li>
-</ul>
-<h3 id="14-generative-vs-discriminative-more-broadly">1.4 Generative vs discriminative more broadly</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig6_generative_vs_disc.png" alt="Generative vs discriminative budgets" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Even outside sequence problems the same trade-off applies. A generative model spends parameters on $P(\mathbf{X})$ &ndash; the smooth purple density on the left &ndash; which is wasted capacity if all you care about is the boundary. A discriminative model spends every parameter directly on the conditional decision boundary &ndash; the sharp diagonal contour on the right. Naive Bayes vs Logistic Regression and HMM vs CRF are exactly the same trade-off lifted to two scales.</p>
-<hr>
-<h2 id="2-mathematical-framework-of-linear-chain-crf">2. Mathematical Framework of Linear-Chain CRF</h2>
-<h3 id="21-basic-definitions">2.1 Basic definitions</h3>
-<p>Input: observation sequence $\mathbf{X} = (x_1, x_2, \dots, x_T)$.
-Output: label sequence $\mathbf{Y} = (y_1, y_2, \dots, y_T)$ with each $y_t \in \mathcal{Y} = \{1, 2, \dots, L\}$.</p>
-<p>The conditional probability is</p>
-$$P(\mathbf{Y} \mid \mathbf{X}) = \frac{1}{Z(\mathbf{X})} \prod_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X}) \tag{1}$$<p>where</p>
-<ul>
-<li>$\Psi_t(y_{t-1}, y_t, \mathbf{X}) > 0$ is the <strong>potential</strong> at position $t$,</li>
-<li>$Z(\mathbf{X}) = \sum_{\mathbf{Y}'} \prod_{t} \Psi_t(y'_{t-1}, y'_t, \mathbf{X})$ is the <strong>partition function</strong> that normalises across all label sequences.</li>
-</ul>
-<p>By convention $y_0$ is a special <code>START</code> symbol so the first transition is well defined.</p>
-<h3 id="22-feature-function-decomposition">2.2 Feature function decomposition</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig2_feature_templates.png" alt="Feature templates on a NER example" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>CRF parameterises the potential through two flavours of feature function:</p>
-<p><strong>Transition features</strong> depend on the previous and current label:</p>
-$$t_k(y_{t-1}, y_t, \mathbf{X}, t), \qquad k = 1, \dots, K_1$$<p><em>Example:</em> $t_1 = \mathbb{1}[y_{t-1}=\text{B-PER},\, y_t=\text{I-PER}]$ &ndash; &ldquo;person name continues&rdquo;.</p>
-<p><strong>State features</strong> (emission-style features) depend on the current label and observations:</p>
-$$s_l(y_t, \mathbf{X}, t), \qquad l = 1, \dots, K_2$$<p><em>Example:</em> $s_1 = \mathbb{1}[y_t=\text{B-LOC},\, x_t \text{ is capitalized}]$.</p>
-<p>The figure shows what this looks like at one position on the sentence &ldquo;Barack Obama visited New York&rdquo;. For position $t=4$ (&ldquo;New&rdquo; $\to$ B-LOC), the state-feature panel collects every property of $\mathbf{X}$ that fires on label B-LOC at that position (capitalisation, the next word being &ldquo;York&rdquo;, the suffix <code>ew</code>), and the transition-feature panel records every (prev tag, current tag) configuration consistent with that decision. Crucially, these features can overlap freely.</p>
-<p>The potential bundles them with weights $\lambda_k$ and $\mu_l$:</p>
-$$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\left(\sum_k \lambda_k\, t_k(y_{t-1}, y_t, \mathbf{X}, t) + \sum_l \mu_l\, s_l(y_t, \mathbf{X}, t)\right)$$<h3 id="23-unified-parameterisation">2.3 Unified parameterisation</h3>
-<p>Stack all feature functions into one vector $\mathbf{f}$ and all weights into $\mathbf{w}$:</p>
-$$\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t) = (t_1, \dots, t_{K_1}, s_1, \dots, s_{K_2})^\top, \quad \mathbf{w} = (\lambda_1, \dots, \lambda_{K_1}, \mu_1, \dots, \mu_{K_2})^\top$$<p>Then</p>
-$$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)\big) \tag{2}$$<p>Define the <strong>global feature vector</strong> as the sum over positions:</p>
-$$\mathbf{F}(\mathbf{Y}, \mathbf{X}) = \sum_{t=1}^{T} \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$$<p>The model collapses to a clean log-linear form:</p>
-$$P(\mathbf{Y} \mid \mathbf{X}) = \frac{\exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})\big)}{Z(\mathbf{X})}, \quad Z(\mathbf{X}) = \sum_{\mathbf{Y}'} \exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}', \mathbf{X})\big) \tag{3}$$<h3 id="24-matrix-form">2.4 Matrix form</h3>
-<p>For each position $t$ define an $L \times L$ score matrix</p>
-$$[\mathbf{M}_t(\mathbf{X})]_{i,j} = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}=i, y_t=j, \mathbf{X}, t)\big)$$<p>Then the unnormalised path score factors as a matrix product, and</p>
-$$Z(\mathbf{X}) = \mathbf{1}^\top \!\left(\prod_{t=1}^{T} \mathbf{M}_t(\mathbf{X})\right)\! \mathbf{1}$$<p>This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ &ndash; the same shape as forward-backward.</p>
-<hr>
-<h2 id="3-forward-backward-for-crf">3. Forward-Backward for CRF</h2>
-<h3 id="31-forward-recursion">3.1 Forward recursion</h3>
-<p>Define the <strong>forward variable</strong> $\alpha_t(j)$ as the unnormalised total score of all partial paths ending in label $j$ at position $t$.</p>
-<p><strong>Initialisation</strong> ($t = 1$):</p>
-$$\alpha_1(j) = \Psi_1(y_0 = \text{START},\, y_1 = j,\, \mathbf{X})$$<p><strong>Recursion</strong> ($t = 2, \dots, T$):</p>
-$$\alpha_t(j) = \sum_{i=1}^{L} \alpha_{t-1}(i) \cdot \Psi_t(y_{t-1}=i,\, y_t=j,\, \mathbf{X}) \tag{4}$$<p><strong>Termination:</strong></p>
-$$Z(\mathbf{X}) = \sum_{j=1}^{L} \alpha_T(j)$$<p>Intuitively, $\alpha_t(j)$ accumulates the (unnormalised) probability mass of every partial sequence of length $t$ that lands on label $j$. The recursion just says: to land on $j$ at time $t$, you must have come from some label $i$ at time $t-1$.</p>
-<p><strong>Complexity:</strong> $O(TL^2)$ &ndash; at each of $T$ steps you sum over $L \times L$ transitions. Compared to the brute-force $O(L^T)$, this is the difference between practical and impossible.</p>
-<h3 id="32-backward-recursion">3.2 Backward recursion</h3>
-<p>Symmetrically, $\beta_t(i)$ is the unnormalised total score of all partial paths starting in label $i$ at position $t$ and going to the end. The recursion runs from $t = T$ backwards to $t = 1$, with the same $O(TL^2)$ cost.</p>
-<h3 id="33-marginals-from-alpha-and-beta">3.3 Marginals from $\alpha$ and $\beta$</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig3_forward_backward.png" alt="Forward-backward trellis" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Once you have both passes, marginal probabilities fall out for free:</p>
-<p><strong>Single-label marginal:</strong></p>
-$$P(y_t = j \mid \mathbf{X}) = \frac{\alpha_t(j) \cdot \beta_t(j)}{Z(\mathbf{X})}$$<p><strong>Adjacent-pair marginal:</strong></p>
-$$P(y_{t-1} = i, y_t = j \mid \mathbf{X}) = \frac{\alpha_{t-1}(i) \cdot \Psi_t(i, j, \mathbf{X}) \cdot \beta_t(j)}{Z(\mathbf{X})} \tag{5}$$<p>The trellis figure shows the geometry: every cell $(t, j)$ collects forward arrows from the left (blue) and backward arrows from the right (purple). Their product, normalised by $Z(\mathbf{X})$, is the per-position marginal that we are about to plug into the gradient.</p>
-<h3 id="34-numerical-stability-log-space">3.4 Numerical stability: log-space</h3>
-<p>Multiplying many positive numbers underflows quickly, so all of forward-backward is done in log space using <code>logsumexp</code>:</p>
-$$\log\!\sum_i e^{x_i} = \max_i x_i + \log\!\sum_i e^{x_i - \max_i x_i}$$<p>This is the same trick that makes softmax stable.</p>
-<hr>
-<h2 id="4-parameter-learning-maximum-likelihood">4. Parameter Learning: Maximum Likelihood</h2>
-<h3 id="41-objective">4.1 Objective</h3>
-<p>Given training data $\mathcal{D} = \{(\mathbf{X}^{(n)}, \mathbf{Y}^{(n)})\}_{n=1}^N$, maximise the log-likelihood</p>
-$$\ell(\mathbf{w}) = \sum_{n=1}^{N} \log P(\mathbf{Y}^{(n)} \mid \mathbf{X}^{(n)}; \mathbf{w}) = \sum_{n=1}^{N}\!\left[\mathbf{w}^\top \mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)}) - \log Z(\mathbf{X}^{(n)})\right] \tag{6}$$<p>The first term is linear in $\mathbf{w}$ and trivial; all the difficulty is in $\log Z$.</p>
-<p>In practice we add L2 regularisation (which, importantly, also keeps the objective strictly concave so optimisation has a unique global maximum):</p>
-$$\ell_{\text{reg}}(\mathbf{w}) = \ell(\mathbf{w}) - \tfrac{\lambda}{2} \|\mathbf{w}\|^2$$<h3 id="42-gradient-empirical-minus-expected">4.2 Gradient: empirical minus expected</h3>
-<p>Differentiating (6) gives the standard log-linear gradient:</p>
-$$\nabla_{\mathbf{w}} \ell = \sum_{n=1}^{N}\!\left[\underbrace{\mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)})}_{\text{empirical feature counts}} - \underbrace{\mathbb{E}_{P(\mathbf{Y}'\mid \mathbf{X}^{(n)})}\!\big[\mathbf{F}(\mathbf{Y}', \mathbf{X}^{(n)})\big]}_{\text{model-expected feature counts}}\right] \tag{7}$$<p>This is the same shape as the gradient of any maximum-entropy model: <strong>how often the feature actually fired in the data, minus how often the current model thinks it should fire</strong>. Training pushes the model&rsquo;s expectations onto the empirical ones; at convergence they match exactly (the maximum-entropy condition).</p>
-<h3 id="43-computing-the-expectation-in-otl2">4.3 Computing the expectation in $O(TL^2)$</h3>
-<p>The expectation in (7) looks intractable &ndash; it&rsquo;s a sum over $L^T$ sequences &ndash; but linearity plus the chain structure save us. Substituting the per-position decomposition of $\mathbf{F}$ and exchanging sums,</p>
-$$\mathbb{E}\big[\mathbf{F}(\mathbf{Y}, \mathbf{X})\big] = \sum_{t=1}^{T} \sum_{i,j} P(y_{t-1}=i, y_t=j \mid \mathbf{X}) \cdot \mathbf{f}(i, j, \mathbf{X}, t) \tag{8}$$<p>The pair-marginals on the right are exactly the ones we computed in (5), at $O(TL^2)$ cost. So one sweep of forward-backward gives us $\log Z$ and <strong>every gradient component at once</strong>.</p>
-<h3 id="44-optimisation-l-bfgs">4.4 Optimisation: L-BFGS</h3>
-<p>The objective is concave (and strictly concave once you add L2), so any first-order method converges to the global optimum. In practice <strong>L-BFGS</strong> is the standard CRF optimiser:</p>
-<ul>
-<li>Quasi-Newton, so it approximates the inverse Hessian and has near-quadratic convergence.</li>
-<li>The &ldquo;limited-memory&rdquo; flavour stores only the last $m$ gradient differences &ndash; crucial when the feature space has $10^6$+ dimensions.</li>
-<li>Typically converges in 50&ndash;200 iterations, where each iteration is one forward-backward pass per training sequence.</li>
-</ul>
-<p><code>scipy.optimize.fmin_l_bfgs_b</code> is the canonical implementation.</p>
-<hr>
-<h2 id="5-viterbi-decoding">5. Viterbi Decoding</h2>
-<h3 id="51-the-decoding-problem">5.1 The decoding problem</h3>
-<p>Given a trained CRF and a new $\mathbf{X}$, find</p>
-$$\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y} \mid \mathbf{X}) = \arg\max_{\mathbf{Y}} \mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})$$<p>The denominator $Z(\mathbf{X})$ doesn&rsquo;t depend on $\mathbf{Y}$, so we never need to compute it for decoding.</p>
-<h3 id="52-dynamic-programming">5.2 Dynamic programming</h3>
-<p>Define $\delta_t(j)$ as the score of the best partial path ending in label $j$ at position $t$. The recursion is forward-backward with $\sum$ replaced by $\max$:</p>
-$$\delta_t(j) = \max_{i \in \{1,\dots,L\}}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right] \tag{9}$$<p>Store the back-pointer</p>
-$$\psi_t(j) = \arg\max_{i}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right]$$<p>so that after reaching position $T$, $y_T^* = \arg\max_j \delta_T(j)$, and tracing back $y_{t-1}^* = \psi_t(y_t^*)$ recovers the full best sequence.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig4_viterbi_decoding.png" alt="Viterbi decoding trellis" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The trellis above shows it visually: faint grey arrows are all candidate transitions; orange arrows mark the surviving max at each step; the highlighted nodes form the back-pointer trace and decode to <code>O O B-LOC I-LOC O O</code> for the toy sentence &ldquo;He left New York yesterday .&rdquo;. Same $O(TL^2)$ cost as forward.</p>
-<hr>
-<h2 id="6-crf-in-the-deep-learning-era-bilstm-crf">6. CRF in the Deep Learning Era: BiLSTM-CRF</h2>
-<p>Modern sequence labelling typically pairs a neural feature extractor with a CRF output layer:</p>
-$$\text{Input} \xrightarrow{\text{Embedding}} \text{BiLSTM} \xrightarrow{\text{emission scores}} \text{CRF layer} \xrightarrow{\text{Viterbi}} \text{Labels}$$<ul>
-<li><strong>BiLSTM</strong> (or a Transformer encoder) learns a contextual representation of every token, replacing handcrafted state features with learned ones.</li>
-<li><strong>CRF layer</strong> keeps a learnable transition matrix $A_{ij}$ over labels. This matters because constraints like &ldquo;I-PER must follow B-PER, never O&rdquo; are sequential and a token-wise softmax cannot enforce them.</li>
-<li><strong>Training</strong> jointly optimises both halves end-to-end via the same negative log-likelihood objective.</li>
-<li><strong>Inference</strong> still uses Viterbi.</li>
-</ul>
-<p>A minimal PyTorch sketch:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BiLSTM_CRF</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">tag_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                            <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden2tag</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">tag_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># CRF transition matrix: transitions[i, j] = score j -&gt; i</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">transitions</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">tag_size</span><span class="p">,</span> <span class="n">tag_size</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emissions</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;log Z(X) via the forward algorithm in log space.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">T</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">emissions</span><span class="o">.</span><span class="n">shape</span>
-</span></span><span class="line"><span class="cl">        <span class="n">alpha</span> <span class="o">=</span> <span class="n">emissions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># (L,)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># alpha[i] + transitions[j, i] + emissions[t, j]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                      <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">transitions</span>
-</span></span><span class="line"><span class="cl">                      <span class="o">+</span> <span class="n">emissions</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">gold_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emissions</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Score of the gold label sequence.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">score</span> <span class="o">=</span> <span class="n">emissions</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">tags</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tags</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">score</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transitions</span><span class="p">[</span><span class="n">tags</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">tags</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">                      <span class="o">+</span> <span class="n">emissions</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">tags</span><span class="p">[</span><span class="n">t</span><span class="p">]])</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">score</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">neg_log_likelihood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sentence</span><span class="p">,</span> <span class="n">tags</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">emissions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden2tag</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">sentence</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_score</span><span class="p">(</span><span class="n">emissions</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">gold_score</span><span class="p">(</span><span class="n">emissions</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The loss is exactly $\log Z(\mathbf{X}) - \text{score}(\mathbf{Y}_{\text{gold}}, \mathbf{X})$, i.e. the negative of equation (6) for one example. Backpropagation through the forward algorithm computes the same &ldquo;empirical minus expected&rdquo; gradient automatically &ndash; the chain rule rediscovers (7).</p>
-<h3 id="end-to-end-ner-with-confidence">End-to-end NER with confidence</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig7_ner_tagging.png" alt="NER tagging with confidence" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The figure above shows what a trained CRF actually outputs at inference time on the sentence &ldquo;Apple CEO Tim Cook visited Beijing last week&rdquo;:</p>
-<ul>
-<li><strong>Top:</strong> the Viterbi-decoded BIO tags. Three contiguous B/I groups are decoded as spans (ORG, PER, LOC). The dashed boxes around groups are the entity spans you would emit to a downstream consumer.</li>
-<li><strong>Bottom:</strong> the per-token marginal $P(y_t \mid \mathbf{X})$ from forward-backward, which acts as a calibrated confidence score. These marginals are <em>not</em> the same as the decoded path probability; they are computed independently per position and are useful for active learning, abstention, or downstream Bayesian aggregation.</li>
-</ul>
-<hr>
-<h2 id="7-exercises">7. Exercises</h2>
-<p><strong>Exercise 1: CRF vs HMM features.</strong> In a POS-tagging task, explain why CRF can use the feature &ldquo;the next word is a verb&rdquo; but HMM cannot.</p>
-<blockquote>
-<p><strong>Solution:</strong> HMM&rsquo;s observation-independence assumption means $P(x_t \mid y_t)$ may only inspect $x_t$ itself. CRF has no such restriction &ndash; its feature functions $\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$ take the <em>entire</em> observation sequence $\mathbf{X}$ as input, so a feature that fires when $x_{t+1}$ is a verb is perfectly legal.</p>
-</blockquote>
-<p><strong>Exercise 2: Designing feature templates.</strong> Design three feature functions for named entity recognition.</p>
-<blockquote>
-<p><strong>Solution:</strong> (1) Transition: $\mathbb{1}[y_{t-1} = \text{B-ORG},\, y_t = \text{I-ORG}]$ (organisation continuation). (2) State (capitalisation): $\mathbb{1}[y_t = \text{B-LOC},\, x_t \text{ is capitalized}]$. (3) Context: $\mathbb{1}[y_t = \text{B-PER},\, x_{t-1} = \text{Mr.}]$ (previous word is a personal title).</p>
-</blockquote>
-<p><strong>Exercise 3: Forward-algorithm complexity.</strong> A CRF has $T = 100$ and $L = 50$. How many operations does the forward algorithm need? Compare with brute force.</p>
-<blockquote>
-<p><strong>Solution:</strong> At each of $T$ positions you compute $L$ forward values, each summing over $L$ predecessors: $O(TL^2) = O(100 \cdot 50^2) = O(2.5 \times 10^5)$. Brute force enumerates all paths: $O(L^T) = O(50^{100}) \approx 10^{170}$. Dynamic programming wins by roughly 165 orders of magnitude.</p>
-</blockquote>
-<p><strong>Exercise 4: Gradient interpretation.</strong> State in words what $\nabla_\mathbf{w}\ell = \mathbf{F}_{\text{empirical}} - \mathbb{E}_{\text{model}}[\mathbf{F}]$ means and what holds at convergence.</p>
-<blockquote>
-<p><strong>Solution:</strong> If a feature fires more often in the training data than the current model expects, its weight is pushed up; if the model over-predicts a feature, the weight is pushed down. At convergence (gradient = 0), empirical and expected feature counts match exactly. This is the maximum-entropy condition: among all distributions consistent with the empirical feature averages, the CRF picks the one with maximum entropy.</p>
-</blockquote>
-<p><strong>Exercise 5: CRF Viterbi vs HMM Viterbi.</strong> Both use Viterbi. What is the only real difference?</p>
-<blockquote>
-<p><strong>Solution:</strong> The trellis and the $O(TL^2)$ DP recursion are identical. The difference is the per-edge score: HMM uses local probabilities $\log P(x_t \mid y_t) + \log P(y_t \mid y_{t-1})$; CRF uses an inner product $\mathbf{w}^\top \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$ where the feature vector may inspect any function of the whole $\mathbf{X}$.</p>
-</blockquote>
-<p><strong>Exercise 6: Why label bias bites MEMM but not CRF.</strong> Show with a tiny two-state example why local normalisation can ignore the observation, and explain why global normalisation does not.</p>
-<blockquote>
-<p><strong>Solution:</strong> Suppose state $A$ has only one outgoing transition (to $B$) while state $C$ has 50. After local softmax, the $A \to B$ probability is 1 regardless of the observation &ndash; the model has nothing to be uncertain about. CRF&rsquo;s single denominator $Z(\mathbf{X})$ sums over <strong>whole paths</strong>, so a high-scoring path through $A$ must out-score all whole paths through $C$ &ndash; and observation evidence does enter that comparison.</p>
-</blockquote>
-<hr>
-<h2 id="references">References</h2>
-<p>[1] Lafferty, J., McCallum, A., &amp; Pereira, F. C. (2001). Conditional random fields: Probabilistic models for segmenting and labeling sequence data. <em>ICML</em>.</p>
-<p>[2] Sutton, C., &amp; McCallum, A. (2012). An introduction to conditional random fields. <em>Foundations and Trends in Machine Learning</em>, 4(4), 267-373.</p>
-<p>[3] Huang, Z., Xu, W., &amp; Yu, K. (2015). Bidirectional LSTM-CRF models for sequence tagging. <em>arXiv:1508.01991</em>.</p>
-<p>[4] Lample, G., Ballesteros, M., Subramanian, S., Kawakami, K., &amp; Dyer, C. (2016). Neural architectures for named entity recognition. <em>NAACL-HLT</em>.</p>
-<p>[5] Ma, X., &amp; Hovy, E. (2016). End-to-end sequence labeling via bi-directional LSTM-CNNs-CRF. <em>ACL</em>.</p>
-<hr>
-<p><em>This is Part 16 of the <a href="/tags/Mathematical-Derivations/">ML Mathematical Derivations</a>
- series. Next: <a href="/en/Machine-Learning-Mathematical-Derivations-17-Dimensionality-Reduction-and-PCA/">Part 17 &ndash; Dimensionality Reduction and PCA</a>
-. Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/">Part 15 &ndash; Hidden Markov Models</a>
-.</em></p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-this-article-covers">What This Article Covers</a></li>
-    <li><a href="#1-from-hmm-to-crf-generative-vs-discriminative">1. From HMM to CRF: Generative vs Discriminative</a>
-      <ul>
-        <li><a href="#11-what-hmm-forces-you-to-assume">1.1 What HMM forces you to assume</a></li>
-        <li><a href="#12-the-crf-idea-model-pmathbfymidmathbfx-directly">1.2 The CRF idea: model  directly</a></li>
-        <li><a href="#13-the-path-from-hmm-through-memm-to-crf">1.3 The path from HMM through MEMM to CRF</a></li>
-        <li><a href="#14-generative-vs-discriminative-more-broadly">1.4 Generative vs discriminative more broadly</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-mathematical-framework-of-linear-chain-crf">2. Mathematical Framework of Linear-Chain CRF</a>
-      <ul>
-        <li><a href="#21-basic-definitions">2.1 Basic definitions</a></li>
-        <li><a href="#22-feature-function-decomposition">2.2 Feature function decomposition</a></li>
-        <li><a href="#23-unified-parameterisation">2.3 Unified parameterisation</a></li>
-        <li><a href="#24-matrix-form">2.4 Matrix form</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-forward-backward-for-crf">3. Forward-Backward for CRF</a>
-      <ul>
-        <li><a href="#31-forward-recursion">3.1 Forward recursion</a></li>
-        <li><a href="#32-backward-recursion">3.2 Backward recursion</a></li>
-        <li><a href="#33-marginals-from-alpha-and-beta">3.3 Marginals from  and </a></li>
-        <li><a href="#34-numerical-stability-log-space">3.4 Numerical stability: log-space</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-parameter-learning-maximum-likelihood">4. Parameter Learning: Maximum Likelihood</a>
-      <ul>
-        <li><a href="#41-objective">4.1 Objective</a></li>
-        <li><a href="#42-gradient-empirical-minus-expected">4.2 Gradient: empirical minus expected</a></li>
-        <li><a href="#43-computing-the-expectation-in-otl2">4.3 Computing the expectation in </a></li>
-        <li><a href="#44-optimisation-l-bfgs">4.4 Optimisation: L-BFGS</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-viterbi-decoding">5. Viterbi Decoding</a>
-      <ul>
-        <li><a href="#51-the-decoding-problem">5.1 The decoding problem</a></li>
-        <li><a href="#52-dynamic-programming">5.2 Dynamic programming</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-crf-in-the-deep-learning-era-bilstm-crf">6. CRF in the Deep Learning Era: BiLSTM-CRF</a>
-      <ul>
-        <li><a href="#end-to-end-ner-with-confidence">End-to-end NER with confidence</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-exercises">7. Exercises</a></li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2900</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>ML Math Derivations (16): Conditional Random Fields · Chen Kai Blog</title>
+<meta name=description content="Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/ml-math-derivations/16-conditional-random-fields/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/ml-math-derivations/16-conditional-random-fields/><meta property="og:type" content="article"><meta property="og:title" content="ML Math Derivations (16): Conditional Random Fields"><meta property="og:description" content="Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding."><meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/16-conditional-random-fields/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Ml mathematical derivations</a>
+· Chapter 16</div><h1>ML Math Derivations (16): Conditional Random Fields</h1><p class=deck>Why do CRFs outperform HMMs on sequence labeling? This article derives linear-chain CRF from the ground up -- potential functions, the forward-backward algorithm, gradient computation, and Viterbi decoding.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-04>February 4, 2026</time> · 14 min read · 2863 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/en/tags/conditional-random-fields/ class=tag>#Conditional Random Fields</a><a href=/en/tags/crf/ class=tag>#CRF</a><a href=/en/tags/sequence-labeling/ class=tag>#Sequence Labeling</a><a href=/en/tags/named-entity-recognition/ class=tag>#Named Entity Recognition</a><a href=/en/tags/lbfgs/ class=tag>#LBFGS</a><a href=/en/tags/potential-functions/ class=tag>#Potential Functions</a><a href=/en/tags/mathematical-derivations/ class=tag>#Mathematical Derivations</a></div></div></header><div class=prose><h2 id=what-this-article-covers>What This Article Covers</h2><p>Named entity recognition, POS tagging, information extraction &ndash; every one of these tasks asks you to label each element of a sequence. HMMs (<a href=/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/>Part 15</a>
+) attack this problem <strong>generatively</strong> by modelling the joint distribution $P(\mathbf{X},\mathbf{Y})$, but to make the joint factorise they pay a steep price: each observation is assumed independent of everything except its own hidden label. In real text, whether <em>bank</em> is a noun or a verb depends on the preceding word, the following word, the suffix, capitalisation, dictionary lookups &ndash; all of these features at once.</p><p><strong>Conditional Random Fields (CRFs)</strong> drop the generative ambition entirely and model $P(\mathbf{Y}\mid\mathbf{X})$ directly. Once you no longer need a generative story for $\mathbf{X}$, you can pile on as many overlapping features of $\mathbf{X}$ as you like.</p><p><strong>What you will learn:</strong></p><ol><li>Why CRF&rsquo;s discriminative formulation beats HMM&rsquo;s generative one for labeling tasks</li><li>How transition and state feature functions define CRF&rsquo;s scoring mechanism</li><li>The forward-backward algorithm &ndash; now used to compute $Z(\mathbf{X})$ and marginals</li><li>How the gradient of the log-likelihood reduces to <strong>empirical minus expected</strong> feature counts</li><li>Viterbi decoding for finding the highest-scoring label sequence</li></ol><p><strong>Prerequisites:</strong> Probability basics (conditional probability, Bayes&rsquo; rule), familiarity with HMMs (<a href=/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/>Part 15</a>
+), and comfort with matrix notation.</p><hr><h2 id=1-from-hmm-to-crf-generative-vs-discriminative>1. From HMM to CRF: Generative vs Discriminative</h2><h3 id=11-what-hmm-forces-you-to-assume>1.1 What HMM forces you to assume</h3><p>HMM models the <strong>joint</strong> probability of observations $\mathbf{X}$ and labels $\mathbf{Y}$:</p>$$P(\mathbf{X}, \mathbf{Y}) = P(y_1) \prod_{t=2}^{T} P(y_t \mid y_{t-1}) \prod_{t=1}^{T} P(x_t \mid y_t)$$<p>To predict labels you go via Bayes&rsquo; rule: $\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y}\mid\mathbf{X})$. Two assumptions make the joint tractable but also restrictive:</p><ul><li><strong>Observation independence:</strong> $P(x_t \mid y_{1:T}, x_{\setminus t}) = P(x_t \mid y_t)$. Each token sees only its own label.</li><li><strong>First-order Markov:</strong> $P(y_t \mid y_{1:t-1}) = P(y_t \mid y_{t-1})$. Each label sees only the previous label.</li></ul><p>The Markov assumption is mostly fine. The observation independence assumption is the killer: it forbids any feature that looks at neighbouring tokens, suffixes, or gazetteers conditionally on the current label.</p><h3 id=12-the-crf-idea-model-pmathbfymidmathbfx-directly>1.2 The CRF idea: model $P(\mathbf{Y}\mid\mathbf{X})$ directly</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig1_chain_structure.png alt="Linear-chain CRF vs HMM structure" loading=lazy decoding=async></figure></p><p>A linear-chain CRF defines</p>$$P(\mathbf{Y} \mid \mathbf{X}) \;=\; \frac{1}{Z(\mathbf{X})} \exp\!\left(\sum_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X})\right)$$<p>The figure above shows the structural difference. In HMM (top) every $x_t$ is a child of $y_t$, so the model has to <strong>explain</strong> the observations &ndash; and to keep the joint factorisable each $x_t$ may depend only on $y_t$. In CRF (bottom) the entire observation sequence $\mathbf{X}$ sits in a shared &ldquo;context strip&rdquo;; every clique $(y_{t-1}, y_t, \mathbf{X})$ is allowed to inspect any function of the whole $\mathbf{X}$. We never write down $P(\mathbf{X})$, so we never have to assume anything about how observations were generated.</p><p><strong>What you gain:</strong></p><ul><li><strong>Arbitrary, overlapping features.</strong> Word identity, suffix, prefix, capitalisation, neighbour words, gazetteer matches &ndash; all simultaneously, without double counting penalties.</li><li><strong>Flexible feature engineering.</strong> Global features are first-class.</li><li><strong>Stronger empirical performance.</strong> On standard sequence-labeling benchmarks, CRF typically beats HMM by 5&ndash;10 F1 points.</li></ul><p><strong>What you pay:</strong> the partition function $Z(\mathbf{X})$ is a sum over all $L^T$ label sequences, and you have to compute it (and its gradients) every training iteration. The forward-backward algorithm does exactly this in $O(TL^2)$.</p><h3 id=13-the-path-from-hmm-through-memm-to-crf>1.3 The path from HMM through MEMM to CRF</h3><p>The <strong>Maximum Entropy Markov Model (MEMM)</strong> was the natural intermediate step between HMM and CRF:</p>$$P(\mathbf{Y} \mid \mathbf{X}) = \prod_{t=1}^{T} P(y_t \mid y_{t-1}, \mathbf{X})$$<p>MEMM is discriminative <em>and</em> allows arbitrary features of $\mathbf{X}$, but it normalises <strong>locally</strong> at each position. This causes the <strong>label-bias problem</strong>: states with few outgoing transitions concentrate probability mass simply because their per-position softmax has fewer competitors &ndash; regardless of whether the observation supports them.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig5_hmm_memm_crf.png alt="HMM vs MEMM vs CRF graphical models" loading=lazy decoding=async></figure></p><p>CRF fixes this with <strong>global normalisation</strong>: the single $Z(\mathbf{X})$ in the denominator forces all paths through the trellis to compete on the same playing field. Bottom line:</p><ul><li><strong>HMM</strong> &ndash; generative, locally normalised, observation-independent.</li><li><strong>MEMM</strong> &ndash; discriminative, locally normalised, label-biased.</li><li><strong>CRF</strong> &ndash; discriminative, globally normalised, no label bias.</li></ul><h3 id=14-generative-vs-discriminative-more-broadly>1.4 Generative vs discriminative more broadly</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig6_generative_vs_disc.png alt="Generative vs discriminative budgets" loading=lazy decoding=async></figure></p><p>Even outside sequence problems the same trade-off applies. A generative model spends parameters on $P(\mathbf{X})$ &ndash; the smooth purple density on the left &ndash; which is wasted capacity if all you care about is the boundary. A discriminative model spends every parameter directly on the conditional decision boundary &ndash; the sharp diagonal contour on the right. Naive Bayes vs Logistic Regression and HMM vs CRF are exactly the same trade-off lifted to two scales.</p><hr><h2 id=2-mathematical-framework-of-linear-chain-crf>2. Mathematical Framework of Linear-Chain CRF</h2><h3 id=21-basic-definitions>2.1 Basic definitions</h3><p>Input: observation sequence $\mathbf{X} = (x_1, x_2, \dots, x_T)$.
+Output: label sequence $\mathbf{Y} = (y_1, y_2, \dots, y_T)$ with each $y_t \in \mathcal{Y} = \{1, 2, \dots, L\}$.</p><p>The conditional probability is</p>$$P(\mathbf{Y} \mid \mathbf{X}) = \frac{1}{Z(\mathbf{X})} \prod_{t=1}^{T} \Psi_t(y_{t-1}, y_t, \mathbf{X}) \tag{1}$$<p>where</p><ul><li>$\Psi_t(y_{t-1}, y_t, \mathbf{X}) > 0$ is the <strong>potential</strong> at position $t$,</li><li>$Z(\mathbf{X}) = \sum_{\mathbf{Y}'} \prod_{t} \Psi_t(y'_{t-1}, y'_t, \mathbf{X})$ is the <strong>partition function</strong> that normalises across all label sequences.</li></ul><p>By convention $y_0$ is a special <code>START</code> symbol so the first transition is well defined.</p><h3 id=22-feature-function-decomposition>2.2 Feature function decomposition</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig2_feature_templates.png alt="Feature templates on a NER example" loading=lazy decoding=async></figure></p><p>CRF parameterises the potential through two flavours of feature function:</p><p><strong>Transition features</strong> depend on the previous and current label:</p>$$t_k(y_{t-1}, y_t, \mathbf{X}, t), \qquad k = 1, \dots, K_1$$<p><em>Example:</em> $t_1 = \mathbb{1}[y_{t-1}=\text{B-PER},\, y_t=\text{I-PER}]$ &ndash; &ldquo;person name continues&rdquo;.</p><p><strong>State features</strong> (emission-style features) depend on the current label and observations:</p>$$s_l(y_t, \mathbf{X}, t), \qquad l = 1, \dots, K_2$$<p><em>Example:</em> $s_1 = \mathbb{1}[y_t=\text{B-LOC},\, x_t \text{ is capitalized}]$.</p><p>The figure shows what this looks like at one position on the sentence &ldquo;Barack Obama visited New York&rdquo;. For position $t=4$ (&ldquo;New&rdquo; $\to$ B-LOC), the state-feature panel collects every property of $\mathbf{X}$ that fires on label B-LOC at that position (capitalisation, the next word being &ldquo;York&rdquo;, the suffix <code>ew</code>), and the transition-feature panel records every (prev tag, current tag) configuration consistent with that decision. Crucially, these features can overlap freely.</p><p>The potential bundles them with weights $\lambda_k$ and $\mu_l$:</p>$$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\left(\sum_k \lambda_k\, t_k(y_{t-1}, y_t, \mathbf{X}, t) + \sum_l \mu_l\, s_l(y_t, \mathbf{X}, t)\right)$$<h3 id=23-unified-parameterisation>2.3 Unified parameterisation</h3><p>Stack all feature functions into one vector $\mathbf{f}$ and all weights into $\mathbf{w}$:</p>$$\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t) = (t_1, \dots, t_{K_1}, s_1, \dots, s_{K_2})^\top, \quad \mathbf{w} = (\lambda_1, \dots, \lambda_{K_1}, \mu_1, \dots, \mu_{K_2})^\top$$<p>Then</p>$$\Psi_t(y_{t-1}, y_t, \mathbf{X}) = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)\big) \tag{2}$$<p>Define the <strong>global feature vector</strong> as the sum over positions:</p>$$\mathbf{F}(\mathbf{Y}, \mathbf{X}) = \sum_{t=1}^{T} \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$$<p>The model collapses to a clean log-linear form:</p>$$P(\mathbf{Y} \mid \mathbf{X}) = \frac{\exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})\big)}{Z(\mathbf{X})}, \quad Z(\mathbf{X}) = \sum_{\mathbf{Y}'} \exp\!\big(\mathbf{w}^\top \mathbf{F}(\mathbf{Y}', \mathbf{X})\big) \tag{3}$$<h3 id=24-matrix-form>2.4 Matrix form</h3><p>For each position $t$ define an $L \times L$ score matrix</p>$$[\mathbf{M}_t(\mathbf{X})]_{i,j} = \exp\!\big(\mathbf{w}^\top \mathbf{f}(y_{t-1}=i, y_t=j, \mathbf{X}, t)\big)$$<p>Then the unnormalised path score factors as a matrix product, and</p>$$Z(\mathbf{X}) = \mathbf{1}^\top \!\left(\prod_{t=1}^{T} \mathbf{M}_t(\mathbf{X})\right)\! \mathbf{1}$$<p>This is exactly $T$ multiplications of $L\times L$ matrices, hence $O(TL^2)$ &ndash; the same shape as forward-backward.</p><hr><h2 id=3-forward-backward-for-crf>3. Forward-Backward for CRF</h2><h3 id=31-forward-recursion>3.1 Forward recursion</h3><p>Define the <strong>forward variable</strong> $\alpha_t(j)$ as the unnormalised total score of all partial paths ending in label $j$ at position $t$.</p><p><strong>Initialisation</strong> ($t = 1$):</p>$$\alpha_1(j) = \Psi_1(y_0 = \text{START},\, y_1 = j,\, \mathbf{X})$$<p><strong>Recursion</strong> ($t = 2, \dots, T$):</p>$$\alpha_t(j) = \sum_{i=1}^{L} \alpha_{t-1}(i) \cdot \Psi_t(y_{t-1}=i,\, y_t=j,\, \mathbf{X}) \tag{4}$$<p><strong>Termination:</strong></p>$$Z(\mathbf{X}) = \sum_{j=1}^{L} \alpha_T(j)$$<p>Intuitively, $\alpha_t(j)$ accumulates the (unnormalised) probability mass of every partial sequence of length $t$ that lands on label $j$. The recursion just says: to land on $j$ at time $t$, you must have come from some label $i$ at time $t-1$.</p><p><strong>Complexity:</strong> $O(TL^2)$ &ndash; at each of $T$ steps you sum over $L \times L$ transitions. Compared to the brute-force $O(L^T)$, this is the difference between practical and impossible.</p><h3 id=32-backward-recursion>3.2 Backward recursion</h3><p>Symmetrically, $\beta_t(i)$ is the unnormalised total score of all partial paths starting in label $i$ at position $t$ and going to the end. The recursion runs from $t = T$ backwards to $t = 1$, with the same $O(TL^2)$ cost.</p><h3 id=33-marginals-from-alpha-and-beta>3.3 Marginals from $\alpha$ and $\beta$</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig3_forward_backward.png alt="Forward-backward trellis" loading=lazy decoding=async></figure></p><p>Once you have both passes, marginal probabilities fall out for free:</p><p><strong>Single-label marginal:</strong></p>$$P(y_t = j \mid \mathbf{X}) = \frac{\alpha_t(j) \cdot \beta_t(j)}{Z(\mathbf{X})}$$<p><strong>Adjacent-pair marginal:</strong></p>$$P(y_{t-1} = i, y_t = j \mid \mathbf{X}) = \frac{\alpha_{t-1}(i) \cdot \Psi_t(i, j, \mathbf{X}) \cdot \beta_t(j)}{Z(\mathbf{X})} \tag{5}$$<p>The trellis figure shows the geometry: every cell $(t, j)$ collects forward arrows from the left (blue) and backward arrows from the right (purple). Their product, normalised by $Z(\mathbf{X})$, is the per-position marginal that we are about to plug into the gradient.</p><h3 id=34-numerical-stability-log-space>3.4 Numerical stability: log-space</h3><p>Multiplying many positive numbers underflows quickly, so all of forward-backward is done in log space using <code>logsumexp</code>:</p>$$\log\!\sum_i e^{x_i} = \max_i x_i + \log\!\sum_i e^{x_i - \max_i x_i}$$<p>This is the same trick that makes softmax stable.</p><hr><h2 id=4-parameter-learning-maximum-likelihood>4. Parameter Learning: Maximum Likelihood</h2><h3 id=41-objective>4.1 Objective</h3><p>Given training data $\mathcal{D} = \{(\mathbf{X}^{(n)}, \mathbf{Y}^{(n)})\}_{n=1}^N$, maximise the log-likelihood</p>$$\ell(\mathbf{w}) = \sum_{n=1}^{N} \log P(\mathbf{Y}^{(n)} \mid \mathbf{X}^{(n)}; \mathbf{w}) = \sum_{n=1}^{N}\!\left[\mathbf{w}^\top \mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)}) - \log Z(\mathbf{X}^{(n)})\right] \tag{6}$$<p>The first term is linear in $\mathbf{w}$ and trivial; all the difficulty is in $\log Z$.</p><p>In practice we add L2 regularisation (which, importantly, also keeps the objective strictly concave so optimisation has a unique global maximum):</p>$$\ell_{\text{reg}}(\mathbf{w}) = \ell(\mathbf{w}) - \tfrac{\lambda}{2} \|\mathbf{w}\|^2$$<h3 id=42-gradient-empirical-minus-expected>4.2 Gradient: empirical minus expected</h3><p>Differentiating (6) gives the standard log-linear gradient:</p>$$\nabla_{\mathbf{w}} \ell = \sum_{n=1}^{N}\!\left[\underbrace{\mathbf{F}(\mathbf{Y}^{(n)}, \mathbf{X}^{(n)})}_{\text{empirical feature counts}} - \underbrace{\mathbb{E}_{P(\mathbf{Y}'\mid \mathbf{X}^{(n)})}\!\big[\mathbf{F}(\mathbf{Y}', \mathbf{X}^{(n)})\big]}_{\text{model-expected feature counts}}\right] \tag{7}$$<p>This is the same shape as the gradient of any maximum-entropy model: <strong>how often the feature actually fired in the data, minus how often the current model thinks it should fire</strong>. Training pushes the model&rsquo;s expectations onto the empirical ones; at convergence they match exactly (the maximum-entropy condition).</p><h3 id=43-computing-the-expectation-in-otl2>4.3 Computing the expectation in $O(TL^2)$</h3><p>The expectation in (7) looks intractable &ndash; it&rsquo;s a sum over $L^T$ sequences &ndash; but linearity plus the chain structure save us. Substituting the per-position decomposition of $\mathbf{F}$ and exchanging sums,</p>$$\mathbb{E}\big[\mathbf{F}(\mathbf{Y}, \mathbf{X})\big] = \sum_{t=1}^{T} \sum_{i,j} P(y_{t-1}=i, y_t=j \mid \mathbf{X}) \cdot \mathbf{f}(i, j, \mathbf{X}, t) \tag{8}$$<p>The pair-marginals on the right are exactly the ones we computed in (5), at $O(TL^2)$ cost. So one sweep of forward-backward gives us $\log Z$ and <strong>every gradient component at once</strong>.</p><h3 id=44-optimisation-l-bfgs>4.4 Optimisation: L-BFGS</h3><p>The objective is concave (and strictly concave once you add L2), so any first-order method converges to the global optimum. In practice <strong>L-BFGS</strong> is the standard CRF optimiser:</p><ul><li>Quasi-Newton, so it approximates the inverse Hessian and has near-quadratic convergence.</li><li>The &ldquo;limited-memory&rdquo; flavour stores only the last $m$ gradient differences &ndash; crucial when the feature space has $10^6$+ dimensions.</li><li>Typically converges in 50&ndash;200 iterations, where each iteration is one forward-backward pass per training sequence.</li></ul><p><code>scipy.optimize.fmin_l_bfgs_b</code> is the canonical implementation.</p><hr><h2 id=5-viterbi-decoding>5. Viterbi Decoding</h2><h3 id=51-the-decoding-problem>5.1 The decoding problem</h3><p>Given a trained CRF and a new $\mathbf{X}$, find</p>$$\mathbf{Y}^* = \arg\max_{\mathbf{Y}} P(\mathbf{Y} \mid \mathbf{X}) = \arg\max_{\mathbf{Y}} \mathbf{w}^\top \mathbf{F}(\mathbf{Y}, \mathbf{X})$$<p>The denominator $Z(\mathbf{X})$ doesn&rsquo;t depend on $\mathbf{Y}$, so we never need to compute it for decoding.</p><h3 id=52-dynamic-programming>5.2 Dynamic programming</h3><p>Define $\delta_t(j)$ as the score of the best partial path ending in label $j$ at position $t$. The recursion is forward-backward with $\sum$ replaced by $\max$:</p>$$\delta_t(j) = \max_{i \in \{1,\dots,L\}}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right] \tag{9}$$<p>Store the back-pointer</p>$$\psi_t(j) = \arg\max_{i}\!\left[\delta_{t-1}(i) + \mathbf{w}^\top \mathbf{f}(i, j, \mathbf{X}, t)\right]$$<p>so that after reaching position $T$, $y_T^* = \arg\max_j \delta_T(j)$, and tracing back $y_{t-1}^* = \psi_t(y_t^*)$ recovers the full best sequence.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig4_viterbi_decoding.png alt="Viterbi decoding trellis" loading=lazy decoding=async></figure></p><p>The trellis above shows it visually: faint grey arrows are all candidate transitions; orange arrows mark the surviving max at each step; the highlighted nodes form the back-pointer trace and decode to <code>O O B-LOC I-LOC O O</code> for the toy sentence &ldquo;He left New York yesterday .&rdquo;. Same $O(TL^2)$ cost as forward.</p><hr><h2 id=6-crf-in-the-deep-learning-era-bilstm-crf>6. CRF in the Deep Learning Era: BiLSTM-CRF</h2><p>Modern sequence labelling typically pairs a neural feature extractor with a CRF output layer:</p>$$\text{Input} \xrightarrow{\text{Embedding}} \text{BiLSTM} \xrightarrow{\text{emission scores}} \text{CRF layer} \xrightarrow{\text{Viterbi}} \text{Labels}$$<ul><li><strong>BiLSTM</strong> (or a Transformer encoder) learns a contextual representation of every token, replacing handcrafted state features with learned ones.</li><li><strong>CRF layer</strong> keeps a learnable transition matrix $A_{ij}$ over labels. This matters because constraints like &ldquo;I-PER must follow B-PER, never O&rdquo; are sequential and a token-wise softmax cannot enforce them.</li><li><strong>Training</strong> jointly optimises both halves end-to-end via the same negative log-likelihood objective.</li><li><strong>Inference</strong> still uses Viterbi.</li></ul><p>A minimal PyTorch sketch:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BiLSTM_CRF</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>,</span> <span class=n>tag_size</span><span class=p>,</span> <span class=n>embed_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>embed_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>embed_dim</span><span class=p>,</span> <span class=n>hidden_dim</span> <span class=o>//</span> <span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                            <span class=n>bidirectional</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hidden2tag</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>tag_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># CRF transition matrix: transitions[i, j] = score j -&gt; i</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>transitions</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>tag_size</span><span class=p>,</span> <span class=n>tag_size</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward_score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>emissions</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;log Z(X) via the forward algorithm in log space.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>T</span><span class=p>,</span> <span class=n>L</span> <span class=o>=</span> <span class=n>emissions</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=n>alpha</span> <span class=o>=</span> <span class=n>emissions</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># (L,)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>T</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=c1># alpha[i] + transitions[j, i] + emissions[t, j]</span>
+</span></span><span class=line><span class=cl>            <span class=n>scores</span> <span class=o>=</span> <span class=p>(</span><span class=n>alpha</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                      <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>transitions</span>
+</span></span><span class=line><span class=cl>                      <span class=o>+</span> <span class=n>emissions</span><span class=p>[</span><span class=n>t</span><span class=p>]</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>alpha</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>logsumexp</span><span class=p>(</span><span class=n>scores</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>logsumexp</span><span class=p>(</span><span class=n>alpha</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>gold_score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>emissions</span><span class=p>,</span> <span class=n>tags</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Score of the gold label sequence.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>score</span> <span class=o>=</span> <span class=n>emissions</span><span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=n>tags</span><span class=p>[</span><span class=mi>0</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>tags</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>            <span class=n>score</span> <span class=o>+=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>transitions</span><span class=p>[</span><span class=n>tags</span><span class=p>[</span><span class=n>t</span><span class=p>],</span> <span class=n>tags</span><span class=p>[</span><span class=n>t</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>                      <span class=o>+</span> <span class=n>emissions</span><span class=p>[</span><span class=n>t</span><span class=p>,</span> <span class=n>tags</span><span class=p>[</span><span class=n>t</span><span class=p>]])</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>score</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>neg_log_likelihood</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>sentence</span><span class=p>,</span> <span class=n>tags</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>emissions</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden2tag</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>sentence</span><span class=p>))[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>forward_score</span><span class=p>(</span><span class=n>emissions</span><span class=p>)</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>gold_score</span><span class=p>(</span><span class=n>emissions</span><span class=p>,</span> <span class=n>tags</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The loss is exactly $\log Z(\mathbf{X}) - \text{score}(\mathbf{Y}_{\text{gold}}, \mathbf{X})$, i.e. the negative of equation (6) for one example. Backpropagation through the forward algorithm computes the same &ldquo;empirical minus expected&rdquo; gradient automatically &ndash; the chain rule rediscovers (7).</p><h3 id=end-to-end-ner-with-confidence>End-to-end NER with confidence</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/16-Conditional-Random-Fields/fig7_ner_tagging.png alt="NER tagging with confidence" loading=lazy decoding=async></figure></p><p>The figure above shows what a trained CRF actually outputs at inference time on the sentence &ldquo;Apple CEO Tim Cook visited Beijing last week&rdquo;:</p><ul><li><strong>Top:</strong> the Viterbi-decoded BIO tags. Three contiguous B/I groups are decoded as spans (ORG, PER, LOC). The dashed boxes around groups are the entity spans you would emit to a downstream consumer.</li><li><strong>Bottom:</strong> the per-token marginal $P(y_t \mid \mathbf{X})$ from forward-backward, which acts as a calibrated confidence score. These marginals are <em>not</em> the same as the decoded path probability; they are computed independently per position and are useful for active learning, abstention, or downstream Bayesian aggregation.</li></ul><hr><h2 id=7-exercises>7. Exercises</h2><p><strong>Exercise 1: CRF vs HMM features.</strong> In a POS-tagging task, explain why CRF can use the feature &ldquo;the next word is a verb&rdquo; but HMM cannot.</p><blockquote><p><strong>Solution:</strong> HMM&rsquo;s observation-independence assumption means $P(x_t \mid y_t)$ may only inspect $x_t$ itself. CRF has no such restriction &ndash; its feature functions $\mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$ take the <em>entire</em> observation sequence $\mathbf{X}$ as input, so a feature that fires when $x_{t+1}$ is a verb is perfectly legal.</p></blockquote><p><strong>Exercise 2: Designing feature templates.</strong> Design three feature functions for named entity recognition.</p><blockquote><p><strong>Solution:</strong> (1) Transition: $\mathbb{1}[y_{t-1} = \text{B-ORG},\, y_t = \text{I-ORG}]$ (organisation continuation). (2) State (capitalisation): $\mathbb{1}[y_t = \text{B-LOC},\, x_t \text{ is capitalized}]$. (3) Context: $\mathbb{1}[y_t = \text{B-PER},\, x_{t-1} = \text{Mr.}]$ (previous word is a personal title).</p></blockquote><p><strong>Exercise 3: Forward-algorithm complexity.</strong> A CRF has $T = 100$ and $L = 50$. How many operations does the forward algorithm need? Compare with brute force.</p><blockquote><p><strong>Solution:</strong> At each of $T$ positions you compute $L$ forward values, each summing over $L$ predecessors: $O(TL^2) = O(100 \cdot 50^2) = O(2.5 \times 10^5)$. Brute force enumerates all paths: $O(L^T) = O(50^{100}) \approx 10^{170}$. Dynamic programming wins by roughly 165 orders of magnitude.</p></blockquote><p><strong>Exercise 4: Gradient interpretation.</strong> State in words what $\nabla_\mathbf{w}\ell = \mathbf{F}_{\text{empirical}} - \mathbb{E}_{\text{model}}[\mathbf{F}]$ means and what holds at convergence.</p><blockquote><p><strong>Solution:</strong> If a feature fires more often in the training data than the current model expects, its weight is pushed up; if the model over-predicts a feature, the weight is pushed down. At convergence (gradient = 0), empirical and expected feature counts match exactly. This is the maximum-entropy condition: among all distributions consistent with the empirical feature averages, the CRF picks the one with maximum entropy.</p></blockquote><p><strong>Exercise 5: CRF Viterbi vs HMM Viterbi.</strong> Both use Viterbi. What is the only real difference?</p><blockquote><p><strong>Solution:</strong> The trellis and the $O(TL^2)$ DP recursion are identical. The difference is the per-edge score: HMM uses local probabilities $\log P(x_t \mid y_t) + \log P(y_t \mid y_{t-1})$; CRF uses an inner product $\mathbf{w}^\top \mathbf{f}(y_{t-1}, y_t, \mathbf{X}, t)$ where the feature vector may inspect any function of the whole $\mathbf{X}$.</p></blockquote><p><strong>Exercise 6: Why label bias bites MEMM but not CRF.</strong> Show with a tiny two-state example why local normalisation can ignore the observation, and explain why global normalisation does not.</p><blockquote><p><strong>Solution:</strong> Suppose state $A$ has only one outgoing transition (to $B$) while state $C$ has 50. After local softmax, the $A \to B$ probability is 1 regardless of the observation &ndash; the model has nothing to be uncertain about. CRF&rsquo;s single denominator $Z(\mathbf{X})$ sums over <strong>whole paths</strong>, so a high-scoring path through $A$ must out-score all whole paths through $C$ &ndash; and observation evidence does enter that comparison.</p></blockquote><hr><h2 id=references>References</h2><p>[1] Lafferty, J., McCallum, A., & Pereira, F. C. (2001). Conditional random fields: Probabilistic models for segmenting and labeling sequence data. <em>ICML</em>.</p><p>[2] Sutton, C., & McCallum, A. (2012). An introduction to conditional random fields. <em>Foundations and Trends in Machine Learning</em>, 4(4), 267-373.</p><p>[3] Huang, Z., Xu, W., & Yu, K. (2015). Bidirectional LSTM-CRF models for sequence tagging. <em>arXiv:1508.01991</em>.</p><p>[4] Lample, G., Ballesteros, M., Subramanian, S., Kawakami, K., & Dyer, C. (2016). Neural architectures for named entity recognition. <em>NAACL-HLT</em>.</p><p>[5] Ma, X., & Hovy, E. (2016). End-to-end sequence labeling via bi-directional LSTM-CNNs-CRF. <em>ACL</em>.</p><hr><p><em>This is Part 16 of the <a href=/tags/Mathematical-Derivations/>ML Mathematical Derivations</a>
+series. Next: <a href=/en/Machine-Learning-Mathematical-Derivations-17-Dimensionality-Reduction-and-PCA/>Part 17 &ndash; Dimensionality Reduction and PCA</a>
+. Previous: <a href=/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/>Part 15 &ndash; Hidden Markov Models</a>
+.</em></p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-this-article-covers>What This Article Covers</a></li><li><a href=#1-from-hmm-to-crf-generative-vs-discriminative>1. From HMM to CRF: Generative vs Discriminative</a><ul><li><a href=#11-what-hmm-forces-you-to-assume>1.1 What HMM forces you to assume</a></li><li><a href=#12-the-crf-idea-model-pmathbfymidmathbfx-directly>1.2 The CRF idea: model directly</a></li><li><a href=#13-the-path-from-hmm-through-memm-to-crf>1.3 The path from HMM through MEMM to CRF</a></li><li><a href=#14-generative-vs-discriminative-more-broadly>1.4 Generative vs discriminative more broadly</a></li></ul></li><li><a href=#2-mathematical-framework-of-linear-chain-crf>2. Mathematical Framework of Linear-Chain CRF</a><ul><li><a href=#21-basic-definitions>2.1 Basic definitions</a></li><li><a href=#22-feature-function-decomposition>2.2 Feature function decomposition</a></li><li><a href=#23-unified-parameterisation>2.3 Unified parameterisation</a></li><li><a href=#24-matrix-form>2.4 Matrix form</a></li></ul></li><li><a href=#3-forward-backward-for-crf>3. Forward-Backward for CRF</a><ul><li><a href=#31-forward-recursion>3.1 Forward recursion</a></li><li><a href=#32-backward-recursion>3.2 Backward recursion</a></li><li><a href=#33-marginals-from-alpha-and-beta>3.3 Marginals from and</a></li><li><a href=#34-numerical-stability-log-space>3.4 Numerical stability: log-space</a></li></ul></li><li><a href=#4-parameter-learning-maximum-likelihood>4. Parameter Learning: Maximum Likelihood</a><ul><li><a href=#41-objective>4.1 Objective</a></li><li><a href=#42-gradient-empirical-minus-expected>4.2 Gradient: empirical minus expected</a></li><li><a href=#43-computing-the-expectation-in-otl2>4.3 Computing the expectation in</a></li><li><a href=#44-optimisation-l-bfgs>4.4 Optimisation: L-BFGS</a></li></ul></li><li><a href=#5-viterbi-decoding>5. Viterbi Decoding</a><ul><li><a href=#51-the-decoding-problem>5.1 The decoding problem</a></li><li><a href=#52-dynamic-programming>5.2 Dynamic programming</a></li></ul></li><li><a href=#6-crf-in-the-deep-learning-era-bilstm-crf>6. CRF in the Deep Learning Era: BiLSTM-CRF</a><ul><li><a href=#end-to-end-ner-with-confidence>End-to-end NER with confidence</a></li></ul></li><li><a href=#7-exercises>7. Exercises</a></li><li><a href=#references>References</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>2863</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

@@ -1,542 +1,65 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>优化算法的演进：从梯度下降到 Adam（再到 2025 之后） · Chen Kai Blog</title>
-<meta name="description" content="一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="优化算法的演进：从梯度下降到 Adam（再到 2025 之后）">
-<meta property="og:description" content="一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>优化算法的演进：从梯度下降到 Adam（再到 2025 之后）</h1>
-      <p class="deck">一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2022-12-16">December 16, 2022</time> · 10 min read · 4700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/ml/" class="tag">#ML</a><a href="/zh/tags/optimization/" class="tag">#Optimization</a><a href="/zh/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/zh/tags/llm/" class="tag">#LLM</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>为什么训练 ResNet 时大家都说&quot;调 LR 是手艺活&quot;，到了 GPT/LLaMA 这一代，几乎所有论文却清一色地写 &ldquo;AdamW，$\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$&quot;？这不是巧合——它是<strong>优化器三十年演进</strong>的最终收敛点。</p>
-<p>本文沿一条主线把这条演进路径讲清楚：每一步动了什么、为什么动，以及<strong>它解决了上一代算法的哪个具体毛病</strong>。文末把 2023 年以后真正在大模型里被反复验证的三条路（Lion / Sophia / Schedule-Free）也讲透。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li>为什么 GD 在病态曲面上&quot;之&quot;字形震荡，动量如何在物理上修复它</li>
-<li>Nesterov 的&quot;先看一眼再走&quot;和经典动量在数学上差在哪里</li>
-<li>AdaGrad 为什么在稀疏特征上是杀手锏，又为什么在深度网络里&quot;慢慢窒息&rdquo;</li>
-<li>RMSProp 用一行代码（指数滑动平均）救活了 AdaGrad</li>
-<li>Adam 怎么把动量和 RMSProp 拼在一起，为什么需要&quot;偏差修正&quot;</li>
-<li>AdamW vs Adam：为什么&quot;L2 正则等价于 weight decay&quot;在 Adam 里<strong>不再成立</strong></li>
-<li>Lion / Sophia / Schedule-Free：2023+ 真正进入主流训练栈的三条路</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>基础微积分（梯度、Hessian、Taylor 展开）</li>
-<li>训练过任意一个神经网络（任何框架都行）</li>
-</ul>
-<hr>
-<h1 id="演进总览">演进总览</h1>
-<table>
-  <thead>
-      <tr>
-          <th>时间</th>
-          <th>算法</th>
-          <th>解决的核心问题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1847</td>
-          <td>GD</td>
-          <td>把&quot;沿负梯度走&quot;写成迭代格式</td>
-      </tr>
-      <tr>
-          <td>1951</td>
-          <td>SGD</td>
-          <td>数据量大到无法算全量梯度</td>
-      </tr>
-      <tr>
-          <td>1964</td>
-          <td>Momentum</td>
-          <td>GD 在窄长山谷里之字形震荡</td>
-      </tr>
-      <tr>
-          <td>1983</td>
-          <td>NAG</td>
-          <td>动量在转弯处过冲（overshoot）</td>
-      </tr>
-      <tr>
-          <td>2011</td>
-          <td>AdaGrad</td>
-          <td>稀疏特征上每个坐标该有自己的步长</td>
-      </tr>
-      <tr>
-          <td>2012</td>
-          <td>RMSProp</td>
-          <td>AdaGrad 的累积分母把 LR &ldquo;饿死&rdquo;</td>
-      </tr>
-      <tr>
-          <td>2014</td>
-          <td>Adam</td>
-          <td>把&quot;方向（动量）&ldquo;和&quot;尺度（RMSProp）&ldquo;合二为一</td>
-      </tr>
-      <tr>
-          <td>2017</td>
-          <td>AdamW</td>
-          <td>Adam + L2 ≠ Adam + weight decay</td>
-      </tr>
-      <tr>
-          <td>2023</td>
-          <td>Lion</td>
-          <td>只用一阶信息但<strong>只看符号</strong>，省掉 $v_t$</td>
-      </tr>
-      <tr>
-          <td>2023</td>
-          <td>Sophia</td>
-          <td>把 Hessian 对角线塞进分母（廉价二阶）</td>
-      </tr>
-      <tr>
-          <td>2024</td>
-          <td>Schedule-Free</td>
-          <td>不再需要&quot;事先知道总步数&rdquo;</td>
-      </tr>
-  </tbody>
-</table>
-<p>下文按这个顺序展开。</p>
-<h1 id="1-梯度下降gd原点">1. 梯度下降（GD）：原点</h1>
-<p>给定可微损失 $J(\theta)$，最朴素的更新是</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>优化算法的演进：从梯度下降到 Adam（再到 2025 之后） · Chen Kai Blog</title>
+<meta name=description content="一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/><meta property="og:type" content="article"><meta property="og:title" content="优化算法的演进：从梯度下降到 Adam（再到 2025 之后）"><meta property="og:description" content="一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>优化算法的演进：从梯度下降到 Adam（再到 2025 之后）</h1><p class=deck>一篇文章串起 GD → SGD → Momentum → NAG → AdaGrad → RMSProp → Adam → AdamW，再到 Lion / Sophia / Schedule-Free 的完整脉络：每一步解决了前一步的什么痛点？为什么大模型几乎都在用 AdamW？以及 2023 年之后我们究竟走到了哪里。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-12-16>December 16, 2022</time> · 10 min read · 4676 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a><a href=/zh/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/zh/tags/llm/ class=tag>#LLM</a></div></div></header><div class=prose><p>为什么训练 ResNet 时大家都说"调 LR 是手艺活"，到了 GPT/LLaMA 这一代，几乎所有论文却清一色地写 &ldquo;AdamW，$\beta_1{=}0.9, \beta_2{=}0.95, \mathrm{wd}{=}0.1$"？这不是巧合——它是<strong>优化器三十年演进</strong>的最终收敛点。</p><p>本文沿一条主线把这条演进路径讲清楚：每一步动了什么、为什么动，以及<strong>它解决了上一代算法的哪个具体毛病</strong>。文末把 2023 年以后真正在大模型里被反复验证的三条路（Lion / Sophia / Schedule-Free）也讲透。</p><h2 id=你将学到>你将学到</h2><ul><li>为什么 GD 在病态曲面上"之"字形震荡，动量如何在物理上修复它</li><li>Nesterov 的"先看一眼再走"和经典动量在数学上差在哪里</li><li>AdaGrad 为什么在稀疏特征上是杀手锏，又为什么在深度网络里"慢慢窒息&rdquo;</li><li>RMSProp 用一行代码（指数滑动平均）救活了 AdaGrad</li><li>Adam 怎么把动量和 RMSProp 拼在一起，为什么需要"偏差修正"</li><li>AdamW vs Adam：为什么"L2 正则等价于 weight decay"在 Adam 里<strong>不再成立</strong></li><li>Lion / Sophia / Schedule-Free：2023+ 真正进入主流训练栈的三条路</li></ul><h2 id=前置知识>前置知识</h2><ul><li>基础微积分（梯度、Hessian、Taylor 展开）</li><li>训练过任意一个神经网络（任何框架都行）</li></ul><hr><h1 id=演进总览>演进总览</h1><table><thead><tr><th>时间</th><th>算法</th><th>解决的核心问题</th></tr></thead><tbody><tr><td>1847</td><td>GD</td><td>把"沿负梯度走"写成迭代格式</td></tr><tr><td>1951</td><td>SGD</td><td>数据量大到无法算全量梯度</td></tr><tr><td>1964</td><td>Momentum</td><td>GD 在窄长山谷里之字形震荡</td></tr><tr><td>1983</td><td>NAG</td><td>动量在转弯处过冲（overshoot）</td></tr><tr><td>2011</td><td>AdaGrad</td><td>稀疏特征上每个坐标该有自己的步长</td></tr><tr><td>2012</td><td>RMSProp</td><td>AdaGrad 的累积分母把 LR &ldquo;饿死&rdquo;</td></tr><tr><td>2014</td><td>Adam</td><td>把"方向（动量）&ldquo;和"尺度（RMSProp）&ldquo;合二为一</td></tr><tr><td>2017</td><td>AdamW</td><td>Adam + L2 ≠ Adam + weight decay</td></tr><tr><td>2023</td><td>Lion</td><td>只用一阶信息但<strong>只看符号</strong>，省掉 $v_t$</td></tr><tr><td>2023</td><td>Sophia</td><td>把 Hessian 对角线塞进分母（廉价二阶）</td></tr><tr><td>2024</td><td>Schedule-Free</td><td>不再需要"事先知道总步数&rdquo;</td></tr></tbody></table><p>下文按这个顺序展开。</p><h1 id=1-梯度下降gd原点>1. 梯度下降（GD）：原点</h1><p>给定可微损失 $J(\theta)$，最朴素的更新是</p>$$
 \theta_{t+1} = \theta_t - \eta\,\nabla J(\theta_t)
-$$<p><strong>收敛性</strong>：若 $J$ 凸且梯度 $L$-Lipschitz，取 $\eta \le 1/L$ 即可线性/次线性收敛到全局最优。</p>
-<p><strong>致命弱点（为后面所有改进埋下伏笔）</strong>：</p>
-<ul>
-<li>在<strong>病态曲率</strong>（Hessian 条件数 $\kappa = \lambda_{\max}/\lambda_{\min}$ 大）下，要走到底需要的迭代数随 $\kappa$ 线性增长。一维直觉：$f(\theta)=\frac{1}{2}H\theta^2$ 给出 $\theta_{t+1}=(1-\eta H)\theta_t$，稳定要求 $\eta < 2/H$，即步长被<strong>最陡方向的曲率</strong>死死卡住。</li>
-<li>一旦最陡方向（$\lambda_{\max}$）和最缓方向（$\lambda_{\min}$）差几个数量级，沿缓方向几乎不动，沿陡方向却来回弹——这就是**&ldquo;窄长山谷&quot;问题**，下面 Fig 1 左面板能直观看到。</li>
-</ul>
-<h1 id="2-sgd噪声的代价与红利">2. SGD：噪声的代价与红利</h1>
-<p>数据量上去之后，全量梯度算不动。SGD 用 mini-batch 估计：</p>
-$$
+$$<p><strong>收敛性</strong>：若 $J$ 凸且梯度 $L$-Lipschitz，取 $\eta \le 1/L$ 即可线性/次线性收敛到全局最优。</p><p><strong>致命弱点（为后面所有改进埋下伏笔）</strong>：</p><ul><li>在<strong>病态曲率</strong>（Hessian 条件数 $\kappa = \lambda_{\max}/\lambda_{\min}$ 大）下，要走到底需要的迭代数随 $\kappa$ 线性增长。一维直觉：$f(\theta)=\frac{1}{2}H\theta^2$ 给出 $\theta_{t+1}=(1-\eta H)\theta_t$，稳定要求 $\eta < 2/H$，即步长被<strong>最陡方向的曲率</strong>死死卡住。</li><li>一旦最陡方向（$\lambda_{\max}$）和最缓方向（$\lambda_{\min}$）差几个数量级，沿缓方向几乎不动，沿陡方向却来回弹——这就是**&ldquo;窄长山谷"问题**，下面 Fig 1 左面板能直观看到。</li></ul><h1 id=2-sgd噪声的代价与红利>2. SGD：噪声的代价与红利</h1><p>数据量上去之后，全量梯度算不动。SGD 用 mini-batch 估计：</p>$$
 g_t = \nabla J(\theta_t) + \xi_t,\quad \mathbb{E}[\xi_t]=0
-$$<p>噪声 $\xi_t$ 既是诅咒也是祝福：</p>
-<ul>
-<li><strong>诅咒</strong>：步子大一点就被噪声放大成发散</li>
-<li><strong>祝福</strong>：噪声有助于<strong>逃离尖锐局部极小</strong>——这后来被 Keskar 等人证明与泛化直接相关（小 batch 的&quot;flat minima&quot;假说）</li>
-</ul>
-<p><strong>Fig 1 中间面板</strong>：SGD 在同一窄谷里的轨迹比 GD 更&quot;毛糙&rdquo;，但平均方向仍然朝着谷底。</p>
-<h1 id="3-动量momentum把惯性还给优化器">3. 动量（Momentum）：把&quot;惯性&quot;还给优化器</h1>
-<p>直觉：把参数想成<strong>滑下山谷的小球</strong>。GD 等价于&quot;无质量的虫子&rdquo;——每步只看当前坡度，于是窄谷里左右乱晃。给虫子加点质量，惯性就会<strong>沿着山谷长方向累积</strong>，在垂直窄方向自动相互抵消。</p>
-<p>更新规则：</p>
-$$
+$$<p>噪声 $\xi_t$ 既是诅咒也是祝福：</p><ul><li><strong>诅咒</strong>：步子大一点就被噪声放大成发散</li><li><strong>祝福</strong>：噪声有助于<strong>逃离尖锐局部极小</strong>——这后来被 Keskar 等人证明与泛化直接相关（小 batch 的"flat minima"假说）</li></ul><p><strong>Fig 1 中间面板</strong>：SGD 在同一窄谷里的轨迹比 GD 更"毛糙&rdquo;，但平均方向仍然朝着谷底。</p><h1 id=3-动量momentum把惯性还给优化器>3. 动量（Momentum）：把"惯性"还给优化器</h1><p>直觉：把参数想成<strong>滑下山谷的小球</strong>。GD 等价于"无质量的虫子&rdquo;——每步只看当前坡度，于是窄谷里左右乱晃。给虫子加点质量，惯性就会<strong>沿着山谷长方向累积</strong>，在垂直窄方向自动相互抵消。</p><p>更新规则：</p>$$
 v_t = \gamma v_{t-1} + \eta\,g_t,\qquad \theta_{t+1} = \theta_t - v_t
-$$<p>通常 $\gamma = 0.9$，相当于把过去梯度按几何级数加权——有效&quot;记忆&quot;长度约 $1/(1-\gamma) = 10$ 步。</p>
-<p><strong>关键洞察</strong>：动量会把<strong>有效步长放大</strong>约 $1/(1-\gamma)$ 倍，所以加了动量之后，原来不带动量时能用的 $\eta$ 必须<strong>对应缩小</strong>。这是新手最常踩的坑。</p>
-<p><strong>Fig 1 右面板</strong>：同样的窄谷，动量法的轨迹被&quot;拉直&quot;——垂直方向的振荡互相抵消，水平方向速度持续累积。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig1_gd_sgd_momentum_contour.png" alt="GD / SGD / Momentum 在病态二次型上的轨迹对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="4-nesterov-加速梯度nag先看一眼再走">4. Nesterov 加速梯度（NAG）：先看一眼再走</h1>
-<p>经典动量在<strong>靠近极小值时容易过冲</strong>：因为它用的是当前点的梯度，等下一步发现&quot;哎呀我冲过头了&quot;，下一步才开始调头。</p>
-<p>NAG 的修正只有一行：</p>
-$$
+$$<p>通常 $\gamma = 0.9$，相当于把过去梯度按几何级数加权——有效"记忆"长度约 $1/(1-\gamma) = 10$ 步。</p><p><strong>关键洞察</strong>：动量会把<strong>有效步长放大</strong>约 $1/(1-\gamma)$ 倍，所以加了动量之后，原来不带动量时能用的 $\eta$ 必须<strong>对应缩小</strong>。这是新手最常踩的坑。</p><p><strong>Fig 1 右面板</strong>：同样的窄谷，动量法的轨迹被"拉直"——垂直方向的振荡互相抵消，水平方向速度持续累积。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig1_gd_sgd_momentum_contour.png alt="GD / SGD / Momentum 在病态二次型上的轨迹对比" loading=lazy decoding=async></figure></p><h1 id=4-nesterov-加速梯度nag先看一眼再走>4. Nesterov 加速梯度（NAG）：先看一眼再走</h1><p>经典动量在<strong>靠近极小值时容易过冲</strong>：因为它用的是当前点的梯度，等下一步发现"哎呀我冲过头了"，下一步才开始调头。</p><p>NAG 的修正只有一行：</p>$$
 v_t = \gamma v_{t-1} + \eta\,\nabla J(\theta_t - \gamma v_{t-1}),\qquad \theta_{t+1} = \theta_t - v_t
-$$<p><strong>区别只在梯度求值的位置</strong>：经典动量在 $\theta_t$ 求梯度，NAG 在&quot;如果只走动量那一步会到的地方&quot; $\theta_t - \gamma v_{t-1}$ 求梯度。</p>
-<p><strong>为什么有效</strong>：相当于带了一步<strong>前瞻</strong>。如果前方坡度变缓，NAG 的梯度提前感知到，自动减速；反之提前加速。Nesterov 在 1983 年证明对凸光滑函数能从 $O(1/t)$ 加速到 $O(1/t^2)$。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig2_nesterov_lookahead.png" alt="NAG 用前瞻梯度抑制过冲" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="5-adagrad每个坐标自己的学习率">5. AdaGrad：每个坐标自己的学习率</h1>
-<p>到了 2011，NLP 里大量稀疏特征——比如 word2vec 里某个罕见词只在百万样本里出现 5 次。如果对所有参数用同一个 $\eta$：</p>
-<ul>
-<li>罕见词的参数：每次都用同样的小梯度，$\eta$ 取大了会把它震飞，取小了它永远学不动</li>
-<li>高频词的参数：梯度大、出现频繁，需要的步长反而小</li>
-</ul>
-<p>Duchi 提出 AdaGrad，让<strong>每个坐标根据自己的历史梯度自适应</strong>：</p>
-$$
+$$<p><strong>区别只在梯度求值的位置</strong>：经典动量在 $\theta_t$ 求梯度，NAG 在"如果只走动量那一步会到的地方" $\theta_t - \gamma v_{t-1}$ 求梯度。</p><p><strong>为什么有效</strong>：相当于带了一步<strong>前瞻</strong>。如果前方坡度变缓，NAG 的梯度提前感知到，自动减速；反之提前加速。Nesterov 在 1983 年证明对凸光滑函数能从 $O(1/t)$ 加速到 $O(1/t^2)$。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig2_nesterov_lookahead.png alt="NAG 用前瞻梯度抑制过冲" loading=lazy decoding=async></figure></p><h1 id=5-adagrad每个坐标自己的学习率>5. AdaGrad：每个坐标自己的学习率</h1><p>到了 2011，NLP 里大量稀疏特征——比如 word2vec 里某个罕见词只在百万样本里出现 5 次。如果对所有参数用同一个 $\eta$：</p><ul><li>罕见词的参数：每次都用同样的小梯度，$\eta$ 取大了会把它震飞，取小了它永远学不动</li><li>高频词的参数：梯度大、出现频繁，需要的步长反而小</li></ul><p>Duchi 提出 AdaGrad，让<strong>每个坐标根据自己的历史梯度自适应</strong>：</p>$$
 G_t = G_{t-1} + g_t^2 \quad(\text{逐元素})
 $$$$
 \theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t}+\epsilon}\,g_t
-$$<p><strong>直觉</strong>：累计梯度平方大的坐标 → 分母大 → 有效步长小。罕见但梯度突然变大的坐标 → 分母小 → 有效步长大。<strong>自动按&quot;频率&quot;分配 LR</strong>。</p>
-<p><strong>致命问题</strong>：$G_t$ 是<strong>单调递增</strong>的累加和。深度网络要训几十万步，分母最终把所有有效 LR 都压到接近 0，模型&quot;窒息&quot;——这正是 Fig 3 右面板想表达的。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig3_adagrad_per_coord_lr.png" alt="AdaGrad：自动收缩陡方向，但所有坐标的 LR 单调衰减" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="6-rmsprop把累加和换成指数滑动平均">6. RMSProp：把累加和换成指数滑动平均</h1>
-<p>Hinton 在 2012 年的 Coursera 课件里<strong>只改了一个字</strong>就救活了 AdaGrad：把&quot;累加&quot; $\sum g_t^2$ 换成&quot;指数滑动平均&quot;</p>
-$$
+$$<p><strong>直觉</strong>：累计梯度平方大的坐标 → 分母大 → 有效步长小。罕见但梯度突然变大的坐标 → 分母小 → 有效步长大。<strong>自动按"频率"分配 LR</strong>。</p><p><strong>致命问题</strong>：$G_t$ 是<strong>单调递增</strong>的累加和。深度网络要训几十万步，分母最终把所有有效 LR 都压到接近 0，模型"窒息"——这正是 Fig 3 右面板想表达的。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig3_adagrad_per_coord_lr.png alt="AdaGrad：自动收缩陡方向，但所有坐标的 LR 单调衰减" loading=lazy decoding=async></figure></p><h1 id=6-rmsprop把累加和换成指数滑动平均>6. RMSProp：把累加和换成指数滑动平均</h1><p>Hinton 在 2012 年的 Coursera 课件里<strong>只改了一个字</strong>就救活了 AdaGrad：把"累加" $\sum g_t^2$ 换成"指数滑动平均"</p>$$
 E[g^2]_t = \rho\,E[g^2]_{t-1} + (1-\rho)\,g_t^2
 $$$$
 \theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t}+\epsilon}\,g_t
-$$<p>通常 $\rho = 0.9$，等价于&quot;只记住最近约 10 步的梯度规模&quot;。</p>
-<p><strong>关键差别</strong>：</p>
-<ul>
-<li><strong>AdaGrad</strong>：$G_t$ 永远变大 → LR 永远变小（不可逆）</li>
-<li><strong>RMSProp</strong>：$E[g^2]_t$ 是有限窗口平均 → 当<strong>梯度规模发生变化</strong>时，分母会跟着变 → LR <strong>可以重新放大</strong></li>
-</ul>
-<p><strong>Fig 4 右面板</strong>直接展示：在 step 60 处梯度规模骤降，AdaGrad 的有效 LR 继续往下走，RMSProp 的有效 LR 立刻<strong>爬升回来</strong>以匹配新规模。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig4_rmsprop_moving_average.png" alt="RMSProp（EMA）vs AdaGrad（累积和）在非平稳梯度规模下" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="7-adam把动量和-rmsprop-拼起来">7. Adam：把动量和 RMSProp 拼起来</h1>
-<p>到这里，两条优化主线都成熟了：</p>
-<ul>
-<li><strong>动量</strong>给的是<strong>好方向</strong></li>
-<li><strong>RMSProp</strong> 给的是<strong>好尺度（per-coordinate scaling）</strong></li>
-</ul>
-<p>Kingma &amp; Ba（2014）的 Adam 把它们直接合二为一：</p>
-$$
+$$<p>通常 $\rho = 0.9$，等价于"只记住最近约 10 步的梯度规模"。</p><p><strong>关键差别</strong>：</p><ul><li><strong>AdaGrad</strong>：$G_t$ 永远变大 → LR 永远变小（不可逆）</li><li><strong>RMSProp</strong>：$E[g^2]_t$ 是有限窗口平均 → 当<strong>梯度规模发生变化</strong>时，分母会跟着变 → LR <strong>可以重新放大</strong></li></ul><p><strong>Fig 4 右面板</strong>直接展示：在 step 60 处梯度规模骤降，AdaGrad 的有效 LR 继续往下走，RMSProp 的有效 LR 立刻<strong>爬升回来</strong>以匹配新规模。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig4_rmsprop_moving_average.png alt="RMSProp（EMA）vs AdaGrad（累积和）在非平稳梯度规模下" loading=lazy decoding=async></figure></p><h1 id=7-adam把动量和-rmsprop-拼起来>7. Adam：把动量和 RMSProp 拼起来</h1><p>到这里，两条优化主线都成熟了：</p><ul><li><strong>动量</strong>给的是<strong>好方向</strong></li><li><strong>RMSProp</strong> 给的是<strong>好尺度（per-coordinate scaling）</strong></li></ul><p>Kingma & Ba（2014）的 Adam 把它们直接合二为一：</p>$$
 m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t \quad\text{(一阶矩，即动量)}
 $$$$
 v_t = \beta_2 v_{t-1} + (1-\beta_2)\,g_t^2 \quad\text{(二阶矩，即 RMSProp)}
-$$<p><strong>偏差修正</strong>——这是新手最常忽略的细节：因为 $m_0=v_0=0$，前几步 $m_t, v_t$ 严重偏向 0。修正：</p>
-$$
+$$<p><strong>偏差修正</strong>——这是新手最常忽略的细节：因为 $m_0=v_0=0$，前几步 $m_t, v_t$ 严重偏向 0。修正：</p>$$
 \hat m_t = \frac{m_t}{1-\beta_1^t},\qquad \hat v_t = \frac{v_t}{1-\beta_2^t}
 $$$$
 \theta_{t+1} = \theta_t - \frac{\eta\,\hat m_t}{\sqrt{\hat v_t}+\epsilon}
-$$<p>默认配置：$\beta_1 = 0.9,\ \beta_2 = 0.999,\ \epsilon = 10^{-8}$。</p>
-<p><strong>为什么 $\beta_2$ 远大于 $\beta_1$</strong>？因为方差估计 $v_t$ 比均值估计 $m_t$ 噪声大得多，需要更长的窗口去平滑。$1/(1-0.999) = 1000$ 步——这就是为什么 Adam 在前 1000 步左右常常需要预热。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig5_adam_combined.png" alt="Adam 数据流：动量分支 &#43; RMSProp 分支 → 偏差修正 → 自适应更新" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="8-adamw被忽略十年的-weight-decay">8. AdamW：被忽略十年的 weight decay</h1>
-<p>L2 正则 $\frac{\lambda}{2}\|\theta\|^2$ 加到损失里，会在梯度里多出一项 $\lambda\theta$。在<strong>SGD</strong> 里这等价于直接把权重乘以 $(1-\eta\lambda)$——也就是经典的 weight decay。</p>
-<p>但 Loshchilov &amp; Hutter（2017）发现：在 <strong>Adam</strong> 里这两件事<strong>不再等价</strong>。原因很直接：Adam 把梯度除以 $\sqrt{\hat v_t}$。如果你把 $\lambda\theta$ 也塞进梯度，它<strong>也被除以</strong> $\sqrt{\hat v_t}$——也就是说<strong>梯度大的参数 weight decay 被自动调小</strong>，这恰恰和正则化想做的事<strong>反着来</strong>。</p>
-<p>AdamW 的修正只是把 weight decay <strong>从梯度里抠出来</strong>，直接乘到参数上：</p>
-$$
+$$<p>默认配置：$\beta_1 = 0.9,\ \beta_2 = 0.999,\ \epsilon = 10^{-8}$。</p><p><strong>为什么 $\beta_2$ 远大于 $\beta_1$</strong>？因为方差估计 $v_t$ 比均值估计 $m_t$ 噪声大得多，需要更长的窗口去平滑。$1/(1-0.999) = 1000$ 步——这就是为什么 Adam 在前 1000 步左右常常需要预热。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig5_adam_combined.png alt="Adam 数据流：动量分支 + RMSProp 分支 → 偏差修正 → 自适应更新" loading=lazy decoding=async></figure></p><h1 id=8-adamw被忽略十年的-weight-decay>8. AdamW：被忽略十年的 weight decay</h1><p>L2 正则 $\frac{\lambda}{2}\|\theta\|^2$ 加到损失里，会在梯度里多出一项 $\lambda\theta$。在<strong>SGD</strong> 里这等价于直接把权重乘以 $(1-\eta\lambda)$——也就是经典的 weight decay。</p><p>但 Loshchilov & Hutter（2017）发现：在 <strong>Adam</strong> 里这两件事<strong>不再等价</strong>。原因很直接：Adam 把梯度除以 $\sqrt{\hat v_t}$。如果你把 $\lambda\theta$ 也塞进梯度，它<strong>也被除以</strong> $\sqrt{\hat v_t}$——也就是说<strong>梯度大的参数 weight decay 被自动调小</strong>，这恰恰和正则化想做的事<strong>反着来</strong>。</p><p>AdamW 的修正只是把 weight decay <strong>从梯度里抠出来</strong>，直接乘到参数上：</p>$$
 \theta_{t+1} = \theta_t - \eta\,\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon} - \eta\lambda\,\theta_t
-$$<p>效果：在同样的 $\lambda$ 和 LR 下，AdamW 在 ImageNet/Transformer 上的 generalization gap 显著小于 Adam+L2。这就是为什么 2018 之后<strong>所有大模型预训练默认都是 AdamW</strong>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig6_adamw_vs_adam.png" alt="AdamW（解耦）vs Adam&#43;L2（耦合）：weight decay 进入更新公式的位置不同" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="9-2023-之后的三条路">9. 2023+ 之后的三条路</h1>
-<p>AdamW 当了 6 年的&quot;统治者&quot;之后，2023 起出现三个<strong>真正在大模型上被反复验证</strong>的方向。</p>
-<h2 id="91-liongoogle-2023只看符号">9.1 Lion（Google, 2023）：只看符号</h2>
-<p>由 AutoML 程序搜索发现的优化器，update 只取<strong>符号</strong>：</p>
-$$
+$$<p>效果：在同样的 $\lambda$ 和 LR 下，AdamW 在 ImageNet/Transformer 上的 generalization gap 显著小于 Adam+L2。这就是为什么 2018 之后<strong>所有大模型预训练默认都是 AdamW</strong>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig6_adamw_vs_adam.png alt="AdamW（解耦）vs Adam+L2（耦合）：weight decay 进入更新公式的位置不同" loading=lazy decoding=async></figure></p><h1 id=9-2023-之后的三条路>9. 2023+ 之后的三条路</h1><p>AdamW 当了 6 年的"统治者"之后，2023 起出现三个<strong>真正在大模型上被反复验证</strong>的方向。</p><h2 id=91-liongoogle-2023只看符号>9.1 Lion（Google, 2023）：只看符号</h2><p>由 AutoML 程序搜索发现的优化器，update 只取<strong>符号</strong>：</p>$$
 m_t = \beta_2 m_{t-1} + (1-\beta_2)\,g_t
 $$$$
 \theta_{t+1} = \theta_t - \eta\,\mathrm{sign}\bigl(\beta_1 m_{t-1} + (1-\beta_1)\,g_t\bigr)
-$$<p><strong>关键性质</strong>：</p>
-<ul>
-<li><strong>省一半显存</strong>：不用维护 $v_t$（二阶矩），对千亿参数模型是真金白银的省</li>
-<li><strong>更新幅度恒定 $\eta$</strong>：因为 sign 输出 $\pm 1$。所以 Lion 的 LR <strong>比 AdamW 小约 10 倍</strong>，wd 大约 10 倍</li>
-<li>在 ViT 和 LLM 预训练上和 AdamW 打平甚至略胜，且训练更快</li>
-</ul>
-<h2 id="92-sophiastanford-2023廉价二阶">9.2 Sophia（Stanford, 2023）：廉价二阶</h2>
-<p>Sophia 把对角 Hessian 的廉价估计塞到分母里：</p>
-$$
+$$<p><strong>关键性质</strong>：</p><ul><li><strong>省一半显存</strong>：不用维护 $v_t$（二阶矩），对千亿参数模型是真金白银的省</li><li><strong>更新幅度恒定 $\eta$</strong>：因为 sign 输出 $\pm 1$。所以 Lion 的 LR <strong>比 AdamW 小约 10 倍</strong>，wd 大约 10 倍</li><li>在 ViT 和 LLM 预训练上和 AdamW 打平甚至略胜，且训练更快</li></ul><h2 id=92-sophiastanford-2023廉价二阶>9.2 Sophia（Stanford, 2023）：廉价二阶</h2><p>Sophia 把对角 Hessian 的廉价估计塞到分母里：</p>$$
 m_t = \beta_1 m_{t-1} + (1-\beta_1)\,g_t
 $$$$
 h_t \approx \mathrm{diag}(H_t) \quad\text{(Hutchinson 估计，每 } k \text{ 步算一次)}
 $$$$
 \theta_{t+1} = \theta_t - \eta\,\mathrm{clip}\!\left(\frac{m_t}{\max(\gamma h_t,\,\varepsilon)},\,1\right)
-$$<p><strong>核心 trick</strong>：</p>
-<ul>
-<li>用 $\mathrm{diag}(H)$ 而不是 $g^2$ 当分母——这才是<strong>真正的曲率</strong></li>
-<li><code>clip</code> 是关键：非凸下 $h_t$ 可能为负，clip 把更新幅度框住保证稳定</li>
-<li>Hessian probe 不是每步都做，所以平均开销可控</li>
-</ul>
-<p>报告显示在 GPT-2 规模上能把达到同样困惑度的 wall-clock 减半。</p>
-<h2 id="93-schedule-freemeta-2024摆脱必须知道总步数">9.3 Schedule-Free（Meta, 2024）：摆脱&quot;必须知道总步数&quot;</h2>
-<p>LR 调度（cosine、WSD 等）的麻烦在于：<strong>必须事先知道总步数</strong>。研究阶段你完全不知道要训多久，提前订调度等于自我束缚。</p>
-<p>Schedule-Free AdamW 的核心思想是把&quot;调度&quot;用<strong>迭代平均</strong>替代：</p>
-$$
+$$<p><strong>核心 trick</strong>：</p><ul><li>用 $\mathrm{diag}(H)$ 而不是 $g^2$ 当分母——这才是<strong>真正的曲率</strong></li><li><code>clip</code> 是关键：非凸下 $h_t$ 可能为负，clip 把更新幅度框住保证稳定</li><li>Hessian probe 不是每步都做，所以平均开销可控</li></ul><p>报告显示在 GPT-2 规模上能把达到同样困惑度的 wall-clock 减半。</p><h2 id=93-schedule-freemeta-2024摆脱必须知道总步数>9.3 Schedule-Free（Meta, 2024）：摆脱"必须知道总步数"</h2><p>LR 调度（cosine、WSD 等）的麻烦在于：<strong>必须事先知道总步数</strong>。研究阶段你完全不知道要训多久，提前订调度等于自我束缚。</p><p>Schedule-Free AdamW 的核心思想是把"调度"用<strong>迭代平均</strong>替代：</p>$$
 y_t = (1-\beta) z_t + \beta x_t \quad\text{(用于求梯度)}
 $$$$
 z_{t+1} = z_t - \eta\,\nabla J(y_t)
 $$$$
 x_{t+1} = (1-c_t)\,x_t + c_t\,z_{t+1} \quad\text{(返回的"平均"参数)}
-$$<p>效果：在不需要任何 LR 衰减的前提下，能匹配 cosine schedule 的最终性能；并且<strong>训练中途随时延长不需要重新设计调度</strong>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig7_modern_optimizers.png" alt="Lion / Sophia / Schedule-Free：2023&#43; 的三条主流方向" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="10-选择指南实战">10. 选择指南（实战）</h1>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>推荐</th>
-          <th>原因</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>凸优化 / 简单回归</td>
-          <td>GD 或 SGD-momentum</td>
-          <td>理论保证强、调参简单</td>
-      </tr>
-      <tr>
-          <td>计算机视觉 baseline</td>
-          <td>SGD + Nesterov + cosine</td>
-          <td>历史上对 ResNet/CNN 收敛点最好</td>
-      </tr>
-      <tr>
-          <td>Transformer / LLM 预训练</td>
-          <td><strong>AdamW</strong> + warmup + cosine/WSD</td>
-          <td>业界默认，几乎是 free lunch</td>
-      </tr>
-      <tr>
-          <td>显存吃紧的大模型</td>
-          <td><strong>Lion</strong></td>
-          <td>节省一阶矩对应的显存（约 1/3）</td>
-      </tr>
-      <tr>
-          <td>研究阶段、训练长度未定</td>
-          <td><strong>Schedule-Free AdamW</strong></td>
-          <td>中途可延长，不用重设调度</td>
-      </tr>
-      <tr>
-          <td>想冲 SOTA wall-clock</td>
-          <td><strong>Sophia</strong></td>
-          <td>二阶信息加速，但需要工程投入</td>
-      </tr>
-  </tbody>
-</table>
-<h1 id="11-五条最容易被忽略的事实">11. 五条最容易被忽略的事实</h1>
-<ol>
-<li><strong>加了动量必须降 LR</strong>：动量把有效步长放大约 $1/(1-\gamma)$ 倍。$\gamma=0.9$ 大约对应 ×10。</li>
-<li><strong>Adam 的 $\beta_2 = 0.999$ 决定了你需要 ~1000 步预热</strong>：因为 $v_t$ 在前 1000 步还没&quot;热起来&quot;。</li>
-<li><strong>AdamW 的 wd 是和 LR 解耦的</strong>：所以 LR scheduler 衰减 LR 的时候，wd 不会跟着衰减。这是和老的 SGD+L2 工作流的根本差别。</li>
-<li><strong>Lion 的 LR 必须比 AdamW 小约一个数量级</strong>：直接照搬 AdamW 的 3e-4 会立即发散。</li>
-<li><strong>二阶方法在深度学习里&quot;看起来&quot;一直没普及</strong>：不是因为不好，而是 Hessian 的存储/计算曾经太贵。Sophia 把 $\mathrm{diag}(H)$ 和 Hutchinson 估计组合起来后，这个壁垒第一次被打穿。</li>
-</ol>
-<h1 id="总结">总结</h1>
-<p>优化器三十年的演进可以浓缩成两句话：</p>
-<ul>
-<li><strong>从 GD 到 Adam</strong>：先解决&quot;方向&quot;问题（动量），再解决&quot;尺度&quot;问题（AdaGrad/RMSProp），最后把两者合并并修偏差（Adam）；</li>
-<li><strong>从 Adam 到 AdamW 之后</strong>：算法层的改进让位给<strong>正则化的细节</strong>（AdamW）、<strong>显存效率</strong>（Lion）、<strong>二阶信息</strong>（Sophia）和<strong>调度自由</strong>（Schedule-Free）。</li>
-</ul>
-<p>如果你只能记住一件事：<strong>LLM 时代的默认依然是 AdamW + warmup + cosine/WSD + 梯度裁剪</strong>。在你有非常具体的瓶颈（显存 / wall-clock / 调度灵活性）之前，所有&quot;超过 AdamW&quot;的论文都建议先在自己的任务上<strong>复现一遍 baseline</strong> 再下结论。</p>
-<h1 id="延伸阅读">延伸阅读</h1>
-<ul>
-<li>Adam: A Method for Stochastic Optimization（Kingma &amp; Ba, 2014）— <a href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener noreferrer">arXiv:1412.6980 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Decoupled Weight Decay Regularization（Loshchilov &amp; Hutter, 2017）— <a href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener noreferrer">arXiv:1711.05101 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Symbolic Discovery of Optimization Algorithms / Lion（Chen et al., 2023）— <a href="https://arxiv.org/abs/2302.06675" target="_blank" rel="noopener noreferrer">arXiv:2302.06675 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training（Liu et al., 2023）— <a href="https://arxiv.org/abs/2305.14342" target="_blank" rel="noopener noreferrer">arXiv:2305.14342 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>The Road Less Scheduled / Schedule-Free（Defazio et al., 2024）— <a href="https://arxiv.org/abs/2405.15682" target="_blank" rel="noopener noreferrer">arXiv:2405.15682 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>进一步看<strong>学习率调度本身</strong>：<a href="../%e5%ad%a6%e4%b9%a0%e7%8e%87-%e4%bb%8e%e5%85%a5%e9%97%a8%e5%88%b0%e5%a4%a7%e6%a8%a1%e5%9e%8b%e8%ae%ad%e7%bb%83%e7%9a%84%e7%bb%88%e6%9e%81%e6%8c%87%e5%8d%97-2026/">学习率：从入门到大模型训练的终极指南</a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#91-liongoogle-2023只看符号">9.1 Lion（Google, 2023）：只看符号</a></li>
-    <li><a href="#92-sophiastanford-2023廉价二阶">9.2 Sophia（Stanford, 2023）：廉价二阶</a></li>
-    <li><a href="#93-schedule-freemeta-2024摆脱必须知道总步数">9.3 Schedule-Free（Meta, 2024）：摆脱&quot;必须知道总步数&quot;</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
-      <div class="row"><span>Word count</span><strong>4700</strong></div>
-      <div class="row"><span>Published</span><strong>Dec 2022</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>效果：在不需要任何 LR 衰减的前提下，能匹配 cosine schedule 的最终性能；并且<strong>训练中途随时延长不需要重新设计调度</strong>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E4%BC%98%E5%8C%96%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B-%E4%BB%8E%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D%E5%88%B0adam/fig7_modern_optimizers.png alt="Lion / Sophia / Schedule-Free：2023+ 的三条主流方向" loading=lazy decoding=async></figure></p><h1 id=10-选择指南实战>10. 选择指南（实战）</h1><table><thead><tr><th>场景</th><th>推荐</th><th>原因</th></tr></thead><tbody><tr><td>凸优化 / 简单回归</td><td>GD 或 SGD-momentum</td><td>理论保证强、调参简单</td></tr><tr><td>计算机视觉 baseline</td><td>SGD + Nesterov + cosine</td><td>历史上对 ResNet/CNN 收敛点最好</td></tr><tr><td>Transformer / LLM 预训练</td><td><strong>AdamW</strong> + warmup + cosine/WSD</td><td>业界默认，几乎是 free lunch</td></tr><tr><td>显存吃紧的大模型</td><td><strong>Lion</strong></td><td>节省一阶矩对应的显存（约 1/3）</td></tr><tr><td>研究阶段、训练长度未定</td><td><strong>Schedule-Free AdamW</strong></td><td>中途可延长，不用重设调度</td></tr><tr><td>想冲 SOTA wall-clock</td><td><strong>Sophia</strong></td><td>二阶信息加速，但需要工程投入</td></tr></tbody></table><h1 id=11-五条最容易被忽略的事实>11. 五条最容易被忽略的事实</h1><ol><li><strong>加了动量必须降 LR</strong>：动量把有效步长放大约 $1/(1-\gamma)$ 倍。$\gamma=0.9$ 大约对应 ×10。</li><li><strong>Adam 的 $\beta_2 = 0.999$ 决定了你需要 ~1000 步预热</strong>：因为 $v_t$ 在前 1000 步还没"热起来"。</li><li><strong>AdamW 的 wd 是和 LR 解耦的</strong>：所以 LR scheduler 衰减 LR 的时候，wd 不会跟着衰减。这是和老的 SGD+L2 工作流的根本差别。</li><li><strong>Lion 的 LR 必须比 AdamW 小约一个数量级</strong>：直接照搬 AdamW 的 3e-4 会立即发散。</li><li><strong>二阶方法在深度学习里"看起来"一直没普及</strong>：不是因为不好，而是 Hessian 的存储/计算曾经太贵。Sophia 把 $\mathrm{diag}(H)$ 和 Hutchinson 估计组合起来后，这个壁垒第一次被打穿。</li></ol><h1 id=总结>总结</h1><p>优化器三十年的演进可以浓缩成两句话：</p><ul><li><strong>从 GD 到 Adam</strong>：先解决"方向"问题（动量），再解决"尺度"问题（AdaGrad/RMSProp），最后把两者合并并修偏差（Adam）；</li><li><strong>从 Adam 到 AdamW 之后</strong>：算法层的改进让位给<strong>正则化的细节</strong>（AdamW）、<strong>显存效率</strong>（Lion）、<strong>二阶信息</strong>（Sophia）和<strong>调度自由</strong>（Schedule-Free）。</li></ul><p>如果你只能记住一件事：<strong>LLM 时代的默认依然是 AdamW + warmup + cosine/WSD + 梯度裁剪</strong>。在你有非常具体的瓶颈（显存 / wall-clock / 调度灵活性）之前，所有"超过 AdamW"的论文都建议先在自己的任务上<strong>复现一遍 baseline</strong> 再下结论。</p><h1 id=延伸阅读>延伸阅读</h1><ul><li>Adam: A Method for Stochastic Optimization（Kingma & Ba, 2014）— <a href=https://arxiv.org/abs/1412.6980 target=_blank rel="noopener noreferrer">arXiv:1412.6980 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Decoupled Weight Decay Regularization（Loshchilov & Hutter, 2017）— <a href=https://arxiv.org/abs/1711.05101 target=_blank rel="noopener noreferrer">arXiv:1711.05101 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Symbolic Discovery of Optimization Algorithms / Lion（Chen et al., 2023）— <a href=https://arxiv.org/abs/2302.06675 target=_blank rel="noopener noreferrer">arXiv:2302.06675 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Sophia: A Scalable Stochastic Second-order Optimizer for Language Model Pre-training（Liu et al., 2023）— <a href=https://arxiv.org/abs/2305.14342 target=_blank rel="noopener noreferrer">arXiv:2305.14342 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>The Road Less Scheduled / Schedule-Free（Defazio et al., 2024）— <a href=https://arxiv.org/abs/2405.15682 target=_blank rel="noopener noreferrer">arXiv:2405.15682 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>进一步看<strong>学习率调度本身</strong>：<a href=../%e5%ad%a6%e4%b9%a0%e7%8e%87-%e4%bb%8e%e5%85%a5%e9%97%a8%e5%88%b0%e5%a4%a7%e6%a8%a1%e5%9e%8b%e8%ae%ad%e7%bb%83%e7%9a%84%e7%bb%88%e6%9e%81%e6%8c%87%e5%8d%97-2026/>学习率：从入门到大模型训练的终极指南</a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li></ul><ul><li><a href=#91-liongoogle-2023只看符号>9.1 Lion（Google, 2023）：只看符号</a></li><li><a href=#92-sophiastanford-2023廉价二阶>9.2 Sophia（Stanford, 2023）：廉价二阶</a></li><li><a href=#93-schedule-freemeta-2024摆脱必须知道总步数>9.3 Schedule-Free（Meta, 2024）：摆脱"必须知道总步数"</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>4676</strong></div><div class=row><span>Published</span><strong>Dec 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

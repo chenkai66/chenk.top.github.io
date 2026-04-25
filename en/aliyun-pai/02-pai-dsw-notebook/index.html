@@ -1,402 +1,116 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/aliyun-pai/02-pai-dsw-notebook/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Aliyun PAI (2): PAI-DSW — Notebooks That Don&#39;t Eat Your Weights · Chen Kai Blog</title>
-<meta name="description" content="Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don&#39;t lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-pai/02-pai-dsw-notebook/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Aliyun PAI (2): PAI-DSW — Notebooks That Don&#39;t Eat Your Weights">
-<meta property="og:description" content="Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don&#39;t lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste.">
-<meta property="og:url" content="https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun PAI</a>
-         · Chapter 2
-      </div>
-      <h1>Aliyun PAI (2): PAI-DSW — Notebooks That Don&#39;t Eat Your Weights</h1>
-      <p class="deck">Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don&#39;t lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-06">March 6, 2026</time> · 6 min read · 1200 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/aliyun-pai/" class="tag">#Aliyun PAI</a><a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a><a href="/en/tags/pai-dsw/" class="tag">#PAI-DSW</a><a href="/en/tags/jupyter/" class="tag">#Jupyter</a><a href="/en/tags/gpu/" class="tag">#GPU</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/aliyun-pai/02-pai-dsw-notebook/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Every time I onboard a new ML engineer to PAI the first day looks the same. They start a DSW instance, <code>pip install</code> their world, train for an hour, restart the kernel for some reason, and then ask me where their model file went. The honest answer — &ldquo;in <code>/root</code> on a node that no longer exists&rdquo; — is the kind of lesson you only need to learn once. This article is the version of that lesson you read in advance.</p>
-<h2 id="what-dsw-actually-is">What DSW actually is</h2>
-<p>Per the official &ldquo;DSW Overview&rdquo;, DSW is a <strong>cloud-based IDE for AI development</strong> that integrates JupyterLab, VSCode, and a terminal, with pre-configured container images for PyTorch and TensorFlow, heterogeneous compute (CPU / GPU / Lingjun), and the ability to mount datasets from OSS, NAS, and CPFS. In practice that means you click &ldquo;Open&rdquo; and within a minute you have a real Jupyter on a real GPU with <code>nvidia-smi</code> working and PyTorch already importable.</p>
-<p>What&rsquo;s interesting is <em>what&rsquo;s not in the box</em>. The DSW container has a system disk that lives only as long as the instance does. Anything you <code>pip install</code> survives a kernel restart but does not survive an instance restart unless you persist the conda env to OSS or save it to ACR via the snapshot feature.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/fig1_dsw_anatomy.png" alt="Anatomy of a DSW instance" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="picking-an-instance-type">Picking an instance type</h2>
-<p>Per the docs, DSW resource types come in two flavors: <strong>public resources</strong> (pay-as-you-go) and <strong>dedicated resources</strong> (subscription on general-purpose compute or Lingjun). For day-to-day work, public is the right answer — you&rsquo;re paying for the GPU minutes you actually use, and the per-second metering means you can spin one up for a 10-minute experiment and not care.</p>
-<p>What I actually pick:</p>
-<ul>
-<li><strong>Tiny experiment / debugging</strong> — <code>ecs.gn7i-c8g1.2xlarge</code> (1 × A10, 24 GB). Cheap, plenty for fine-tuning a 7B in 4-bit quant or running diffusion at 512×512.</li>
-<li><strong>Real training of a small model</strong> — <code>ecs.gn7i-c16g1.4xlarge</code> or <code>ecs.gn7e-c12g1.3xlarge</code> (A10 / A100 40 GB). Comfortable for a CIFAR-10 ResNet, ImageNet-tiny, or a 7B SFT with QLoRA.</li>
-<li><strong>LLM dev</strong> — <code>ecs.gn7e-c12g1.6xlarge</code> or higher (A100 80 GB). Required if you want to load a 13-30B in BF16 without offloading.</li>
-</ul>
-<blockquote>
-<p><strong>Real-world tip:</strong> If the GPU type you want is &ldquo;out of stock&rdquo; in the console, switch the AZ. Stock is per-AZ, not per-region. I have seen 80 GB A100 unavailable in <code>cn-shanghai-h</code> and free in <code>cn-shanghai-l</code> in the same minute.</p>
-</blockquote>
-<h2 id="the-image-catalog">The image catalog</h2>
-<p>DSW images are official, versioned, and tagged. The Quick Start uses <code>modelscope:1.26.0-pytorch2.6.0-gpu-py311-cu124-ubuntu22.04</code> — that string tells you exactly what is inside. Read it left to right: ModelScope SDK 1.26, PyTorch 2.6, GPU build, Python 3.11, CUDA 12.4, Ubuntu 22.04.</p>
-<p>I almost always pick a <code>pytorch</code> or <code>modelscope</code> image. The TensorFlow images are fine but lag a major release behind. There is also a <code>dsw-stable</code> family that lags by design — pick it for production-adjacent work where you do not want a CUDA bump in the middle of a training run.</p>
-<p>You can also bake your own image and push it to ACR. I do this for projects with a heavy dependency tree (<code>vllm</code>, <code>flash-attn</code>, custom CUDA kernels) — saves four minutes of <code>pip install</code> every time someone starts a fresh instance.</p>
-<h2 id="a-standard-workflow-that-does-not-lose-data">A standard workflow that does not lose data</h2>
-<p>The console flow looks like this:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/fig2_dsw_workflow.png" alt="Standard DSW workflow" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The lifecycle hooks are easy to ignore and expensive to forget. <strong>Idle shutdown</strong> at 30 minutes is my default; <strong>scheduled shutdown</strong> at 11pm catches the case where I leave a notebook running over the weekend. Every DSW idle GPU at 5 RMB an hour is roughly 100 RMB you owe Aliyun by Monday.</p>
-<h2 id="where-your-data-lives">Where your data lives</h2>
-<p>The single most important diagram in the entire DSW docs:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/fig3_dsw_storage_layout.png" alt="DSW storage layout" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The mount path I use everywhere:</p>
-<pre tabindex="0"><code>/mnt/data/
+<!doctype html><html lang=en data-translation=/zh/aliyun-pai/02-pai-dsw-notebook/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights · Chen Kai Blog</title>
+<meta name=description content="Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don't lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-pai/02-pai-dsw-notebook/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/><meta property="og:type" content="article"><meta property="og:title" content="Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights"><meta property="og:description" content="Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don't lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste."><meta property="og:url" content="https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Aliyun PAI</a>
+· Chapter 2</div><h1>Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights</h1><p class=deck>Working with PAI-DSW for real: choosing the right GPU image, mounting OSS so you don't lose checkpoints when the instance restarts, and an MNIST notebook drawn from the official Quick Start that you can copy-paste.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-06>March 6, 2026</time> · 6 min read · 1184 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/aliyun-pai/ class=tag>#Aliyun PAI</a><a href=/en/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/en/tags/pai-dsw/ class=tag>#PAI-DSW</a><a href=/en/tags/jupyter/ class=tag>#Jupyter</a><a href=/en/tags/gpu/ class=tag>#GPU</a></div><a class="pill pill-outline" href=/zh/aliyun-pai/02-pai-dsw-notebook/>Read in English →</a></div></header><div class=prose><p>Every time I onboard a new ML engineer to PAI the first day looks the same. They start a DSW instance, <code>pip install</code> their world, train for an hour, restart the kernel for some reason, and then ask me where their model file went. The honest answer — &ldquo;in <code>/root</code> on a node that no longer exists&rdquo; — is the kind of lesson you only need to learn once. This article is the version of that lesson you read in advance.</p><h2 id=what-dsw-actually-is>What DSW actually is</h2><p>Per the official &ldquo;DSW Overview&rdquo;, DSW is a <strong>cloud-based IDE for AI development</strong> that integrates JupyterLab, VSCode, and a terminal, with pre-configured container images for PyTorch and TensorFlow, heterogeneous compute (CPU / GPU / Lingjun), and the ability to mount datasets from OSS, NAS, and CPFS. In practice that means you click &ldquo;Open&rdquo; and within a minute you have a real Jupyter on a real GPU with <code>nvidia-smi</code> working and PyTorch already importable.</p><p>What&rsquo;s interesting is <em>what&rsquo;s not in the box</em>. The DSW container has a system disk that lives only as long as the instance does. Anything you <code>pip install</code> survives a kernel restart but does not survive an instance restart unless you persist the conda env to OSS or save it to ACR via the snapshot feature.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/fig1_dsw_anatomy.png alt="Anatomy of a DSW instance" loading=lazy decoding=async></figure></p><h2 id=picking-an-instance-type>Picking an instance type</h2><p>Per the docs, DSW resource types come in two flavors: <strong>public resources</strong> (pay-as-you-go) and <strong>dedicated resources</strong> (subscription on general-purpose compute or Lingjun). For day-to-day work, public is the right answer — you&rsquo;re paying for the GPU minutes you actually use, and the per-second metering means you can spin one up for a 10-minute experiment and not care.</p><p>What I actually pick:</p><ul><li><strong>Tiny experiment / debugging</strong> — <code>ecs.gn7i-c8g1.2xlarge</code> (1 × A10, 24 GB). Cheap, plenty for fine-tuning a 7B in 4-bit quant or running diffusion at 512×512.</li><li><strong>Real training of a small model</strong> — <code>ecs.gn7i-c16g1.4xlarge</code> or <code>ecs.gn7e-c12g1.3xlarge</code> (A10 / A100 40 GB). Comfortable for a CIFAR-10 ResNet, ImageNet-tiny, or a 7B SFT with QLoRA.</li><li><strong>LLM dev</strong> — <code>ecs.gn7e-c12g1.6xlarge</code> or higher (A100 80 GB). Required if you want to load a 13-30B in BF16 without offloading.</li></ul><blockquote><p><strong>Real-world tip:</strong> If the GPU type you want is &ldquo;out of stock&rdquo; in the console, switch the AZ. Stock is per-AZ, not per-region. I have seen 80 GB A100 unavailable in <code>cn-shanghai-h</code> and free in <code>cn-shanghai-l</code> in the same minute.</p></blockquote><h2 id=the-image-catalog>The image catalog</h2><p>DSW images are official, versioned, and tagged. The Quick Start uses <code>modelscope:1.26.0-pytorch2.6.0-gpu-py311-cu124-ubuntu22.04</code> — that string tells you exactly what is inside. Read it left to right: ModelScope SDK 1.26, PyTorch 2.6, GPU build, Python 3.11, CUDA 12.4, Ubuntu 22.04.</p><p>I almost always pick a <code>pytorch</code> or <code>modelscope</code> image. The TensorFlow images are fine but lag a major release behind. There is also a <code>dsw-stable</code> family that lags by design — pick it for production-adjacent work where you do not want a CUDA bump in the middle of a training run.</p><p>You can also bake your own image and push it to ACR. I do this for projects with a heavy dependency tree (<code>vllm</code>, <code>flash-attn</code>, custom CUDA kernels) — saves four minutes of <code>pip install</code> every time someone starts a fresh instance.</p><h2 id=a-standard-workflow-that-does-not-lose-data>A standard workflow that does not lose data</h2><p>The console flow looks like this:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/fig2_dsw_workflow.png alt="Standard DSW workflow" loading=lazy decoding=async></figure></p><p>The lifecycle hooks are easy to ignore and expensive to forget. <strong>Idle shutdown</strong> at 30 minutes is my default; <strong>scheduled shutdown</strong> at 11pm catches the case where I leave a notebook running over the weekend. Every DSW idle GPU at 5 RMB an hour is roughly 100 RMB you owe Aliyun by Monday.</p><h2 id=where-your-data-lives>Where your data lives</h2><p>The single most important diagram in the entire DSW docs:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/02-pai-dsw-notebook/fig3_dsw_storage_layout.png alt="DSW storage layout" loading=lazy decoding=async></figure></p><p>The mount path I use everywhere:</p><pre tabindex=0><code>/mnt/data/
 ├── datasets/      # read-only OSS mount (the bucket lives forever)
 ├── checkpoints/   # writeable OSS prefix (save every N steps)
 └── code/          # git repo, also on OSS so a new instance is one mount away
-</code></pre><p>Mounting OSS is configured at instance create time; the docs call it &ldquo;Configure storage&rdquo;. Pick the bucket and the prefix, choose mount path <code>/mnt/data/</code>, accept the default access mode (FUSE-backed). After launch, <code>oss ls oss://your-bucket/</code> should work from the terminal — that is your &ldquo;PAI ↔ OSS RAM role&rdquo; health check.</p>
-<h2 id="a-working-mnist-notebook-straight-from-the-quick-start">A working MNIST notebook (straight from the Quick Start)</h2>
-<p>The official Quick Start uses MNIST handwritten digit recognition. Here is the minimum viable training cell, simplified for the article — the docs link to a full <code>mnist.ipynb</code> you can upload as-is:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">transforms</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">device</span> <span class="o">=</span> <span class="s2">&#34;cuda&#34;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&#34;cpu&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Device:&#34;</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">tx</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                          <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,))])</span>
-</span></span><span class="line"><span class="cl"><span class="n">train</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="s2">&#34;/mnt/data/datasets&#34;</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">tx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">val</span>   <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="s2">&#34;/mnt/data/datasets&#34;</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">tx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="n">num_workers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">val_loader</span>   <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">val</span><span class="p">,</span>   <span class="n">batch_size</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Net</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">c1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">9216</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c1</span><span class="p">(</span><span class="n">x</span><span class="p">));</span> <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c2</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="p">,</span> <span class="n">opt</span> <span class="o">=</span> <span class="n">Net</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">Net</span><span class="p">()</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="o">=</span> <span class="n">xb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">yb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xb</span><span class="p">),</span> <span class="n">yb</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># checkpoint to OSS, not /root</span>
-</span></span><span class="line"><span class="cl">    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">&#34;/mnt/data/checkpoints/mnist_e</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">.pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2"> done&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The Quick Start expects roughly 98% validation accuracy after 3 epochs on a single A10. If you see anything dramatically lower, you&rsquo;ve probably mounted OSS wrong and are reading from the wrong directory — not a model bug.</p>
-<h2 id="tensorboard-inline">TensorBoard inline</h2>
-<p>DSW ships TensorBoard as a built-in extension; the docs walk through enabling it from the menu. I usually just run it as a cell:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="o">%</span><span class="n">load_ext</span> <span class="n">tensorboard</span>
-</span></span><span class="line"><span class="cl"><span class="o">%</span><span class="n">tensorboard</span> <span class="o">--</span><span class="n">logdir</span> <span class="o">/</span><span class="n">mnt</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">checkpoints</span><span class="o">/</span><span class="n">runs</span> <span class="o">--</span><span class="n">port</span> <span class="mi">6006</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The link the docs tell you to click is <code>http://localhost:6006/</code> — DSW proxies the port so it works in your browser through the DSW URL. If the port is &ldquo;in use&rdquo;, another notebook in the same instance is holding it; restart the kernel of the offender, not the instance.</p>
-<h2 id="saving-the-env-between-sessions">Saving the env between sessions</h2>
-<p>DSW has two mechanisms here, both worth knowing:</p>
-<ol>
-<li><strong>Instance image snapshot</strong> — bakes your current container state (installed packages, system files) to ACR. Next instance you start, pick that image and you are back where you left off. Slow (a few minutes) but exact.</li>
-<li><strong>Conda env on OSS</strong> — install all your <code>pip</code> deps under <code>/mnt/data/envs/myenv/</code> and activate it. Survives instance death without rebaking. Faster but does not capture system-level changes (<code>apt install</code> etc).</li>
-</ol>
-<p>I default to the conda-on-OSS approach for project work and the snapshot mechanism for &ldquo;frozen demo I want to show in 6 months&rdquo;.</p>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 3 takes the same MNIST job and shows what changes when you scale it across multiple GPUs and multiple nodes via DLC — including the AIMaster fault tolerance that the docs mention but do not really explain.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/aliyun-pai/01-platform-overview/"><span class="title">Aliyun PAI (1): Platform Overview and the Product Family Map</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/"><span class="title">Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-dsw-actually-is">What DSW actually is</a></li>
-    <li><a href="#picking-an-instance-type">Picking an instance type</a></li>
-    <li><a href="#the-image-catalog">The image catalog</a></li>
-    <li><a href="#a-standard-workflow-that-does-not-lose-data">A standard workflow that does not lose data</a></li>
-    <li><a href="#where-your-data-lives">Where your data lives</a></li>
-    <li><a href="#a-working-mnist-notebook-straight-from-the-quick-start">A working MNIST notebook (straight from the Quick Start)</a></li>
-    <li><a href="#tensorboard-inline">TensorBoard inline</a></li>
-    <li><a href="#saving-the-env-between-sessions">Saving the env between sessions</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun PAI</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>6 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1200</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>Mounting OSS is configured at instance create time; the docs call it &ldquo;Configure storage&rdquo;. Pick the bucket and the prefix, choose mount path <code>/mnt/data/</code>, accept the default access mode (FUSE-backed). After launch, <code>oss ls oss://your-bucket/</code> should work from the terminal — that is your &ldquo;PAI ↔ OSS RAM role&rdquo; health check.</p><h2 id=a-working-mnist-notebook-straight-from-the-quick-start>A working MNIST notebook (straight from the Quick Start)</h2><p>The official Quick Start uses MNIST handwritten digit recognition. Here is the minimum viable training cell, simplified for the article — the docs link to a full <code>mnist.ipynb</code> you can upload as-is:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.utils.data</span> <span class=kn>import</span> <span class=n>DataLoader</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torchvision</span> <span class=kn>import</span> <span class=n>datasets</span><span class=p>,</span> <span class=n>transforms</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>device</span> <span class=o>=</span> <span class=s2>&#34;cuda&#34;</span> <span class=k>if</span> <span class=n>torch</span><span class=o>.</span><span class=n>cuda</span><span class=o>.</span><span class=n>is_available</span><span class=p>()</span> <span class=k>else</span> <span class=s2>&#34;cpu&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Device:&#34;</span><span class=p>,</span> <span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tx</span> <span class=o>=</span> <span class=n>transforms</span><span class=o>.</span><span class=n>Compose</span><span class=p>([</span><span class=n>transforms</span><span class=o>.</span><span class=n>ToTensor</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                          <span class=n>transforms</span><span class=o>.</span><span class=n>Normalize</span><span class=p>((</span><span class=mf>0.1307</span><span class=p>,),</span> <span class=p>(</span><span class=mf>0.3081</span><span class=p>,))])</span>
+</span></span><span class=line><span class=cl><span class=n>train</span> <span class=o>=</span> <span class=n>datasets</span><span class=o>.</span><span class=n>MNIST</span><span class=p>(</span><span class=s2>&#34;/mnt/data/datasets&#34;</span><span class=p>,</span> <span class=n>train</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>  <span class=n>download</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>transform</span><span class=o>=</span><span class=n>tx</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>val</span>   <span class=o>=</span> <span class=n>datasets</span><span class=o>.</span><span class=n>MNIST</span><span class=p>(</span><span class=s2>&#34;/mnt/data/datasets&#34;</span><span class=p>,</span> <span class=n>train</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>download</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>transform</span><span class=o>=</span><span class=n>tx</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>train_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>train</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span> <span class=n>shuffle</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>  <span class=n>num_workers</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>val_loader</span>   <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>val</span><span class=p>,</span>   <span class=n>batch_size</span><span class=o>=</span><span class=mi>512</span><span class=p>,</span> <span class=n>shuffle</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>num_workers</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Net</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>c1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>c2</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc2</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>9216</span><span class=p>,</span> <span class=mi>128</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>128</span><span class=p>,</span> <span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>c1</span><span class=p>(</span><span class=n>x</span><span class=p>));</span> <span class=n>x</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>max_pool2d</span><span class=p>(</span><span class=n>F</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>c2</span><span class=p>(</span><span class=n>x</span><span class=p>)),</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>flatten</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fc1</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc2</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=p>,</span> <span class=n>opt</span> <span class=o>=</span> <span class=n>Net</span><span class=p>()</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>AdamW</span><span class=p>(</span><span class=n>Net</span><span class=p>()</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>AdamW</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>3</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>xb</span><span class=p>,</span> <span class=n>yb</span> <span class=ow>in</span> <span class=n>train_loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>xb</span><span class=p>,</span> <span class=n>yb</span> <span class=o>=</span> <span class=n>xb</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>yb</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>F</span><span class=o>.</span><span class=n>cross_entropy</span><span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>xb</span><span class=p>),</span> <span class=n>yb</span><span class=p>)</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=c1># checkpoint to OSS, not /root</span>
+</span></span><span class=line><span class=cl>    <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=sa>f</span><span class=s2>&#34;/mnt/data/checkpoints/mnist_e</span><span class=si>{</span><span class=n>epoch</span><span class=si>}</span><span class=s2>.pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;epoch </span><span class=si>{</span><span class=n>epoch</span><span class=si>}</span><span class=s2> done&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The Quick Start expects roughly 98% validation accuracy after 3 epochs on a single A10. If you see anything dramatically lower, you&rsquo;ve probably mounted OSS wrong and are reading from the wrong directory — not a model bug.</p><h2 id=tensorboard-inline>TensorBoard inline</h2><p>DSW ships TensorBoard as a built-in extension; the docs walk through enabling it from the menu. I usually just run it as a cell:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=o>%</span><span class=n>load_ext</span> <span class=n>tensorboard</span>
+</span></span><span class=line><span class=cl><span class=o>%</span><span class=n>tensorboard</span> <span class=o>--</span><span class=n>logdir</span> <span class=o>/</span><span class=n>mnt</span><span class=o>/</span><span class=n>data</span><span class=o>/</span><span class=n>checkpoints</span><span class=o>/</span><span class=n>runs</span> <span class=o>--</span><span class=n>port</span> <span class=mi>6006</span>
+</span></span></code></pre></td></tr></table></div></div><p>The link the docs tell you to click is <code>http://localhost:6006/</code> — DSW proxies the port so it works in your browser through the DSW URL. If the port is &ldquo;in use&rdquo;, another notebook in the same instance is holding it; restart the kernel of the offender, not the instance.</p><h2 id=saving-the-env-between-sessions>Saving the env between sessions</h2><p>DSW has two mechanisms here, both worth knowing:</p><ol><li><strong>Instance image snapshot</strong> — bakes your current container state (installed packages, system files) to ACR. Next instance you start, pick that image and you are back where you left off. Slow (a few minutes) but exact.</li><li><strong>Conda env on OSS</strong> — install all your <code>pip</code> deps under <code>/mnt/data/envs/myenv/</code> and activate it. Survives instance death without rebaking. Faster but does not capture system-level changes (<code>apt install</code> etc).</li></ol><p>I default to the conda-on-OSS approach for project work and the snapshot mechanism for &ldquo;frozen demo I want to show in 6 months&rdquo;.</p><h2 id=whats-next>What&rsquo;s next</h2><p>Article 3 takes the same MNIST job and shows what changes when you scale it across multiple GPUs and multiple nodes via DLC — including the AIMaster fault tolerance that the docs mention but do not really explain.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/aliyun-pai/01-platform-overview/><span class=title>Aliyun PAI (1): Platform Overview and the Product Family Map</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/><span class=title>Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-dsw-actually-is>What DSW actually is</a></li><li><a href=#picking-an-instance-type>Picking an instance type</a></li><li><a href=#the-image-catalog>The image catalog</a></li><li><a href=#a-standard-workflow-that-does-not-lose-data>A standard workflow that does not lose data</a></li><li><a href=#where-your-data-lives>Where your data lives</a></li><li><a href=#a-working-mnist-notebook-straight-from-the-quick-start>A working MNIST notebook (straight from the Quick Start)</a></li><li><a href=#tensorboard-inline>TensorBoard inline</a></li><li><a href=#saving-the-env-between-sessions>Saving the env between sessions</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Aliyun PAI</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>Aliyun PAI (1): Platform Overview and the Product Family Map</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
+<span class=chapter-title>Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/><span class=chapter-num>03</span>
+<span class=chapter-title>Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/><span class=chapter-num>04</span>
+<span class=chapter-title>Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/05-pai-designer-vs-quickstart/><span class=chapter-num>05</span>
+<span class=chapter-title>Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>6 min</strong></div><div class=row><span>Word count</span><strong>1184</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

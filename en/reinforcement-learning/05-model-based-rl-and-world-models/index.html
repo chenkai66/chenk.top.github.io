@@ -1,797 +1,157 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Reinforcement Learning (5): Model-Based RL and World Models · Chen Kai Blog</title>
-<meta name="description" content="From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/05-model-based-rl-and-world-models/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/05-model-based-rl-and-world-models/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Reinforcement Learning (5): Model-Based RL and World Models">
-<meta property="og:description" content="From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions.">
-<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/05-model-based-rl-and-world-models/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
-         · Chapter 5
-      </div>
-      <h1>Reinforcement Learning (5): Model-Based RL and World Models</h1>
-      <p class="deck">From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-08-21">August 21, 2025</time> · 14 min read · 3000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/model-based-rl/" class="tag">#Model-Based RL</a><a href="/en/tags/world-models/" class="tag">#World Models</a><a href="/en/tags/dyna/" class="tag">#Dyna</a><a href="/en/tags/mbpo/" class="tag">#MBPO</a><a href="/en/tags/dreamer/" class="tag">#Dreamer</a><a href="/en/tags/muzero/" class="tag">#MuZero</a><a href="/en/tags/planet/" class="tag">#PlaNet</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Every algorithm we have covered so far &ndash; DQN, REINFORCE, A2C, PPO, SAC &ndash; is <strong>model-free</strong>: the agent treats the environment as a black box, throws actions at it, and updates its policy from the rewards that come back. The approach works, but it is profligate. DQN needs roughly <strong>10 million frames</strong> to master Atari Pong. OpenAI Five trained on Dota 2 for the equivalent of <strong>~45,000 years</strong> of self-play. AlphaStar consumed years of StarCraft for a single agent.</p>
-<p>Humans clearly do not learn this way. A chess player imagines positions a few moves deep and prunes obvious blunders; a child learns &ldquo;cliffs are bad&rdquo; once, by inference, not by falling. Both rely on an internal <strong>model</strong> of how the world responds to actions, and they spend most of their cognitive budget <em>in that model</em>, not in the world.</p>
-<p><strong>Model-Based RL (MBRL)</strong> formalises this idea: learn an approximate dynamics model$\hat{P}(s'\mid s, a)$and reward model$\hat{R}(s, a)$, then use them as a cheap simulator for planning, policy improvement, or value estimation. The payoff, on tasks where it works, is a <strong>10-100x reduction in real-environment samples</strong> &ndash; the difference between a robot that needs three months of physical interaction and one that needs an afternoon.</p>
-<p>This article traces the modern lineage:  Dyna (1990) -&gt; MBPO (2019) -&gt; World Models (2018) -&gt; Dreamer (2020-23) -&gt; MuZero (2020). Each method rests on a single sharp idea, and the seven figures in this post visualise those ideas one at a time.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>The exact trade-offs that make model-based RL win or lose</li>
-<li><strong>Dyna-Q</strong>: the original blueprint for mixing real and imagined updates</li>
-<li><strong>MBPO</strong>: why short-horizon imagination is the sweet spot</li>
-<li><strong>MPC</strong> as a pure planning loop with a learned model</li>
-<li><strong>World Models</strong> (V/M/C): compressing pixels into a latent dream space</li>
-<li><strong>Dreamer / RSSM</strong>: end-to-end latent imagination with a recurrent + stochastic state</li>
-<li><strong>MuZero</strong>: planning without ever predicting an observation</li>
-</ul>
-<p><strong>Prerequisites:</strong> <a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Parts 1-3</a>
- (MDPs, value functions, policy gradients, Actor-Critic).</p>
-<hr>
-<h2 id="1-two-paradigms-one-goal">1. Two Paradigms, One Goal</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig1_mf_vs_mb_loops.png" alt="Model-free vs model-based control loops" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>In model-free RL the only loop is <em>act -&gt; observe -&gt; learn</em>. In model-based RL we insert a second loop: <em>learn a model -&gt; plan inside the model -&gt; improve the policy</em>. Real-world interaction now amortises across thousands of imagined updates.</p>
-<h3 id="the-trade-off">The Trade-off</h3>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th>Model-Free</th>
-          <th>Model-Based</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>What is learnt</strong></td>
-          <td>A policy / value function only</td>
-          <td>A model $\hat{P},\hat{R}$ <strong>and</strong> a policy / value</td>
-      </tr>
-      <tr>
-          <td><strong>Sample cost</strong></td>
-          <td>High &ndash; each gradient step uses a real interaction</td>
-          <td>Low &ndash; one real step yields many imagined updates</td>
-      </tr>
-      <tr>
-          <td><strong>Compute cost</strong></td>
-          <td>Lower per step</td>
-          <td>Higher (model fitting + planning)</td>
-      </tr>
-      <tr>
-          <td><strong>Asymptote</strong></td>
-          <td>Limited only by exploration</td>
-          <td>Limited by <strong>model bias</strong></td>
-      </tr>
-      <tr>
-          <td><strong>Transfer</strong></td>
-          <td>Tied to the trained reward</td>
-          <td>Same model can be reused for new tasks</td>
-      </tr>
-      <tr>
-          <td><strong>Failure mode</strong></td>
-          <td>Slow learning</td>
-          <td>Compounding model error -&gt; hallucinated optima</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="sample-efficiency-in-practice">Sample Efficiency in Practice</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Algorithm</th>
-          <th>Family</th>
-          <th>Benchmark</th>
-          <th>Steps to expert</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>DQN</td>
-          <td>Model-free</td>
-          <td>Atari Pong</td>
-          <td>~10M frames</td>
-      </tr>
-      <tr>
-          <td>PPO</td>
-          <td>Model-free</td>
-          <td>MuJoCo HalfCheetah</td>
-          <td>~1-2M steps</td>
-      </tr>
-      <tr>
-          <td>SAC</td>
-          <td>Model-free</td>
-          <td>MuJoCo HalfCheetah</td>
-          <td>~600K steps</td>
-      </tr>
-      <tr>
-          <td><strong>MBPO</strong></td>
-          <td>Model-based</td>
-          <td>MuJoCo HalfCheetah</td>
-          <td><strong>~80-100K</strong></td>
-      </tr>
-      <tr>
-          <td><strong>Dreamer</strong></td>
-          <td>Model-based</td>
-          <td>DMControl Walker</td>
-          <td><strong>~100K</strong></td>
-      </tr>
-      <tr>
-          <td><strong>DreamerV3</strong></td>
-          <td>Model-based</td>
-          <td>Minecraft (diamonds)</td>
-          <td>first algorithm to do it from scratch</td>
-      </tr>
-  </tbody>
-</table>
-<p>The gap is roughly <strong>one order of magnitude</strong> in continuous control and even larger when the simulator is expensive (real robots, slow physics).</p>
-<h3 id="when-to-reach-for-model-based">When to Reach for Model-Based</h3>
-<p>Good fit:</p>
-<ul>
-<li>Real interaction is expensive: robotics, autonomous driving, drug discovery, dialogue systems with users in the loop.</li>
-<li>Dynamics are <em>learnable</em> with reasonable data: smooth physics, board games, structured environments.</li>
-<li>You will face <strong>multiple downstream tasks</strong>, so the model amortises across them.</li>
-</ul>
-<p>Poor fit:</p>
-<ul>
-<li>A free, fast, high-fidelity simulator already exists (Atari <em>is</em> the simulator).</li>
-<li>Dynamics are highly stochastic or adversarial (financial markets, social interaction).</li>
-<li>The state space is so high-dimensional that no model fits in the data budget.</li>
-</ul>
-<hr>
-<h2 id="2-dyna-q-the-original-blueprint">2. Dyna-Q: The Original Blueprint</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig3_dyna_q_flow.png" alt="Dyna-Q flow diagram and convergence curves" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Sutton&rsquo;s <strong>Dyna</strong> (1990) is the first system to articulate the model-based loop in its purest form. Each real transition is consumed three times:</p>
-<ol>
-<li><strong>Direct learning</strong> &ndash; update Q with the real$(s,a,r,s')$,</li>
-<li><strong>Model learning</strong> &ndash; store the transition in a tabular model$M(s,a)\to(r,s')$,</li>
-<li><strong>Planning</strong> &ndash; sample$n$previously-seen$(s,a)$pairs, query the model, and apply$n$additional Q-updates from these <em>imagined</em> transitions.</li>
-</ol>
-<p>The convergence plot on the right shows the consequence on a deterministic GridWorld: increasing$n$from 0 (vanilla Q-Learning) to 50 collapses convergence by an order of magnitude in episodes &ndash; because every real step now triggers 51 Bellman updates instead of 1.</p>
-<h3 id="reference-implementation">Reference Implementation</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">DynaQ</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Tabular Dyna-Q: real learning + planning from a remembered model.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_states</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">planning_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_states</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="p">{}</span>                    <span class="c1"># (s, a) -&gt; (r, s&#39;)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">visited</span> <span class="o">=</span> <span class="p">[]</span>                  <span class="c1"># ordered list for sampling</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">epsilon</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">planning_steps</span> <span class="o">=</span> <span class="n">planning_steps</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s</span><span class="p">]))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_q_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">target</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s_next</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">learn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 1. direct RL</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_update</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 2. model learning (deterministic env: just memorise)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[(</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">s_next</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 3. planning -- replay imagined transitions</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planning_steps</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">sp</span><span class="p">,</span> <span class="n">ap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="p">))]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">rp</span><span class="p">,</span> <span class="n">sp_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[(</span><span class="n">sp</span><span class="p">,</span> <span class="n">ap</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_update</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">ap</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">sp_next</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="what-dyna-teaches-us-and-where-it-breaks">What Dyna Teaches Us, and Where It Breaks</h3>
-<p>Dyna isolates the core insight: <strong>a learned model lets you spend compute instead of samples</strong>. The trade-off it surfaces &ndash; and that every modern method inherits &ndash; is that planning on a wrong model injects bias straight into the value function. In tabular deterministic worlds this is invisible; with a neural-network model and a long horizon, errors compound exponentially. The rest of this article is essentially a sequence of clever answers to that one problem.</p>
-<hr>
-<h2 id="3-mbpo-keep-your-imagination-short">3. MBPO: Keep Your Imagination Short</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig4_mbpo_short_rollouts.png" alt="MBPO short branched rollouts and model error growth" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Model-Based Policy Optimization</strong> (Janner et al., NeurIPS 2019) is the cleanest modern instantiation of Dyna for continuous control. Its title insight is in two words: <strong>short rollouts</strong>.</p>
-<p>The right-hand panel shows the issue. Cumulative state-prediction error grows roughly geometrically with rollout length$k$. By$k = 20$even an ensemble of 5 dynamics models has drifted far enough to be useless for credit assignment. The MBPO answer is to <strong>branch only 1-5 steps</strong> off real states (left panel), then hand the resulting transitions to SAC for the long-horizon credit assignment that model-free methods do well.</p>
-<h3 id="algorithm">Algorithm</h3>
-<ol>
-<li>Roll the current policy in the real environment, append to$\mathcal{D}_{\text{real}}$.</li>
-<li>Fit an <strong>ensemble of 5</strong> probabilistic dynamics models$f_\theta(s,a)\to(s',r)$on$\mathcal{D}_{\text{real}}$.</li>
-<li>Repeatedly sample initial states from$\mathcal{D}_{\text{real}}$, branch a $k$-step rollout in a randomly chosen ensemble member, and append imagined transitions to$\mathcal{D}_{\text{model}}$.</li>
-<li>Train SAC on a mixture of$\mathcal{D}_{\text{real}}$and$\mathcal{D}_{\text{model}}$.</li>
-</ol>
-<p>The ensemble matters: averaging or random sampling across members both <em>regularises</em> predictions (they disagree most where data is sparse) and supplies <em>epistemic uncertainty</em> the policy can implicitly avoid.</p>
-<h3 id="sketch">Sketch</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">EnsembleDynamics</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;5 probabilistic dynamics models predicting (delta_s, reward).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">heads</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span> <span class="o">+</span> <span class="n">action_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">state_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>  <span class="c1"># mean + log_std</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state_dim</span> <span class="o">=</span> <span class="n">state_dim</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heads</span><span class="p">[</span><span class="n">idx</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">log_std</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_std</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dim</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">reward</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dim</span><span class="p">:]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">s</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="n">reward</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="result">Result</h3>
-<p>On MuJoCo HalfCheetah, MBPO reaches ~10,000 return in <strong>~100K</strong> environment steps where SAC needs ~1M and PPO ~1.6M. The empirically-optimal rollout length is **$k=1$**for most tasks; longer rollouts hurt because compounding error overwhelms the additional credit-assignment depth.</p>
-<hr>
-<h2 id="4-pure-planning-model-predictive-control">4. Pure Planning: Model Predictive Control</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig5_mpc_planning.png" alt="Model Predictive Control: shoot, score, execute first action, repeat" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>If the model is good enough, you can skip &ldquo;policy&rdquo; altogether and <strong>plan from scratch at every step</strong>. <strong>Model Predictive Control</strong> (MPC) is the workhorse of classical control engineering, and a learned dynamics model slots straight into it.</p>
-<p>The loop:</p>
-<ol>
-<li>Sample$N$candidate action sequences$a_{t:t+H}$(uniform, Gaussian, or from a CEM/iCEM proposal distribution).</li>
-<li>Roll each one forward $H$ steps in the <strong>learned</strong> model and score by predicted return.</li>
-<li><strong>Execute only the first action</strong> of the best sequence.</li>
-<li>Observe the real next state and re-plan.</li>
-</ol>
-<p>The figure shows 12 candidate trajectories (grey), the best one (green), and the single highlighted action that actually gets sent to the actuator. Crucially, executing one step at a time means the model only has to be locally accurate &ndash; compounding error never gets a chance to wreck a long open-loop plan.</p>
-<p>MPC is the dominant choice when <strong>the cost of a mistake is high</strong> (real robots, surgery, autonomous driving). It is also the bridge between learned models and the rest of the planning literature: PETS, PlaNet, TD-MPC, and Dreamer&rsquo;s policy improvement loop all reduce to &ldquo;MPC inside a learned model&rdquo; in some form.</p>
-<hr>
-<h2 id="5-world-models-dreaming-in-a-latent-space">5. World Models: Dreaming in a Latent Space</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig2_world_model_vmc.png" alt="World Model V/M/C architecture" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>MBPO works because MuJoCo states are 11-23 dimensional. Predicting the next$84\times 84\times 3$Atari frame, by contrast, is hopelessly hard &ndash; and most of those pixels (sky, scoreboard) are irrelevant to control. <strong>World Models</strong> (Ha &amp; Schmidhuber, 2018) propose a different shape:</p>
-<blockquote>
-<p>Compress observations into a small latent code, then learn dynamics <em>in that latent space</em>.</p>
-</blockquote>
-<p>Three components, drawn left-to-right above:</p>
-<ul>
-<li><strong>V (Vision)</strong> &ndash; a Variational Autoencoder maps each frame$o_t$to a ~32-dimensional latent$z_t$. The reconstruction loss forces$z_t$to retain enough information about the scene.</li>
-<li><strong>M (Memory)</strong> &ndash; a Mixture-Density-Network RNN models$P(z_{t+1}\mid z_t, a_t, h_t)$, where$h_t$is the recurrent state. M <em>is</em> the world model.</li>
-<li><strong>C (Controller)</strong> &ndash; a deliberately tiny linear policy maps$(z_t, h_t)\to a_t$. On CarRacing it has just <strong>867 parameters</strong> versus DQN&rsquo;s 1.7M.</li>
-</ul>
-<h3 id="why-it-works----and-why-it-was-surprising">Why It Works &ndash; and Why It Was Surprising</h3>
-<p>The controller can be trained <strong>entirely in dreams</strong>: roll out M from a sampled$z$, get pseudo-trajectories, evolve C with CMA-ES, and never touch the real environment until evaluation. The 867-parameter controller scores near-human on CarRacing-v0. The deeper lesson, which all of Dreamer / DreamerV3 / TD-MPC inherit, is that <em>learning a useful representation is most of the problem</em>: once V and M are in place, control is almost trivial.</p>
-<hr>
-<h2 id="6-dreamer-end-to-end-latent-imagination">6. Dreamer: End-to-End Latent Imagination</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig7_dreamer_latent.png" alt="Dreamer RSSM latent dynamics across three time steps" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>World Models trains V, M, C in three separate phases, which means the VAE optimises for pixel reconstruction rather than for what the controller actually needs. <strong>Dreamer</strong> (Hafner et al., ICLR 2020; DreamerV2 2021; DreamerV3 2023) trains the entire stack jointly and adds a key architectural piece: the <strong>Recurrent State-Space Model (RSSM)</strong>.</p>
-<h3 id="rssm-in-one-picture">RSSM in One Picture</h3>
-<p>The figure shows three time steps. At each step the latent state has two parts:</p>
-<p>-$h_t$<strong>(deterministic)</strong> &ndash; a GRU hidden state carrying long-range memory:$h_t = \mathrm{GRU}(h_{t-1}, z_{t-1}, a_{t-1})$.
--$z_t$<strong>(stochastic)</strong> &ndash; a small categorical or Gaussian latent sampled from a prior$p(z_t\mid h_t)$at imagination time, or a posterior$q(z_t\mid h_t, o_t)$at training time.</p>
-<p>This separation matters. The deterministic$h$ remembers, while the stochastic$z$ models genuinely uncertain dynamics (a Pong ball going off-screen, a Minecraft chest hiding random loot). Heads on$(h_t, z_t)$predict reward, value, and (during training) the observation &ndash; so any decoder loss flows back through the dynamics and into the representation.</p>
-<h3 id="behaviour-learning-happens-entirely-in-imagination">Behaviour Learning Happens Entirely in Imagination</h3>
-<p>Once the world model is fitted on real data, Dreamer trains the actor and critic by:</p>
-<ol>
-<li>Sampling a batch of real$(h_t, z_t)$as starting points.</li>
-<li>Rolling the <strong>prior</strong> dynamics 15 steps forward, sampling actions from the actor.</li>
-<li>Bootstrapping a value target through the imagined trajectory and updating the actor by reparameterised policy gradient.</li>
-</ol>
-<p>No real interaction during this step. A single batch on the real buffer fuels thousands of imagined gradient updates &ndash; the same Dyna idea, but now in a learned latent space.</p>
-<h3 id="results">Results</h3>
-<ul>
-<li><strong>DMControl Walker:</strong> ~900 return in 100K steps, where SAC needs ~1M.</li>
-<li><strong>Atari:</strong> DreamerV2 matches IQN/Rainbow on the 55-game suite <em>while running on a single GPU</em>.</li>
-<li><strong>Minecraft (DreamerV3, 2023):</strong> the first algorithm to collect diamonds from scratch, with no demonstrations and no per-task hyperparameter tuning.</li>
-</ul>
-<p>DreamerV3&rsquo;s claim to fame is robustness: the same model-based agent, with the same hyperparameters, beats specialised baselines across more than 150 tasks spanning DMControl, Atari, Crafter, and Minecraft.</p>
-<hr>
-<h2 id="7-muzero-plan-without-predicting-pixels">7. MuZero: Plan Without Predicting Pixels</h2>
-<p>The thread running through World Models and Dreamer is &ldquo;predict observations&rdquo;. MuZero (Schrittwieser et al., <em>Nature</em> 2020) noticed that for <strong>planning</strong>, you do not actually need observations &ndash; you need value, policy, and reward. Everything else is a means to that end.</p>
-<p>MuZero learns three small networks operating on an abstract hidden state:</p>
-<ul>
-<li><strong>Representation:</strong>$s_0 = h(o_0)$&ndash; encode the real observation into a hidden state.</li>
-<li><strong>Dynamics:</strong>$s_{k+1}, r_{k+1} = g(s_k, a_k)$&ndash; transition purely in hidden space.</li>
-<li><strong>Prediction:</strong>$p_k, v_k = f(s_k)$&ndash; emit policy logits and value.</li>
-</ul>
-<p>The hidden states$s_k$do not have to correspond to anything in the real environment; they only have to be useful for the Monte Carlo Tree Search that plans on top of them.</p>
-<h3 id="training-loss">Training Loss</h3>
-<p>For a trajectory unrolled $K$ steps with MCTS targets$z^v, z^p$and observed rewards$z^r$:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Reinforcement Learning (5): Model-Based RL and World Models · Chen Kai Blog</title>
+<meta name=description content="From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/reinforcement-learning/05-model-based-rl-and-world-models/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/reinforcement-learning/05-model-based-rl-and-world-models/><meta property="og:type" content="article"><meta property="og:title" content="Reinforcement Learning (5): Model-Based RL and World Models"><meta property="og:description" content="From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions."><meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/05-model-based-rl-and-world-models/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Reinforcement Learning</a>
+· Chapter 5</div><h1>Reinforcement Learning (5): Model-Based RL and World Models</h1><p class=deck>From Dyna and MBPO to World Models, Dreamer, and MuZero -- how learning a model lets agents plan in imagination and reach expert performance with 10-100x fewer real interactions.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-08-21>August 21, 2025</time> · 14 min read · 2978 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/reinforcement-learning/ class=tag>#Reinforcement Learning</a><a href=/en/tags/model-based-rl/ class=tag>#Model-Based RL</a><a href=/en/tags/world-models/ class=tag>#World Models</a><a href=/en/tags/dyna/ class=tag>#Dyna</a><a href=/en/tags/mbpo/ class=tag>#MBPO</a><a href=/en/tags/dreamer/ class=tag>#Dreamer</a><a href=/en/tags/muzero/ class=tag>#MuZero</a><a href=/en/tags/planet/ class=tag>#PlaNet</a></div></div></header><div class=prose><p>Every algorithm we have covered so far &ndash; DQN, REINFORCE, A2C, PPO, SAC &ndash; is <strong>model-free</strong>: the agent treats the environment as a black box, throws actions at it, and updates its policy from the rewards that come back. The approach works, but it is profligate. DQN needs roughly <strong>10 million frames</strong> to master Atari Pong. OpenAI Five trained on Dota 2 for the equivalent of <strong>~45,000 years</strong> of self-play. AlphaStar consumed years of StarCraft for a single agent.</p><p>Humans clearly do not learn this way. A chess player imagines positions a few moves deep and prunes obvious blunders; a child learns &ldquo;cliffs are bad&rdquo; once, by inference, not by falling. Both rely on an internal <strong>model</strong> of how the world responds to actions, and they spend most of their cognitive budget <em>in that model</em>, not in the world.</p><p><strong>Model-Based RL (MBRL)</strong> formalises this idea: learn an approximate dynamics model$\hat{P}(s'\mid s, a)$and reward model$\hat{R}(s, a)$, then use them as a cheap simulator for planning, policy improvement, or value estimation. The payoff, on tasks where it works, is a <strong>10-100x reduction in real-environment samples</strong> &ndash; the difference between a robot that needs three months of physical interaction and one that needs an afternoon.</p><p>This article traces the modern lineage: Dyna (1990) -> MBPO (2019) -> World Models (2018) -> Dreamer (2020-23) -> MuZero (2020). Each method rests on a single sharp idea, and the seven figures in this post visualise those ideas one at a time.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>The exact trade-offs that make model-based RL win or lose</li><li><strong>Dyna-Q</strong>: the original blueprint for mixing real and imagined updates</li><li><strong>MBPO</strong>: why short-horizon imagination is the sweet spot</li><li><strong>MPC</strong> as a pure planning loop with a learned model</li><li><strong>World Models</strong> (V/M/C): compressing pixels into a latent dream space</li><li><strong>Dreamer / RSSM</strong>: end-to-end latent imagination with a recurrent + stochastic state</li><li><strong>MuZero</strong>: planning without ever predicting an observation</li></ul><p><strong>Prerequisites:</strong> <a href=/en/reinforcement-learning-1-fundamentals-and-core-concepts/>Parts 1-3</a>
+(MDPs, value functions, policy gradients, Actor-Critic).</p><hr><h2 id=1-two-paradigms-one-goal>1. Two Paradigms, One Goal</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig1_mf_vs_mb_loops.png alt="Model-free vs model-based control loops" loading=lazy decoding=async></figure></p><p>In model-free RL the only loop is <em>act -> observe -> learn</em>. In model-based RL we insert a second loop: <em>learn a model -> plan inside the model -> improve the policy</em>. Real-world interaction now amortises across thousands of imagined updates.</p><h3 id=the-trade-off>The Trade-off</h3><table><thead><tr><th></th><th>Model-Free</th><th>Model-Based</th></tr></thead><tbody><tr><td><strong>What is learnt</strong></td><td>A policy / value function only</td><td>A model $\hat{P},\hat{R}$ <strong>and</strong> a policy / value</td></tr><tr><td><strong>Sample cost</strong></td><td>High &ndash; each gradient step uses a real interaction</td><td>Low &ndash; one real step yields many imagined updates</td></tr><tr><td><strong>Compute cost</strong></td><td>Lower per step</td><td>Higher (model fitting + planning)</td></tr><tr><td><strong>Asymptote</strong></td><td>Limited only by exploration</td><td>Limited by <strong>model bias</strong></td></tr><tr><td><strong>Transfer</strong></td><td>Tied to the trained reward</td><td>Same model can be reused for new tasks</td></tr><tr><td><strong>Failure mode</strong></td><td>Slow learning</td><td>Compounding model error -> hallucinated optima</td></tr></tbody></table><h3 id=sample-efficiency-in-practice>Sample Efficiency in Practice</h3><table><thead><tr><th>Algorithm</th><th>Family</th><th>Benchmark</th><th>Steps to expert</th></tr></thead><tbody><tr><td>DQN</td><td>Model-free</td><td>Atari Pong</td><td>~10M frames</td></tr><tr><td>PPO</td><td>Model-free</td><td>MuJoCo HalfCheetah</td><td>~1-2M steps</td></tr><tr><td>SAC</td><td>Model-free</td><td>MuJoCo HalfCheetah</td><td>~600K steps</td></tr><tr><td><strong>MBPO</strong></td><td>Model-based</td><td>MuJoCo HalfCheetah</td><td><strong>~80-100K</strong></td></tr><tr><td><strong>Dreamer</strong></td><td>Model-based</td><td>DMControl Walker</td><td><strong>~100K</strong></td></tr><tr><td><strong>DreamerV3</strong></td><td>Model-based</td><td>Minecraft (diamonds)</td><td>first algorithm to do it from scratch</td></tr></tbody></table><p>The gap is roughly <strong>one order of magnitude</strong> in continuous control and even larger when the simulator is expensive (real robots, slow physics).</p><h3 id=when-to-reach-for-model-based>When to Reach for Model-Based</h3><p>Good fit:</p><ul><li>Real interaction is expensive: robotics, autonomous driving, drug discovery, dialogue systems with users in the loop.</li><li>Dynamics are <em>learnable</em> with reasonable data: smooth physics, board games, structured environments.</li><li>You will face <strong>multiple downstream tasks</strong>, so the model amortises across them.</li></ul><p>Poor fit:</p><ul><li>A free, fast, high-fidelity simulator already exists (Atari <em>is</em> the simulator).</li><li>Dynamics are highly stochastic or adversarial (financial markets, social interaction).</li><li>The state space is so high-dimensional that no model fits in the data budget.</li></ul><hr><h2 id=2-dyna-q-the-original-blueprint>2. Dyna-Q: The Original Blueprint</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig3_dyna_q_flow.png alt="Dyna-Q flow diagram and convergence curves" loading=lazy decoding=async></figure></p><p>Sutton&rsquo;s <strong>Dyna</strong> (1990) is the first system to articulate the model-based loop in its purest form. Each real transition is consumed three times:</p><ol><li><strong>Direct learning</strong> &ndash; update Q with the real$(s,a,r,s')$,</li><li><strong>Model learning</strong> &ndash; store the transition in a tabular model$M(s,a)\to(r,s')$,</li><li><strong>Planning</strong> &ndash; sample$n$previously-seen$(s,a)$pairs, query the model, and apply$n$additional Q-updates from these <em>imagined</em> transitions.</li></ol><p>The convergence plot on the right shows the consequence on a deterministic GridWorld: increasing$n$from 0 (vanilla Q-Learning) to 50 collapses convergence by an order of magnitude in episodes &ndash; because every real step now triggers 51 Bellman updates instead of 1.</p><h3 id=reference-implementation>Reference Implementation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>DynaQ</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Tabular Dyna-Q: real learning + planning from a remembered model.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_states</span><span class=p>,</span> <span class=n>n_actions</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.95</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>epsilon</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>planning_steps</span><span class=o>=</span><span class=mi>10</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>Q</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=n>n_states</span><span class=p>,</span> <span class=n>n_actions</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=p>{}</span>                    <span class=c1># (s, a) -&gt; (r, s&#39;)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>visited</span> <span class=o>=</span> <span class=p>[]</span>                  <span class=c1># ordered list for sampling</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span> <span class=o>=</span> <span class=n>alpha</span><span class=p>,</span> <span class=n>gamma</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span> <span class=o>=</span> <span class=n>epsilon</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>planning_steps</span> <span class=o>=</span> <span class=n>planning_steps</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select_action</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>s</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>rand</span><span class=p>()</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>s</span><span class=p>]))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_q_update</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>,</span> <span class=n>r</span><span class=p>,</span> <span class=n>s_next</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>target</span> <span class=o>=</span> <span class=n>r</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>s_next</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>]</span> <span class=o>+=</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=p>(</span><span class=n>target</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>learn</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>,</span> <span class=n>r</span><span class=p>,</span> <span class=n>s_next</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 1. direct RL</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_q_update</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>,</span> <span class=n>r</span><span class=p>,</span> <span class=n>s_next</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 2. model learning (deterministic env: just memorise)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>)</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>visited</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>[(</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>)]</span> <span class=o>=</span> <span class=p>(</span><span class=n>r</span><span class=p>,</span> <span class=n>s_next</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 3. planning -- replay imagined transitions</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>planning_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>sp</span><span class=p>,</span> <span class=n>ap</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>visited</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>visited</span><span class=p>))]</span>
+</span></span><span class=line><span class=cl>            <span class=n>rp</span><span class=p>,</span> <span class=n>sp_next</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>[(</span><span class=n>sp</span><span class=p>,</span> <span class=n>ap</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>_q_update</span><span class=p>(</span><span class=n>sp</span><span class=p>,</span> <span class=n>ap</span><span class=p>,</span> <span class=n>rp</span><span class=p>,</span> <span class=n>sp_next</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=what-dyna-teaches-us-and-where-it-breaks>What Dyna Teaches Us, and Where It Breaks</h3><p>Dyna isolates the core insight: <strong>a learned model lets you spend compute instead of samples</strong>. The trade-off it surfaces &ndash; and that every modern method inherits &ndash; is that planning on a wrong model injects bias straight into the value function. In tabular deterministic worlds this is invisible; with a neural-network model and a long horizon, errors compound exponentially. The rest of this article is essentially a sequence of clever answers to that one problem.</p><hr><h2 id=3-mbpo-keep-your-imagination-short>3. MBPO: Keep Your Imagination Short</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig4_mbpo_short_rollouts.png alt="MBPO short branched rollouts and model error growth" loading=lazy decoding=async></figure></p><p><strong>Model-Based Policy Optimization</strong> (Janner et al., NeurIPS 2019) is the cleanest modern instantiation of Dyna for continuous control. Its title insight is in two words: <strong>short rollouts</strong>.</p><p>The right-hand panel shows the issue. Cumulative state-prediction error grows roughly geometrically with rollout length$k$. By$k = 20$even an ensemble of 5 dynamics models has drifted far enough to be useless for credit assignment. The MBPO answer is to <strong>branch only 1-5 steps</strong> off real states (left panel), then hand the resulting transitions to SAC for the long-horizon credit assignment that model-free methods do well.</p><h3 id=algorithm>Algorithm</h3><ol><li>Roll the current policy in the real environment, append to$\mathcal{D}_{\text{real}}$.</li><li>Fit an <strong>ensemble of 5</strong> probabilistic dynamics models$f_\theta(s,a)\to(s',r)$on$\mathcal{D}_{\text{real}}$.</li><li>Repeatedly sample initial states from$\mathcal{D}_{\text{real}}$, branch a $k$-step rollout in a randomly chosen ensemble member, and append imagined transitions to$\mathcal{D}_{\text{model}}$.</li><li>Train SAC on a mixture of$\mathcal{D}_{\text{real}}$and$\mathcal{D}_{\text{model}}$.</li></ol><p>The ensemble matters: averaging or random sampling across members both <em>regularises</em> predictions (they disagree most where data is sparse) and supplies <em>epistemic uncertainty</em> the policy can implicitly avoid.</p><h3 id=sketch>Sketch</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>EnsembleDynamics</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;5 probabilistic dynamics models predicting (delta_s, reward).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>256</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>heads</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ModuleList</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span> <span class=o>+</span> <span class=n>action_dim</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>SiLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>SiLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=mi>2</span> <span class=o>*</span> <span class=p>(</span><span class=n>state_dim</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)),</span>  <span class=c1># mean + log_std</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>state_dim</span> <span class=o>=</span> <span class=n>state_dim</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>sample</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>heads</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>s</span><span class=p>,</span> <span class=n>a</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>heads</span><span class=p>[</span><span class=n>idx</span><span class=p>](</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>mu</span><span class=p>,</span> <span class=n>log_std</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>chunk</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>eps</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>mu</span><span class=p>)</span> <span class=o>*</span> <span class=n>log_std</span><span class=o>.</span><span class=n>exp</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>delta</span> <span class=o>=</span> <span class=p>(</span><span class=n>mu</span> <span class=o>+</span> <span class=n>eps</span><span class=p>)[</span><span class=o>...</span><span class=p>,</span> <span class=p>:</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_dim</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>reward</span> <span class=o>=</span> <span class=p>(</span><span class=n>mu</span> <span class=o>+</span> <span class=n>eps</span><span class=p>)[</span><span class=o>...</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>state_dim</span><span class=p>:]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>s</span> <span class=o>+</span> <span class=n>delta</span><span class=p>,</span> <span class=n>reward</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=result>Result</h3><p>On MuJoCo HalfCheetah, MBPO reaches ~10,000 return in <strong>~100K</strong> environment steps where SAC needs ~1M and PPO ~1.6M. The empirically-optimal rollout length is **$k=1$**for most tasks; longer rollouts hurt because compounding error overwhelms the additional credit-assignment depth.</p><hr><h2 id=4-pure-planning-model-predictive-control>4. Pure Planning: Model Predictive Control</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig5_mpc_planning.png alt="Model Predictive Control: shoot, score, execute first action, repeat" loading=lazy decoding=async></figure></p><p>If the model is good enough, you can skip &ldquo;policy&rdquo; altogether and <strong>plan from scratch at every step</strong>. <strong>Model Predictive Control</strong> (MPC) is the workhorse of classical control engineering, and a learned dynamics model slots straight into it.</p><p>The loop:</p><ol><li>Sample$N$candidate action sequences$a_{t:t+H}$(uniform, Gaussian, or from a CEM/iCEM proposal distribution).</li><li>Roll each one forward $H$ steps in the <strong>learned</strong> model and score by predicted return.</li><li><strong>Execute only the first action</strong> of the best sequence.</li><li>Observe the real next state and re-plan.</li></ol><p>The figure shows 12 candidate trajectories (grey), the best one (green), and the single highlighted action that actually gets sent to the actuator. Crucially, executing one step at a time means the model only has to be locally accurate &ndash; compounding error never gets a chance to wreck a long open-loop plan.</p><p>MPC is the dominant choice when <strong>the cost of a mistake is high</strong> (real robots, surgery, autonomous driving). It is also the bridge between learned models and the rest of the planning literature: PETS, PlaNet, TD-MPC, and Dreamer&rsquo;s policy improvement loop all reduce to &ldquo;MPC inside a learned model&rdquo; in some form.</p><hr><h2 id=5-world-models-dreaming-in-a-latent-space>5. World Models: Dreaming in a Latent Space</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig2_world_model_vmc.png alt="World Model V/M/C architecture" loading=lazy decoding=async></figure></p><p>MBPO works because MuJoCo states are 11-23 dimensional. Predicting the next$84\times 84\times 3$Atari frame, by contrast, is hopelessly hard &ndash; and most of those pixels (sky, scoreboard) are irrelevant to control. <strong>World Models</strong> (Ha & Schmidhuber, 2018) propose a different shape:</p><blockquote><p>Compress observations into a small latent code, then learn dynamics <em>in that latent space</em>.</p></blockquote><p>Three components, drawn left-to-right above:</p><ul><li><strong>V (Vision)</strong> &ndash; a Variational Autoencoder maps each frame$o_t$to a ~32-dimensional latent$z_t$. The reconstruction loss forces$z_t$to retain enough information about the scene.</li><li><strong>M (Memory)</strong> &ndash; a Mixture-Density-Network RNN models$P(z_{t+1}\mid z_t, a_t, h_t)$, where$h_t$is the recurrent state. M <em>is</em> the world model.</li><li><strong>C (Controller)</strong> &ndash; a deliberately tiny linear policy maps$(z_t, h_t)\to a_t$. On CarRacing it has just <strong>867 parameters</strong> versus DQN&rsquo;s 1.7M.</li></ul><h3 id=why-it-works----and-why-it-was-surprising>Why It Works &ndash; and Why It Was Surprising</h3><p>The controller can be trained <strong>entirely in dreams</strong>: roll out M from a sampled$z$, get pseudo-trajectories, evolve C with CMA-ES, and never touch the real environment until evaluation. The 867-parameter controller scores near-human on CarRacing-v0. The deeper lesson, which all of Dreamer / DreamerV3 / TD-MPC inherit, is that <em>learning a useful representation is most of the problem</em>: once V and M are in place, control is almost trivial.</p><hr><h2 id=6-dreamer-end-to-end-latent-imagination>6. Dreamer: End-to-End Latent Imagination</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig7_dreamer_latent.png alt="Dreamer RSSM latent dynamics across three time steps" loading=lazy decoding=async></figure></p><p>World Models trains V, M, C in three separate phases, which means the VAE optimises for pixel reconstruction rather than for what the controller actually needs. <strong>Dreamer</strong> (Hafner et al., ICLR 2020; DreamerV2 2021; DreamerV3 2023) trains the entire stack jointly and adds a key architectural piece: the <strong>Recurrent State-Space Model (RSSM)</strong>.</p><h3 id=rssm-in-one-picture>RSSM in One Picture</h3><p>The figure shows three time steps. At each step the latent state has two parts:</p><p>-$h_t$<strong>(deterministic)</strong> &ndash; a GRU hidden state carrying long-range memory:$h_t = \mathrm{GRU}(h_{t-1}, z_{t-1}, a_{t-1})$.
+-$z_t$<strong>(stochastic)</strong> &ndash; a small categorical or Gaussian latent sampled from a prior$p(z_t\mid h_t)$at imagination time, or a posterior$q(z_t\mid h_t, o_t)$at training time.</p><p>This separation matters. The deterministic$h$ remembers, while the stochastic$z$ models genuinely uncertain dynamics (a Pong ball going off-screen, a Minecraft chest hiding random loot). Heads on$(h_t, z_t)$predict reward, value, and (during training) the observation &ndash; so any decoder loss flows back through the dynamics and into the representation.</p><h3 id=behaviour-learning-happens-entirely-in-imagination>Behaviour Learning Happens Entirely in Imagination</h3><p>Once the world model is fitted on real data, Dreamer trains the actor and critic by:</p><ol><li>Sampling a batch of real$(h_t, z_t)$as starting points.</li><li>Rolling the <strong>prior</strong> dynamics 15 steps forward, sampling actions from the actor.</li><li>Bootstrapping a value target through the imagined trajectory and updating the actor by reparameterised policy gradient.</li></ol><p>No real interaction during this step. A single batch on the real buffer fuels thousands of imagined gradient updates &ndash; the same Dyna idea, but now in a learned latent space.</p><h3 id=results>Results</h3><ul><li><strong>DMControl Walker:</strong> ~900 return in 100K steps, where SAC needs ~1M.</li><li><strong>Atari:</strong> DreamerV2 matches IQN/Rainbow on the 55-game suite <em>while running on a single GPU</em>.</li><li><strong>Minecraft (DreamerV3, 2023):</strong> the first algorithm to collect diamonds from scratch, with no demonstrations and no per-task hyperparameter tuning.</li></ul><p>DreamerV3&rsquo;s claim to fame is robustness: the same model-based agent, with the same hyperparameters, beats specialised baselines across more than 150 tasks spanning DMControl, Atari, Crafter, and Minecraft.</p><hr><h2 id=7-muzero-plan-without-predicting-pixels>7. MuZero: Plan Without Predicting Pixels</h2><p>The thread running through World Models and Dreamer is &ldquo;predict observations&rdquo;. MuZero (Schrittwieser et al., <em>Nature</em> 2020) noticed that for <strong>planning</strong>, you do not actually need observations &ndash; you need value, policy, and reward. Everything else is a means to that end.</p><p>MuZero learns three small networks operating on an abstract hidden state:</p><ul><li><strong>Representation:</strong>$s_0 = h(o_0)$&ndash; encode the real observation into a hidden state.</li><li><strong>Dynamics:</strong>$s_{k+1}, r_{k+1} = g(s_k, a_k)$&ndash; transition purely in hidden space.</li><li><strong>Prediction:</strong>$p_k, v_k = f(s_k)$&ndash; emit policy logits and value.</li></ul><p>The hidden states$s_k$do not have to correspond to anything in the real environment; they only have to be useful for the Monte Carlo Tree Search that plans on top of them.</p><h3 id=training-loss>Training Loss</h3><p>For a trajectory unrolled $K$ steps with MCTS targets$z^v, z^p$and observed rewards$z^r$:</p>$$
 \mathcal{L} = \sum_{k=0}^{K} \Big[ \ell^p(p_k, z_k^p) + \ell^v(v_k, z_k^v) + \ell^r(r_k, z_k^r)\Big].
-$$<p>Crucially, no reconstruction term ever appears. The model is <em>implicit</em> &ndash; it is whatever makes the MCTS targets self-consistent.</p>
-<h3 id="results-1">Results</h3>
-<p>A single algorithm with a single hyperparameter set achieves:</p>
-<ul>
-<li><strong>Go, chess, shogi:</strong> matches or exceeds AlphaZero &ndash; <em>without being given the game rules</em>.</li>
-<li><strong>Atari 57:</strong> new SOTA over R2D2.</li>
-<li><strong>MuZero Reanalyse / Sampled MuZero / EfficientZero (2021):</strong> human-level Atari in 2 hours of game time.</li>
-</ul>
-<p>MuZero is the cleanest demonstration of a deep principle: <strong>your model only has to be as faithful as your downstream use of it requires</strong>.</p>
-<hr>
-<h2 id="8-the-big-picture-sample-efficiency">8. The Big Picture: Sample Efficiency</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig6_sample_efficiency.png" alt="Sample efficiency on MuJoCo HalfCheetah and steps-to-target bar chart" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Stacking the methods on one plot makes the central claim concrete. On HalfCheetah, MBPO and Dreamer reach a score that takes SAC ~600K steps and PPO ~1.6M to match &ndash; in <strong>80-150K</strong> real steps. The shape of every model-based curve is the same: a slow start (the model is being learned) followed by a sharp climb once imagined updates start carrying useful gradients.</p>
-<p>That said, the plot also shows an honest limitation. Model-based curves do not always <strong>exceed</strong> model-free asymptotes; they reach the same level much faster. When samples are cheap, model-free methods often win by simplicity. When samples are expensive &ndash; which is the empirically interesting regime &ndash; model-based wins by a wide margin.</p>
-<hr>
-<h2 id="9-choosing-the-right-tool">9. Choosing the Right Tool</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Scenario</th>
-          <th>Method</th>
-          <th>Why</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Small discrete environment, fast iteration</td>
-          <td>Dyna-Q</td>
-          <td>Tabular, trivially correct, instant payoff</td>
-      </tr>
-      <tr>
-          <td>Continuous control, moderate-dim states</td>
-          <td>MBPO</td>
-          <td>Short rollouts + SAC give 10x sample gain</td>
-      </tr>
-      <tr>
-          <td>Real robot, expensive interaction</td>
-          <td>MPC + ensemble dynamics (PETS/iCEM)</td>
-          <td>Plan locally, never trust long open-loop</td>
-      </tr>
-      <tr>
-          <td>Pixel observations, limited budget</td>
-          <td>Dreamer / DreamerV3</td>
-          <td>Latent dynamics handle high-dim sensors</td>
-      </tr>
-      <tr>
-          <td>Perfect-information games / discrete planning</td>
-          <td>MuZero</td>
-          <td>Implicit model + MCTS, no rules required</td>
-      </tr>
-      <tr>
-          <td>You already have a free, fast simulator</td>
-          <td>PPO / SAC</td>
-          <td>No model error to worry about</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="10-open-problems">10. Open Problems</h2>
-<p>Three frontiers are particularly active:</p>
-<ol>
-<li><strong>Model error in the long tail.</strong> All current methods either keep horizons short (MBPO, MPC) or hide the problem in latent space (Dreamer). Neither scales gracefully to tasks needing 1000-step credit assignment with photorealistic dynamics.</li>
-<li><strong>Stochastic and multi-modal worlds.</strong> RSSM&rsquo;s stochastic$z$is a step, but predicting genuinely multi-modal futures (driving, dialogue) remains hard.</li>
-<li><strong>World models for foundation agents.</strong> Recent work (Genie, Sora-as-world-model, V-JEPA) treats large generative video models as the dynamics component; whether a single pretrained world model can transfer across tasks the way LLMs do is an open and consequential question.</li>
-</ol>
-<hr>
-<h2 id="summary">Summary</h2>
-<p>Model-based RL is the family of methods that <strong>spend compute to save samples</strong>:</p>
-<ul>
-<li><strong>Dyna</strong> introduced the loop &ndash; mix real and imagined updates to amortise interaction.</li>
-<li><strong>MBPO</strong> showed that <em>short</em> imagined rollouts beat long ones, because model error compounds.</li>
-<li><strong>MPC</strong> treats the model as a one-step-ahead simulator and replans every step.</li>
-<li><strong>World Models</strong> moved dynamics learning into a compressed latent space, making pixels tractable.</li>
-<li><strong>Dreamer / RSSM</strong> trains representation, dynamics, and policy jointly and learns behaviour entirely in imagination.</li>
-<li><strong>MuZero</strong> dropped reconstruction altogether: the model just has to be self-consistent under MCTS.</li>
-</ul>
-<p>The unifying lesson is that <strong>what you predict should match how you use the prediction</strong>. Predict pixels if pixels matter; predict$(r, v, p)$if those are all that the planner consumes. That principle is what makes the modern wave &ndash; DreamerV3, EfficientZero, TD-MPC2 &ndash; finally feel general.</p>
-<p><strong>Next up:</strong> <a href="/en/reinforcement-learning-6-ppo-and-trpo/">Part 6</a>
- dives into <strong>PPO and TRPO</strong> &ndash; the trust-region policy gradient methods that quietly power industrial RL, from robotic manipulation to ChatGPT&rsquo;s RLHF.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Sutton, R. S. (1990). <em>Integrated architectures for learning, planning, and reacting based on approximating dynamic programming</em>. ICML.</li>
-<li>Janner, M., Fu, J., Zhang, M., &amp; Levine, S. (2019). <em>When to trust your model: model-based policy optimization</em>. NeurIPS. <a href="https://arxiv.org/abs/1906.08253" target="_blank" rel="noopener noreferrer">arXiv:1906.08253 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Chua, K., Calandra, R., McAllister, R., &amp; Levine, S. (2018). <em>Deep reinforcement learning in a handful of trials using probabilistic dynamics models</em> (PETS). NeurIPS. <a href="https://arxiv.org/abs/1805.12114" target="_blank" rel="noopener noreferrer">arXiv:1805.12114 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ha, D., &amp; Schmidhuber, J. (2018). <em>World models</em>. NeurIPS. <a href="https://arxiv.org/abs/1803.10122" target="_blank" rel="noopener noreferrer">arXiv:1803.10122 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hafner, D., Lillicrap, T., Ba, J., &amp; Norouzi, M. (2020). <em>Dream to control: learning behaviors by latent imagination</em> (Dreamer). ICLR. <a href="https://arxiv.org/abs/1912.01603" target="_blank" rel="noopener noreferrer">arXiv:1912.01603 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hafner, D., Lillicrap, T., Norouzi, M., &amp; Ba, J. (2021). <em>Mastering Atari with discrete world models</em> (DreamerV2). ICLR. <a href="https://arxiv.org/abs/2010.02193" target="_blank" rel="noopener noreferrer">arXiv:2010.02193 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hafner, D., et al. (2023). <em>Mastering diverse domains through world models</em> (DreamerV3). <a href="https://arxiv.org/abs/2301.04104" target="_blank" rel="noopener noreferrer">arXiv:2301.04104 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Schrittwieser, J., et al. (2020). <em>Mastering Atari, Go, chess and shogi by planning with a learned model</em> (MuZero). <em>Nature</em>. <a href="https://arxiv.org/abs/1911.08265" target="_blank" rel="noopener noreferrer">arXiv:1911.08265 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ye, W., Liu, S., Kurutach, T., Abbeel, P., &amp; Gao, Y. (2021). <em>Mastering Atari games with limited data</em> (EfficientZero). NeurIPS. <a href="https://arxiv.org/abs/2111.00210" target="_blank" rel="noopener noreferrer">arXiv:2111.00210 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hansen, N., Wang, X., &amp; Su, H. (2022/2024). <em>Temporal difference learning for model predictive control</em> (TD-MPC / TD-MPC2). <a href="https://arxiv.org/abs/2310.16828" target="_blank" rel="noopener noreferrer">arXiv:2310.16828 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/en/reinforcement-learning-1-fundamentals-and-core-concepts/">Fundamentals and Core Concepts</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/en/reinforcement-learning-2-q-learning-and-dqn/">Q-Learning and DQN</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><a href="/en/reinforcement-learning-3-policy-gradient-and-actor-critic/">Policy Gradient and Actor-Critic</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/en/reinforcement-learning-4-exploration-and-curiosity-driven-learning/">Exploration and Curiosity-Driven Learning</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>5</strong></td>
-          <td><strong>Model-Based RL and World Models (you are here)</strong></td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/en/reinforcement-learning-6-ppo-and-trpo/">PPO and TRPO</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#1-two-paradigms-one-goal">1. Two Paradigms, One Goal</a>
-      <ul>
-        <li><a href="#the-trade-off">The Trade-off</a></li>
-        <li><a href="#sample-efficiency-in-practice">Sample Efficiency in Practice</a></li>
-        <li><a href="#when-to-reach-for-model-based">When to Reach for Model-Based</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-dyna-q-the-original-blueprint">2. Dyna-Q: The Original Blueprint</a>
-      <ul>
-        <li><a href="#reference-implementation">Reference Implementation</a></li>
-        <li><a href="#what-dyna-teaches-us-and-where-it-breaks">What Dyna Teaches Us, and Where It Breaks</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-mbpo-keep-your-imagination-short">3. MBPO: Keep Your Imagination Short</a>
-      <ul>
-        <li><a href="#algorithm">Algorithm</a></li>
-        <li><a href="#sketch">Sketch</a></li>
-        <li><a href="#result">Result</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-pure-planning-model-predictive-control">4. Pure Planning: Model Predictive Control</a></li>
-    <li><a href="#5-world-models-dreaming-in-a-latent-space">5. World Models: Dreaming in a Latent Space</a>
-      <ul>
-        <li><a href="#why-it-works----and-why-it-was-surprising">Why It Works &ndash; and Why It Was Surprising</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-dreamer-end-to-end-latent-imagination">6. Dreamer: End-to-End Latent Imagination</a>
-      <ul>
-        <li><a href="#rssm-in-one-picture">RSSM in One Picture</a></li>
-        <li><a href="#behaviour-learning-happens-entirely-in-imagination">Behaviour Learning Happens Entirely in Imagination</a></li>
-        <li><a href="#results">Results</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-muzero-plan-without-predicting-pixels">7. MuZero: Plan Without Predicting Pixels</a>
-      <ul>
-        <li><a href="#training-loss">Training Loss</a></li>
-        <li><a href="#results-1">Results</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-the-big-picture-sample-efficiency">8. The Big Picture: Sample Efficiency</a></li>
-    <li><a href="#9-choosing-the-right-tool">9. Choosing the Right Tool</a></li>
-    <li><a href="#10-open-problems">10. Open Problems</a></li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3000</strong></div>
-      <div class="row"><span>Published</span><strong>Aug 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>Crucially, no reconstruction term ever appears. The model is <em>implicit</em> &ndash; it is whatever makes the MCTS targets self-consistent.</p><h3 id=results-1>Results</h3><p>A single algorithm with a single hyperparameter set achieves:</p><ul><li><strong>Go, chess, shogi:</strong> matches or exceeds AlphaZero &ndash; <em>without being given the game rules</em>.</li><li><strong>Atari 57:</strong> new SOTA over R2D2.</li><li><strong>MuZero Reanalyse / Sampled MuZero / EfficientZero (2021):</strong> human-level Atari in 2 hours of game time.</li></ul><p>MuZero is the cleanest demonstration of a deep principle: <strong>your model only has to be as faithful as your downstream use of it requires</strong>.</p><hr><h2 id=8-the-big-picture-sample-efficiency>8. The Big Picture: Sample Efficiency</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/05-model-based-rl-and-world-models/fig6_sample_efficiency.png alt="Sample efficiency on MuJoCo HalfCheetah and steps-to-target bar chart" loading=lazy decoding=async></figure></p><p>Stacking the methods on one plot makes the central claim concrete. On HalfCheetah, MBPO and Dreamer reach a score that takes SAC ~600K steps and PPO ~1.6M to match &ndash; in <strong>80-150K</strong> real steps. The shape of every model-based curve is the same: a slow start (the model is being learned) followed by a sharp climb once imagined updates start carrying useful gradients.</p><p>That said, the plot also shows an honest limitation. Model-based curves do not always <strong>exceed</strong> model-free asymptotes; they reach the same level much faster. When samples are cheap, model-free methods often win by simplicity. When samples are expensive &ndash; which is the empirically interesting regime &ndash; model-based wins by a wide margin.</p><hr><h2 id=9-choosing-the-right-tool>9. Choosing the Right Tool</h2><table><thead><tr><th>Scenario</th><th>Method</th><th>Why</th></tr></thead><tbody><tr><td>Small discrete environment, fast iteration</td><td>Dyna-Q</td><td>Tabular, trivially correct, instant payoff</td></tr><tr><td>Continuous control, moderate-dim states</td><td>MBPO</td><td>Short rollouts + SAC give 10x sample gain</td></tr><tr><td>Real robot, expensive interaction</td><td>MPC + ensemble dynamics (PETS/iCEM)</td><td>Plan locally, never trust long open-loop</td></tr><tr><td>Pixel observations, limited budget</td><td>Dreamer / DreamerV3</td><td>Latent dynamics handle high-dim sensors</td></tr><tr><td>Perfect-information games / discrete planning</td><td>MuZero</td><td>Implicit model + MCTS, no rules required</td></tr><tr><td>You already have a free, fast simulator</td><td>PPO / SAC</td><td>No model error to worry about</td></tr></tbody></table><hr><h2 id=10-open-problems>10. Open Problems</h2><p>Three frontiers are particularly active:</p><ol><li><strong>Model error in the long tail.</strong> All current methods either keep horizons short (MBPO, MPC) or hide the problem in latent space (Dreamer). Neither scales gracefully to tasks needing 1000-step credit assignment with photorealistic dynamics.</li><li><strong>Stochastic and multi-modal worlds.</strong> RSSM&rsquo;s stochastic$z$is a step, but predicting genuinely multi-modal futures (driving, dialogue) remains hard.</li><li><strong>World models for foundation agents.</strong> Recent work (Genie, Sora-as-world-model, V-JEPA) treats large generative video models as the dynamics component; whether a single pretrained world model can transfer across tasks the way LLMs do is an open and consequential question.</li></ol><hr><h2 id=summary>Summary</h2><p>Model-based RL is the family of methods that <strong>spend compute to save samples</strong>:</p><ul><li><strong>Dyna</strong> introduced the loop &ndash; mix real and imagined updates to amortise interaction.</li><li><strong>MBPO</strong> showed that <em>short</em> imagined rollouts beat long ones, because model error compounds.</li><li><strong>MPC</strong> treats the model as a one-step-ahead simulator and replans every step.</li><li><strong>World Models</strong> moved dynamics learning into a compressed latent space, making pixels tractable.</li><li><strong>Dreamer / RSSM</strong> trains representation, dynamics, and policy jointly and learns behaviour entirely in imagination.</li><li><strong>MuZero</strong> dropped reconstruction altogether: the model just has to be self-consistent under MCTS.</li></ul><p>The unifying lesson is that <strong>what you predict should match how you use the prediction</strong>. Predict pixels if pixels matter; predict$(r, v, p)$if those are all that the planner consumes. That principle is what makes the modern wave &ndash; DreamerV3, EfficientZero, TD-MPC2 &ndash; finally feel general.</p><p><strong>Next up:</strong> <a href=/en/reinforcement-learning-6-ppo-and-trpo/>Part 6</a>
+dives into <strong>PPO and TRPO</strong> &ndash; the trust-region policy gradient methods that quietly power industrial RL, from robotic manipulation to ChatGPT&rsquo;s RLHF.</p><hr><h2 id=references>References</h2><ul><li>Sutton, R. S. (1990). <em>Integrated architectures for learning, planning, and reacting based on approximating dynamic programming</em>. ICML.</li><li>Janner, M., Fu, J., Zhang, M., & Levine, S. (2019). <em>When to trust your model: model-based policy optimization</em>. NeurIPS. <a href=https://arxiv.org/abs/1906.08253 target=_blank rel="noopener noreferrer">arXiv:1906.08253 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Chua, K., Calandra, R., McAllister, R., & Levine, S. (2018). <em>Deep reinforcement learning in a handful of trials using probabilistic dynamics models</em> (PETS). NeurIPS. <a href=https://arxiv.org/abs/1805.12114 target=_blank rel="noopener noreferrer">arXiv:1805.12114 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ha, D., & Schmidhuber, J. (2018). <em>World models</em>. NeurIPS. <a href=https://arxiv.org/abs/1803.10122 target=_blank rel="noopener noreferrer">arXiv:1803.10122 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hafner, D., Lillicrap, T., Ba, J., & Norouzi, M. (2020). <em>Dream to control: learning behaviors by latent imagination</em> (Dreamer). ICLR. <a href=https://arxiv.org/abs/1912.01603 target=_blank rel="noopener noreferrer">arXiv:1912.01603 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hafner, D., Lillicrap, T., Norouzi, M., & Ba, J. (2021). <em>Mastering Atari with discrete world models</em> (DreamerV2). ICLR. <a href=https://arxiv.org/abs/2010.02193 target=_blank rel="noopener noreferrer">arXiv:2010.02193 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hafner, D., et al. (2023). <em>Mastering diverse domains through world models</em> (DreamerV3). <a href=https://arxiv.org/abs/2301.04104 target=_blank rel="noopener noreferrer">arXiv:2301.04104 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Schrittwieser, J., et al. (2020). <em>Mastering Atari, Go, chess and shogi by planning with a learned model</em> (MuZero). <em>Nature</em>. <a href=https://arxiv.org/abs/1911.08265 target=_blank rel="noopener noreferrer">arXiv:1911.08265 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ye, W., Liu, S., Kurutach, T., Abbeel, P., & Gao, Y. (2021). <em>Mastering Atari games with limited data</em> (EfficientZero). NeurIPS. <a href=https://arxiv.org/abs/2111.00210 target=_blank rel="noopener noreferrer">arXiv:2111.00210 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hansen, N., Wang, X., & Su, H. (2022/2024). <em>Temporal difference learning for model predictive control</em> (TD-MPC / TD-MPC2). <a href=https://arxiv.org/abs/2310.16828 target=_blank rel="noopener noreferrer">arXiv:2310.16828 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th></tr></thead><tbody><tr><td>1</td><td><a href=/en/reinforcement-learning-1-fundamentals-and-core-concepts/>Fundamentals and Core Concepts</a></td></tr><tr><td>2</td><td><a href=/en/reinforcement-learning-2-q-learning-and-dqn/>Q-Learning and DQN</a></td></tr><tr><td>3</td><td><a href=/en/reinforcement-learning-3-policy-gradient-and-actor-critic/>Policy Gradient and Actor-Critic</a></td></tr><tr><td>4</td><td><a href=/en/reinforcement-learning-4-exploration-and-curiosity-driven-learning/>Exploration and Curiosity-Driven Learning</a></td></tr><tr><td><strong>5</strong></td><td><strong>Model-Based RL and World Models (you are here)</strong></td></tr><tr><td>6</td><td><a href=/en/reinforcement-learning-6-ppo-and-trpo/>PPO and TRPO</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#1-two-paradigms-one-goal>1. Two Paradigms, One Goal</a><ul><li><a href=#the-trade-off>The Trade-off</a></li><li><a href=#sample-efficiency-in-practice>Sample Efficiency in Practice</a></li><li><a href=#when-to-reach-for-model-based>When to Reach for Model-Based</a></li></ul></li><li><a href=#2-dyna-q-the-original-blueprint>2. Dyna-Q: The Original Blueprint</a><ul><li><a href=#reference-implementation>Reference Implementation</a></li><li><a href=#what-dyna-teaches-us-and-where-it-breaks>What Dyna Teaches Us, and Where It Breaks</a></li></ul></li><li><a href=#3-mbpo-keep-your-imagination-short>3. MBPO: Keep Your Imagination Short</a><ul><li><a href=#algorithm>Algorithm</a></li><li><a href=#sketch>Sketch</a></li><li><a href=#result>Result</a></li></ul></li><li><a href=#4-pure-planning-model-predictive-control>4. Pure Planning: Model Predictive Control</a></li><li><a href=#5-world-models-dreaming-in-a-latent-space>5. World Models: Dreaming in a Latent Space</a><ul><li><a href=#why-it-works----and-why-it-was-surprising>Why It Works &ndash; and Why It Was Surprising</a></li></ul></li><li><a href=#6-dreamer-end-to-end-latent-imagination>6. Dreamer: End-to-End Latent Imagination</a><ul><li><a href=#rssm-in-one-picture>RSSM in One Picture</a></li><li><a href=#behaviour-learning-happens-entirely-in-imagination>Behaviour Learning Happens Entirely in Imagination</a></li><li><a href=#results>Results</a></li></ul></li><li><a href=#7-muzero-plan-without-predicting-pixels>7. MuZero: Plan Without Predicting Pixels</a><ul><li><a href=#training-loss>Training Loss</a></li><li><a href=#results-1>Results</a></li></ul></li><li><a href=#8-the-big-picture-sample-efficiency>8. The Big Picture: Sample Efficiency</a></li><li><a href=#9-choosing-the-right-tool>9. Choosing the Right Tool</a></li><li><a href=#10-open-problems>10. Open Problems</a></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>2978</strong></div><div class=row><span>Published</span><strong>Aug 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

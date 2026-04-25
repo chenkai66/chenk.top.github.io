@@ -1,888 +1,509 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/terraform-agents/07-observability-and-cost-control/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms · Chen Kai Blog</title>
-<meta name="description" content="Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms">
-<meta property="og:description" content="Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday.">
-<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-3);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
-         · Chapter 7
-      </div>
-      <h1>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</h1>
-      <p class="deck">Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-24">March 24, 2026</time> · 10 min read · 2100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/sls/" class="tag">#SLS</a><a href="/en/tags/arms/" class="tag">#ARMS</a><a href="/en/tags/cloudmonitor/" class="tag">#CloudMonitor</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/terraform-agents/07-observability-and-cost-control/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Agents are non-deterministic, multi-step, and call expensive APIs. The combination means you cannot debug them after the fact unless you instrumented them on day one. This article wires three pipelines through Terraform — logs, traces, metrics — into a unified dashboard, then layers four alarms that have actually fired and saved my projects in production.</p>
-<p>By the end you have one DingTalk channel that pings before the bill explodes, the latency dies, the error rate spikes, or some agent starts looping on itself.</p>
-<h2 id="the-three-pipelines">The three pipelines</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png" alt="Three signals, three pipelines: logs, traces, metrics" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Three signal types, three Aliyun services, all converging on SLS for human-friendly viewing:</p>
-<ul>
-<li><strong>Logs</strong> — agent stdout/stderr → Logtail agent on the ECS → SLS Logstore</li>
-<li><strong>Traces</strong> — OpenTelemetry SDK in the agent code → ARMS APM (which is OpenTelemetry-compatible)</li>
-<li><strong>Metrics</strong> — host metrics from CloudMonitor agent + custom metrics from agent code → CloudMonitor → optionally piped to SLS</li>
-</ul>
-<p>Don&rsquo;t pick &ldquo;just logs&rdquo; or &ldquo;just metrics&rdquo;. You need all three:</p>
-<ul>
-<li>Logs answer &ldquo;what did the agent do?&rdquo;</li>
-<li>Traces answer &ldquo;where did the time go?&rdquo;</li>
-<li>Metrics answer &ldquo;is this happening more often than usual?&rdquo;</li>
-</ul>
-<h2 id="step-1-sls-project-and-logstores">Step 1: SLS project and logstores</h2>
-<p>Everything observability-related starts with one SLS project. One per environment is right; one per agent is too granular.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_project&#34; &#34;agents&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Logs and metrics for agents-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    Environment</span> <span class="o">=</span> <span class="k">terraform</span><span class="p">.</span><span class="k">workspace</span>
-</span></span><span class="line"><span class="cl"><span class="n">    ManagedBy</span>   <span class="o">=</span> <span class="s2">&#34;terraform&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">locals</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  logstores</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;agent-runs&#34;</span>        <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 30, shard_count</span> <span class="o">=</span> <span class="m">4</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;gateway-requests&#34;</span>  <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 90, shard_count</span> <span class="o">=</span> <span class="m">4</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;ecs-syslog&#34;</span>        <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 14, shard_count</span> <span class="o">=</span> <span class="m">2</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;ack-cluster&#34;</span>       <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 30, shard_count</span> <span class="o">=</span> <span class="m">4</span> }
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;audit&#34;</span>             <span class="o">=</span><span class="n"> { ttl</span> <span class="o">=</span><span class="n"> 365, shard_count</span> <span class="o">=</span> <span class="m">2</span> }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_store&#34; &#34;this&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  for_each</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">logstores</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  project</span>          <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>             <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">key</span>
-</span></span><span class="line"><span class="cl"><span class="n">  shard_count</span>      <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">.</span><span class="k">shard_count</span>
-</span></span><span class="line"><span class="cl"><span class="n">  retention_period</span> <span class="o">=</span> <span class="k">each</span><span class="p">.</span><span class="k">value</span><span class="p">.</span><span class="k">ttl</span>
-</span></span><span class="line"><span class="cl"><span class="n">  auto_split</span>       <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">  max_split_shard_count</span> <span class="o">=</span> <span class="m">16</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">encrypt_conf</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    enable</span>      <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">    encrypt_type</span> <span class="o">=</span> <span class="s2">&#34;default&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">user_cmk_info</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      cmk_key_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;logs&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">      arn</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;logs&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">      region_id</span>  <span class="o">=</span> <span class="s2">&#34;cn-shanghai&#34;</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Five logstores cover the practical needs:</p>
-<ul>
-<li><code>agent-runs</code> — every step of every agent run (the firehose)</li>
-<li><code>gateway-requests</code> — one row per LLM API call, with model, tokens, latency, cost</li>
-<li><code>ecs-syslog</code> — the underlying OS logs from the ECS instances</li>
-<li><code>ack-cluster</code> — Kubernetes events and pod logs (only if using ACK)</li>
-<li><code>audit</code> — every change Terraform makes, retained for a year for compliance</li>
-</ul>
-<p>The <code>audit</code> store has a year retention because it&rsquo;s small and you need it years later when &ldquo;who changed the prod ALB on March 12&rdquo; comes up.</p>
-<h2 id="step-2-ship-logs-from-ecs">Step 2: ship logs from ECS</h2>
-<p>The Logtail agent is the official Aliyun-side log collector. Install it via cloud-init (add to <code>cloud-init.sh</code> from article 4):</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Install Logtail</span>
-</span></span><span class="line"><span class="cl">wget http://logtail-release-cn-shanghai.oss-cn-shanghai.aliyuncs.com/linux64/logtail.sh
-</span></span><span class="line"><span class="cl">chmod +x logtail.sh <span class="o">&amp;&amp;</span> ./logtail.sh install cn-shanghai
-</span></span><span class="line"><span class="cl">service ilogtaild start
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Tag this machine for the SLS machine group</span>
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;</span><span class="si">${</span><span class="nv">sls_user_id</span><span class="si">}</span><span class="s2">::</span><span class="si">${</span><span class="nv">sls_machine_group</span><span class="si">}</span><span class="s2">&#34;</span> &gt; /etc/ilogtail/user_log_config.json
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The Logtail config — what files to tail, how to parse them — is a Terraform resource:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_machine_group&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project</span>       <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>          <span class="o">=</span> <span class="s2">&#34;agent-runtime-machines&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  identify_type</span> <span class="o">=</span> <span class="s2">&#34;userdefined&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  identify_list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;agent-runtime-${terraform.workspace}&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  topic</span>         <span class="o">=</span> <span class="s2">&#34;agent-runs&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_logtail_config&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project</span>      <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  logstore</span>     <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;agent-runs&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  input_type</span>   <span class="o">=</span> <span class="s2">&#34;file&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  log_sample</span>   <span class="o">=</span> <span class="err">&lt;&lt;-</span><span class="k">SAMPLE</span>
-</span></span><span class="line"><span class="cl">    {<span class="s2">&#34;ts&#34;:&#34;2026-03-24T09:15:23Z&#34;,&#34;agent&#34;:&#34;research&#34;,&#34;step&#34;:&#34;plan&#34;,&#34;tokens&#34;:420,&#34;latency_ms&#34;</span><span class="err">:</span><span class="m">1200</span>}
-</span></span><span class="line"><span class="cl">  <span class="k">SAMPLE</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>         <span class="o">=</span> <span class="s2">&#34;agent-runs-collector&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  output_type</span>  <span class="o">=</span> <span class="s2">&#34;LogService&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  input_detail</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">(</span>{
-</span></span><span class="line"><span class="cl"><span class="n">    logType</span>        <span class="o">=</span> <span class="s2">&#34;json_log&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    logPath</span>        <span class="o">=</span> <span class="s2">&#34;/var/log/agents&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    filePattern</span>    <span class="o">=</span> <span class="s2">&#34;*.log&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    localStorage</span>   <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">    enableRawLog</span>   <span class="o">=</span> <span class="kt">false</span>
-</span></span><span class="line"><span class="cl"><span class="n">    timeKey</span>        <span class="o">=</span> <span class="s2">&#34;ts&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    timeFormat</span>     <span class="o">=</span> <span class="s2">&#34;%Y-%m-%dT%H:%M:%S%z&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    discardUnmatch</span> <span class="o">=</span> <span class="kt">false</span>
-</span></span><span class="line"><span class="cl"><span class="n">    maxDepth</span>       <span class="o">=</span> <span class="m">10</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">)</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_logtail_attachment&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project</span>              <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  logtail_config_name</span>  <span class="o">=</span> <span class="k">alicloud_logtail_config</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  machine_group_name</span>   <span class="o">=</span> <span class="k">alicloud_log_machine_group</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Now any file matching <code>/var/log/agents/*.log</code> on any tagged machine flows into SLS as JSON, queryable by every field. The agent code just does <code>logger.info(json.dumps({...}))</code> and the rest is automatic.</p>
-<h2 id="step-3-traces-via-opentelemetry--arms">Step 3: traces via OpenTelemetry → ARMS</h2>
-<p>For traces, ARMS APM is OpenTelemetry-compatible. The Terraform side is small — provision an ARMS instance and an environment:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_arms_environment&#34; &#34;agents&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  environment_name</span>      <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  bind_resource_id</span>      <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  environment_type</span>      <span class="o">=</span> <span class="s2">&#34;CS&#34;</span><span class="c1">             # cloud service
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  environment_sub_type</span>  <span class="o">=</span> <span class="s2">&#34;ECS&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  payment_type</span>          <span class="o">=</span> <span class="s2">&#34;POSTPAY&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The agent code uses standard OpenTelemetry — nothing Aliyun-specific:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry</span> <span class="kn">import</span> <span class="n">trace</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry.exporter.otlp.proto.http.trace_exporter</span> <span class="kn">import</span> <span class="n">OTLPSpanExporter</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry.sdk.trace</span> <span class="kn">import</span> <span class="n">TracerProvider</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">opentelemetry.sdk.trace.export</span> <span class="kn">import</span> <span class="n">BatchSpanProcessor</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">trace</span><span class="o">.</span><span class="n">set_tracer_provider</span><span class="p">(</span><span class="n">TracerProvider</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl"><span class="n">trace</span><span class="o">.</span><span class="n">get_tracer_provider</span><span class="p">()</span><span class="o">.</span><span class="n">add_span_processor</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">BatchSpanProcessor</span><span class="p">(</span><span class="n">OTLPSpanExporter</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">endpoint</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;Authentication&#34;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;ARMS_LICENSE_KEY&#34;</span><span class="p">]},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">tracer</span> <span class="o">=</span> <span class="n">trace</span><span class="o">.</span><span class="n">get_tracer</span><span class="p">(</span><span class="s2">&#34;research-agent&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">tracer</span><span class="o">.</span><span class="n">start_as_current_span</span><span class="p">(</span><span class="s2">&#34;research_loop&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">span</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">span</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="s2">&#34;agent.name&#34;</span><span class="p">,</span> <span class="s2">&#34;research-agent&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">span</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="s2">&#34;session.id&#34;</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># ... agent work ...</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The two env vars come from ARMS — <code>ARMS_OTLP_ENDPOINT</code> is in the ARMS console, <code>ARMS_LICENSE_KEY</code> from your account. Wire both via Terraform outputs into the cloud-init template.</p>
-<p>The reward: in ARMS you can see &ldquo;this agent run took 12s; 9s of it was the third LLM call to qwen-max.&rdquo; That&rsquo;s the kind of visibility that actually changes how you build agents.</p>
-<h2 id="step-4-metrics-with-cloudmonitor">Step 4: metrics with CloudMonitor</h2>
-<p>CloudMonitor catches the host-level metrics automatically (CPU, memory, network) once you install the cloud-monitor agent — which the <code>install_cloud_monitor</code> flag on the ACK node pool already does. For ECS, add to cloud-init:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">wget http://cms-agent-cn-shanghai.oss-cn-shanghai.aliyuncs.com/release/cms_go_agent_install.sh
-</span></span><span class="line"><span class="cl">chmod +x cms_go_agent_install.sh <span class="o">&amp;&amp;</span> ./cms_go_agent_install.sh
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>For custom application metrics — &ldquo;tokens consumed by research-agent&rdquo; — emit them as SLS log entries with structured fields, then alert via SLS query. SLS-as-metrics is the pattern Aliyun pushes; CloudMonitor custom metrics work too but are clunkier to wire from Terraform.</p>
-<h2 id="step-5-the-cost-dashboard">Step 5: the cost dashboard</h2>
-<p>Here&rsquo;s where it gets interesting. Every LLM request hits the gateway, and the gateway logs one row per request to <code>gateway-requests</code> with fields like:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;ts&#34;</span><span class="p">:</span> <span class="s2">&#34;2026-03-24T09:15:23Z&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;agent&#34;</span><span class="p">:</span> <span class="s2">&#34;research-agent&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;model&#34;</span><span class="p">:</span> <span class="s2">&#34;qwen-max&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;input_tokens&#34;</span><span class="p">:</span> <span class="mi">1820</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;output_tokens&#34;</span><span class="p">:</span> <span class="mi">412</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;latency_ms&#34;</span><span class="p">:</span> <span class="mi">1230</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;cost_cny&#34;</span><span class="p">:</span> <span class="mf">0.087</span>
-</span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>SLS can run SQL over these. The query for &ldquo;daily cost by agent&rdquo;:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="o">*</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="n">date_trunc</span><span class="p">(</span><span class="s1">&#39;day&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">__time__</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="n">agent</span><span class="p">,</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="k">SUM</span><span class="p">(</span><span class="n">cost_cny</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">daily_cost</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">log</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="n">agent</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">day</span><span class="p">,</span><span class="w"> </span><span class="n">daily_cost</span><span class="w"> </span><span class="k">DESC</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>Provision the dashboard via Terraform:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_dashboard&#34; &#34;cost&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  dashboard_name</span> <span class="o">=</span> <span class="s2">&#34;agent-cost-overview&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  display_name</span>   <span class="o">=</span> <span class="s2">&#34;Agent cost overview&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  char_list</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">([</span>
-</span></span><span class="line"><span class="cl">    {
-</span></span><span class="line"><span class="cl"><span class="n">      title</span> <span class="o">=</span> <span class="s2">&#34;Daily cost by agent&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      type</span>  <span class="o">=</span> <span class="s2">&#34;line&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      query</span> <span class="o">=</span> <span class="s2">&#34;* | SELECT date_trunc(&#39;day&#39;, __time__) AS day, agent, SUM(cost_cny) AS cost FROM log GROUP BY day, agent ORDER BY day&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">      display</span> <span class="o">=</span><span class="n"> { xAxis</span> <span class="o">=</span><span class="n"> [&#34;day&#34;], yAxis</span> <span class="o">=</span><span class="n"> [&#34;cost&#34;], yKey</span> <span class="o">=</span> <span class="s2">&#34;agent&#34;</span> }
-</span></span><span class="line"><span class="cl">    }<span class="p">,</span>
-</span></span><span class="line"><span class="cl">    {
-</span></span><span class="line"><span class="cl"><span class="n">      title</span> <span class="o">=</span> <span class="s2">&#34;Tokens by model (last 24h)&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      type</span>  <span class="o">=</span> <span class="s2">&#34;pie&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      query</span> <span class="o">=</span> <span class="s2">&#34;* | SELECT model, SUM(input_tokens + output_tokens) AS tokens FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY model&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">    }<span class="p">,</span>
-</span></span><span class="line"><span class="cl">    {
-</span></span><span class="line"><span class="cl"><span class="n">      title</span> <span class="o">=</span> <span class="s2">&#34;p95 latency by agent&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      type</span>  <span class="o">=</span> <span class="s2">&#34;line&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      query</span> <span class="o">=</span> <span class="s2">&#34;* | SELECT date_trunc(&#39;hour&#39;, __time__) AS hour, agent, approx_percentile(latency_ms, 0.95) AS p95 FROM log GROUP BY hour, agent ORDER BY hour&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">      logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">  <span class="p">])</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Open the SLS console and you have a live dashboard:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png" alt="Stacked daily cost by category" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The dashboard is the answer to &ldquo;which agent is burning my budget?&rdquo; — a question you will be asked monthly.</p>
-<h2 id="step-6-the-four-alarms">Step 6: the four alarms</h2>
-<p>Four alarms have earned their keep across multiple agent stacks I&rsquo;ve shipped:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png" alt="Four alerts you should provision on day one" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="alarm-1-cost-ceiling">Alarm 1: cost ceiling</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_alert&#34; &#34;cost_ceiling&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  alert_name</span>     <span class="o">=</span> <span class="s2">&#34;daily-cost-ceiling&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  alert_displayname</span> <span class="o">=</span> <span class="s2">&#34;Daily LLM spend &gt; ¥800&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;today_cost&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT SUM(cost_cny) AS today FROM log WHERE __time__ &gt; to_unixtime(date_trunc(&#39;day&#39;, now()))&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-1m&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    time_span_type</span> <span class="o">=</span> <span class="s2">&#34;Truncated&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  condition</span>  <span class="o">=</span> <span class="s2">&#34;today &gt; 800&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  schedule_interval</span> <span class="o">=</span> <span class="s2">&#34;5m&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  notify_threshold</span>  <span class="o">=</span> <span class="m">1</span>
-</span></span><span class="line"><span class="cl"><span class="n">  throttling</span>        <span class="o">=</span> <span class="s2">&#34;30m&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">notification_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    type</span>           <span class="o">=</span> <span class="s2">&#34;DingTalk&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    service_uri</span>    <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
-</span></span><span class="line"><span class="cl"><span class="n">    content</span>        <span class="o">=</span> <span class="s2">&#34;Daily LLM cost ¥${&#34;{{today}}&#34;} exceeds ¥800 budget. Check the SLS cost dashboard.&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">severity_configurations</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    severity</span>      <span class="o">=</span> <span class="m">8</span>
-</span></span><span class="line"><span class="cl"><span class="n">    eval_condition</span> <span class="o">=</span><span class="n"> { condition</span> <span class="o">=</span> <span class="s2">&#34;today &gt; 800&#34;</span> }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>This fires once per 30 minutes if the day&rsquo;s LLM spend so far is above ¥800. Tune the threshold to your real budget. The throttling matters — without it, the alert fires every 5 minutes and the team mutes the channel.</p>
-<h3 id="alarm-2-latency">Alarm 2: latency</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_alert&#34; &#34;latency&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  alert_name</span>     <span class="o">=</span> <span class="s2">&#34;agent-step-latency&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  alert_displayname</span> <span class="o">=</span> <span class="s2">&#34;p95 agent step &gt; 8s&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;p95_step&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;agent-runs&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT approx_percentile(latency_ms, 0.95) / 1000.0 AS p95s FROM log WHERE __time__ &gt; now() - INTERVAL &#39;5&#39; MINUTE&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-5m&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  condition</span>         <span class="o">=</span> <span class="s2">&#34;p95s &gt; 8&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  schedule_interval</span> <span class="o">=</span> <span class="s2">&#34;1m&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  notify_threshold</span>  <span class="o">=</span> <span class="m">3</span>
-</span></span><span class="line"><span class="cl"><span class="n">  throttling</span>        <span class="o">=</span> <span class="s2">&#34;15m&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">notification_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    type</span>        <span class="o">=</span> <span class="s2">&#34;DingTalk&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    service_uri</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
-</span></span><span class="line"><span class="cl"><span class="n">    content</span>     <span class="o">=</span> <span class="s2">&#34;Agent p95 step latency is ${&#34;{{p95s}}&#34;}s — investigate before users notice.&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>notify_threshold = 3</code> means three consecutive minutes above the threshold before firing — kills the noise from one-off slow LLM calls.</p>
-<h3 id="alarm-3-error-rate">Alarm 3: error rate</h3>
-<p>Same shape, query is <code>SUM(IF(status &gt;= 500, 1, 0)) * 1.0 / COUNT(*) AS err_ratio</code>, condition <code>err_ratio &gt; 0.02</code>. Throttling is shorter (5 minutes) because errors are usually a real ongoing event.</p>
-<h3 id="alarm-4-token-leak-runaway-loop">Alarm 4: token leak (runaway loop)</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_log_alert&#34; &#34;token_spike&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  project_name</span>   <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  alert_name</span>     <span class="o">=</span> <span class="s2">&#34;token-anomaly&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  alert_displayname</span> <span class="o">=</span> <span class="s2">&#34;Tokens/min &gt; 2x rolling 24h avg&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;current&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT SUM(input_tokens + output_tokens) AS now_tpm FROM log WHERE __time__ &gt; now() - INTERVAL &#39;1&#39; MINUTE&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-1m&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">query_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    chart_title</span> <span class="o">=</span> <span class="s2">&#34;baseline&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    logstore</span>    <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">this</span><span class="p">[</span><span class="s2">&#34;gateway-requests&#34;</span><span class="p">].</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    query</span>       <span class="o">=</span> <span class="s2">&#34;* | SELECT AVG(per_min) AS baseline FROM (SELECT date_trunc(&#39;minute&#39;, __time__) AS m, SUM(input_tokens + output_tokens) AS per_min FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY m)&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    start</span>       <span class="o">=</span> <span class="s2">&#34;-24h&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    end</span>         <span class="o">=</span> <span class="s2">&#34;now&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  condition</span>         <span class="o">=</span> <span class="s2">&#34;now_tpm &gt; 2 * baseline&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  schedule_interval</span> <span class="o">=</span> <span class="s2">&#34;1m&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  notify_threshold</span>  <span class="o">=</span> <span class="m">2</span>
-</span></span><span class="line"><span class="cl"><span class="n">  throttling</span>        <span class="o">=</span> <span class="s2">&#34;10m&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">notification_list</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    type</span>        <span class="o">=</span> <span class="s2">&#34;DingTalk&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    service_uri</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
-</span></span><span class="line"><span class="cl"><span class="n">    content</span>     <span class="o">=</span> <span class="s2">&#34;Token consumption ${&#34;{{now_tpm}}&#34;} tpm vs 24h avg ${&#34;{{baseline}}&#34;}. Possible runaway agent.&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>This is the one that has paid for itself. An agent with a buggy stop condition can burn ¥10,000 in tokens overnight; this alert catches it within 2 minutes and gives you time to kill the offender.</p>
-<h2 id="why-dingtalk">Why DingTalk?</h2>
-<p>In China, DingTalk is the team-chat default for most engineering orgs. SLS supports DingTalk webhooks natively. You can also fan out to email, SMS, and (via webhook) Slack/Teams/Lark. Pick whatever your team checks at 2am.</p>
-<h2 id="what-about-arms-side-alerts">What about ARMS-side alerts?</h2>
-<p>ARMS has its own alerting — useful for trace-level conditions (&ldquo;any trace with &gt; 30 spans&rdquo;). For the four alarms above, SLS-side is enough and avoids splitting your alerting story across two systems. Use ARMS alerts only when SLS can&rsquo;t express what you need.</p>
-<h2 id="what-it-costs">What it costs</h2>
-<p>Observability has a real cost — usually 10-15% of the rest of your bill:</p>
-<ul>
-<li>SLS: ~¥0.35/GB ingested + ¥0.15/GB stored. A medium-traffic agent stack ingests ~5 GB/day → ¥50/mo for ingest, ¥20/mo for 30-day retention</li>
-<li>ARMS APM: ~¥600/mo for 1 environment with up to 100M spans</li>
-<li>CloudMonitor: free for standard metrics, ¥0.005 per custom metric per day</li>
-</ul>
-<p>Budget ¥1000-1500/mo for full observability on a real production agent stack. Cheap compared to one missed cost-runaway alarm.</p>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 8 is the end-to-end walkthrough. We compose every module from articles 2-7 — vpc-baseline, compute, storage, gateway, observability — into one <code>research-agent-stack</code> project and watch it come up with a single <code>terraform apply</code>. Real apply output, real timing, the full module DAG. The starter repo at the end is yours to fork.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/"><span class="title">Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/"><span class="title">Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-three-pipelines">The three pipelines</a></li>
-    <li><a href="#step-1-sls-project-and-logstores">Step 1: SLS project and logstores</a></li>
-    <li><a href="#step-2-ship-logs-from-ecs">Step 2: ship logs from ECS</a></li>
-    <li><a href="#step-3-traces-via-opentelemetry--arms">Step 3: traces via OpenTelemetry → ARMS</a></li>
-    <li><a href="#step-4-metrics-with-cloudmonitor">Step 4: metrics with CloudMonitor</a></li>
-    <li><a href="#step-5-the-cost-dashboard">Step 5: the cost dashboard</a></li>
-    <li><a href="#step-6-the-four-alarms">Step 6: the four alarms</a>
-      <ul>
-        <li><a href="#alarm-1-cost-ceiling">Alarm 1: cost ceiling</a></li>
-        <li><a href="#alarm-2-latency">Alarm 2: latency</a></li>
-        <li><a href="#alarm-3-error-rate">Alarm 3: error rate</a></li>
-        <li><a href="#alarm-4-token-leak-runaway-loop">Alarm 4: token leak (runaway loop)</a></li>
-      </ul>
-    </li>
-    <li><a href="#why-dingtalk">Why DingTalk?</a></li>
-    <li><a href="#what-about-arms-side-alerts">What about ARMS-side alerts?</a></li>
-    <li><a href="#what-it-costs">What it costs</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2100</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/terraform-agents/07-observability-and-cost-control/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms · Chen Kai Blog</title>
+<meta name=description content="Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/terraform-agents/07-observability-and-cost-control/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><meta property="og:type" content="article"><meta property="og:title" content="Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms"><meta property="og:description" content="Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday."><meta property="og:url" content="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Terraform Agents</a>
+· Chapter 7</div><h1>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</h1><p class=deck>Logs to SLS, traces to ARMS, metrics to CloudMonitor — all provisioned in HCL so a new env comes pre-instrumented. The four alarms that actually catch real incidents and the SLS-driven cost dashboard that tells you which agent is burning your budget before payday.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-24>March 24, 2026</time> · 10 min read · 2069 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/sls/ class=tag>#SLS</a><a href=/en/tags/arms/ class=tag>#ARMS</a><a href=/en/tags/cloudmonitor/ class=tag>#CloudMonitor</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/07-observability-and-cost-control/>Read in English →</a></div></header><div class=prose><p>Agents are non-deterministic, multi-step, and call expensive APIs. The combination means you cannot debug them after the fact unless you instrumented them on day one. This article wires three pipelines through Terraform — logs, traces, metrics — into a unified dashboard, then layers four alarms that have actually fired and saved my projects in production.</p><p>By the end you have one DingTalk channel that pings before the bill explodes, the latency dies, the error rate spikes, or some agent starts looping on itself.</p><h2 id=the-three-pipelines>The three pipelines</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig1_obs_pipeline.png alt="Three signals, three pipelines: logs, traces, metrics" loading=lazy decoding=async></figure></p><p>Three signal types, three Aliyun services, all converging on SLS for human-friendly viewing:</p><ul><li><strong>Logs</strong> — agent stdout/stderr → Logtail agent on the ECS → SLS Logstore</li><li><strong>Traces</strong> — OpenTelemetry SDK in the agent code → ARMS APM (which is OpenTelemetry-compatible)</li><li><strong>Metrics</strong> — host metrics from CloudMonitor agent + custom metrics from agent code → CloudMonitor → optionally piped to SLS</li></ul><p>Don&rsquo;t pick &ldquo;just logs&rdquo; or &ldquo;just metrics&rdquo;. You need all three:</p><ul><li>Logs answer &ldquo;what did the agent do?&rdquo;</li><li>Traces answer &ldquo;where did the time go?&rdquo;</li><li>Metrics answer &ldquo;is this happening more often than usual?&rdquo;</li></ul><h2 id=step-1-sls-project-and-logstores>Step 1: SLS project and logstores</h2><p>Everything observability-related starts with one SLS project. One per environment is right; one per agent is too granular.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_project&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  name</span>        <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Logs and metrics for agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  tags</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    Environment</span> <span class=o>=</span> <span class=k>terraform</span><span class=p>.</span><span class=k>workspace</span>
+</span></span><span class=line><span class=cl><span class=n>    ManagedBy</span>   <span class=o>=</span> <span class=s2>&#34;terraform&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  logstores</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    &#34;agent-runs&#34;</span>        <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 30, shard_count</span> <span class=o>=</span> <span class=m>4</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;gateway-requests&#34;</span>  <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 90, shard_count</span> <span class=o>=</span> <span class=m>4</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;ecs-syslog&#34;</span>        <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 14, shard_count</span> <span class=o>=</span> <span class=m>2</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;ack-cluster&#34;</span>       <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 30, shard_count</span> <span class=o>=</span> <span class=m>4</span> }
+</span></span><span class=line><span class=cl><span class=n>    &#34;audit&#34;</span>             <span class=o>=</span><span class=n> { ttl</span> <span class=o>=</span><span class=n> 365, shard_count</span> <span class=o>=</span> <span class=m>2</span> }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_store&#34; &#34;this&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  for_each</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>logstores</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  project</span>          <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>             <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>key</span>
+</span></span><span class=line><span class=cl><span class=n>  shard_count</span>      <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>value</span><span class=p>.</span><span class=k>shard_count</span>
+</span></span><span class=line><span class=cl><span class=n>  retention_period</span> <span class=o>=</span> <span class=k>each</span><span class=p>.</span><span class=k>value</span><span class=p>.</span><span class=k>ttl</span>
+</span></span><span class=line><span class=cl><span class=n>  auto_split</span>       <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>  max_split_shard_count</span> <span class=o>=</span> <span class=m>16</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>encrypt_conf</span> {
+</span></span><span class=line><span class=cl><span class=n>    enable</span>      <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    encrypt_type</span> <span class=o>=</span> <span class=s2>&#34;default&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>user_cmk_info</span> {
+</span></span><span class=line><span class=cl><span class=n>      cmk_key_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;logs&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>      arn</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;logs&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>      region_id</span>  <span class=o>=</span> <span class=s2>&#34;cn-shanghai&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Five logstores cover the practical needs:</p><ul><li><code>agent-runs</code> — every step of every agent run (the firehose)</li><li><code>gateway-requests</code> — one row per LLM API call, with model, tokens, latency, cost</li><li><code>ecs-syslog</code> — the underlying OS logs from the ECS instances</li><li><code>ack-cluster</code> — Kubernetes events and pod logs (only if using ACK)</li><li><code>audit</code> — every change Terraform makes, retained for a year for compliance</li></ul><p>The <code>audit</code> store has a year retention because it&rsquo;s small and you need it years later when &ldquo;who changed the prod ALB on March 12&rdquo; comes up.</p><h2 id=step-2-ship-logs-from-ecs>Step 2: ship logs from ECS</h2><p>The Logtail agent is the official Aliyun-side log collector. Install it via cloud-init (add to <code>cloud-init.sh</code> from article 4):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Install Logtail</span>
+</span></span><span class=line><span class=cl>wget http://logtail-release-cn-shanghai.oss-cn-shanghai.aliyuncs.com/linux64/logtail.sh
+</span></span><span class=line><span class=cl>chmod +x logtail.sh <span class=o>&amp;&amp;</span> ./logtail.sh install cn-shanghai
+</span></span><span class=line><span class=cl>service ilogtaild start
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Tag this machine for the SLS machine group</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;</span><span class=si>${</span><span class=nv>sls_user_id</span><span class=si>}</span><span class=s2>::</span><span class=si>${</span><span class=nv>sls_machine_group</span><span class=si>}</span><span class=s2>&#34;</span> &gt; /etc/ilogtail/user_log_config.json
+</span></span></code></pre></td></tr></table></div></div><p>The Logtail config — what files to tail, how to parse them — is a Terraform resource:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_machine_group&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project</span>       <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>          <span class=o>=</span> <span class=s2>&#34;agent-runtime-machines&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  identify_type</span> <span class=o>=</span> <span class=s2>&#34;userdefined&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  identify_list</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;agent-runtime-${terraform.workspace}&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  topic</span>         <span class=o>=</span> <span class=s2>&#34;agent-runs&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_logtail_config&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project</span>      <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  logstore</span>     <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;agent-runs&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  input_type</span>   <span class=o>=</span> <span class=s2>&#34;file&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  log_sample</span>   <span class=o>=</span> <span class=err>&lt;&lt;-</span><span class=k>SAMPLE</span>
+</span></span><span class=line><span class=cl>    {<span class=s2>&#34;ts&#34;:&#34;2026-03-24T09:15:23Z&#34;,&#34;agent&#34;:&#34;research&#34;,&#34;step&#34;:&#34;plan&#34;,&#34;tokens&#34;:420,&#34;latency_ms&#34;</span><span class=err>:</span><span class=m>1200</span>}
+</span></span><span class=line><span class=cl>  <span class=k>SAMPLE</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>         <span class=o>=</span> <span class=s2>&#34;agent-runs-collector&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  output_type</span>  <span class=o>=</span> <span class=s2>&#34;LogService&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  input_detail</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    logType</span>        <span class=o>=</span> <span class=s2>&#34;json_log&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logPath</span>        <span class=o>=</span> <span class=s2>&#34;/var/log/agents&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    filePattern</span>    <span class=o>=</span> <span class=s2>&#34;*.log&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    localStorage</span>   <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    enableRawLog</span>   <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>    timeKey</span>        <span class=o>=</span> <span class=s2>&#34;ts&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    timeFormat</span>     <span class=o>=</span> <span class=s2>&#34;%Y-%m-%dT%H:%M:%S%z&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    discardUnmatch</span> <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>    maxDepth</span>       <span class=o>=</span> <span class=m>10</span>
+</span></span><span class=line><span class=cl>  }<span class=p>)</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_logtail_attachment&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project</span>              <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  logtail_config_name</span>  <span class=o>=</span> <span class=k>alicloud_logtail_config</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  machine_group_name</span>   <span class=o>=</span> <span class=k>alicloud_log_machine_group</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Now any file matching <code>/var/log/agents/*.log</code> on any tagged machine flows into SLS as JSON, queryable by every field. The agent code just does <code>logger.info(json.dumps({...}))</code> and the rest is automatic.</p><h2 id=step-3-traces-via-opentelemetry--arms>Step 3: traces via OpenTelemetry → ARMS</h2><p>For traces, ARMS APM is OpenTelemetry-compatible. The Terraform side is small — provision an ARMS instance and an environment:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_arms_environment&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  environment_name</span>      <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  bind_resource_id</span>      <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  environment_type</span>      <span class=o>=</span> <span class=s2>&#34;CS&#34;</span><span class=c1>             # cloud service
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  environment_sub_type</span>  <span class=o>=</span> <span class=s2>&#34;ECS&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  payment_type</span>          <span class=o>=</span> <span class=s2>&#34;POSTPAY&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>The agent code uses standard OpenTelemetry — nothing Aliyun-specific:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry</span> <span class=kn>import</span> <span class=n>trace</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry.exporter.otlp.proto.http.trace_exporter</span> <span class=kn>import</span> <span class=n>OTLPSpanExporter</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry.sdk.trace</span> <span class=kn>import</span> <span class=n>TracerProvider</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>opentelemetry.sdk.trace.export</span> <span class=kn>import</span> <span class=n>BatchSpanProcessor</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>trace</span><span class=o>.</span><span class=n>set_tracer_provider</span><span class=p>(</span><span class=n>TracerProvider</span><span class=p>())</span>
+</span></span><span class=line><span class=cl><span class=n>trace</span><span class=o>.</span><span class=n>get_tracer_provider</span><span class=p>()</span><span class=o>.</span><span class=n>add_span_processor</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>BatchSpanProcessor</span><span class=p>(</span><span class=n>OTLPSpanExporter</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>endpoint</span><span class=o>=</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=n>headers</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;Authentication&#34;</span><span class=p>:</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARMS_LICENSE_KEY&#34;</span><span class=p>]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tracer</span> <span class=o>=</span> <span class=n>trace</span><span class=o>.</span><span class=n>get_tracer</span><span class=p>(</span><span class=s2>&#34;research-agent&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>tracer</span><span class=o>.</span><span class=n>start_as_current_span</span><span class=p>(</span><span class=s2>&#34;research_loop&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>span</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>span</span><span class=o>.</span><span class=n>set_attribute</span><span class=p>(</span><span class=s2>&#34;agent.name&#34;</span><span class=p>,</span> <span class=s2>&#34;research-agent&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>span</span><span class=o>.</span><span class=n>set_attribute</span><span class=p>(</span><span class=s2>&#34;session.id&#34;</span><span class=p>,</span> <span class=n>session_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># ... agent work ...</span>
+</span></span></code></pre></td></tr></table></div></div><p>The two env vars come from ARMS — <code>ARMS_OTLP_ENDPOINT</code> is in the ARMS console, <code>ARMS_LICENSE_KEY</code> from your account. Wire both via Terraform outputs into the cloud-init template.</p><p>The reward: in ARMS you can see &ldquo;this agent run took 12s; 9s of it was the third LLM call to qwen-max.&rdquo; That&rsquo;s the kind of visibility that actually changes how you build agents.</p><h2 id=step-4-metrics-with-cloudmonitor>Step 4: metrics with CloudMonitor</h2><p>CloudMonitor catches the host-level metrics automatically (CPU, memory, network) once you install the cloud-monitor agent — which the <code>install_cloud_monitor</code> flag on the ACK node pool already does. For ECS, add to cloud-init:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>wget http://cms-agent-cn-shanghai.oss-cn-shanghai.aliyuncs.com/release/cms_go_agent_install.sh
+</span></span><span class=line><span class=cl>chmod +x cms_go_agent_install.sh <span class=o>&amp;&amp;</span> ./cms_go_agent_install.sh
+</span></span></code></pre></td></tr></table></div></div><p>For custom application metrics — &ldquo;tokens consumed by research-agent&rdquo; — emit them as SLS log entries with structured fields, then alert via SLS query. SLS-as-metrics is the pattern Aliyun pushes; CloudMonitor custom metrics work too but are clunkier to wire from Terraform.</p><h2 id=step-5-the-cost-dashboard>Step 5: the cost dashboard</h2><p>Here&rsquo;s where it gets interesting. Every LLM request hits the gateway, and the gateway logs one row per request to <code>gateway-requests</code> with fields like:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-json data-lang=json><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;ts&#34;</span><span class=p>:</span> <span class=s2>&#34;2026-03-24T09:15:23Z&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;agent&#34;</span><span class=p>:</span> <span class=s2>&#34;research-agent&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;model&#34;</span><span class=p>:</span> <span class=s2>&#34;qwen-max&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;input_tokens&#34;</span><span class=p>:</span> <span class=mi>1820</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;output_tokens&#34;</span><span class=p>:</span> <span class=mi>412</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;latency_ms&#34;</span><span class=p>:</span> <span class=mi>1230</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&#34;cost_cny&#34;</span><span class=p>:</span> <span class=mf>0.087</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>SLS can run SQL over these. The query for &ldquo;daily cost by agent&rdquo;:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=o>*</span><span class=w> </span><span class=o>|</span><span class=w> </span><span class=k>SELECT</span><span class=w> </span><span class=n>date_trunc</span><span class=p>(</span><span class=s1>&#39;day&#39;</span><span class=p>,</span><span class=w> </span><span class=n>__time__</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=n>agent</span><span class=p>,</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>          </span><span class=k>SUM</span><span class=p>(</span><span class=n>cost_cny</span><span class=p>)</span><span class=w> </span><span class=k>AS</span><span class=w> </span><span class=n>daily_cost</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>FROM</span><span class=w> </span><span class=n>log</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>GROUP</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w> </span><span class=n>agent</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=k>ORDER</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=k>day</span><span class=p>,</span><span class=w> </span><span class=n>daily_cost</span><span class=w> </span><span class=k>DESC</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>Provision the dashboard via Terraform:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_dashboard&#34; &#34;cost&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  dashboard_name</span> <span class=o>=</span> <span class=s2>&#34;agent-cost-overview&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  display_name</span>   <span class=o>=</span> <span class=s2>&#34;Agent cost overview&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  char_list</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;Daily cost by agent&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;line&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;day&#39;, __time__) AS day, agent, SUM(cost_cny) AS cost FROM log GROUP BY day, agent ORDER BY day&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>      display</span> <span class=o>=</span><span class=n> { xAxis</span> <span class=o>=</span><span class=n> [&#34;day&#34;], yAxis</span> <span class=o>=</span><span class=n> [&#34;cost&#34;], yKey</span> <span class=o>=</span> <span class=s2>&#34;agent&#34;</span> }
+</span></span><span class=line><span class=cl>    }<span class=p>,</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;Tokens by model (last 24h)&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;pie&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=s2>&#34;* | SELECT model, SUM(input_tokens + output_tokens) AS tokens FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY model&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>    }<span class=p>,</span>
+</span></span><span class=line><span class=cl>    {
+</span></span><span class=line><span class=cl><span class=n>      title</span> <span class=o>=</span> <span class=s2>&#34;p95 latency by agent&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      type</span>  <span class=o>=</span> <span class=s2>&#34;line&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      query</span> <span class=o>=</span> <span class=s2>&#34;* | SELECT date_trunc(&#39;hour&#39;, __time__) AS hour, agent, approx_percentile(latency_ms, 0.95) AS p95 FROM log GROUP BY hour, agent ORDER BY hour&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>      logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  <span class=p>])</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Open the SLS console and you have a live dashboard:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig2_cost_dashboard.png alt="Stacked daily cost by category" loading=lazy decoding=async></figure></p><p>The dashboard is the answer to &ldquo;which agent is burning my budget?&rdquo; — a question you will be asked monthly.</p><h2 id=step-6-the-four-alarms>Step 6: the four alarms</h2><p>Four alarms have earned their keep across multiple agent stacks I&rsquo;ve shipped:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/07-observability-and-cost-control/fig3_alert_rules.png alt="Four alerts you should provision on day one" loading=lazy decoding=async></figure></p><h3 id=alarm-1-cost-ceiling>Alarm 1: cost ceiling</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;cost_ceiling&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_name</span>     <span class=o>=</span> <span class=s2>&#34;daily-cost-ceiling&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_displayname</span> <span class=o>=</span> <span class=s2>&#34;Daily LLM spend &gt; ¥800&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;today_cost&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT SUM(cost_cny) AS today FROM log WHERE __time__ &gt; to_unixtime(date_trunc(&#39;day&#39;, now()))&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    time_span_type</span> <span class=o>=</span> <span class=s2>&#34;Truncated&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  condition</span>  <span class=o>=</span> <span class=s2>&#34;today &gt; 800&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  schedule_interval</span> <span class=o>=</span> <span class=s2>&#34;5m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  notify_threshold</span>  <span class=o>=</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=n>  throttling</span>        <span class=o>=</span> <span class=s2>&#34;30m&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>           <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span>    <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>    content</span>        <span class=o>=</span> <span class=s2>&#34;Daily LLM cost ¥${&#34;{{today}}&#34;} exceeds ¥800 budget. Check the SLS cost dashboard.&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>severity_configurations</span> {
+</span></span><span class=line><span class=cl><span class=n>    severity</span>      <span class=o>=</span> <span class=m>8</span>
+</span></span><span class=line><span class=cl><span class=n>    eval_condition</span> <span class=o>=</span><span class=n> { condition</span> <span class=o>=</span> <span class=s2>&#34;today &gt; 800&#34;</span> }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>This fires once per 30 minutes if the day&rsquo;s LLM spend so far is above ¥800. Tune the threshold to your real budget. The throttling matters — without it, the alert fires every 5 minutes and the team mutes the channel.</p><h3 id=alarm-2-latency>Alarm 2: latency</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;latency&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_name</span>     <span class=o>=</span> <span class=s2>&#34;agent-step-latency&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_displayname</span> <span class=o>=</span> <span class=s2>&#34;p95 agent step &gt; 8s&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;p95_step&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;agent-runs&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT approx_percentile(latency_ms, 0.95) / 1000.0 AS p95s FROM log WHERE __time__ &gt; now() - INTERVAL &#39;5&#39; MINUTE&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-5m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  condition</span>         <span class=o>=</span> <span class=s2>&#34;p95s &gt; 8&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  schedule_interval</span> <span class=o>=</span> <span class=s2>&#34;1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  notify_threshold</span>  <span class=o>=</span> <span class=m>3</span>
+</span></span><span class=line><span class=cl><span class=n>  throttling</span>        <span class=o>=</span> <span class=s2>&#34;15m&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>        <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>    content</span>     <span class=o>=</span> <span class=s2>&#34;Agent p95 step latency is ${&#34;{{p95s}}&#34;}s — investigate before users notice.&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>notify_threshold = 3</code> means three consecutive minutes above the threshold before firing — kills the noise from one-off slow LLM calls.</p><h3 id=alarm-3-error-rate>Alarm 3: error rate</h3><p>Same shape, query is <code>SUM(IF(status >= 500, 1, 0)) * 1.0 / COUNT(*) AS err_ratio</code>, condition <code>err_ratio > 0.02</code>. Throttling is shorter (5 minutes) because errors are usually a real ongoing event.</p><h3 id=alarm-4-token-leak-runaway-loop>Alarm 4: token leak (runaway loop)</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_log_alert&#34; &#34;token_spike&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  project_name</span>   <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_name</span>     <span class=o>=</span> <span class=s2>&#34;token-anomaly&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  alert_displayname</span> <span class=o>=</span> <span class=s2>&#34;Tokens/min &gt; 2x rolling 24h avg&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;current&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT SUM(input_tokens + output_tokens) AS now_tpm FROM log WHERE __time__ &gt; now() - INTERVAL &#39;1&#39; MINUTE&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>query_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    chart_title</span> <span class=o>=</span> <span class=s2>&#34;baseline&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span>    <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>this</span><span class=p>[</span><span class=s2>&#34;gateway-requests&#34;</span><span class=p>].</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    query</span>       <span class=o>=</span> <span class=s2>&#34;* | SELECT AVG(per_min) AS baseline FROM (SELECT date_trunc(&#39;minute&#39;, __time__) AS m, SUM(input_tokens + output_tokens) AS per_min FROM log WHERE __time__ &gt; now() - INTERVAL &#39;24&#39; HOUR GROUP BY m)&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    start</span>       <span class=o>=</span> <span class=s2>&#34;-24h&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    end</span>         <span class=o>=</span> <span class=s2>&#34;now&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  condition</span>         <span class=o>=</span> <span class=s2>&#34;now_tpm &gt; 2 * baseline&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  schedule_interval</span> <span class=o>=</span> <span class=s2>&#34;1m&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  notify_threshold</span>  <span class=o>=</span> <span class=m>2</span>
+</span></span><span class=line><span class=cl><span class=n>  throttling</span>        <span class=o>=</span> <span class=s2>&#34;10m&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>notification_list</span> {
+</span></span><span class=line><span class=cl><span class=n>    type</span>        <span class=o>=</span> <span class=s2>&#34;DingTalk&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    service_uri</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>    content</span>     <span class=o>=</span> <span class=s2>&#34;Token consumption ${&#34;{{now_tpm}}&#34;} tpm vs 24h avg ${&#34;{{baseline}}&#34;}. Possible runaway agent.&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>This is the one that has paid for itself. An agent with a buggy stop condition can burn ¥10,000 in tokens overnight; this alert catches it within 2 minutes and gives you time to kill the offender.</p><h2 id=why-dingtalk>Why DingTalk?</h2><p>In China, DingTalk is the team-chat default for most engineering orgs. SLS supports DingTalk webhooks natively. You can also fan out to email, SMS, and (via webhook) Slack/Teams/Lark. Pick whatever your team checks at 2am.</p><h2 id=what-about-arms-side-alerts>What about ARMS-side alerts?</h2><p>ARMS has its own alerting — useful for trace-level conditions (&ldquo;any trace with > 30 spans&rdquo;). For the four alarms above, SLS-side is enough and avoids splitting your alerting story across two systems. Use ARMS alerts only when SLS can&rsquo;t express what you need.</p><h2 id=what-it-costs>What it costs</h2><p>Observability has a real cost — usually 10-15% of the rest of your bill:</p><ul><li>SLS: ~¥0.35/GB ingested + ¥0.15/GB stored. A medium-traffic agent stack ingests ~5 GB/day → ¥50/mo for ingest, ¥20/mo for 30-day retention</li><li>ARMS APM: ~¥600/mo for 1 environment with up to 100M spans</li><li>CloudMonitor: free for standard metrics, ¥0.005 per custom metric per day</li></ul><p>Budget ¥1000-1500/mo for full observability on a real production agent stack. Cheap compared to one missed cost-runaway alarm.</p><h2 id=whats-next>What&rsquo;s next</h2><p>Article 8 is the end-to-end walkthrough. We compose every module from articles 2-7 — vpc-baseline, compute, storage, gateway, observability — into one <code>research-agent-stack</code> project and watch it come up with a single <code>terraform apply</code>. Real apply output, real timing, the full module DAG. The starter repo at the end is yours to fork.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><span class=title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-three-pipelines>The three pipelines</a></li><li><a href=#step-1-sls-project-and-logstores>Step 1: SLS project and logstores</a></li><li><a href=#step-2-ship-logs-from-ecs>Step 2: ship logs from ECS</a></li><li><a href=#step-3-traces-via-opentelemetry--arms>Step 3: traces via OpenTelemetry → ARMS</a></li><li><a href=#step-4-metrics-with-cloudmonitor>Step 4: metrics with CloudMonitor</a></li><li><a href=#step-5-the-cost-dashboard>Step 5: the cost dashboard</a></li><li><a href=#step-6-the-four-alarms>Step 6: the four alarms</a><ul><li><a href=#alarm-1-cost-ceiling>Alarm 1: cost ceiling</a></li><li><a href=#alarm-2-latency>Alarm 2: latency</a></li><li><a href=#alarm-3-error-rate>Alarm 3: error rate</a></li><li><a href=#alarm-4-token-leak-runaway-loop>Alarm 4: token leak (runaway loop)</a></li></ul></li><li><a href=#why-dingtalk>Why DingTalk?</a></li><li><a href=#what-about-arms-side-alerts>What about ARMS-side alerts?</a></li><li><a href=#what-it-costs>What it costs</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Terraform Agents</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
+<span class=chapter-title>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
+<span class=chapter-title>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
+<span class=chapter-title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><span class=chapter-num>04</span>
+<span class=chapter-title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><span class=chapter-num>05</span>
+<span class=chapter-title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
+<span class=chapter-title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>07</span>
+<span class=chapter-title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
+<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>2069</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

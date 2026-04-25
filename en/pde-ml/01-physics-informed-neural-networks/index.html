@@ -1,644 +1,75 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>PDE and Machine Learning (1): Physics-Informed Neural Networks · Chen Kai Blog</title>
-<meta name="description" content="From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="PDE and Machine Learning (1): Physics-Informed Neural Networks">
-<meta property="og:description" content="From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included.">
-<meta property="og:url" content="https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Pde and machine learning</a>
-         · Chapter 1
-      </div>
-      <h1>PDE and Machine Learning (1): Physics-Informed Neural Networks</h1>
-      <p class="deck">From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-05-01">May 1, 2024</time> · 8 min read · 1600 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/pinn/" class="tag">#PINN</a><a href="/en/tags/scientific-computing/" class="tag">#Scientific Computing</a><a href="/en/tags/neural-networks/" class="tag">#Neural Networks</a><a href="/en/tags/pde/" class="tag">#PDE</a><a href="/en/tags/automatic-differentiation/" class="tag">#Automatic Differentiation</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <blockquote>
-<p><strong>Series chapter 1 — about a 35-minute read.</strong> This is the foundation of the entire series. Neural operators, variational principles, score matching — every later chapter is, at heart, <em>the same idea</em>: how do we encode physical or mathematical constraints directly into the optimisation objective of a neural network? Get PINNs right and the rest is &ldquo;swap one constraint for another&rdquo;.</p>
-</blockquote>
-<hr>
-<h2 id="1-prologue-a-metal-rod">1 Prologue: a metal rod</h2>
-<p>Suppose you want the temperature distribution $u(x,t)$ along a metal rod. Half a century of numerical analysis offers two standard answers:</p>
-<ol>
-<li><strong>Finite differences (FDM).</strong> Slice $[0,L]$ into $N$ pieces and $[0,T]$ into $M$ pieces, replace the second derivative by a three-point stencil, march forward in time.</li>
-<li><strong>Finite elements (FEM).</strong> Triangulate the domain, approximate the solution by a linear polynomial inside each triangle, and require the weak-form residual to be orthogonal to a set of test functions.</li>
-</ol>
-<p>Both routes are mature beyond reproach but share one painful prerequisite — <strong>first you must build a mesh.</strong> A 1-D rod is fine; an aircraft wing is annoying; a 10-dimensional state space is a death sentence (the curse of dimensionality: $N\propto h^{-d}$ explodes).</p>
-<p>In 2019, Raissi, Perdikaris and Karniadakis <sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> proposed a third route in <em>Journal of Computational Physics</em>:</p>
-<blockquote>
-<p><strong>Skip the mesh. Let a neural network $u_\theta(x,t)$ approximate the solution directly, and write &ldquo;satisfies the PDE&rdquo; as a loss function.</strong></p>
-</blockquote>
-<p>The seed of the idea goes back to Lagaris (1998) <sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> and even further to Walther Ritz (1908), whose variational method recast solving a PDE as <em>minimising a functional over a finite-dimensional function space</em>. Ritz used piecewise polynomials; PINNs use neural networks. The killer move PINNs add is <strong>automatic differentiation</strong>: high-order derivatives are evaluated to machine precision in one line of <code>torch.autograd.grad</code>, no truncation error.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig1_architecture.png" alt="PINN architecture: MLP &#43; automatic differentiation &#43; physics-informed loss." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 1: PINN architecture. Inputs $(x,t)$ feed an ordinary MLP that outputs $\hat u$; autodiff extracts $\partial_t\hat u$ and $\partial_x^2\hat u$, which assemble the PDE residual. Together with boundary and initial / data residuals it forms the training objective $\mathcal L=\lambda_r\mathcal L_r+\lambda_b\mathcal L_b+\lambda_i\mathcal L_i$.</em></p>
-<p>This chapter proceeds as follows. §2 quantifies the pain points of classical methods. §3 gives the minimal complete definition of a PINN and shows its equivalence with Ritz–Galerkin. §4 is the heart of the chapter: a Neural Tangent Kernel (NTK) view of <em>why</em> PINNs are so often hard to train, and three working remedies. §5 walks through a complete Burgers experiment plus an inverse-problem demonstration. §6 enumerates failure modes and limits. §7 places PINNs on the wider SciML map next to FEM and neural operators.</p>
-<hr>
-<h2 id="2-classical-numerical-methods-mature-with-edges">2 Classical numerical methods: mature, with edges</h2>
-<h3 id="21-finite-differences--intuition-at-the-price-of-stability">2.1 Finite differences — intuition at the price of stability</h3>
-<p>Consider the 1-D heat equation</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>PDE and Machine Learning (1): Physics-Informed Neural Networks · Chen Kai Blog</title>
+<meta name=description content="From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/><meta property="og:type" content="article"><meta property="og:title" content="PDE and Machine Learning (1): Physics-Informed Neural Networks"><meta property="og:description" content="From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included."><meta property="og:url" content="https://www.chenk.top/en/pde-ml/01-physics-informed-neural-networks/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Pde and machine learning</a>
+· Chapter 1</div><h1>PDE and Machine Learning (1): Physics-Informed Neural Networks</h1><p class=deck>From finite differences to PINNs: automatic differentiation, PDE residual losses, NTK-based training pathologies, Burgers inverse problems, and a side-by-side comparison with FEM and neural operators. Seven figures included.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-05-01>May 1, 2024</time> · 8 min read · 1598 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/pinn/ class=tag>#PINN</a><a href=/en/tags/scientific-computing/ class=tag>#Scientific Computing</a><a href=/en/tags/neural-networks/ class=tag>#Neural Networks</a><a href=/en/tags/pde/ class=tag>#PDE</a><a href=/en/tags/automatic-differentiation/ class=tag>#Automatic Differentiation</a></div></div></header><div class=prose><blockquote><p><strong>Series chapter 1 — about a 35-minute read.</strong> This is the foundation of the entire series. Neural operators, variational principles, score matching — every later chapter is, at heart, <em>the same idea</em>: how do we encode physical or mathematical constraints directly into the optimisation objective of a neural network? Get PINNs right and the rest is &ldquo;swap one constraint for another&rdquo;.</p></blockquote><hr><h2 id=1-prologue-a-metal-rod>1 Prologue: a metal rod</h2><p>Suppose you want the temperature distribution $u(x,t)$ along a metal rod. Half a century of numerical analysis offers two standard answers:</p><ol><li><strong>Finite differences (FDM).</strong> Slice $[0,L]$ into $N$ pieces and $[0,T]$ into $M$ pieces, replace the second derivative by a three-point stencil, march forward in time.</li><li><strong>Finite elements (FEM).</strong> Triangulate the domain, approximate the solution by a linear polynomial inside each triangle, and require the weak-form residual to be orthogonal to a set of test functions.</li></ol><p>Both routes are mature beyond reproach but share one painful prerequisite — <strong>first you must build a mesh.</strong> A 1-D rod is fine; an aircraft wing is annoying; a 10-dimensional state space is a death sentence (the curse of dimensionality: $N\propto h^{-d}$ explodes).</p><p>In 2019, Raissi, Perdikaris and Karniadakis <sup id=fnref:1><a href=#fn:1 class=footnote-ref role=doc-noteref>1</a></sup> proposed a third route in <em>Journal of Computational Physics</em>:</p><blockquote><p><strong>Skip the mesh. Let a neural network $u_\theta(x,t)$ approximate the solution directly, and write &ldquo;satisfies the PDE&rdquo; as a loss function.</strong></p></blockquote><p>The seed of the idea goes back to Lagaris (1998) <sup id=fnref:2><a href=#fn:2 class=footnote-ref role=doc-noteref>2</a></sup> and even further to Walther Ritz (1908), whose variational method recast solving a PDE as <em>minimising a functional over a finite-dimensional function space</em>. Ritz used piecewise polynomials; PINNs use neural networks. The killer move PINNs add is <strong>automatic differentiation</strong>: high-order derivatives are evaluated to machine precision in one line of <code>torch.autograd.grad</code>, no truncation error.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig1_architecture.png alt="PINN architecture: MLP + automatic differentiation + physics-informed loss." loading=lazy decoding=async></figure><em>Figure 1: PINN architecture. Inputs $(x,t)$ feed an ordinary MLP that outputs $\hat u$; autodiff extracts $\partial_t\hat u$ and $\partial_x^2\hat u$, which assemble the PDE residual. Together with boundary and initial / data residuals it forms the training objective $\mathcal L=\lambda_r\mathcal L_r+\lambda_b\mathcal L_b+\lambda_i\mathcal L_i$.</em></p><p>This chapter proceeds as follows. §2 quantifies the pain points of classical methods. §3 gives the minimal complete definition of a PINN and shows its equivalence with Ritz–Galerkin. §4 is the heart of the chapter: a Neural Tangent Kernel (NTK) view of <em>why</em> PINNs are so often hard to train, and three working remedies. §5 walks through a complete Burgers experiment plus an inverse-problem demonstration. §6 enumerates failure modes and limits. §7 places PINNs on the wider SciML map next to FEM and neural operators.</p><hr><h2 id=2-classical-numerical-methods-mature-with-edges>2 Classical numerical methods: mature, with edges</h2><h3 id=21-finite-differences--intuition-at-the-price-of-stability>2.1 Finite differences — intuition at the price of stability</h3><p>Consider the 1-D heat equation</p>$$
 u_t=\nu u_{xx},\qquad x\in(0,1),\ t>0,
-$$<p>with $u(0,t)=u(1,t)=0$ and $u(x,0)=\sin(\pi x)$. Let $h$ be the spatial step and $\tau$ the time step. Forward Euler gives</p>
-$$
+$$<p>with $u(0,t)=u(1,t)=0$ and $u(x,0)=\sin(\pi x)$. Let $h$ be the spatial step and $\tau$ the time step. Forward Euler gives</p>$$
 \frac{u_i^{n+1}-u_i^n}{\tau}=\nu\frac{u_{i-1}^n-2u_i^n+u_{i+1}^n}{h^2}.
-$$<p>A <strong>Von Neumann analysis</strong> yields the stability condition $\tau\le h^2/(2\nu)$ — the time step must scale like the <em>square</em> of the space step. Refining $h$ tenfold demands $\tau$ refined a hundredfold; total cost grows by a factor of one thousand. The implicit Crank–Nicolson scheme is unconditionally stable but pays for it with a tridiagonal solve at every step; in higher dimensions you are at the mercy of sparse direct solvers or multigrid.</p>
-<p><strong>Bottom line.</strong> FDM has a clean global error of $O(\tau+h^2)$ guaranteed by Lax equivalence. It is unbeatable on structured grids and <strong>completely helpless on irregular geometries.</strong></p>
-<h3 id="22-finite-elements--weak-forms-and-the-ritz-functional">2.2 Finite elements — weak forms and the Ritz functional</h3>
-<p>The weak form of $-\Delta u=f$: find $u\in H_0^1(\Omega)$ such that</p>
-$$
+$$<p>A <strong>Von Neumann analysis</strong> yields the stability condition $\tau\le h^2/(2\nu)$ — the time step must scale like the <em>square</em> of the space step. Refining $h$ tenfold demands $\tau$ refined a hundredfold; total cost grows by a factor of one thousand. The implicit Crank–Nicolson scheme is unconditionally stable but pays for it with a tridiagonal solve at every step; in higher dimensions you are at the mercy of sparse direct solvers or multigrid.</p><p><strong>Bottom line.</strong> FDM has a clean global error of $O(\tau+h^2)$ guaranteed by Lax equivalence. It is unbeatable on structured grids and <strong>completely helpless on irregular geometries.</strong></p><h3 id=22-finite-elements--weak-forms-and-the-ritz-functional>2.2 Finite elements — weak forms and the Ritz functional</h3><p>The weak form of $-\Delta u=f$: find $u\in H_0^1(\Omega)$ such that</p>$$
 \underbrace{\int_\Omega\nabla u\cdot\nabla v\,\mathrm dx}_{a(u,v)}
 =\underbrace{\int_\Omega fv\,\mathrm dx}_{\ell(v)},\qquad\forall v\in H_0^1(\Omega).
-$$<p>This is <strong>equivalent</strong> to minimising the Dirichlet energy $J(u)=\tfrac12 a(u,u)-\ell(u)$. In a piecewise-linear subspace $V_h\subset H_0^1$, write $u_h=\sum c_j\phi_j$ and solve $Kc=f$ with $K_{ij}=a(\phi_i,\phi_j)$ — a sparse symmetric positive-definite stiffness matrix.</p>
-<p>Céa&rsquo;s lemma supplies the optimal error bound $\|u-u_h\|_{H^1}\le Ch^k\|u\|_{H^{k+1}}$. <strong>FEM&rsquo;s strengths</strong> are textbook: convergence proofs, error control, adaptive mesh refinement. <strong>The weakness</strong>, again, is the mesh — moving boundaries, porous media and high-dimensional parameter spaces are all hard.</p>
-<h3 id="23-what-pinns-are-trying-to-disrupt">2.3 What PINNs are trying to disrupt</h3>
-<p>Stitching §2.1 and §2.2 together, the shared cost of classical methods is:</p>
-<table>
-  <thead>
-      <tr>
-          <th>dimension</th>
-          <th>FDM</th>
-          <th>FEM</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>mesh</td>
-          <td>required, structured</td>
-          <td>required, unstructured</td>
-      </tr>
-      <tr>
-          <td>high-order derivatives</td>
-          <td>discrete stencil, truncation $O(h^p)$</td>
-          <td>weakened to first order via test functions</td>
-      </tr>
-      <tr>
-          <td>high dimensions</td>
-          <td>catastrophic</td>
-          <td>catastrophic</td>
-      </tr>
-      <tr>
-          <td>complex geometry</td>
-          <td>hard</td>
-          <td>moderate (mesh generation expensive)</td>
-      </tr>
-      <tr>
-          <td>inverse problems</td>
-          <td>nested optimisation</td>
-          <td>nested optimisation</td>
-      </tr>
-      <tr>
-          <td>change boundary / geometry / parameters</td>
-          <td>recompute everything</td>
-          <td>recompute everything</td>
-      </tr>
-  </tbody>
-</table>
-<p>PINNs aim at the last three rows simultaneously: <strong>mesh-free, dimension-friendly, and forward + inverse unified into a single optimisation.</strong> The price is the loss of classical convergence guarantees — those have to be replaced by training tricks.</p>
-<hr>
-<h2 id="3-the-minimal-complete-definition-of-a-pinn">3 The minimal complete definition of a PINN</h2>
-<h3 id="31-the-mathematical-statement">3.1 The mathematical statement</h3>
-<p>Consider a generic PDE</p>
-$$
+$$<p>This is <strong>equivalent</strong> to minimising the Dirichlet energy $J(u)=\tfrac12 a(u,u)-\ell(u)$. In a piecewise-linear subspace $V_h\subset H_0^1$, write $u_h=\sum c_j\phi_j$ and solve $Kc=f$ with $K_{ij}=a(\phi_i,\phi_j)$ — a sparse symmetric positive-definite stiffness matrix.</p><p>Céa&rsquo;s lemma supplies the optimal error bound $\|u-u_h\|_{H^1}\le Ch^k\|u\|_{H^{k+1}}$. <strong>FEM&rsquo;s strengths</strong> are textbook: convergence proofs, error control, adaptive mesh refinement. <strong>The weakness</strong>, again, is the mesh — moving boundaries, porous media and high-dimensional parameter spaces are all hard.</p><h3 id=23-what-pinns-are-trying-to-disrupt>2.3 What PINNs are trying to disrupt</h3><p>Stitching §2.1 and §2.2 together, the shared cost of classical methods is:</p><table><thead><tr><th>dimension</th><th>FDM</th><th>FEM</th></tr></thead><tbody><tr><td>mesh</td><td>required, structured</td><td>required, unstructured</td></tr><tr><td>high-order derivatives</td><td>discrete stencil, truncation $O(h^p)$</td><td>weakened to first order via test functions</td></tr><tr><td>high dimensions</td><td>catastrophic</td><td>catastrophic</td></tr><tr><td>complex geometry</td><td>hard</td><td>moderate (mesh generation expensive)</td></tr><tr><td>inverse problems</td><td>nested optimisation</td><td>nested optimisation</td></tr><tr><td>change boundary / geometry / parameters</td><td>recompute everything</td><td>recompute everything</td></tr></tbody></table><p>PINNs aim at the last three rows simultaneously: <strong>mesh-free, dimension-friendly, and forward + inverse unified into a single optimisation.</strong> The price is the loss of classical convergence guarantees — those have to be replaced by training tricks.</p><hr><h2 id=3-the-minimal-complete-definition-of-a-pinn>3 The minimal complete definition of a PINN</h2><h3 id=31-the-mathematical-statement>3.1 The mathematical statement</h3><p>Consider a generic PDE</p>$$
 \mathcal N[u](x,t)=0,\quad(x,t)\in\Omega\times(0,T],\qquad
 \mathcal B[u]=g\ \text{on}\ \partial\Omega,\qquad
 u(x,0)=u_0(x).
-$$<p>A parameterised network $u_\theta:\mathbb R^{d+1}\to\mathbb R$ (typically a tanh-MLP) approximates $u$. Define the composite loss</p>
-$$
+$$<p>A parameterised network $u_\theta:\mathbb R^{d+1}\to\mathbb R$ (typically a tanh-MLP) approximates $u$. Define the composite loss</p>$$
 \boxed{\;
 \mathcal L(\theta)=\lambda_r\underbrace{\frac1{N_r}\sum_{i=1}^{N_r}|\mathcal N[u_\theta](x_i^r,t_i^r)|^2}_{\mathcal L_r:\,\text{PDE residual}}
 +\lambda_b\underbrace{\frac1{N_b}\sum|\mathcal B[u_\theta]-g|^2}_{\mathcal L_b}
 +\lambda_i\underbrace{\frac1{N_i}\sum|u_\theta-u_0|^2}_{\mathcal L_i}
 +\lambda_d\underbrace{\frac1{N_d}\sum|u_\theta-u^{\mathrm{obs}}|^2}_{\mathcal L_d}\;}
-$$<p>The last term $\mathcal L_d$ is absent in <strong>forward problems</strong> but central to <strong>inverse problems</strong>. Training is $\theta^\star=\arg\min_\theta\mathcal L(\theta)$ via Adam or L-BFGS.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig2_loss_decomposition.png" alt="Three loss components and a balanced-weighting comparison." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 2. Left: with naive equal weights the PDE residual decays quickly while the boundary loss stalls — the network produces what aerodynamicists jokingly call &ldquo;physics-respecting noise&rdquo;. Right: after NTK-balanced adaptive weighting the three curves descend together — this is what healthy PINN training looks like.</em></p>
-<h3 id="32-why-automatic-differentiation-matters">3.2 Why automatic differentiation matters</h3>
-<p>Naive numerical differentiation,</p>
-$$
+$$<p>The last term $\mathcal L_d$ is absent in <strong>forward problems</strong> but central to <strong>inverse problems</strong>. Training is $\theta^\star=\arg\min_\theta\mathcal L(\theta)$ via Adam or L-BFGS.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig2_loss_decomposition.png alt="Three loss components and a balanced-weighting comparison." loading=lazy decoding=async></figure><em>Figure 2. Left: with naive equal weights the PDE residual decays quickly while the boundary loss stalls — the network produces what aerodynamicists jokingly call &ldquo;physics-respecting noise&rdquo;. Right: after NTK-balanced adaptive weighting the three curves descend together — this is what healthy PINN training looks like.</em></p><h3 id=32-why-automatic-differentiation-matters>3.2 Why automatic differentiation matters</h3><p>Naive numerical differentiation,</p>$$
 \partial_x u\approx\frac{u(x+\varepsilon)-u(x-\varepsilon)}{2\varepsilon},
-$$<p>has two killers: $\varepsilon$ too small drowns in floating-point round-off, and high-order derivatives compound the error. Reverse-mode autodiff is symbolic-exact: every elementary operation has a known derivative, the chain rule is automatically composed, and the <strong>result equals the analytic derivative to machine precision.</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 1-D heat equation residual: u_t - nu * u_xx</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">heat_residual</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">nu</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">x</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">);</span> <span class="n">t</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">u</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>                <span class="c1"># forward pass</span>
-</span></span><span class="line"><span class="cl">    <span class="n">u_t</span>  <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">u_x</span>  <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">u_xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_x</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">u_t</span> <span class="o">-</span> <span class="n">nu</span> <span class="o">*</span> <span class="n">u_xx</span>                             <span class="c1"># residual, target -&gt; 0</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The flag <code>create_graph=True</code> keeps the derivative itself in the computation graph, so that <code>loss = (residual**2).mean()</code> propagates back to $\nabla_\theta$ correctly.</p>
-<h3 id="33-isomorphism-with-the-ritz-method">3.3 Isomorphism with the Ritz method</h3>
-<p>Lifting to the abstract level:</p>
-<ul>
-<li><strong>Ritz</strong>: minimise $J(u)=\tfrac12 a(u,u)-\ell(u)$ inside a subspace $V_h=\mathrm{span}\{\phi_1,\dots,\phi_n\}$.</li>
-<li><strong>PINN</strong>: minimise $\mathcal L(\theta)$ inside a subspace $V_\theta=\{u_\theta:\theta\in\mathbb R^p\}$.</li>
-</ul>
-<p>Two differences:</p>
-<ol>
-<li><strong>Basis functions</strong> — piecewise polynomials vs. neural networks. The latter are nonlinear, smooth, and have a tunable spectrum.</li>
-<li><strong>Testing mechanism</strong> — Galerkin uses inner products on test functions; PINNs use collocation + Monte-Carlo approximation of the integral.</li>
-</ol>
-<p>Read this way, PINNs are not exotic: they are <strong>&ldquo;Ritz with the finite-dimensional subspace replaced by a neural network.&rdquo;</strong> The Deep Ritz method <sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup> makes this explicit by minimising the energy functional directly rather than the squared residual — better behaved on elliptic problems.</p>
-<h3 id="34-convergence-yes-but-weak">3.4 Convergence: yes, but weak</h3>
-<p>Shin, Darbon and Karniadakis (2020) <sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup> proved asymptotic convergence for linear second-order elliptic PDEs: as $N_r\to\infty$, network width $\to\infty$, and $\mathcal L\to 0$, $u_\theta\to u^\star$ in $L^2$. <strong>There is no quantitative rate</strong> like FEM&rsquo;s $O(h^k)$ — the most honest gap between PINNs and classical methods. Subsequent work has supplied Sobolev-norm bounds under restrictive assumptions, but engineering-grade <em>a priori</em> convergence orders remain out of reach.</p>
-<hr>
-<h2 id="4-training-pathologies-the-part-thats-actually-hard">4 Training pathologies: the part that&rsquo;s actually hard</h2>
-<p>Anyone who has run a PINN has seen the loss drop from 1 to 0.01 and then refuse to move, or seen boundary conditions fail outright. Three diagnoses follow, with engineering fixes for each.</p>
-<h3 id="41-pathology-a-imbalanced-loss-terms-gradient-pathology">4.1 Pathology A: imbalanced loss terms (gradient pathology)</h3>
-<p>Wang &amp; Perdikaris (2021) <sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup> used backprop gradient statistics to expose a universal phenomenon: <strong>$\nabla_\theta\mathcal L_r$ is several orders of magnitude larger than $\nabla_\theta\mathcal L_b$.</strong> Plain Adam follows the dominant gradient, the boundary loss is drowned out, and the network &ldquo;satisfies the PDE wonderfully in the interior but has no idea what the boundary looks like.&rdquo;</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig6_failure_modes.png" alt="Gradient pathology and spectral bias." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 6, left: per-layer norms of $\nabla_\theta\mathcal L_r$ and $\nabla_\theta\mathcal L_b$ on a logarithmic scale, separated by 3–4 orders of magnitude — typical for a vanilla PINN. Right: the same network approximating a multi-scale signal $u=\sin(\pi x)+0.5\sin(8\pi x)+0.3\sin(20\pi x)$. The low-frequency mode is essentially perfect; the $20\pi$ mode has all but vanished — this is &ldquo;spectral bias&rdquo;.</em></p>
-<p><strong>Fix 1: adaptive weights.</strong> Reset every few hundred steps:</p>
-$$
+$$<p>has two killers: $\varepsilon$ too small drowns in floating-point round-off, and high-order derivatives compound the error. Reverse-mode autodiff is symbolic-exact: every elementary operation has a known derivative, the chain rule is automatically composed, and the <strong>result equals the analytic derivative to machine precision.</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 1-D heat equation residual: u_t - nu * u_xx</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>heat_residual</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>nu</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>x</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>);</span> <span class=n>t</span><span class=o>.</span><span class=n>requires_grad_</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>u</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>x</span><span class=p>,</span> <span class=n>t</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>))</span>                <span class=c1># forward pass</span>
+</span></span><span class=line><span class=cl>    <span class=n>u_t</span>  <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>u</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>ones_like</span><span class=p>(</span><span class=n>u</span><span class=p>),</span> <span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>u_x</span>  <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>u</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>ones_like</span><span class=p>(</span><span class=n>u</span><span class=p>),</span> <span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>u_xx</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span><span class=n>u_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>ones_like</span><span class=p>(</span><span class=n>u_x</span><span class=p>),</span> <span class=n>create_graph</span><span class=o>=</span><span class=kc>True</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>u_t</span> <span class=o>-</span> <span class=n>nu</span> <span class=o>*</span> <span class=n>u_xx</span>                             <span class=c1># residual, target -&gt; 0</span>
+</span></span></code></pre></td></tr></table></div></div><p>The flag <code>create_graph=True</code> keeps the derivative itself in the computation graph, so that <code>loss = (residual**2).mean()</code> propagates back to $\nabla_\theta$ correctly.</p><h3 id=33-isomorphism-with-the-ritz-method>3.3 Isomorphism with the Ritz method</h3><p>Lifting to the abstract level:</p><ul><li><strong>Ritz</strong>: minimise $J(u)=\tfrac12 a(u,u)-\ell(u)$ inside a subspace $V_h=\mathrm{span}\{\phi_1,\dots,\phi_n\}$.</li><li><strong>PINN</strong>: minimise $\mathcal L(\theta)$ inside a subspace $V_\theta=\{u_\theta:\theta\in\mathbb R^p\}$.</li></ul><p>Two differences:</p><ol><li><strong>Basis functions</strong> — piecewise polynomials vs. neural networks. The latter are nonlinear, smooth, and have a tunable spectrum.</li><li><strong>Testing mechanism</strong> — Galerkin uses inner products on test functions; PINNs use collocation + Monte-Carlo approximation of the integral.</li></ol><p>Read this way, PINNs are not exotic: they are <strong>&ldquo;Ritz with the finite-dimensional subspace replaced by a neural network.&rdquo;</strong> The Deep Ritz method <sup id=fnref:3><a href=#fn:3 class=footnote-ref role=doc-noteref>3</a></sup> makes this explicit by minimising the energy functional directly rather than the squared residual — better behaved on elliptic problems.</p><h3 id=34-convergence-yes-but-weak>3.4 Convergence: yes, but weak</h3><p>Shin, Darbon and Karniadakis (2020) <sup id=fnref:4><a href=#fn:4 class=footnote-ref role=doc-noteref>4</a></sup> proved asymptotic convergence for linear second-order elliptic PDEs: as $N_r\to\infty$, network width $\to\infty$, and $\mathcal L\to 0$, $u_\theta\to u^\star$ in $L^2$. <strong>There is no quantitative rate</strong> like FEM&rsquo;s $O(h^k)$ — the most honest gap between PINNs and classical methods. Subsequent work has supplied Sobolev-norm bounds under restrictive assumptions, but engineering-grade <em>a priori</em> convergence orders remain out of reach.</p><hr><h2 id=4-training-pathologies-the-part-thats-actually-hard>4 Training pathologies: the part that&rsquo;s actually hard</h2><p>Anyone who has run a PINN has seen the loss drop from 1 to 0.01 and then refuse to move, or seen boundary conditions fail outright. Three diagnoses follow, with engineering fixes for each.</p><h3 id=41-pathology-a-imbalanced-loss-terms-gradient-pathology>4.1 Pathology A: imbalanced loss terms (gradient pathology)</h3><p>Wang & Perdikaris (2021) <sup id=fnref:5><a href=#fn:5 class=footnote-ref role=doc-noteref>5</a></sup> used backprop gradient statistics to expose a universal phenomenon: <strong>$\nabla_\theta\mathcal L_r$ is several orders of magnitude larger than $\nabla_\theta\mathcal L_b$.</strong> Plain Adam follows the dominant gradient, the boundary loss is drowned out, and the network &ldquo;satisfies the PDE wonderfully in the interior but has no idea what the boundary looks like.&rdquo;</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig6_failure_modes.png alt="Gradient pathology and spectral bias." loading=lazy decoding=async></figure><em>Figure 6, left: per-layer norms of $\nabla_\theta\mathcal L_r$ and $\nabla_\theta\mathcal L_b$ on a logarithmic scale, separated by 3–4 orders of magnitude — typical for a vanilla PINN. Right: the same network approximating a multi-scale signal $u=\sin(\pi x)+0.5\sin(8\pi x)+0.3\sin(20\pi x)$. The low-frequency mode is essentially perfect; the $20\pi$ mode has all but vanished — this is &ldquo;spectral bias&rdquo;.</em></p><p><strong>Fix 1: adaptive weights.</strong> Reset every few hundred steps:</p>$$
 \hat\lambda_b=\frac{\max_\theta|\nabla_\theta\mathcal L_r|}{\overline{|\nabla_\theta\mathcal L_b|}},\qquad
 \lambda_b\leftarrow(1-\alpha)\lambda_b+\alpha\hat\lambda_b.
-$$<p>This is Wang&rsquo;s <em>learning-rate annealing</em> recipe; a few lines of code turn an unconvergent PINN into a healthy one.</p>
-<p><strong>Fix 2: hard constraints.</strong> Bake the boundary directly into the architecture. For 1-D Dirichlet zero conditions, use</p>
-$$
+$$<p>This is Wang&rsquo;s <em>learning-rate annealing</em> recipe; a few lines of code turn an unconvergent PINN into a healthy one.</p><p><strong>Fix 2: hard constraints.</strong> Bake the boundary directly into the architecture. For 1-D Dirichlet zero conditions, use</p>$$
 u_\theta(x,t)=x(1-x)\,\tilde u_\theta(x,t)+B(x,t),
-$$<p>where $B$ satisfies the boundary by construction and $\tilde u_\theta$ is unconstrained. Then $\mathcal L_b\equiv 0$ and there is nothing to balance.</p>
-<p><strong>Fix 3: NTK balancing.</strong> Wang–Yu–Perdikaris (2022) <sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup> proved PINN training dynamics are governed by three Neural Tangent Kernels; weighting by the trace of each NTK is the principled choice.</p>
-<h3 id="42-pathology-b-spectral-bias">4.2 Pathology B: spectral bias</h3>
-<p>Neural network training has a well-known bias: <strong>low frequencies are learned first, high frequencies last</strong> (Rahaman 2019; Tancik 2020). For PINNs the impact is especially severe because the PDE residual involves second derivatives, which amplify high-frequency error by $k^2$ — the worse the network is at high frequencies, the larger the residual, in a vicious circle.</p>
-<p><strong>Fixes</strong>:</p>
-<ul>
-<li><strong>Fourier features</strong>: map $x$ first to $[\sin(2\pi Bx),\cos(2\pi Bx)]$ with a Gaussian random matrix $B$; this flattens the NTK spectrum.</li>
-<li><strong>Sine activations</strong> (SIREN <sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup>): naturally distribute energy across the frequency domain, but require careful initialisation.</li>
-</ul>
-<h3 id="43-pathology-c-violation-of-causality">4.3 Pathology C: violation of causality</h3>
-<p>Time-dependent PDEs respect &ldquo;the past determines the future&rdquo;. But PINNs sample $\Omega\times[0,T]$ <em>all at once</em>, asking the network to fit $t=T$ before $t<T$ has been learned correctly. Krishnapriyan et al. (2021) <sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup> coined this <em>failure mode</em> on the convection equation.</p>
-<p><strong>Fix</strong>: causal training (Wang 2024) weights the residual by time-respecting factors,</p>
-$$
-w_n=\exp\bigl(-\varepsilon\sum_{k<n}\mathcal L_r(t_k)\bigr).
-$$<p>Late-time residuals are admitted into the loss only after early-time residuals have decayed.</p>
-<h3 id="44-convergence-comparison">4.4 Convergence comparison</h3>
-<p>Combining the fixes on a Burgers experiment:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig4_convergence.png" alt="Whether the PDE residual breaks the data bottleneck." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 4. With only 50 noisy labels, pure supervised training (red) is quickly trapped at a 4% noise plateau. Adding the PDE residual (blue) keeps the physics constraint pushing the error down to 0.3%. This is the core value PINNs add over plain regression.</em></p>
-<hr>
-<h2 id="5-experiment-burgers-and-an-inverse-problem">5 Experiment: Burgers and an inverse problem</h2>
-<h3 id="51-forward-problem-the-burgers-shock">5.1 Forward problem: the Burgers shock</h3>
-<p>Consider</p>
-$$
+$$<p>where $B$ satisfies the boundary by construction and $\tilde u_\theta$ is unconstrained. Then $\mathcal L_b\equiv 0$ and there is nothing to balance.</p><p><strong>Fix 3: NTK balancing.</strong> Wang–Yu–Perdikaris (2022) <sup id=fnref:6><a href=#fn:6 class=footnote-ref role=doc-noteref>6</a></sup> proved PINN training dynamics are governed by three Neural Tangent Kernels; weighting by the trace of each NTK is the principled choice.</p><h3 id=42-pathology-b-spectral-bias>4.2 Pathology B: spectral bias</h3><p>Neural network training has a well-known bias: <strong>low frequencies are learned first, high frequencies last</strong> (Rahaman 2019; Tancik 2020). For PINNs the impact is especially severe because the PDE residual involves second derivatives, which amplify high-frequency error by $k^2$ — the worse the network is at high frequencies, the larger the residual, in a vicious circle.</p><p><strong>Fixes</strong>:</p><ul><li><strong>Fourier features</strong>: map $x$ first to $[\sin(2\pi Bx),\cos(2\pi Bx)]$ with a Gaussian random matrix $B$; this flattens the NTK spectrum.</li><li><strong>Sine activations</strong> (SIREN <sup id=fnref:7><a href=#fn:7 class=footnote-ref role=doc-noteref>7</a></sup>): naturally distribute energy across the frequency domain, but require careful initialisation.</li></ul><h3 id=43-pathology-c-violation-of-causality>4.3 Pathology C: violation of causality</h3><p>Time-dependent PDEs respect &ldquo;the past determines the future&rdquo;. But PINNs sample $\Omega\times[0,T]$ <em>all at once</em>, asking the network to fit $t=T$ before $t<t$ has been learned correctly. krishnapriyan et al. (2021) <sup id=fnref:8><a href=#fn:8 class=footnote-ref role=doc-noteref>8</a></sup> coined this <em>failure mode</em> on the convection equation.</p><p><strong>Fix</strong>: causal training (Wang 2024) weights the residual by time-respecting factors,</p>$$
+w_n=\exp\bigl(-\varepsilon\sum_{k<n}\mathcal l_r(t_k)\bigr). $$<p>Late-time residuals are admitted into the loss only after early-time residuals have decayed.</p><h3 id=44-convergence-comparison>4.4 Convergence comparison</h3><p>Combining the fixes on a Burgers experiment:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig4_convergence.png alt="Whether the PDE residual breaks the data bottleneck." loading=lazy decoding=async></figure><em>Figure 4. With only 50 noisy labels, pure supervised training (red) is quickly trapped at a 4% noise plateau. Adding the PDE residual (blue) keeps the physics constraint pushing the error down to 0.3%. This is the core value PINNs add over plain regression.</em></p><hr><h2 id=5-experiment-burgers-and-an-inverse-problem>5 Experiment: Burgers and an inverse problem</h2><h3 id=51-forward-problem-the-burgers-shock>5.1 Forward problem: the Burgers shock</h3><p>Consider</p>$$
 u_t+uu_x=\nu u_{xx},\quad x\in[-1,1],\ t\in[0,1],\quad
 u(\pm 1,t)=0,\ u(x,0)=-\sin(\pi x),\ \nu=\frac{0.01}{\pi}.
-$$<p>The reference solution is obtained via the Cole–Hopf transform $u=-2\nu(\ln\phi)_x$ which reduces Burgers to the heat equation (the script&rsquo;s <code>burgers_cole_hopf</code> does exactly this). With $\nu$ this small, a near-discontinuous shock forms near $x=0$ from $t\approx 0.4$ onward.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig3_burgers_pred_vs_exact.png" alt="PINN solving Burgers&rsquo; equation: prediction vs. exact solution." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 3. Left: the Cole–Hopf reference $u(x,t)$ as a colour map; the red/blue interface is the shock. Right three panels: slices at $t=0.25/0.5/0.75$ — the PINN (dashed blue) captures both the location and the width of the shock. Look closely and the vanilla PINN still has roughly 5% overshoot on either side of the shock; this is what residual adaptive refinement, causal training and Sobolev training are designed to squash further.</em></p>
-<p><strong>Practical recipe</strong>:</p>
-<ol>
-<li>An MLP of 8 hidden layers $\times$ 20 units with tanh activations is plenty — do not blindly stack depth.</li>
-<li>Residual collocation $N_r\sim 10^4$. Use <strong>residual adaptive refinement (RAR)</strong>: every few hundred steps, evaluate $|\mathcal N[u_\theta]|$ on a candidate pool and add the top-$k$ points to the training set.</li>
-<li>Run Adam at 1e-3 for 20k steps to settle, then switch to L-BFGS for 5k more to polish.</li>
-<li><strong>Normalise.</strong> Map $(x,t)$ to $[-1,1]$ — otherwise the NTK is biased.</li>
-</ol>
-<h3 id="52-inverse-problem-parameter-discovery">5.2 Inverse problem: parameter discovery</h3>
-<p>Forward problems are unremarkable; inverse problems are where PINNs shine. Append $\mathcal L_d$ to fit sparse observations and treat the unknown PDE parameter $\nu$ as a learnable scalar that joins the gradient descent.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig5_inverse_problem.png" alt="Recovering the diffusivity from sparse noisy data." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 5. Left: only 30 noisy observations at $t=0.15$ (red dots). Right: treating $\nu$ as a learnable parameter alongside $\theta$, the trajectory converges from initial guess 0.45 to the true value 0.10 with relative error below 1%. This unification of forward and inverse problems within a single loss function is something FEM essentially cannot do.</em></p>
-<p><strong>Why is PINN so good at inverse problems?</strong> Classical inverse problems require nested optimisation — outer loop on parameters, inner loop on the PDE solver; every parameter change triggers a full forward solve. PINNs put &ldquo;satisfies the PDE&rdquo; <em>into</em> the loss, so parameter and $\theta$ live on the same gradient — no outer loop. The price is uncertainty quantification: ensembles or Bayesian PINNs, not a textbook MCMC + FEM stack.</p>
-<hr>
-<h2 id="6-failure-modes-and-limits">6 Failure modes and limits</h2>
-<p>PINNs are not silver bullets. Common industrial pitfalls:</p>
-<table>
-  <thead>
-      <tr>
-          <th>failure mode</th>
-          <th>cause</th>
-          <th>state of the art</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>high-frequency / multi-scale (turbulence)</td>
-          <td>spectral bias + 2nd-derivative amplification</td>
-          <td>partially mitigated by Fourier features and cPINN domain decomposition</td>
-      </tr>
-      <tr>
-          <td>near-discontinuities (shocks, phase transitions)</td>
-          <td>NN bias toward continuous functions</td>
-          <td>conservative PINN, weak-form PINN</td>
-      </tr>
-      <tr>
-          <td>long-time integration</td>
-          <td>causality violation, error accumulation</td>
-          <td>causal training, time partitioning</td>
-      </tr>
-      <tr>
-          <td>ill-conditioning (non-unique weak solutions)</td>
-          <td>non-convex loss landscape</td>
-          <td>priors, ensembles</td>
-      </tr>
-      <tr>
-          <td>coupled multi-physics</td>
-          <td>scale mismatch across loss terms</td>
-          <td>adaptive weighting, multi-task learning</td>
-      </tr>
-      <tr>
-          <td>high dimensions ($d>10$)</td>
-          <td>residual sampling curse</td>
-          <td>progressive sampling, quasi-MC</td>
-      </tr>
-  </tbody>
-</table>
-<p>A practitioner&rsquo;s rule of thumb: <strong>complex geometry, high dimensions, parameter inversion required → PINN; rigorous accuracy guarantees, regular geometry, fixed parameters → FEM / spectral; many online queries of the same parametric PDE family → neural operator.</strong></p>
-<hr>
-<h2 id="7-pinns-on-the-sciml-map">7 PINNs on the SciML map</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig7_pinn_vs_fem_vs_no.png" alt="PINN vs. FEM vs. neural operators: capability radar and cost-accuracy trade-off." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 7. Left: a six-axis radar (mesh-free, high-d, complex geometry, single-solve speed, cross-PDE generalisation, accuracy guarantees). Right: a &ldquo;solve time vs. error&rdquo; scatter for the same PDE under different methods. FEM has the highest attainable accuracy at the cost of being purpose-built for one geometry; PINNs are versatile but expensive per solve; neural operators (DeepONet/FNO) cost ~1 second per inference once trained, making them the right choice for parametric PDEs — but their training data has to come from FEM or PINN solves.</em></p>
-<p><strong>Selection mnemonic:</strong></p>
-<ul>
-<li><strong>FEM</strong> — classical, accuracy-guaranteed, regular geometry. Industrial-scale simulation still rests on FEM.</li>
-<li><strong>PINN</strong> — a Swiss-army knife, especially for <strong>inverse problems</strong> and <strong>prior-fusion</strong> research questions.</li>
-<li><strong>Neural operators</strong> (chapter 2) — for &ldquo;same PDE family, varying input function, repeatedly queried&rdquo; applications: weather, semiconductor simulation, financial pricing.</li>
-</ul>
-<p>PINNs do not aim to replace FEM. Their real role is to make <strong>prior physics a first-class citizen of deep-learning model design.</strong> That theme will run through every subsequent chapter.</p>
-<hr>
-<h2 id="8-handing-off-to-the-next-chapters">8 Handing off to the next chapters</h2>
-<p>Reading PINN as &ldquo;constraint embedded in the loss function&rdquo; makes the rest of the series fall into place:</p>
-<ul>
-<li><strong>Chapter 2 — Neural operators.</strong> From &ldquo;learn one solution&rdquo; to &ldquo;learn the solution operator $\mathcal G:f\mapsto u$&rdquo;.</li>
-<li><strong>Chapter 3 — Variational principles.</strong> Replace the residual loss with an energy functional — more stable, closer to the FEM theory.</li>
-<li><strong>Chapter 4 — Variational inference.</strong> Push the Fokker–Planck equation into the loss for consistent probabilistic inference.</li>
-<li><strong>Chapter 5 — Symplectic geometry.</strong> Encode Hamiltonian conservation directly in the architecture — the extreme case of hard constraints.</li>
-<li><strong>Chapter 6 — Neural ODE / CNF.</strong> Replace &ldquo;residual = 0&rdquo; with &ldquo;divergence of the flow = 0&rdquo;.</li>
-<li><strong>Chapter 7 — Diffusion models / score matching.</strong> Run PINN backwards: given data, recover the stochastic process whose Fokker–Planck equation it satisfies.</li>
-<li><strong>Chapter 8 — Reaction-diffusion + GNN.</strong> Swap the MLP for a graph network to handle mesh-shaped geometry.</li>
-</ul>
-<p>After this chapter, you should be able to give the one-sentence answer:</p>
-<blockquote>
-<p><strong>A PINN is a mesh-free PDE solver that uses neural networks as universal basis functions, treats the PDE residual as a loss function, and uses automatic differentiation to evaluate high-order derivatives to machine precision; its bottleneck is training dynamics — the gradient pathology and spectral bias revealed by NTK analysis — not expressive power.</strong></p>
-</blockquote>
-<hr>
-<h2 id="-checkpoint">✅ Checkpoint</h2>
-<ol>
-<li>Write down what each of the three terms in the PINN loss represents.</li>
-<li>Explain why NTK scale mismatches cause boundary conditions to be ignored during training.</li>
-<li>Name at least two engineering fixes for spectral bias.</li>
-<li>Given an inverse problem, sketch the code that puts the unknown parameter into the computation graph.</li>
-<li>When should you choose PINN over FEM? Over a neural operator?</li>
-</ol>
-<hr>
-<h2 id="references">References</h2>
-<hr>
-<h2 id="series-navigation">Series navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>part</th>
-          <th>topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>1</strong></td>
-          <td><strong>Physics-Informed Neural Networks (this article)</strong></td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td>Neural Operator Theory</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td>Variational Principles and Optimisation</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td>Variational Inference and the Fokker–Planck Equation</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td>Symplectic Geometry and Structure-Preserving Networks</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td>Continuous Normalising Flows and Neural ODE</td>
-      </tr>
-      <tr>
-          <td>7</td>
-          <td>Diffusion Models and Score Matching</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td>Reaction-Diffusion Systems and GNN</td>
-      </tr>
-  </tbody>
-</table>
-<div class="footnotes" role="doc-endnotes">
-<hr>
-<ol>
-<li id="fn:1">
-<p>M. Raissi, P. Perdikaris, G. E. Karniadakis. <em>Physics-Informed Neural Networks: A Deep Learning Framework for Solving Forward and Inverse Problems Involving Nonlinear Partial Differential Equations.</em> J. Comput. Phys., 378:686–707, 2019. <a href="https://doi.org/10.1016/j.jcp.2018.10.045" target="_blank" rel="noopener noreferrer">doi:10.1016/j.jcp.2018.10.045 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:2">
-<p>I. E. Lagaris, A. Likas, D. I. Fotiadis. <em>Artificial Neural Networks for Solving Ordinary and Partial Differential Equations.</em> IEEE TNN, 9(5):987–1000, 1998.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:3">
-<p>W. E, B. Yu. <em>The Deep Ritz Method.</em> Commun. Math. Stat., 6(1):1–12, 2018. <a href="https://arxiv.org/abs/1710.00211" target="_blank" rel="noopener noreferrer">arXiv:1710.00211 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:4">
-<p>Y. Shin, J. Darbon, G. E. Karniadakis. <em>On the Convergence of Physics-Informed Neural Networks for Linear Second-Order Elliptic and Parabolic Type PDEs.</em> Commun. Comput. Phys., 28(5):2042–2074, 2020. <a href="https://arxiv.org/abs/2004.01806" target="_blank" rel="noopener noreferrer">arXiv:2004.01806 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:5">
-<p>S. Wang, Y. Teng, P. Perdikaris. <em>Understanding and Mitigating Gradient Flow Pathologies in Physics-Informed Neural Networks.</em> SIAM J. Sci. Comput., 43(5):A3055–A3081, 2021. <a href="https://arxiv.org/abs/2001.04536" target="_blank" rel="noopener noreferrer">arXiv:2001.04536 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:6">
-<p>S. Wang, X. Yu, P. Perdikaris. <em>When and Why PINNs Fail to Train: A Neural Tangent Kernel Perspective.</em> J. Comput. Phys., 449:110768, 2022. <a href="https://arxiv.org/abs/2007.14527" target="_blank" rel="noopener noreferrer">arXiv:2007.14527 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:7">
-<p>V. Sitzmann et al. <em>Implicit Neural Representations with Periodic Activation Functions (SIREN).</em> NeurIPS 2020. <a href="https://arxiv.org/abs/2006.09661" target="_blank" rel="noopener noreferrer">arXiv:2006.09661 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-<li id="fn:8">
-<p>A. Krishnapriyan et al. <em>Characterizing Possible Failure Modes in Physics-Informed Neural Networks.</em> NeurIPS 2021. <a href="https://arxiv.org/abs/2109.01050" target="_blank" rel="noopener noreferrer">arXiv:2109.01050 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-&#160;<a href="#fnref:8" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
-</li>
-</ol>
-</div>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#1-prologue-a-metal-rod">1 Prologue: a metal rod</a></li>
-    <li><a href="#2-classical-numerical-methods-mature-with-edges">2 Classical numerical methods: mature, with edges</a>
-      <ul>
-        <li><a href="#21-finite-differences--intuition-at-the-price-of-stability">2.1 Finite differences — intuition at the price of stability</a></li>
-        <li><a href="#22-finite-elements--weak-forms-and-the-ritz-functional">2.2 Finite elements — weak forms and the Ritz functional</a></li>
-        <li><a href="#23-what-pinns-are-trying-to-disrupt">2.3 What PINNs are trying to disrupt</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-the-minimal-complete-definition-of-a-pinn">3 The minimal complete definition of a PINN</a>
-      <ul>
-        <li><a href="#31-the-mathematical-statement">3.1 The mathematical statement</a></li>
-        <li><a href="#32-why-automatic-differentiation-matters">3.2 Why automatic differentiation matters</a></li>
-        <li><a href="#33-isomorphism-with-the-ritz-method">3.3 Isomorphism with the Ritz method</a></li>
-        <li><a href="#34-convergence-yes-but-weak">3.4 Convergence: yes, but weak</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-training-pathologies-the-part-thats-actually-hard">4 Training pathologies: the part that&rsquo;s actually hard</a>
-      <ul>
-        <li><a href="#41-pathology-a-imbalanced-loss-terms-gradient-pathology">4.1 Pathology A: imbalanced loss terms (gradient pathology)</a></li>
-        <li><a href="#42-pathology-b-spectral-bias">4.2 Pathology B: spectral bias</a></li>
-        <li><a href="#43-pathology-c-violation-of-causality">4.3 Pathology C: violation of causality</a></li>
-        <li><a href="#44-convergence-comparison">4.4 Convergence comparison</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-experiment-burgers-and-an-inverse-problem">5 Experiment: Burgers and an inverse problem</a>
-      <ul>
-        <li><a href="#51-forward-problem-the-burgers-shock">5.1 Forward problem: the Burgers shock</a></li>
-        <li><a href="#52-inverse-problem-parameter-discovery">5.2 Inverse problem: parameter discovery</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-failure-modes-and-limits">6 Failure modes and limits</a></li>
-    <li><a href="#7-pinns-on-the-sciml-map">7 PINNs on the SciML map</a></li>
-    <li><a href="#8-handing-off-to-the-next-chapters">8 Handing off to the next chapters</a></li>
-    <li><a href="#-checkpoint">✅ Checkpoint</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Pde and machine learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>8 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1600</strong></div>
-      <div class="row"><span>Published</span><strong>May 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>The reference solution is obtained via the Cole–Hopf transform $u=-2\nu(\ln\phi)_x$ which reduces Burgers to the heat equation (the script&rsquo;s <code>burgers_cole_hopf</code> does exactly this). With $\nu$ this small, a near-discontinuous shock forms near $x=0$ from $t\approx 0.4$ onward.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig3_burgers_pred_vs_exact.png alt="PINN solving Burgers&rsquo; equation: prediction vs. exact solution." loading=lazy decoding=async></figure><em>Figure 3. Left: the Cole–Hopf reference $u(x,t)$ as a colour map; the red/blue interface is the shock. Right three panels: slices at $t=0.25/0.5/0.75$ — the PINN (dashed blue) captures both the location and the width of the shock. Look closely and the vanilla PINN still has roughly 5% overshoot on either side of the shock; this is what residual adaptive refinement, causal training and Sobolev training are designed to squash further.</em></p><p><strong>Practical recipe</strong>:</p><ol><li>An MLP of 8 hidden layers $\times$ 20 units with tanh activations is plenty — do not blindly stack depth.</li><li>Residual collocation $N_r\sim 10^4$. Use <strong>residual adaptive refinement (RAR)</strong>: every few hundred steps, evaluate $|\mathcal N[u_\theta]|$ on a candidate pool and add the top-$k$ points to the training set.</li><li>Run Adam at 1e-3 for 20k steps to settle, then switch to L-BFGS for 5k more to polish.</li><li><strong>Normalise.</strong> Map $(x,t)$ to $[-1,1]$ — otherwise the NTK is biased.</li></ol><h3 id=52-inverse-problem-parameter-discovery>5.2 Inverse problem: parameter discovery</h3><p>Forward problems are unremarkable; inverse problems are where PINNs shine. Append $\mathcal L_d$ to fit sparse observations and treat the unknown PDE parameter $\nu$ as a learnable scalar that joins the gradient descent.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig5_inverse_problem.png alt="Recovering the diffusivity from sparse noisy data." loading=lazy decoding=async></figure><em>Figure 5. Left: only 30 noisy observations at $t=0.15$ (red dots). Right: treating $\nu$ as a learnable parameter alongside $\theta$, the trajectory converges from initial guess 0.45 to the true value 0.10 with relative error below 1%. This unification of forward and inverse problems within a single loss function is something FEM essentially cannot do.</em></p><p><strong>Why is PINN so good at inverse problems?</strong> Classical inverse problems require nested optimisation — outer loop on parameters, inner loop on the PDE solver; every parameter change triggers a full forward solve. PINNs put &ldquo;satisfies the PDE&rdquo; <em>into</em> the loss, so parameter and $\theta$ live on the same gradient — no outer loop. The price is uncertainty quantification: ensembles or Bayesian PINNs, not a textbook MCMC + FEM stack.</p><hr><h2 id=6-failure-modes-and-limits>6 Failure modes and limits</h2><p>PINNs are not silver bullets. Common industrial pitfalls:</p><table><thead><tr><th>failure mode</th><th>cause</th><th>state of the art</th></tr></thead><tbody><tr><td>high-frequency / multi-scale (turbulence)</td><td>spectral bias + 2nd-derivative amplification</td><td>partially mitigated by Fourier features and cPINN domain decomposition</td></tr><tr><td>near-discontinuities (shocks, phase transitions)</td><td>NN bias toward continuous functions</td><td>conservative PINN, weak-form PINN</td></tr><tr><td>long-time integration</td><td>causality violation, error accumulation</td><td>causal training, time partitioning</td></tr><tr><td>ill-conditioning (non-unique weak solutions)</td><td>non-convex loss landscape</td><td>priors, ensembles</td></tr><tr><td>coupled multi-physics</td><td>scale mismatch across loss terms</td><td>adaptive weighting, multi-task learning</td></tr><tr><td>high dimensions ($d>10$)</td><td>residual sampling curse</td><td>progressive sampling, quasi-MC</td></tr></tbody></table><p>A practitioner&rsquo;s rule of thumb: <strong>complex geometry, high dimensions, parameter inversion required → PINN; rigorous accuracy guarantees, regular geometry, fixed parameters → FEM / spectral; many online queries of the same parametric PDE family → neural operator.</strong></p><hr><h2 id=7-pinns-on-the-sciml-map>7 PINNs on the SciML map</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/pde-ml/01-Physics-Informed-Neural-Networks/fig7_pinn_vs_fem_vs_no.png alt="PINN vs. FEM vs. neural operators: capability radar and cost-accuracy trade-off." loading=lazy decoding=async></figure><em>Figure 7. Left: a six-axis radar (mesh-free, high-d, complex geometry, single-solve speed, cross-PDE generalisation, accuracy guarantees). Right: a &ldquo;solve time vs. error&rdquo; scatter for the same PDE under different methods. FEM has the highest attainable accuracy at the cost of being purpose-built for one geometry; PINNs are versatile but expensive per solve; neural operators (DeepONet/FNO) cost ~1 second per inference once trained, making them the right choice for parametric PDEs — but their training data has to come from FEM or PINN solves.</em></p><p><strong>Selection mnemonic:</strong></p><ul><li><strong>FEM</strong> — classical, accuracy-guaranteed, regular geometry. Industrial-scale simulation still rests on FEM.</li><li><strong>PINN</strong> — a Swiss-army knife, especially for <strong>inverse problems</strong> and <strong>prior-fusion</strong> research questions.</li><li><strong>Neural operators</strong> (chapter 2) — for &ldquo;same PDE family, varying input function, repeatedly queried&rdquo; applications: weather, semiconductor simulation, financial pricing.</li></ul><p>PINNs do not aim to replace FEM. Their real role is to make <strong>prior physics a first-class citizen of deep-learning model design.</strong> That theme will run through every subsequent chapter.</p><hr><h2 id=8-handing-off-to-the-next-chapters>8 Handing off to the next chapters</h2><p>Reading PINN as &ldquo;constraint embedded in the loss function&rdquo; makes the rest of the series fall into place:</p><ul><li><strong>Chapter 2 — Neural operators.</strong> From &ldquo;learn one solution&rdquo; to &ldquo;learn the solution operator $\mathcal G:f\mapsto u$&rdquo;.</li><li><strong>Chapter 3 — Variational principles.</strong> Replace the residual loss with an energy functional — more stable, closer to the FEM theory.</li><li><strong>Chapter 4 — Variational inference.</strong> Push the Fokker–Planck equation into the loss for consistent probabilistic inference.</li><li><strong>Chapter 5 — Symplectic geometry.</strong> Encode Hamiltonian conservation directly in the architecture — the extreme case of hard constraints.</li><li><strong>Chapter 6 — Neural ODE / CNF.</strong> Replace &ldquo;residual = 0&rdquo; with &ldquo;divergence of the flow = 0&rdquo;.</li><li><strong>Chapter 7 — Diffusion models / score matching.</strong> Run PINN backwards: given data, recover the stochastic process whose Fokker–Planck equation it satisfies.</li><li><strong>Chapter 8 — Reaction-diffusion + GNN.</strong> Swap the MLP for a graph network to handle mesh-shaped geometry.</li></ul><p>After this chapter, you should be able to give the one-sentence answer:</p><blockquote><p><strong>A PINN is a mesh-free PDE solver that uses neural networks as universal basis functions, treats the PDE residual as a loss function, and uses automatic differentiation to evaluate high-order derivatives to machine precision; its bottleneck is training dynamics — the gradient pathology and spectral bias revealed by NTK analysis — not expressive power.</strong></p></blockquote><hr><h2 id=-checkpoint>✅ Checkpoint</h2><ol><li>Write down what each of the three terms in the PINN loss represents.</li><li>Explain why NTK scale mismatches cause boundary conditions to be ignored during training.</li><li>Name at least two engineering fixes for spectral bias.</li><li>Given an inverse problem, sketch the code that puts the unknown parameter into the computation graph.</li><li>When should you choose PINN over FEM? Over a neural operator?</li></ol><hr><h2 id=references>References</h2><hr><h2 id=series-navigation>Series navigation</h2><table><thead><tr><th>part</th><th>topic</th></tr></thead><tbody><tr><td><strong>1</strong></td><td><strong>Physics-Informed Neural Networks (this article)</strong></td></tr><tr><td>2</td><td>Neural Operator Theory</td></tr><tr><td>3</td><td>Variational Principles and Optimisation</td></tr><tr><td>4</td><td>Variational Inference and the Fokker–Planck Equation</td></tr><tr><td>5</td><td>Symplectic Geometry and Structure-Preserving Networks</td></tr><tr><td>6</td><td>Continuous Normalising Flows and Neural ODE</td></tr><tr><td>7</td><td>Diffusion Models and Score Matching</td></tr><tr><td>8</td><td>Reaction-Diffusion Systems and GNN</td></tr></tbody></table><div class=footnotes role=doc-endnotes><hr><ol><li id=fn:1><p>M. Raissi, P. Perdikaris, G. E. Karniadakis. <em>Physics-Informed Neural Networks: A Deep Learning Framework for Solving Forward and Inverse Problems Involving Nonlinear Partial Differential Equations.</em> J. Comput. Phys., 378:686–707, 2019. <a href=https://doi.org/10.1016/j.jcp.2018.10.045 target=_blank rel="noopener noreferrer">doi:10.1016/j.jcp.2018.10.045 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:1 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:2><p>I. E. Lagaris, A. Likas, D. I. Fotiadis. <em>Artificial Neural Networks for Solving Ordinary and Partial Differential Equations.</em> IEEE TNN, 9(5):987–1000, 1998.&#160;<a href=#fnref:2 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:3><p>W. E, B. Yu. <em>The Deep Ritz Method.</em> Commun. Math. Stat., 6(1):1–12, 2018. <a href=https://arxiv.org/abs/1710.00211 target=_blank rel="noopener noreferrer">arXiv:1710.00211 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:3 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:4><p>Y. Shin, J. Darbon, G. E. Karniadakis. <em>On the Convergence of Physics-Informed Neural Networks for Linear Second-Order Elliptic and Parabolic Type PDEs.</em> Commun. Comput. Phys., 28(5):2042–2074, 2020. <a href=https://arxiv.org/abs/2004.01806 target=_blank rel="noopener noreferrer">arXiv:2004.01806 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:4 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:5><p>S. Wang, Y. Teng, P. Perdikaris. <em>Understanding and Mitigating Gradient Flow Pathologies in Physics-Informed Neural Networks.</em> SIAM J. Sci. Comput., 43(5):A3055–A3081, 2021. <a href=https://arxiv.org/abs/2001.04536 target=_blank rel="noopener noreferrer">arXiv:2001.04536 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:5 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:6><p>S. Wang, X. Yu, P. Perdikaris. <em>When and Why PINNs Fail to Train: A Neural Tangent Kernel Perspective.</em> J. Comput. Phys., 449:110768, 2022. <a href=https://arxiv.org/abs/2007.14527 target=_blank rel="noopener noreferrer">arXiv:2007.14527 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:6 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:7><p>V. Sitzmann et al. <em>Implicit Neural Representations with Periodic Activation Functions (SIREN).</em> NeurIPS 2020. <a href=https://arxiv.org/abs/2006.09661 target=_blank rel="noopener noreferrer">arXiv:2006.09661 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:7 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li><li id=fn:8><p>A. Krishnapriyan et al. <em>Characterizing Possible Failure Modes in Physics-Informed Neural Networks.</em> NeurIPS 2021. <a href=https://arxiv.org/abs/2109.01050 target=_blank rel="noopener noreferrer">arXiv:2109.01050 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&#160;<a href=#fnref:8 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p></li></ol></div></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#1-prologue-a-metal-rod>1 Prologue: a metal rod</a></li><li><a href=#2-classical-numerical-methods-mature-with-edges>2 Classical numerical methods: mature, with edges</a><ul><li><a href=#21-finite-differences--intuition-at-the-price-of-stability>2.1 Finite differences — intuition at the price of stability</a></li><li><a href=#22-finite-elements--weak-forms-and-the-ritz-functional>2.2 Finite elements — weak forms and the Ritz functional</a></li><li><a href=#23-what-pinns-are-trying-to-disrupt>2.3 What PINNs are trying to disrupt</a></li></ul></li><li><a href=#3-the-minimal-complete-definition-of-a-pinn>3 The minimal complete definition of a PINN</a><ul><li><a href=#31-the-mathematical-statement>3.1 The mathematical statement</a></li><li><a href=#32-why-automatic-differentiation-matters>3.2 Why automatic differentiation matters</a></li><li><a href=#33-isomorphism-with-the-ritz-method>3.3 Isomorphism with the Ritz method</a></li><li><a href=#34-convergence-yes-but-weak>3.4 Convergence: yes, but weak</a></li></ul></li><li><a href=#4-training-pathologies-the-part-thats-actually-hard>4 Training pathologies: the part that&rsquo;s actually hard</a><ul><li><a href=#41-pathology-a-imbalanced-loss-terms-gradient-pathology>4.1 Pathology A: imbalanced loss terms (gradient pathology)</a></li><li><a href=#42-pathology-b-spectral-bias>4.2 Pathology B: spectral bias</a></li><li><a href=#43-pathology-c-violation-of-causality>4.3 Pathology C: violation of causality</a></li><li><a href=#44-convergence-comparison>4.4 Convergence comparison</a></li></ul></li><li><a href=#5-experiment-burgers-and-an-inverse-problem>5 Experiment: Burgers and an inverse problem</a><ul><li><a href=#51-forward-problem-the-burgers-shock>5.1 Forward problem: the Burgers shock</a></li><li><a href=#52-inverse-problem-parameter-discovery>5.2 Inverse problem: parameter discovery</a></li></ul></li><li><a href=#6-failure-modes-and-limits>6 Failure modes and limits</a></li><li><a href=#7-pinns-on-the-sciml-map>7 PINNs on the SciML map</a></li><li><a href=#8-handing-off-to-the-next-chapters>8 Handing off to the next chapters</a></li><li><a href=#-checkpoint>✅ Checkpoint</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>8 min</strong></div><div class=row><span>Word count</span><strong>1598</strong></div><div class=row><span>Published</span><strong>May 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

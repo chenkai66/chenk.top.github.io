@@ -1,483 +1,152 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding · Chen Kai Blog</title>
-<meta name="description" content="Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding">
-<meta property="og:description" content="Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets.">
-<meta property="og:url" content="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun Bailian</a>
-         · Chapter 3
-      </div>
-      <h1>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</h1>
-      <p class="deck">Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-27">February 27, 2026</time> · 5 min read · 1000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/aliyun-bailian/" class="tag">#Aliyun Bailian</a><a href="/en/tags/qwen-omni/" class="tag">#Qwen-Omni</a><a href="/en/tags/multimodal/" class="tag">#Multimodal</a><a href="/en/tags/video-understanding/" class="tag">#Video Understanding</a><a href="/en/tags/streaming/" class="tag">#Streaming</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Of all the Bailian models, Qwen-Omni is the one that has pulled me out of the most product-roadmap holes. &ldquo;Can you tell me what&rsquo;s happening in this 2-minute promo video?&rdquo; used to be a 3-week project involving frame extraction, captioning per frame, and a stitch step. With Qwen-Omni it is one HTTP request. But the docs are sparse on the gotchas, and there is one (streaming is mandatory) that has cost more than one team a half-day. Let&rsquo;s not have that be you.</p>
-<h2 id="what-qwen-omni-accepts">What Qwen-Omni accepts</h2>
-<p>Per the Qwen API reference for multimodal models, a single user message can mix text, image, audio, and video parts in one <code>content</code> array. That is the headline capability — not &ldquo;supports images&rdquo;, but &ldquo;supports anything in any combination&rdquo;:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png" alt="Qwen-Omni inputs" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The structure for each type, drawn from the API reference:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Type</th>
-          <th>Field</th>
-          <th>Notes</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><code>text</code></td>
-          <td><code>text: &quot;...&quot;</code></td>
-          <td>Plain string.</td>
-      </tr>
-      <tr>
-          <td><code>image_url</code></td>
-          <td><code>image_url: {url}</code></td>
-          <td>URL or base64 data URI. <code>min_pixels</code> / <code>max_pixels</code> control resize.</td>
-      </tr>
-      <tr>
-          <td><code>input_audio</code></td>
-          <td><code>data, format</code></td>
-          <td><code>mp3</code>, <code>wav</code>, etc. URL or local base64.</td>
-      </tr>
-      <tr>
-          <td><code>video_url</code></td>
-          <td><code>video_url: {url}</code></td>
-          <td>URL or data URI. Or use <code>video</code> array of frame images.</td>
-      </tr>
-  </tbody>
-</table>
-<p>A real call:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-omni-flash&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="s2">&#34;Describe what&#39;s in this video in two sentences.&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;video_url&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">             <span class="s2">&#34;video_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="s2">&#34;https://your-bucket.oss-cn-shanghai.aliyuncs.com/clips/promo.mp4&#34;</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>           <span class="c1"># &lt;- mandatory</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">delta</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="streaming-is-not-optional--this-is-the-trap">Streaming is not optional — this is the trap</h2>
-<p>The docs note streaming as a feature, but they bury the fact that <strong>for Qwen-Omni it is required</strong>. Set <code>stream=False</code> and you get a 400 with a message about the model requiring streaming.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png" alt="Streaming requirement" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The reason makes sense once you think about it: the model is processing many MB of video and producing a long response. The wire protocol assumes incremental delivery. Holding the whole thing back to send as one blob would block your client for tens of seconds with no progress signal.</p>
-<p>If your downstream code expects a complete string, buffer the deltas yourself:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_omni_buffered</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-omni-flash&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span> <span class="s2">&#34;&#34;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>It is one extra function. You will write it once.</p>
-<h2 id="pixel-and-frame-budgets--what-costs-you">Pixel and frame budgets — what costs you</h2>
-<p>The cost knob the docs are quiet about: <code>min_pixels</code> and <code>max_pixels</code> for images, and the equivalent fps / resize parameters for video. By default Qwen-Omni will process video at native resolution and a default fps. For a 2-minute 1080p clip that is a <em>lot</em> of token-equivalents, and the bill scales with it.</p>
-<p>What I do in production:</p>
-<ul>
-<li><strong>Images for understanding tasks</strong> — <code>max_pixels: 1280*720</code>. Almost no quality loss for &ldquo;what&rsquo;s in this image&rdquo; tasks, big cost savings. Set <code>min_pixels: 640*480</code> so the model never scales up tiny crops.</li>
-<li><strong>Video for description tasks</strong> — pre-resize to 720p before upload, downsample fps to 4 for static-ish content (people talking) or 8 for action content (sports, fast cuts). Above 8 fps you are usually paying for redundant frames.</li>
-<li><strong>Long video</strong> — chunk it. The model has a context limit. For anything over ~3 minutes, split into 90-second chunks, summarize each, then summarize-the-summaries with <code>qwen-plus</code>. Same pattern as long-document RAG.</li>
-</ul>
-<h2 id="sending-a-local-video-file">Sending a local video file</h2>
-<p>You have two options. The docs cover both.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png" alt="Sending a local video to Qwen-Omni" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Path 1 (preferred): upload to OSS, send signed URL.</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">oss2</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">time</span>
-</span></span><span class="line"><span class="cl"><span class="n">auth</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Auth</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_AK&#34;</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_SK&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl"><span class="n">bucket</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Bucket</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="s2">&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class="p">,</span> <span class="s2">&#34;your-bucket&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">bucket</span><span class="o">.</span><span class="n">put_object_from_file</span><span class="p">(</span><span class="s2">&#34;clips/promo.mp4&#34;</span><span class="p">,</span> <span class="s2">&#34;/tmp/promo.mp4&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">signed</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">sign_url</span><span class="p">(</span><span class="s2">&#34;GET&#34;</span><span class="p">,</span> <span class="s2">&#34;clips/promo.mp4&#34;</span><span class="p">,</span> <span class="mi">600</span><span class="p">)</span>  <span class="c1"># 10 min expiry</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Then pass <code>signed</code> as the <code>url</code> field. This is the right answer for anything bigger than 30 seconds because base64 inflates the payload by 33%.</p>
-<p><strong>Path 2: base64 inline.</strong> Useful for short clips, avoids the round trip to OSS.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">base64</span>
-</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/tmp/short.mp4&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">content</span> <span class="o">=</span> <span class="p">[{</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;video_url&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;video_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&#34;data:video/mp4;base64,</span><span class="si">{</span><span class="n">b64</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">}]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><blockquote>
-<p><strong>Real-world tip:</strong> When debugging a Qwen-Omni 400, check the URL is publicly fetchable from the open internet. The model service does not have access to your VPC. Signed URLs work; private OSS without signing does not.</p>
-</blockquote>
-<h2 id="audio-understanding">Audio understanding</h2>
-<p>Almost the same shape, but <code>type: &quot;input_audio&quot;</code>:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="s2">&#34;Transcribe this and identify the speaker&#39;s mood.&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;input_audio&#34;</span><span class="p">,</span> <span class="s2">&#34;input_audio&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;data&#34;</span><span class="p">:</span> <span class="n">signed_audio_url</span><span class="p">,</span> <span class="s2">&#34;format&#34;</span><span class="p">:</span> <span class="s2">&#34;mp3&#34;</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>For pure transcription, Bailian also exposes a dedicated <strong>Paraformer</strong> ASR model that is cheaper. Use Paraformer for transcribe-only and Qwen-Omni when you need understanding (sentiment, summarization, &ldquo;did the call mention pricing&rdquo;).</p>
-<h2 id="a-real-product-use-case">A real product use case</h2>
-<p>The recurring pattern I ship for AI marketing: a creative team uploads a 60-second product video; we want a structured caption (<code>scene description</code>, <code>key product features visible</code>, <code>target audience guess</code>, <code>recommended music style</code>). One Qwen-Omni call, JSON mode (yes it works with multimodal), under 4 seconds wall clock for 720p input.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">sys</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&#34;Analyze this product video and return JSON with keys: &#34;</span>
-</span></span><span class="line"><span class="cl">       <span class="s2">&#34;scene_description, product_features (list), target_audience, music_style.&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3.5-omni-plus&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
-</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;system&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">sys</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;video_url&#34;</span><span class="p">,</span> <span class="s2">&#34;video_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="n">signed_url</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">]},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;json_object&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span> <span class="s2">&#34;&#34;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span><span class="p">;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 4 jumps to the <em>production</em> side — <strong>Wanxiang text-to-video</strong>. That is async-only, native-protocol-only, and the failure modes are completely different (queue depth, output URL expiry). It is also the API I have spent the most time tuning prompts for.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/"><span class="title">Aliyun Bailian (2): The Qwen LLM API in Production</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/"><span class="title">Aliyun Bailian (4): Wanxiang Video Generation End-to-End</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-qwen-omni-accepts">What Qwen-Omni accepts</a></li>
-    <li><a href="#streaming-is-not-optional--this-is-the-trap">Streaming is not optional — this is the trap</a></li>
-    <li><a href="#pixel-and-frame-budgets--what-costs-you">Pixel and frame budgets — what costs you</a></li>
-    <li><a href="#sending-a-local-video-file">Sending a local video file</a></li>
-    <li><a href="#audio-understanding">Audio understanding</a></li>
-    <li><a href="#a-real-product-use-case">A real product use case</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>5 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1000</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/aliyun-bailian/03-qwen-omni-multimodal/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding · Chen Kai Blog</title>
+<meta name=description content="Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/><meta property="og:type" content="article"><meta property="og:title" content="Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding"><meta property="og:description" content="Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets."><meta property="og:url" content="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Aliyun Bailian</a>
+· Chapter 3</div><h1>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</h1><p class=deck>Qwen-Omni for production multimodal: the four input types, the streaming requirement that the docs do not warn you about, and a working video-understanding pipeline with sane pixel budgets.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-27>February 27, 2026</time> · 5 min read · 949 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/aliyun-bailian/ class=tag>#Aliyun Bailian</a><a href=/en/tags/qwen-omni/ class=tag>#Qwen-Omni</a><a href=/en/tags/multimodal/ class=tag>#Multimodal</a><a href=/en/tags/video-understanding/ class=tag>#Video Understanding</a><a href=/en/tags/streaming/ class=tag>#Streaming</a></div><a class="pill pill-outline" href=/zh/aliyun-bailian/03-qwen-omni-multimodal/>Read in English →</a></div></header><div class=prose><p>Of all the Bailian models, Qwen-Omni is the one that has pulled me out of the most product-roadmap holes. &ldquo;Can you tell me what&rsquo;s happening in this 2-minute promo video?&rdquo; used to be a 3-week project involving frame extraction, captioning per frame, and a stitch step. With Qwen-Omni it is one HTTP request. But the docs are sparse on the gotchas, and there is one (streaming is mandatory) that has cost more than one team a half-day. Let&rsquo;s not have that be you.</p><h2 id=what-qwen-omni-accepts>What Qwen-Omni accepts</h2><p>Per the Qwen API reference for multimodal models, a single user message can mix text, image, audio, and video parts in one <code>content</code> array. That is the headline capability — not &ldquo;supports images&rdquo;, but &ldquo;supports anything in any combination&rdquo;:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png alt="Qwen-Omni inputs" loading=lazy decoding=async></figure></p><p>The structure for each type, drawn from the API reference:</p><table><thead><tr><th>Type</th><th>Field</th><th>Notes</th></tr></thead><tbody><tr><td><code>text</code></td><td><code>text: "..."</code></td><td>Plain string.</td></tr><tr><td><code>image_url</code></td><td><code>image_url: {url}</code></td><td>URL or base64 data URI. <code>min_pixels</code> / <code>max_pixels</code> control resize.</td></tr><tr><td><code>input_audio</code></td><td><code>data, format</code></td><td><code>mp3</code>, <code>wav</code>, etc. URL or local base64.</td></tr><tr><td><code>video_url</code></td><td><code>video_url: {url}</code></td><td>URL or data URI. Or use <code>video</code> array of frame images.</td></tr></tbody></table><p>A real call:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>openai</span> <span class=kn>import</span> <span class=n>OpenAI</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>api_key</span><span class=o>=</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DASHSCOPE_API_KEY&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>base_url</span><span class=o>=</span><span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3-omni-flash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;text&#34;</span><span class=p>,</span> <span class=s2>&#34;text&#34;</span><span class=p>:</span> <span class=s2>&#34;Describe what&#39;s in this video in two sentences.&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;video_url&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>             <span class=s2>&#34;video_url&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://your-bucket.oss-cn-shanghai.aliyuncs.com/clips/promo.mp4&#34;</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl>        <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>           <span class=c1># &lt;- mandatory</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>chunk</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>delta</span> <span class=o>=</span> <span class=n>chunk</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>delta</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=n>delta</span><span class=p>,</span> <span class=n>end</span><span class=o>=</span><span class=s2>&#34;&#34;</span><span class=p>,</span> <span class=n>flush</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=streaming-is-not-optional--this-is-the-trap>Streaming is not optional — this is the trap</h2><p>The docs note streaming as a feature, but they bury the fact that <strong>for Qwen-Omni it is required</strong>. Set <code>stream=False</code> and you get a 400 with a message about the model requiring streaming.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png alt="Streaming requirement" loading=lazy decoding=async></figure></p><p>The reason makes sense once you think about it: the model is processing many MB of video and producing a long response. The wire protocol assumes incremental delivery. Holding the whole thing back to send as one blob would block your client for tens of seconds with no progress signal.</p><p>If your downstream code expects a complete string, buffer the deltas yourself:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>call_omni_buffered</span><span class=p>(</span><span class=n>messages</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3-omni-flash&#34;</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span> <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>c</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span> <span class=ow>or</span> <span class=s2>&#34;&#34;</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>It is one extra function. You will write it once.</p><h2 id=pixel-and-frame-budgets--what-costs-you>Pixel and frame budgets — what costs you</h2><p>The cost knob the docs are quiet about: <code>min_pixels</code> and <code>max_pixels</code> for images, and the equivalent fps / resize parameters for video. By default Qwen-Omni will process video at native resolution and a default fps. For a 2-minute 1080p clip that is a <em>lot</em> of token-equivalents, and the bill scales with it.</p><p>What I do in production:</p><ul><li><strong>Images for understanding tasks</strong> — <code>max_pixels: 1280*720</code>. Almost no quality loss for &ldquo;what&rsquo;s in this image&rdquo; tasks, big cost savings. Set <code>min_pixels: 640*480</code> so the model never scales up tiny crops.</li><li><strong>Video for description tasks</strong> — pre-resize to 720p before upload, downsample fps to 4 for static-ish content (people talking) or 8 for action content (sports, fast cuts). Above 8 fps you are usually paying for redundant frames.</li><li><strong>Long video</strong> — chunk it. The model has a context limit. For anything over ~3 minutes, split into 90-second chunks, summarize each, then summarize-the-summaries with <code>qwen-plus</code>. Same pattern as long-document RAG.</li></ul><h2 id=sending-a-local-video-file>Sending a local video file</h2><p>You have two options. The docs cover both.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png alt="Sending a local video to Qwen-Omni" loading=lazy decoding=async></figure></p><p><strong>Path 1 (preferred): upload to OSS, send signed URL.</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span><span class=o>,</span> <span class=nn>os</span><span class=o>,</span> <span class=nn>time</span>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_AK&#34;</span><span class=p>],</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_SK&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s2>&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class=p>,</span> <span class=s2>&#34;your-bucket&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span><span class=o>.</span><span class=n>put_object_from_file</span><span class=p>(</span><span class=s2>&#34;clips/promo.mp4&#34;</span><span class=p>,</span> <span class=s2>&#34;/tmp/promo.mp4&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>signed</span> <span class=o>=</span> <span class=n>bucket</span><span class=o>.</span><span class=n>sign_url</span><span class=p>(</span><span class=s2>&#34;GET&#34;</span><span class=p>,</span> <span class=s2>&#34;clips/promo.mp4&#34;</span><span class=p>,</span> <span class=mi>600</span><span class=p>)</span>  <span class=c1># 10 min expiry</span>
+</span></span></code></pre></td></tr></table></div></div><p>Then pass <code>signed</code> as the <code>url</code> field. This is the right answer for anything bigger than 30 seconds because base64 inflates the payload by 33%.</p><p><strong>Path 2: base64 inline.</strong> Useful for short clips, avoids the round trip to OSS.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>base64</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>&#34;/tmp/short.mp4&#34;</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>b64</span> <span class=o>=</span> <span class=n>base64</span><span class=o>.</span><span class=n>b64encode</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>())</span><span class=o>.</span><span class=n>decode</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>content</span> <span class=o>=</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;video_url&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;video_url&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=sa>f</span><span class=s2>&#34;data:video/mp4;base64,</span><span class=si>{</span><span class=n>b64</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>}]</span>
+</span></span></code></pre></td></tr></table></div></div><blockquote><p><strong>Real-world tip:</strong> When debugging a Qwen-Omni 400, check the URL is publicly fetchable from the open internet. The model service does not have access to your VPC. Signed URLs work; private OSS without signing does not.</p></blockquote><h2 id=audio-understanding>Audio understanding</h2><p>Almost the same shape, but <code>type: "input_audio"</code>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>content</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;text&#34;</span><span class=p>,</span> <span class=s2>&#34;text&#34;</span><span class=p>:</span> <span class=s2>&#34;Transcribe this and identify the speaker&#39;s mood.&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;input_audio&#34;</span><span class=p>,</span> <span class=s2>&#34;input_audio&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;data&#34;</span><span class=p>:</span> <span class=n>signed_audio_url</span><span class=p>,</span> <span class=s2>&#34;format&#34;</span><span class=p>:</span> <span class=s2>&#34;mp3&#34;</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>For pure transcription, Bailian also exposes a dedicated <strong>Paraformer</strong> ASR model that is cheaper. Use Paraformer for transcribe-only and Qwen-Omni when you need understanding (sentiment, summarization, &ldquo;did the call mention pricing&rdquo;).</p><h2 id=a-real-product-use-case>A real product use case</h2><p>The recurring pattern I ship for AI marketing: a creative team uploads a 60-second product video; we want a structured caption (<code>scene description</code>, <code>key product features visible</code>, <code>target audience guess</code>, <code>recommended music style</code>). One Qwen-Omni call, JSON mode (yes it works with multimodal), under 4 seconds wall clock for 720p input.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>sys</span> <span class=o>=</span> <span class=p>(</span><span class=s2>&#34;Analyze this product video and return JSON with keys: &#34;</span>
+</span></span><span class=line><span class=cl>       <span class=s2>&#34;scene_description, product_features (list), target_audience, music_style.&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3.5-omni-plus&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;system&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>sys</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;video_url&#34;</span><span class=p>,</span> <span class=s2>&#34;video_url&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=n>signed_url</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl>        <span class=p>]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>response_format</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;json_object&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>c</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span> <span class=ow>or</span> <span class=s2>&#34;&#34;</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span><span class=p>;</span> <span class=n>result</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=whats-next>What&rsquo;s next</h2><p>Article 4 jumps to the <em>production</em> side — <strong>Wanxiang text-to-video</strong>. That is async-only, native-protocol-only, and the failure modes are completely different (queue depth, output URL expiry). It is also the API I have spent the most time tuning prompts for.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/><span class=title>Aliyun Bailian (2): The Qwen LLM API in Production</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/><span class=title>Aliyun Bailian (4): Wanxiang Video Generation End-to-End</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-qwen-omni-accepts>What Qwen-Omni accepts</a></li><li><a href=#streaming-is-not-optional--this-is-the-trap>Streaming is not optional — this is the trap</a></li><li><a href=#pixel-and-frame-budgets--what-costs-you>Pixel and frame budgets — what costs you</a></li><li><a href=#sending-a-local-video-file>Sending a local video file</a></li><li><a href=#audio-understanding>Audio understanding</a></li><li><a href=#a-real-product-use-case>A real product use case</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Aliyun Bailian</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>Aliyun Bailian (1): Platform Overview and First Request</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/><span class=chapter-num>02</span>
+<span class=chapter-title>Aliyun Bailian (2): The Qwen LLM API in Production</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/><span class=chapter-num>04</span>
+<span class=chapter-title>Aliyun Bailian (4): Wanxiang Video Generation End-to-End</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/><span class=chapter-num>05</span>
+<span class=chapter-title>Aliyun Bailian (5): Qwen-TTS for Multilingual Voice</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>5 min</strong></div><div class=row><span>Word count</span><strong>949</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

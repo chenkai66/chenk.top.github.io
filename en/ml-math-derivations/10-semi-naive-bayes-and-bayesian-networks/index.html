@@ -1,622 +1,125 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks · Chen Kai Blog</title>
-<meta name="description" content="From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks">
-<meta property="og:description" content="From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution.">
-<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
-         · Chapter 10
-      </div>
-      <h1>Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks</h1>
-      <p class="deck">From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-01-29">January 29, 2026</time> · 12 min read · 2500 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a><a href="/en/tags/semi-naive-bayes/" class="tag">#Semi-Naive Bayes</a><a href="/en/tags/bayesian-networks/" class="tag">#Bayesian Networks</a><a href="/en/tags/probabilistic-graphical-models/" class="tag">#Probabilistic Graphical Models</a><a href="/en/tags/tan/" class="tag">#TAN</a><a href="/en/tags/aode/" class="tag">#AODE</a><a href="/en/tags/mathematical-derivation/" class="tag">#Mathematical Derivation</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <blockquote>
-<p><strong>Hook.</strong> Naive Bayes assumes every feature is conditionally independent given the class. It is a convenient lie &ndash; one that lets us train in a single pass over the data, but one that classifiers based on tree structures and small graphs can systematically beat by a few accuracy points on virtually every UCI benchmark. This part walks the spectrum from &ldquo;no dependencies&rdquo; (Naive Bayes) to &ldquo;all dependencies&rdquo; (full joint), showing the three sweet spots that practitioners actually use: SPODE, TAN and AODE. The same factorisation idea, taken to its general form, is the Bayesian network.</p>
-</blockquote>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>Why the full conditional-independence assumption fails, and how the parameter count grows when we relax it.</li>
-<li><strong>SPODE</strong>: every feature gets a single shared &ldquo;super-parent&rdquo;.</li>
-<li><strong>TAN</strong>: each feature gets its <em>own</em> parent, chosen by a maximum-spanning-tree on conditional mutual information (Chow-Liu).</li>
-<li><strong>AODE</strong>: averaging over all eligible super-parents to remove model-selection variance.</li>
-<li><strong>Bayesian networks</strong>: DAG factorisation, d-separation, the Markov blanket, variable elimination and the junction tree.</li>
-<li>A practical decision rule: NB vs TAN vs AODE vs full BN.</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Joint distributions, conditional independence, mutual information.</li>
-<li>Spanning trees, dynamic programming on trees.</li>
-<li>Familiarity with <a href="/en/Machine-Learning-Mathematical-Derivations-9-Naive-Bayes/">Part 9: Naive Bayes</a>
-.</li>
-</ul>
-<hr>
-<h2 id="1-why-relax-the-independence-assumption">1. Why relax the independence assumption?</h2>
-<h3 id="11-the-convenient-lie">1.1 The convenient lie</h3>
-<p>Recall the Naive Bayes factorisation:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks · Chen Kai Blog</title>
+<meta name=description content="From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/><meta property="og:type" content="article"><meta property="og:title" content="Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks"><meta property="og:description" content="From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution."><meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/10-semi-naive-bayes-and-bayesian-networks/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Ml mathematical derivations</a>
+· Chapter 10</div><h1>Machine Learning Mathematical Derivations (10): Semi-Naive Bayes and Bayesian Networks</h1><p class=deck>From SPODE, TAN and AODE to full Bayesian networks: how relaxing the conditional-independence assumption -- through one-dependence trees, ensembles of super-parents and graphical structure learning -- closes the gap between Naive Bayes and the full joint distribution.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-29>January 29, 2026</time> · 12 min read · 2455 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/en/tags/semi-naive-bayes/ class=tag>#Semi-Naive Bayes</a><a href=/en/tags/bayesian-networks/ class=tag>#Bayesian Networks</a><a href=/en/tags/probabilistic-graphical-models/ class=tag>#Probabilistic Graphical Models</a><a href=/en/tags/tan/ class=tag>#TAN</a><a href=/en/tags/aode/ class=tag>#AODE</a><a href=/en/tags/mathematical-derivation/ class=tag>#Mathematical Derivation</a></div></div></header><div class=prose><blockquote><p><strong>Hook.</strong> Naive Bayes assumes every feature is conditionally independent given the class. It is a convenient lie &ndash; one that lets us train in a single pass over the data, but one that classifiers based on tree structures and small graphs can systematically beat by a few accuracy points on virtually every UCI benchmark. This part walks the spectrum from &ldquo;no dependencies&rdquo; (Naive Bayes) to &ldquo;all dependencies&rdquo; (full joint), showing the three sweet spots that practitioners actually use: SPODE, TAN and AODE. The same factorisation idea, taken to its general form, is the Bayesian network.</p></blockquote><h2 id=what-you-will-learn>What you will learn</h2><ul><li>Why the full conditional-independence assumption fails, and how the parameter count grows when we relax it.</li><li><strong>SPODE</strong>: every feature gets a single shared &ldquo;super-parent&rdquo;.</li><li><strong>TAN</strong>: each feature gets its <em>own</em> parent, chosen by a maximum-spanning-tree on conditional mutual information (Chow-Liu).</li><li><strong>AODE</strong>: averaging over all eligible super-parents to remove model-selection variance.</li><li><strong>Bayesian networks</strong>: DAG factorisation, d-separation, the Markov blanket, variable elimination and the junction tree.</li><li>A practical decision rule: NB vs TAN vs AODE vs full BN.</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Joint distributions, conditional independence, mutual information.</li><li>Spanning trees, dynamic programming on trees.</li><li>Familiarity with <a href=/en/Machine-Learning-Mathematical-Derivations-9-Naive-Bayes/>Part 9: Naive Bayes</a>
+.</li></ul><hr><h2 id=1-why-relax-the-independence-assumption>1. Why relax the independence assumption?</h2><h3 id=11-the-convenient-lie>1.1 The convenient lie</h3><p>Recall the Naive Bayes factorisation:</p>$$
 P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k).
-$$<p>The lie is that, conditioned on the class, features are unrelated. Three places it almost always breaks:</p>
-<ul>
-<li><strong>Text.</strong> The bigram &ldquo;machine learning&rdquo; is far more frequent than $P(\text{machine})\,P(\text{learning})$ would suggest, even within the &ldquo;ML article&rdquo; class.</li>
-<li><strong>Medicine.</strong> Within &ldquo;flu&rdquo;, <em>fever</em> and <em>cough</em> remain strongly correlated &ndash; they share a downstream physiological pathway.</li>
-<li><strong>Vision.</strong> Adjacent pixels are nearly identical regardless of the class label.</li>
-</ul>
-<p>When the conditional-independence assumption is severely violated, the posterior $P(c\mid\mathbf{x})$ is <em>miscalibrated</em>: the &ldquo;winning&rdquo; class still wins, but with wildly inflated confidence, and the ranking among close runners-up degrades.</p>
-<h3 id="12-the-spectrum">1.2 The spectrum</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Model</th>
-          <th>Allowed dependencies</th>
-          <th># parameters</th>
-          <th>Accuracy</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Naive Bayes</td>
-          <td>none</td>
-          <td>$O(K d)$</td>
-          <td>baseline</td>
-      </tr>
-      <tr>
-          <td>1-dependence (SPODE / TAN / AODE)</td>
-          <td>each feature has 1 parent</td>
-          <td>$O(K d S)$</td>
-          <td>better</td>
-      </tr>
-      <tr>
-          <td>$k$-dependence</td>
-          <td>each feature has $k$ parents</td>
-          <td>$O(K d S^{k})$</td>
-          <td>even better</td>
-      </tr>
-      <tr>
-          <td>Full joint</td>
-          <td>everything</td>
-          <td>$O(K S^{d})$</td>
-          <td>best, but intractable</td>
-      </tr>
-  </tbody>
-</table>
-<p>Here $S$ is the average number of values per feature and $K$ the number of classes. <strong>The empirical sweet spot is $k=1$</strong>: the cost is one extra factor of $S$, and the accuracy gain over Naive Bayes is consistently the largest single jump.</p>
-<hr>
-<h2 id="2-one-dependence-estimators-ode">2. One-dependence estimators (ODE)</h2>
-<h3 id="21-spode-a-single-super-parent">2.1 SPODE: a single super-parent</h3>
-<p>Pick one feature $x^{(p)}$ &ndash; the <em>super-parent</em> &ndash; and let every other feature condition on both the class and $x^{(p)}$:</p>
-$$
+$$<p>The lie is that, conditioned on the class, features are unrelated. Three places it almost always breaks:</p><ul><li><strong>Text.</strong> The bigram &ldquo;machine learning&rdquo; is far more frequent than $P(\text{machine})\,P(\text{learning})$ would suggest, even within the &ldquo;ML article&rdquo; class.</li><li><strong>Medicine.</strong> Within &ldquo;flu&rdquo;, <em>fever</em> and <em>cough</em> remain strongly correlated &ndash; they share a downstream physiological pathway.</li><li><strong>Vision.</strong> Adjacent pixels are nearly identical regardless of the class label.</li></ul><p>When the conditional-independence assumption is severely violated, the posterior $P(c\mid\mathbf{x})$ is <em>miscalibrated</em>: the &ldquo;winning&rdquo; class still wins, but with wildly inflated confidence, and the ranking among close runners-up degrades.</p><h3 id=12-the-spectrum>1.2 The spectrum</h3><table><thead><tr><th>Model</th><th>Allowed dependencies</th><th># parameters</th><th>Accuracy</th></tr></thead><tbody><tr><td>Naive Bayes</td><td>none</td><td>$O(K d)$</td><td>baseline</td></tr><tr><td>1-dependence (SPODE / TAN / AODE)</td><td>each feature has 1 parent</td><td>$O(K d S)$</td><td>better</td></tr><tr><td>$k$-dependence</td><td>each feature has $k$ parents</td><td>$O(K d S^{k})$</td><td>even better</td></tr><tr><td>Full joint</td><td>everything</td><td>$O(K S^{d})$</td><td>best, but intractable</td></tr></tbody></table><p>Here $S$ is the average number of values per feature and $K$ the number of classes. <strong>The empirical sweet spot is $k=1$</strong>: the cost is one extra factor of $S$, and the accuracy gain over Naive Bayes is consistently the largest single jump.</p><hr><h2 id=2-one-dependence-estimators-ode>2. One-dependence estimators (ODE)</h2><h3 id=21-spode-a-single-super-parent>2.1 SPODE: a single super-parent</h3><p>Pick one feature $x^{(p)}$ &ndash; the <em>super-parent</em> &ndash; and let every other feature condition on both the class and $x^{(p)}$:</p>$$
 P(\mathbf{x}\mid c_k) \;=\; P(x^{(p)}\mid c_k)\prod_{j\neq p} P(x^{(j)}\mid c_k,\,x^{(p)}).
-$$<p><strong>Reading the model.</strong> Instead of &ldquo;all features are independent given the class&rdquo;, SPODE says &ldquo;all features share <em>one</em> hidden moderator beyond the class&rdquo;. For spam detection that moderator might be the token <em>free</em>: knowing whether <em>free</em> appears changes the probabilities of <em>click</em>, <em>offer</em>, <em>winner</em>.</p>
-<p><strong>Maximum-likelihood estimate</strong> (with Laplace smoothing $\alpha$):</p>
-$$
+$$<p><strong>Reading the model.</strong> Instead of &ldquo;all features are independent given the class&rdquo;, SPODE says &ldquo;all features share <em>one</em> hidden moderator beyond the class&rdquo;. For spam detection that moderator might be the token <em>free</em>: knowing whether <em>free</em> appears changes the probabilities of <em>click</em>, <em>offer</em>, <em>winner</em>.</p><p><strong>Maximum-likelihood estimate</strong> (with Laplace smoothing $\alpha$):</p>$$
 \hat{P}(x^{(j)}{=}v\mid c_k,\,x^{(p)}{=}u)
 \;=\;
 \frac{\#\{x^{(j)}{=}v,\,c_k,\,x^{(p)}{=}u\}+\alpha}
-     {\#\{c_k,\,x^{(p)}{=}u\}+\alpha\,S_j}.
-$$<p><strong>Choosing the super-parent.</strong> Two standard criteria:</p>
-$$
+{\#\{c_k,\,x^{(p)}{=}u\}+\alpha\,S_j}.
+$$<p><strong>Choosing the super-parent.</strong> Two standard criteria:</p>$$
 p^{*} \;=\; \arg\max_{p}\, I(X^{(p)};Y),
 \qquad
 p^{*} \;=\; \arg\max_{p}\,\sum_{j\neq p} I(X^{(j)};Y\mid X^{(p)}).
-$$<p>The first picks the feature most informative about $Y$; the second picks the feature whose conditioning maximally explains the rest. Both are heuristics &ndash; and the next two models exist precisely because this single choice is fragile.</p>
-<h3 id="22-aode-average-all-eligible-super-parents">2.2 AODE: average all eligible super-parents</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig4_aode.png" alt="AODE: each super-parent yields a SPODE; AODE averages them" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Idea.</strong> Rather than betting on a single super-parent, AODE averages over <em>all</em> of them whose support is large enough to estimate reliably:</p>
-$$
+$$<p>The first picks the feature most informative about $Y$; the second picks the feature whose conditioning maximally explains the rest. Both are heuristics &ndash; and the next two models exist precisely because this single choice is fragile.</p><h3 id=22-aode-average-all-eligible-super-parents>2.2 AODE: average all eligible super-parents</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig4_aode.png alt="AODE: each super-parent yields a SPODE; AODE averages them" loading=lazy decoding=async></figure></p><p><strong>Idea.</strong> Rather than betting on a single super-parent, AODE averages over <em>all</em> of them whose support is large enough to estimate reliably:</p>$$
 \hat{P}(c_k\mid\mathbf{x})\;\propto\;
 \sum_{i:\;n_i\geq m} P(c_k)\,P(x^{(i)}\mid c_k)\prod_{j\neq i} P(x^{(j)}\mid c_k,\,x^{(i)}).
-$$<p>Here $n_i$ is the number of training samples with attribute value $x^{(i)}$ and $m$ (typically 30) is the minimum support for a super-parent to be trusted.</p>
-<p><strong>Why it works.</strong></p>
-<ol>
-<li><em>No structure search.</em> The model is fixed; only counts are estimated.</li>
-<li><em>Variance reduction.</em> Averaging $d$ correlated SPODE estimates is a variance-shrinker, just like bagging.</li>
-<li><em>Trivial to ship.</em> Same counters as SPODE, summed over all $i$.</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.naive_bayes</span> <span class="kn">import</span> <span class="n">BernoulliNB</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">cross_val_score</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Three binary features where x1, x2 BOTH depend on x0 given the class.</span>
-</span></span><span class="line"><span class="cl"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">N</span> <span class="o">=</span> <span class="mi">500</span>
-</span></span><span class="line"><span class="cl"><span class="n">y</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x0</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>  <span class="c1"># depends on x0</span>
-</span></span><span class="line"><span class="cl"><span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x0</span><span class="p">),</span> <span class="n">N</span><span class="p">)</span>  <span class="c1"># depends on x0</span>
-</span></span><span class="line"><span class="cl"><span class="n">X</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;Naive Bayes 5-fold CV:&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="n">cross_val_score</span><span class="p">(</span><span class="n">BernoulliNB</span><span class="p">(),</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># AODE would consistently beat this here because conditional independence</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># between x1 and x2 given y is violated -- they share x0 as a mediator.</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="3-tan-tree-augmented-naive-bayes">3. TAN: tree-augmented Naive Bayes</h2>
-<h3 id="31-each-feature-picks-its-own-parent">3.1 Each feature picks its own parent</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig3_nb_vs_tan.png" alt="Naive Bayes (star) vs TAN (star &#43; augmenting tree)" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Where SPODE forces every feature to share one super-parent, TAN lets each feature choose its own <em>single</em> extra parent &ndash; a feature-level tree:</p>
-$$
+$$<p>Here $n_i$ is the number of training samples with attribute value $x^{(i)}$ and $m$ (typically 30) is the minimum support for a super-parent to be trusted.</p><p><strong>Why it works.</strong></p><ol><li><em>No structure search.</em> The model is fixed; only counts are estimated.</li><li><em>Variance reduction.</em> Averaging $d$ correlated SPODE estimates is a variance-shrinker, just like bagging.</li><li><em>Trivial to ship.</em> Same counters as SPODE, summed over all $i$.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.naive_bayes</span> <span class=kn>import</span> <span class=n>BernoulliNB</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.model_selection</span> <span class=kn>import</span> <span class=n>cross_val_score</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Three binary features where x1, x2 BOTH depend on x0 given the class.</span>
+</span></span><span class=line><span class=cl><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>seed</span><span class=p>(</span><span class=mi>42</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>N</span> <span class=o>=</span> <span class=mi>500</span>
+</span></span><span class=line><span class=cl><span class=n>y</span>  <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>binomial</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mf>0.5</span><span class=p>,</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>x0</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>binomial</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mf>0.8</span> <span class=o>*</span> <span class=n>y</span> <span class=o>+</span> <span class=mf>0.2</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>y</span><span class=p>),</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>x1</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>binomial</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mf>0.7</span> <span class=o>*</span> <span class=n>x0</span> <span class=o>+</span> <span class=mf>0.1</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>x0</span><span class=p>),</span> <span class=n>N</span><span class=p>)</span>  <span class=c1># depends on x0</span>
+</span></span><span class=line><span class=cl><span class=n>x2</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>binomial</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mf>0.6</span> <span class=o>*</span> <span class=n>x0</span> <span class=o>+</span> <span class=mf>0.2</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>x0</span><span class=p>),</span> <span class=n>N</span><span class=p>)</span>  <span class=c1># depends on x0</span>
+</span></span><span class=line><span class=cl><span class=n>X</span>  <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>column_stack</span><span class=p>([</span><span class=n>x0</span><span class=p>,</span> <span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;Naive Bayes 5-fold CV:&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>      <span class=n>cross_val_score</span><span class=p>(</span><span class=n>BernoulliNB</span><span class=p>(),</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>cv</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>4</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=c1># AODE would consistently beat this here because conditional independence</span>
+</span></span><span class=line><span class=cl><span class=c1># between x1 and x2 given y is violated -- they share x0 as a mediator.</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=3-tan-tree-augmented-naive-bayes>3. TAN: tree-augmented Naive Bayes</h2><h3 id=31-each-feature-picks-its-own-parent>3.1 Each feature picks its own parent</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig3_nb_vs_tan.png alt="Naive Bayes (star) vs TAN (star + augmenting tree)" loading=lazy decoding=async></figure></p><p>Where SPODE forces every feature to share one super-parent, TAN lets each feature choose its own <em>single</em> extra parent &ndash; a feature-level tree:</p>$$
 P(\mathbf{x}\mid c_k) \;=\; \prod_{j=1}^{d} P(x^{(j)}\mid c_k,\,x^{(\pi_j)}),
-$$<p>where $\pi_j$ is the unique parent of feature $j$ in the augmenting tree (the root has no parent, reducing to $P(x^{(j)}\mid c_k)$).</p>
-<h3 id="32-learning-the-tree----chow-liu">3.2 Learning the tree &ndash; Chow-Liu</h3>
-<p><strong>Theorem (Chow &amp; Liu 1968; Friedman, Geiger, Goldszmidt 1997).</strong> Among all tree-shaped augmenting structures, the one that maximises the conditional log-likelihood is the <strong>maximum spanning tree</strong> with edge weights</p>
-$$
+$$<p>where $\pi_j$ is the unique parent of feature $j$ in the augmenting tree (the root has no parent, reducing to $P(x^{(j)}\mid c_k)$).</p><h3 id=32-learning-the-tree----chow-liu>3.2 Learning the tree &ndash; Chow-Liu</h3><p><strong>Theorem (Chow & Liu 1968; Friedman, Geiger, Goldszmidt 1997).</strong> Among all tree-shaped augmenting structures, the one that maximises the conditional log-likelihood is the <strong>maximum spanning tree</strong> with edge weights</p>$$
 w_{jk} \;=\; I(X^{(j)};X^{(k)}\mid Y)
 \;=\;
 \sum_{y,x_j,x_k} P(x_j,x_k,y)\,
 \log\frac{P(x_j,x_k\mid y)}{P(x_j\mid y)\,P(x_k\mid y)}.
-$$<p><strong>Reading the weight.</strong> $I(X^{(j)};X^{(k)}\mid Y)$ measures the residual correlation between $X^{(j)}$ and $X^{(k)}$ that the class has <em>not</em> already explained. Edges with high weight are exactly the dependencies most worth modelling.</p>
-<p><strong>Algorithm.</strong></p>
-<ol>
-<li>Build a complete graph over the $d$ features.</li>
-<li>Set edge weight $(j,k)$ to $I(X^{(j)};X^{(k)}\mid Y)$.</li>
-<li>Run Kruskal or Prim to obtain the maximum spanning tree &ndash; $O(d^{2}\log d)$.</li>
-<li>Pick a root (commonly $\arg\max_j I(X^{(j)};Y)$).</li>
-<li>Orient edges away from the root.</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">conditional_mutual_info</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Compute I(X_j ; X_k | Y) from data, base e.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">cmi</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">);</span> <span class="n">p_c</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">Xc</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">vj</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]):</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">vk</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">p_jk</span> <span class="o">=</span> <span class="p">((</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">vj</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">vk</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="n">p_j</span>  <span class="o">=</span> <span class="p">(</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">vj</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="n">p_k</span>  <span class="o">=</span> <span class="p">(</span><span class="n">Xc</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">vk</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">p_jk</span><span class="p">,</span> <span class="n">p_j</span><span class="p">,</span> <span class="n">p_k</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">cmi</span> <span class="o">+=</span> <span class="n">p_c</span> <span class="o">*</span> <span class="n">p_jk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p_jk</span> <span class="o">/</span> <span class="p">(</span><span class="n">p_j</span> <span class="o">*</span> <span class="n">p_k</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">cmi</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The CMI for the dependent pair $(x_0,x_1)$ in the synthetic example above will be visibly larger than for the independent pair $(x_0,x_2)$ &ndash; that ordering is exactly what Kruskal will exploit.</p>
-<hr>
-<h2 id="4-bayesian-networks">4. Bayesian networks</h2>
-<p>Both NB and TAN are special cases of a general object: a Bayesian network. We now zoom out to the full graphical-models picture.</p>
-<h3 id="41-dag-factorisation">4.1 DAG factorisation</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig1_dag.png" alt="Toy Bayesian network: Cloudy / Sprinkler / Rain / WetGrass" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A <strong>Bayesian network</strong> is a directed acyclic graph $\mathcal{G}=(V,E)$ in which each node carries a <em>conditional probability table</em> (CPT). The joint distribution factors as</p>
-$$
+$$<p><strong>Reading the weight.</strong> $I(X^{(j)};X^{(k)}\mid Y)$ measures the residual correlation between $X^{(j)}$ and $X^{(k)}$ that the class has <em>not</em> already explained. Edges with high weight are exactly the dependencies most worth modelling.</p><p><strong>Algorithm.</strong></p><ol><li>Build a complete graph over the $d$ features.</li><li>Set edge weight $(j,k)$ to $I(X^{(j)};X^{(k)}\mid Y)$.</li><li>Run Kruskal or Prim to obtain the maximum spanning tree &ndash; $O(d^{2}\log d)$.</li><li>Pick a root (commonly $\arg\max_j I(X^{(j)};Y)$).</li><li>Orient edges away from the root.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>itertools</span> <span class=kn>import</span> <span class=n>combinations</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>conditional_mutual_info</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=n>k</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Compute I(X_j ; X_k | Y) from data, base e.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>cmi</span><span class=p>,</span> <span class=n>N</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>mask</span> <span class=o>=</span> <span class=p>(</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>);</span> <span class=n>p_c</span> <span class=o>=</span> <span class=n>mask</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>Xc</span> <span class=o>=</span> <span class=n>X</span><span class=p>[</span><span class=n>mask</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>vj</span> <span class=ow>in</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>X</span><span class=p>[:,</span> <span class=n>j</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>vk</span> <span class=ow>in</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>X</span><span class=p>[:,</span> <span class=n>k</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>                <span class=n>p_jk</span> <span class=o>=</span> <span class=p>((</span><span class=n>Xc</span><span class=p>[:,</span> <span class=n>j</span><span class=p>]</span> <span class=o>==</span> <span class=n>vj</span><span class=p>)</span> <span class=o>&amp;</span> <span class=p>(</span><span class=n>Xc</span><span class=p>[:,</span> <span class=n>k</span><span class=p>]</span> <span class=o>==</span> <span class=n>vk</span><span class=p>))</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=n>p_j</span>  <span class=o>=</span> <span class=p>(</span><span class=n>Xc</span><span class=p>[:,</span> <span class=n>j</span><span class=p>]</span> <span class=o>==</span> <span class=n>vj</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=n>p_k</span>  <span class=o>=</span> <span class=p>(</span><span class=n>Xc</span><span class=p>[:,</span> <span class=n>k</span><span class=p>]</span> <span class=o>==</span> <span class=n>vk</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=nb>min</span><span class=p>(</span><span class=n>p_jk</span><span class=p>,</span> <span class=n>p_j</span><span class=p>,</span> <span class=n>p_k</span><span class=p>)</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>cmi</span> <span class=o>+=</span> <span class=n>p_c</span> <span class=o>*</span> <span class=n>p_jk</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>p_jk</span> <span class=o>/</span> <span class=p>(</span><span class=n>p_j</span> <span class=o>*</span> <span class=n>p_k</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>cmi</span>
+</span></span></code></pre></td></tr></table></div></div><p>The CMI for the dependent pair $(x_0,x_1)$ in the synthetic example above will be visibly larger than for the independent pair $(x_0,x_2)$ &ndash; that ordering is exactly what Kruskal will exploit.</p><hr><h2 id=4-bayesian-networks>4. Bayesian networks</h2><p>Both NB and TAN are special cases of a general object: a Bayesian network. We now zoom out to the full graphical-models picture.</p><h3 id=41-dag-factorisation>4.1 DAG factorisation</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig1_dag.png alt="Toy Bayesian network: Cloudy / Sprinkler / Rain / WetGrass" loading=lazy decoding=async></figure></p><p>A <strong>Bayesian network</strong> is a directed acyclic graph $\mathcal{G}=(V,E)$ in which each node carries a <em>conditional probability table</em> (CPT). The joint distribution factors as</p>$$
 P(X_1,\dots,X_n) \;=\; \prod_{i=1}^{n} P\bigl(X_i\mid \mathrm{Pa}(X_i)\bigr).
-$$<p><strong>Why factorisation matters.</strong> In the four-variable network above, the joint over four binary variables would have $2^4 - 1 = 15$ free parameters. The factored form needs $1+2+2+4 = 9$. With $n=20$ binary variables and average parent count 3, the joint has $\approx 10^{6}$ entries while the factored form has $\sim 20\cdot 2^{3}=160$.</p>
-<p><strong>Special cases we have already met:</strong></p>
-<ul>
-<li><em>Naive Bayes</em> is the star graph: $Y$ is the parent of every $X_j$, no edges among the $X_j$.</li>
-<li><em>TAN</em> is a star plus a tree on the $X_j$.</li>
-</ul>
-<h3 id="42-d-separation">4.2 d-separation</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig2_d_separation.png" alt="The three patterns: chain, fork, collider" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Conditional independence in a DAG is decided by the graphical criterion <strong>d-separation</strong>. Three structures generate every case:</p>
-<ul>
-<li><strong>Chain $A\to B\to C$.</strong> With $B$ unobserved, $A\not\!\perp C$. Conditioning on $B$ blocks the path: $A\perp C\mid B$.</li>
-<li><strong>Fork $A\leftarrow B\to C$.</strong> Same behaviour as the chain: a common cause makes $A,C$ correlated, observing it removes the correlation.</li>
-<li><strong>Collider $A\to B\leftarrow C$.</strong> Behaves <em>oppositely</em>. Without $B$, $A\perp C$. <em>Observing</em> $B$ activates the path, coupling its two causes &ndash; the famous <strong>explaining-away</strong> effect.</li>
-</ul>
-<p>A path is <strong>blocked</strong> if any chain or fork node on it is observed, <em>or</em> any collider on it is <em>not</em> observed (and none of its descendants are). Two sets are d-separated by $Z$ iff every path between them is blocked by $Z$. This is the engine that drives every conditional-independence claim in graphical models.</p>
-<h3 id="43-markov-blanket">4.3 Markov blanket</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig6_markov_blanket.png" alt="Markov blanket = parents &#43; children &#43; co-parents" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The <strong>Markov blanket</strong> $\mathrm{MB}(X)$ is the <em>smallest</em> set such that $X$ is independent of everything outside $\mathrm{MB}(X)$ given $\mathrm{MB}(X)$. In a Bayesian network it is exactly:</p>
-$$
+$$<p><strong>Why factorisation matters.</strong> In the four-variable network above, the joint over four binary variables would have $2^4 - 1 = 15$ free parameters. The factored form needs $1+2+2+4 = 9$. With $n=20$ binary variables and average parent count 3, the joint has $\approx 10^{6}$ entries while the factored form has $\sim 20\cdot 2^{3}=160$.</p><p><strong>Special cases we have already met:</strong></p><ul><li><em>Naive Bayes</em> is the star graph: $Y$ is the parent of every $X_j$, no edges among the $X_j$.</li><li><em>TAN</em> is a star plus a tree on the $X_j$.</li></ul><h3 id=42-d-separation>4.2 d-separation</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig2_d_separation.png alt="The three patterns: chain, fork, collider" loading=lazy decoding=async></figure></p><p>Conditional independence in a DAG is decided by the graphical criterion <strong>d-separation</strong>. Three structures generate every case:</p><ul><li><strong>Chain $A\to B\to C$.</strong> With $B$ unobserved, $A\not\!\perp C$. Conditioning on $B$ blocks the path: $A\perp C\mid B$.</li><li><strong>Fork $A\leftarrow B\to C$.</strong> Same behaviour as the chain: a common cause makes $A,C$ correlated, observing it removes the correlation.</li><li><strong>Collider $A\to B\leftarrow C$.</strong> Behaves <em>oppositely</em>. Without $B$, $A\perp C$. <em>Observing</em> $B$ activates the path, coupling its two causes &ndash; the famous <strong>explaining-away</strong> effect.</li></ul><p>A path is <strong>blocked</strong> if any chain or fork node on it is observed, <em>or</em> any collider on it is <em>not</em> observed (and none of its descendants are). Two sets are d-separated by $Z$ iff every path between them is blocked by $Z$. This is the engine that drives every conditional-independence claim in graphical models.</p><h3 id=43-markov-blanket>4.3 Markov blanket</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig6_markov_blanket.png alt="Markov blanket = parents + children + co-parents" loading=lazy decoding=async></figure></p><p>The <strong>Markov blanket</strong> $\mathrm{MB}(X)$ is the <em>smallest</em> set such that $X$ is independent of everything outside $\mathrm{MB}(X)$ given $\mathrm{MB}(X)$. In a Bayesian network it is exactly:</p>$$
 \mathrm{MB}(X) \;=\; \mathrm{Pa}(X)\;\cup\;\mathrm{Ch}(X)\;\cup\;\bigl\{\text{other parents of }X\text{'s children}\bigr\}.
-$$<p>The co-parents are easy to forget but essential &ndash; they appear because, by the collider rule, conditioning on a child <em>activates</em> the path through that child to its other parents. The blanket is the minimal set of features a Gibbs sampler needs to resample $X$, and in causal terms it is the smallest sufficient statistic for predicting $X$ from the rest of the network.</p>
-<h3 id="44-inference-variable-elimination">4.4 Inference: variable elimination</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig5_variable_elimination.png" alt="Variable elimination on a chain" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>To compute a posterior such as $P(D\mid \text{evidence})$, the brute-force sum is exponential in $n$. <strong>Variable elimination</strong> sums variables out one at a time, reusing intermediate factors:</p>
-<ol>
-<li>Pick an elimination order, e.g. $A,B,C$ for a query about $D$.</li>
-<li>Multiply all factors that mention $A$, then $\sum_A$ to obtain a new factor $\tau_1(B)$.</li>
-<li>Repeat: multiply factors that mention $B$, sum to get $\tau_2(C)$, and so on.</li>
-</ol>
-<p>For a chain this is $O(nS^{2})$ instead of $O(S^{n})$. For a general graph the complexity is governed by the <strong>treewidth</strong> of the graph &ndash; equivalently, by the largest intermediate factor produced &ndash; which is why dense graphs remain hard even after elimination.</p>
-<h3 id="45-the-junction-tree">4.5 The junction tree</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig7_junction_tree.png" alt="Junction tree pipeline: triangulate -&gt; max cliques -&gt; separator-labelled tree" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The <strong>junction tree</strong> algorithm globalises variable elimination so that <em>all</em> marginals can be computed by two message-passing sweeps over a single auxiliary structure:</p>
-<ol>
-<li><strong>Moralise.</strong> Add an undirected edge between every pair of co-parents and drop edge directions.</li>
-<li><strong>Triangulate.</strong> Add chords until every cycle of length $\geq 4$ has a chord. This step controls treewidth and is NP-hard in the optimal case &ndash; heuristics such as <em>minimum fill-in</em> work well in practice.</li>
-<li><strong>Extract maximal cliques</strong> of the triangulated graph.</li>
-<li><strong>Build a tree of cliques</strong> in which adjacent cliques share a separator set, satisfying the <em>running-intersection property</em>: any variable appears in a connected sub-tree.</li>
-<li><strong>Pass messages</strong> along the tree (collect-then-distribute). After two sweeps, every clique holds the correct marginal over its variables.</li>
-</ol>
-<p>The cost is exponential in the largest clique size, i.e. treewidth $+\,1$ &ndash; the same complexity bound as variable elimination, but amortised across all queries.</p>
-<h3 id="46-structure-learning">4.6 Structure learning</h3>
-<p>The DAG itself can be learned. Two main families:</p>
-<ul>
-<li><strong>Score + search.</strong> Hill-climb over DAGs by adding/deleting/reversing edges; score each candidate with a likelihood-plus-penalty criterion. The standard one is <strong>BIC</strong>:</li>
-</ul>
-$$
+$$<p>The co-parents are easy to forget but essential &ndash; they appear because, by the collider rule, conditioning on a child <em>activates</em> the path through that child to its other parents. The blanket is the minimal set of features a Gibbs sampler needs to resample $X$, and in causal terms it is the smallest sufficient statistic for predicting $X$ from the rest of the network.</p><h3 id=44-inference-variable-elimination>4.4 Inference: variable elimination</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig5_variable_elimination.png alt="Variable elimination on a chain" loading=lazy decoding=async></figure></p><p>To compute a posterior such as $P(D\mid \text{evidence})$, the brute-force sum is exponential in $n$. <strong>Variable elimination</strong> sums variables out one at a time, reusing intermediate factors:</p><ol><li>Pick an elimination order, e.g. $A,B,C$ for a query about $D$.</li><li>Multiply all factors that mention $A$, then $\sum_A$ to obtain a new factor $\tau_1(B)$.</li><li>Repeat: multiply factors that mention $B$, sum to get $\tau_2(C)$, and so on.</li></ol><p>For a chain this is $O(nS^{2})$ instead of $O(S^{n})$. For a general graph the complexity is governed by the <strong>treewidth</strong> of the graph &ndash; equivalently, by the largest intermediate factor produced &ndash; which is why dense graphs remain hard even after elimination.</p><h3 id=45-the-junction-tree>4.5 The junction tree</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/10-Semi-Naive-Bayes-and-Bayesian-Networks/fig7_junction_tree.png alt="Junction tree pipeline: triangulate -> max cliques -> separator-labelled tree" loading=lazy decoding=async></figure></p><p>The <strong>junction tree</strong> algorithm globalises variable elimination so that <em>all</em> marginals can be computed by two message-passing sweeps over a single auxiliary structure:</p><ol><li><strong>Moralise.</strong> Add an undirected edge between every pair of co-parents and drop edge directions.</li><li><strong>Triangulate.</strong> Add chords until every cycle of length $\geq 4$ has a chord. This step controls treewidth and is NP-hard in the optimal case &ndash; heuristics such as <em>minimum fill-in</em> work well in practice.</li><li><strong>Extract maximal cliques</strong> of the triangulated graph.</li><li><strong>Build a tree of cliques</strong> in which adjacent cliques share a separator set, satisfying the <em>running-intersection property</em>: any variable appears in a connected sub-tree.</li><li><strong>Pass messages</strong> along the tree (collect-then-distribute). After two sweeps, every clique holds the correct marginal over its variables.</li></ol><p>The cost is exponential in the largest clique size, i.e. treewidth $+\,1$ &ndash; the same complexity bound as variable elimination, but amortised across all queries.</p><h3 id=46-structure-learning>4.6 Structure learning</h3><p>The DAG itself can be learned. Two main families:</p><ul><li><strong>Score + search.</strong> Hill-climb over DAGs by adding/deleting/reversing edges; score each candidate with a likelihood-plus-penalty criterion. The standard one is <strong>BIC</strong>:</li></ul>$$
 \mathrm{BIC}(\mathcal{G}) \;=\; \log p(\mathcal{D}\mid\hat{\theta},\mathcal{G}) \;-\; \tfrac{|\theta|}{2}\log N.
-$$<p>The first term rewards fit, the second penalises parameter count &ndash; BIC is consistent (selects the true graph as $N\to\infty$) under standard assumptions.</p>
-<ul>
-<li><strong>Constraint-based</strong> (PC algorithm, FCI). Run conditional-independence tests, build the skeleton, then orient v-structures using the collider rule.</li>
-</ul>
-<p>A hard fact: <em>exact</em> structure learning is NP-hard (Chickering, Heckerman &amp; Meek 2004). All practical algorithms cap the number of parents per node, use random restarts, or exploit prior knowledge about edge directions.</p>
-<hr>
-<h2 id="5-worked-exercises">5. Worked exercises</h2>
-<h3 id="exercise-1----spode-parameter-estimate">Exercise 1 &ndash; SPODE parameter estimate</h3>
-<p>100 samples; class $c_1$ has 60. In $c_1$, 30 samples have $x^{(p)}{=}1$, of which 18 have $x^{(j)}{=}1$. With Laplace smoothing $\alpha=1$ and $|x^{(j)}|=3$,</p>
-$$
+$$<p>The first term rewards fit, the second penalises parameter count &ndash; BIC is consistent (selects the true graph as $N\to\infty$) under standard assumptions.</p><ul><li><strong>Constraint-based</strong> (PC algorithm, FCI). Run conditional-independence tests, build the skeleton, then orient v-structures using the collider rule.</li></ul><p>A hard fact: <em>exact</em> structure learning is NP-hard (Chickering, Heckerman & Meek 2004). All practical algorithms cap the number of parents per node, use random restarts, or exploit prior knowledge about edge directions.</p><hr><h2 id=5-worked-exercises>5. Worked exercises</h2><h3 id=exercise-1----spode-parameter-estimate>Exercise 1 &ndash; SPODE parameter estimate</h3><p>100 samples; class $c_1$ has 60. In $c_1$, 30 samples have $x^{(p)}{=}1$, of which 18 have $x^{(j)}{=}1$. With Laplace smoothing $\alpha=1$ and $|x^{(j)}|=3$,</p>$$
 \hat{P}\bigl(x^{(j)}{=}1\mid c_1, x^{(p)}{=}1\bigr) \;=\; \frac{18+1}{30+1\cdot 3} \;=\; \frac{19}{33} \;\approx\; 0.576.
-$$<h3 id="exercise-2----tan-parameter-count">Exercise 2 &ndash; TAN parameter count</h3>
-<p>For binary features and $K$ classes:</p>
-<ul>
-<li>Naive Bayes: $K\cdot d$ parameters (one per class-feature combination).</li>
-<li>TAN: each non-root feature has the class <strong>and</strong> one binary parent, hence $2$ extra entries per class-feature pair &ndash; total $2Kd$.</li>
-</ul>
-<p>TAN doubles the parameter budget and gains the ability to model pairwise dependencies. With $S$-valued features the multiplier is $S$ instead of $2$.</p>
-<h3 id="exercise-3----chow-liu-edge-selection">Exercise 3 &ndash; Chow-Liu edge selection</h3>
-<p>Suppose $I(X_1;X_2\mid Y)=0.8$ and $I(X_1;X_3\mid Y)=0.5$. The Chow-Liu MST greedily picks the heavier edge first, so $X_1\!-\!X_2$ enters the tree before $X_1\!-\!X_3$. The lighter edge enters only if it does not close a cycle.</p>
-<h3 id="exercise-4----d-separation">Exercise 4 &ndash; d-separation</h3>
-<p>In $A\to C\leftarrow B$:</p>
-<ul>
-<li>(a) $A\perp B$? <strong>Yes.</strong> $C$ is a collider, and <em>unobserved</em> colliders block the path.</li>
-<li>(b) $A\perp B\mid D$ where $D$ is unrelated? <strong>Yes.</strong> $D$ is not a descendant of $C$, so the collider stays blocked.</li>
-<li>(c) $A\perp B\mid C$? <strong>No.</strong> Conditioning on a collider activates the path &ndash; explaining away couples $A$ and $B$.</li>
-</ul>
-<h3 id="exercise-5----aode-vs-tan-with-limited-data">Exercise 5 &ndash; AODE vs TAN with limited data</h3>
-<ul>
-<li>Large $d$, plenty of data: TAN&rsquo;s $O(d)$ prediction beats AODE&rsquo;s $O(d^{2})$.</li>
-<li>Small $N$: AODE&rsquo;s averaging acts as regulariser, often more robust than TAN&rsquo;s structure search which can overfit MST edges from noisy CMI estimates.</li>
-</ul>
-<p>A reasonable default policy: start with AODE; switch to TAN once $N$ comfortably exceeds the number of CMI cells you need to estimate.</p>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="why-not-always-use-a-full-bayesian-network">Why not always use a full Bayesian network?</h3>
-<p>Structure learning is NP-hard and the search space of DAGs is super-exponential. TAN and AODE <em>constrain</em> the structure to keep learning tractable while capturing the most informative dependencies.</p>
-<h3 id="do-directed-edges-encode-causation">Do directed edges encode causation?</h3>
-<p>No. Two DAGs can encode the same conditional-independence structure (an <em>equivalence class</em>) and be statistically indistinguishable. Causal claims require interventional or counterfactual assumptions &ndash; Pearl&rsquo;s do-calculus, instrumental variables, etc.</p>
-<h3 id="continuous-features-in-tan">Continuous features in TAN?</h3>
-<p>Three options: (i) discretise (equal-width or equal-frequency bins), (ii) assume conditional Gaussians (a <em>Conditional Gaussian Bayesian network</em>), (iii) use kernel density estimates for the local CPDs.</p>
-<h3 id="aode-or-tan----which">AODE or TAN &ndash; which?</h3>
-<p>AODE: simpler, more robust on small samples, no structure-learning step. TAN: faster prediction at high $d$, captures heterogeneous parent choices. In production text classifiers AODE is the more common default; in dense numeric tables, TAN often wins.</p>
-<h3 id="where-do-deep-generative-models-fit">Where do deep generative models fit?</h3>
-<p>Modern latent-variable models (VAE, normalising flows, autoregressive models like PixelCNN) are continuous Bayesian networks where the CPTs are neural conditional densities. The factorisation idea is identical; only the parametric form of $P(X_i\mid \mathrm{Pa}(X_i))$ has changed.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Friedman, N., Geiger, D. &amp; Goldszmidt, M. (1997). <em>Bayesian network classifiers.</em> Machine Learning, 29(2-3), 131-163.</li>
-<li>Webb, G. I., Boughton, J. R. &amp; Wang, Z. (2005). <em>Not so naive Bayes: Aggregating one-dependence estimators.</em> Machine Learning, 58(1), 5-24.</li>
-<li>Chow, C. &amp; Liu, C. (1968). <em>Approximating discrete probability distributions with dependence trees.</em> IEEE Transactions on Information Theory, 14(3), 462-467.</li>
-<li>Chickering, D. M., Heckerman, D. &amp; Meek, C. (2004). <em>Large-sample learning of Bayesian networks is NP-hard.</em> JMLR, 5, 1287-1330.</li>
-<li>Koller, D. &amp; Friedman, N. (2009). <em>Probabilistic Graphical Models: Principles and Techniques.</em> MIT Press.</li>
-<li>Pearl, J. (1988). <em>Probabilistic Reasoning in Intelligent Systems.</em> Morgan Kaufmann.</li>
-</ul>
-<hr>
-<div class="series-nav">
-<p><strong>ML Mathematical Derivations Series</strong></p>
-<p><a href="/en/Machine-Learning-Mathematical-Derivations-9-Naive-Bayes/">&lt; Part 9: Naive Bayes</a>
- | <strong>Part 10: Semi-Naive Bayes &amp; Bayesian Networks</strong> | <a href="/en/Machine-Learning-Mathematical-Derivations-11-Ensemble-Learning/">Part 11: Ensemble Learning &gt;</a>
-</p>
-</div>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-why-relax-the-independence-assumption">1. Why relax the independence assumption?</a>
-      <ul>
-        <li><a href="#11-the-convenient-lie">1.1 The convenient lie</a></li>
-        <li><a href="#12-the-spectrum">1.2 The spectrum</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-one-dependence-estimators-ode">2. One-dependence estimators (ODE)</a>
-      <ul>
-        <li><a href="#21-spode-a-single-super-parent">2.1 SPODE: a single super-parent</a></li>
-        <li><a href="#22-aode-average-all-eligible-super-parents">2.2 AODE: average all eligible super-parents</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-tan-tree-augmented-naive-bayes">3. TAN: tree-augmented Naive Bayes</a>
-      <ul>
-        <li><a href="#31-each-feature-picks-its-own-parent">3.1 Each feature picks its own parent</a></li>
-        <li><a href="#32-learning-the-tree----chow-liu">3.2 Learning the tree &ndash; Chow-Liu</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-bayesian-networks">4. Bayesian networks</a>
-      <ul>
-        <li><a href="#41-dag-factorisation">4.1 DAG factorisation</a></li>
-        <li><a href="#42-d-separation">4.2 d-separation</a></li>
-        <li><a href="#43-markov-blanket">4.3 Markov blanket</a></li>
-        <li><a href="#44-inference-variable-elimination">4.4 Inference: variable elimination</a></li>
-        <li><a href="#45-the-junction-tree">4.5 The junction tree</a></li>
-        <li><a href="#46-structure-learning">4.6 Structure learning</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-worked-exercises">5. Worked exercises</a>
-      <ul>
-        <li><a href="#exercise-1----spode-parameter-estimate">Exercise 1 &ndash; SPODE parameter estimate</a></li>
-        <li><a href="#exercise-2----tan-parameter-count">Exercise 2 &ndash; TAN parameter count</a></li>
-        <li><a href="#exercise-3----chow-liu-edge-selection">Exercise 3 &ndash; Chow-Liu edge selection</a></li>
-        <li><a href="#exercise-4----d-separation">Exercise 4 &ndash; d-separation</a></li>
-        <li><a href="#exercise-5----aode-vs-tan-with-limited-data">Exercise 5 &ndash; AODE vs TAN with limited data</a></li>
-      </ul>
-    </li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#why-not-always-use-a-full-bayesian-network">Why not always use a full Bayesian network?</a></li>
-        <li><a href="#do-directed-edges-encode-causation">Do directed edges encode causation?</a></li>
-        <li><a href="#continuous-features-in-tan">Continuous features in TAN?</a></li>
-        <li><a href="#aode-or-tan----which">AODE or TAN &ndash; which?</a></li>
-        <li><a href="#where-do-deep-generative-models-fit">Where do deep generative models fit?</a></li>
-      </ul>
-    </li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2500</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<h3 id=exercise-2----tan-parameter-count>Exercise 2 &ndash; TAN parameter count</h3><p>For binary features and $K$ classes:</p><ul><li>Naive Bayes: $K\cdot d$ parameters (one per class-feature combination).</li><li>TAN: each non-root feature has the class <strong>and</strong> one binary parent, hence $2$ extra entries per class-feature pair &ndash; total $2Kd$.</li></ul><p>TAN doubles the parameter budget and gains the ability to model pairwise dependencies. With $S$-valued features the multiplier is $S$ instead of $2$.</p><h3 id=exercise-3----chow-liu-edge-selection>Exercise 3 &ndash; Chow-Liu edge selection</h3><p>Suppose $I(X_1;X_2\mid Y)=0.8$ and $I(X_1;X_3\mid Y)=0.5$. The Chow-Liu MST greedily picks the heavier edge first, so $X_1\!-\!X_2$ enters the tree before $X_1\!-\!X_3$. The lighter edge enters only if it does not close a cycle.</p><h3 id=exercise-4----d-separation>Exercise 4 &ndash; d-separation</h3><p>In $A\to C\leftarrow B$:</p><ul><li>(a) $A\perp B$? <strong>Yes.</strong> $C$ is a collider, and <em>unobserved</em> colliders block the path.</li><li>(b) $A\perp B\mid D$ where $D$ is unrelated? <strong>Yes.</strong> $D$ is not a descendant of $C$, so the collider stays blocked.</li><li>(c) $A\perp B\mid C$? <strong>No.</strong> Conditioning on a collider activates the path &ndash; explaining away couples $A$ and $B$.</li></ul><h3 id=exercise-5----aode-vs-tan-with-limited-data>Exercise 5 &ndash; AODE vs TAN with limited data</h3><ul><li>Large $d$, plenty of data: TAN&rsquo;s $O(d)$ prediction beats AODE&rsquo;s $O(d^{2})$.</li><li>Small $N$: AODE&rsquo;s averaging acts as regulariser, often more robust than TAN&rsquo;s structure search which can overfit MST edges from noisy CMI estimates.</li></ul><p>A reasonable default policy: start with AODE; switch to TAN once $N$ comfortably exceeds the number of CMI cells you need to estimate.</p><hr><h2 id=qa>Q&amp;A</h2><h3 id=why-not-always-use-a-full-bayesian-network>Why not always use a full Bayesian network?</h3><p>Structure learning is NP-hard and the search space of DAGs is super-exponential. TAN and AODE <em>constrain</em> the structure to keep learning tractable while capturing the most informative dependencies.</p><h3 id=do-directed-edges-encode-causation>Do directed edges encode causation?</h3><p>No. Two DAGs can encode the same conditional-independence structure (an <em>equivalence class</em>) and be statistically indistinguishable. Causal claims require interventional or counterfactual assumptions &ndash; Pearl&rsquo;s do-calculus, instrumental variables, etc.</p><h3 id=continuous-features-in-tan>Continuous features in TAN?</h3><p>Three options: (i) discretise (equal-width or equal-frequency bins), (ii) assume conditional Gaussians (a <em>Conditional Gaussian Bayesian network</em>), (iii) use kernel density estimates for the local CPDs.</p><h3 id=aode-or-tan----which>AODE or TAN &ndash; which?</h3><p>AODE: simpler, more robust on small samples, no structure-learning step. TAN: faster prediction at high $d$, captures heterogeneous parent choices. In production text classifiers AODE is the more common default; in dense numeric tables, TAN often wins.</p><h3 id=where-do-deep-generative-models-fit>Where do deep generative models fit?</h3><p>Modern latent-variable models (VAE, normalising flows, autoregressive models like PixelCNN) are continuous Bayesian networks where the CPTs are neural conditional densities. The factorisation idea is identical; only the parametric form of $P(X_i\mid \mathrm{Pa}(X_i))$ has changed.</p><hr><h2 id=references>References</h2><ul><li>Friedman, N., Geiger, D. & Goldszmidt, M. (1997). <em>Bayesian network classifiers.</em> Machine Learning, 29(2-3), 131-163.</li><li>Webb, G. I., Boughton, J. R. & Wang, Z. (2005). <em>Not so naive Bayes: Aggregating one-dependence estimators.</em> Machine Learning, 58(1), 5-24.</li><li>Chow, C. & Liu, C. (1968). <em>Approximating discrete probability distributions with dependence trees.</em> IEEE Transactions on Information Theory, 14(3), 462-467.</li><li>Chickering, D. M., Heckerman, D. & Meek, C. (2004). <em>Large-sample learning of Bayesian networks is NP-hard.</em> JMLR, 5, 1287-1330.</li><li>Koller, D. & Friedman, N. (2009). <em>Probabilistic Graphical Models: Principles and Techniques.</em> MIT Press.</li><li>Pearl, J. (1988). <em>Probabilistic Reasoning in Intelligent Systems.</em> Morgan Kaufmann.</li></ul><hr><div class=series-nav><p><strong>ML Mathematical Derivations Series</strong></p><p><a href=/en/Machine-Learning-Mathematical-Derivations-9-Naive-Bayes/>&lt; Part 9: Naive Bayes</a>
+| <strong>Part 10: Semi-Naive Bayes & Bayesian Networks</strong> | <a href=/en/Machine-Learning-Mathematical-Derivations-11-Ensemble-Learning/>Part 11: Ensemble Learning ></a></p></div></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-why-relax-the-independence-assumption>1. Why relax the independence assumption?</a><ul><li><a href=#11-the-convenient-lie>1.1 The convenient lie</a></li><li><a href=#12-the-spectrum>1.2 The spectrum</a></li></ul></li><li><a href=#2-one-dependence-estimators-ode>2. One-dependence estimators (ODE)</a><ul><li><a href=#21-spode-a-single-super-parent>2.1 SPODE: a single super-parent</a></li><li><a href=#22-aode-average-all-eligible-super-parents>2.2 AODE: average all eligible super-parents</a></li></ul></li><li><a href=#3-tan-tree-augmented-naive-bayes>3. TAN: tree-augmented Naive Bayes</a><ul><li><a href=#31-each-feature-picks-its-own-parent>3.1 Each feature picks its own parent</a></li><li><a href=#32-learning-the-tree----chow-liu>3.2 Learning the tree &ndash; Chow-Liu</a></li></ul></li><li><a href=#4-bayesian-networks>4. Bayesian networks</a><ul><li><a href=#41-dag-factorisation>4.1 DAG factorisation</a></li><li><a href=#42-d-separation>4.2 d-separation</a></li><li><a href=#43-markov-blanket>4.3 Markov blanket</a></li><li><a href=#44-inference-variable-elimination>4.4 Inference: variable elimination</a></li><li><a href=#45-the-junction-tree>4.5 The junction tree</a></li><li><a href=#46-structure-learning>4.6 Structure learning</a></li></ul></li><li><a href=#5-worked-exercises>5. Worked exercises</a><ul><li><a href=#exercise-1----spode-parameter-estimate>Exercise 1 &ndash; SPODE parameter estimate</a></li><li><a href=#exercise-2----tan-parameter-count>Exercise 2 &ndash; TAN parameter count</a></li><li><a href=#exercise-3----chow-liu-edge-selection>Exercise 3 &ndash; Chow-Liu edge selection</a></li><li><a href=#exercise-4----d-separation>Exercise 4 &ndash; d-separation</a></li><li><a href=#exercise-5----aode-vs-tan-with-limited-data>Exercise 5 &ndash; AODE vs TAN with limited data</a></li></ul></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#why-not-always-use-a-full-bayesian-network>Why not always use a full Bayesian network?</a></li><li><a href=#do-directed-edges-encode-causation>Do directed edges encode causation?</a></li><li><a href=#continuous-features-in-tan>Continuous features in TAN?</a></li><li><a href=#aode-or-tan----which>AODE or TAN &ndash; which?</a></li><li><a href=#where-do-deep-generative-models-fit>Where do deep generative models fit?</a></li></ul></li><li><a href=#references>References</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>12 min</strong></div><div class=row><span>Word count</span><strong>2455</strong></div><div class=row><span>Published</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

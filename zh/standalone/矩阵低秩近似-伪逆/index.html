@@ -1,545 +1,75 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>矩阵低秩近似与伪逆：从 SVD 到正则化 · Chen Kai Blog</title>
-<meta name="description" content="从最小二乘视角讲解 Moore-Penrose 伪逆的定义、Penrose 四条件、SVD 计算、截断奇异值与正则化，以及在机器学习中的落地应用。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="矩阵低秩近似与伪逆：从 SVD 到正则化">
-<meta property="og:description" content="从最小二乘视角讲解 Moore-Penrose 伪逆的定义、Penrose 四条件、SVD 计算、截断奇异值与正则化，以及在机器学习中的落地应用。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>矩阵低秩近似与伪逆：从 SVD 到正则化</h1>
-      <p class="deck">从最小二乘视角讲解 Moore-Penrose 伪逆的定义、Penrose 四条件、SVD 计算、截断奇异值与正则化，以及在机器学习中的落地应用。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-07-15">July 15, 2024</time> · 11 min read · 5200 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/ml/" class="tag">#ML</a><a href="/zh/tags/linear-algebra/" class="tag">#Linear Algebra</a><a href="/zh/tags/optimization/" class="tag">#Optimization</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>真实数据里的矩阵几乎从不&quot;方+满秩&quot;：特征相关、样本不足、噪声放大病态——求逆这件事要么不存在，要么不稳定。<strong>伪逆</strong>（Moore-Penrose inverse）把&quot;逆&quot;的直觉延续下去：它不要求方程组有精确解，而是把&quot;解&quot;重新定义为<strong>最小二乘解</strong>（多解时再选<strong>最小范数</strong>那一个）。本文从最小二乘视角给出伪逆的定义与四条 Penrose 条件，再用 <strong>SVD</strong> 把它的计算与<strong>低秩近似</strong>绑在一起，最后看截断奇异值如何让解更稳、什么时候必须正则化、以及这些结论在 PCA、推荐系统、LoRA 中如何落地。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li><strong>优化视角</strong>：为什么&quot;伪逆 = 最小二乘解&quot;是一个统一定义</li>
-<li><strong>SVD 算法</strong>：如何用$A = U\Sigma V^{\!\top}$构造$A^{+}$</li>
-<li><strong>Eckart-Young 定理</strong>：为什么截断 SVD 是<strong>唯一</strong>的最优低秩近似</li>
-<li><strong>数值稳定性</strong>：小奇异值如何放大误差，Tikhonov 正则化为什么能救场</li>
-<li><strong>现代应用</strong>：从 PCA、推荐系统的矩阵分解，一直到 LoRA 微调</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>线性代数（矩阵乘法、内积、正交矩阵）</li>
-<li>最小二乘回归的概念</li>
-<li>Python + NumPy</li>
-</ul>
-<hr>
-<h1 id="为什么需要伪逆">为什么需要伪逆？</h1>
-<p>经典的逆矩阵$A^{-1}$只对<strong>方阵且满秩</strong>有效。一旦遇到下面任意一种情况，$A^{-1}$就不存在：</p>
-<ul>
-<li><strong>超定系统</strong>（行多于列）：$Ax = b$ 通常无解 -&gt; 退而求其次找最小二乘</li>
-<li><strong>欠定系统</strong>（列多于行）：解不唯一 -&gt; 需要从无穷多解中选一个</li>
-<li><strong>病态系统</strong>：数值上接近奇异，$A^{-1}$ 算得出来但算不准</li>
-</ul>
-<p>伪逆$A^{+}$ 把这三种情况<strong>统一处理</strong>：它总是存在、总是唯一，并且当$A^{-1}$ 存在时退化为$A^{-1}$。</p>
-<h1 id="优化视角伪逆即最小二乘">优化视角：伪逆即最小二乘</h1>
-<h2 id="定义">定义</h2>
-<p>对矩阵$A \in \mathbb{R}^{m \times n}$，伪逆$A^{+}$ 通过下述优化问题定义：</p>
-$$A^{+} \;=\; \arg\min_{X \in \mathbb{R}^{n \times m}} \; \|AX - I_m\|_F^2$$<p>当解不唯一时（即$A$ 列空间不满秩），再叠加一层<strong>最小范数选择</strong>：在所有最小化目标的$X$ 中选 Frobenius 范数最小的那个。</p>
-<blockquote>
-<p><strong>直觉</strong>：方阵满秩时，$AX = I$ 有精确解$A^{-1}$；不满秩或非方阵时，没有$X$ 能让$AX = I$，伪逆退而求其次——让$AX$ <strong>尽可能接近</strong>$I$。</p>
-</blockquote>
-<h2 id="frobenius-范数">Frobenius 范数</h2>
-$$\|M\|_F^2 \;=\; \sum_{i,j} M_{ij}^2 \;=\; \mathrm{tr}(M^{\!\top} M)$$<p>它把矩阵当成一个长向量来度量&quot;长度&quot;，是把矩阵优化转化为标量优化的标准工具。$\mathrm{tr}(M^{\!\top}M)$ 写法的妙处：对$M = M^{\!\top}$ 等几何对象求导只需用迹的循环性质，比逐元素展开干净得多。</p>
-<h2 id="求解满列秩情形">求解（满列秩情形）</h2>
-<p>当$A$ <strong>列满秩</strong>时，$A^{\!\top}A$ 可逆，对目标函数求导并令导数为零：</p>
-$$\frac{\partial}{\partial X}\|AX - I\|_F^2 = 2 A^{\!\top}(AX - I) = 0
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>矩阵低秩近似与伪逆：从 SVD 到正则化 · Chen Kai Blog</title>
+<meta name=description content="从最小二乘视角讲解 Moore-Penrose 伪逆的定义、Penrose 四条件、SVD 计算、截断奇异值与正则化，以及在机器学习中的落地应用。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/><meta property="og:type" content="article"><meta property="og:title" content="矩阵低秩近似与伪逆：从 SVD 到正则化"><meta property="og:description" content="从最小二乘视角讲解 Moore-Penrose 伪逆的定义、Penrose 四条件、SVD 计算、截断奇异值与正则化，以及在机器学习中的落地应用。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>矩阵低秩近似与伪逆：从 SVD 到正则化</h1><p class=deck>从最小二乘视角讲解 Moore-Penrose 伪逆的定义、Penrose 四条件、SVD 计算、截断奇异值与正则化，以及在机器学习中的落地应用。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-07-15>July 15, 2024</time> · 11 min read · 5103 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/linear-algebra/ class=tag>#Linear Algebra</a><a href=/zh/tags/optimization/ class=tag>#Optimization</a></div></div></header><div class=prose><p>真实数据里的矩阵几乎从不"方+满秩"：特征相关、样本不足、噪声放大病态——求逆这件事要么不存在，要么不稳定。<strong>伪逆</strong>（Moore-Penrose inverse）把"逆"的直觉延续下去：它不要求方程组有精确解，而是把"解"重新定义为<strong>最小二乘解</strong>（多解时再选<strong>最小范数</strong>那一个）。本文从最小二乘视角给出伪逆的定义与四条 Penrose 条件，再用 <strong>SVD</strong> 把它的计算与<strong>低秩近似</strong>绑在一起，最后看截断奇异值如何让解更稳、什么时候必须正则化、以及这些结论在 PCA、推荐系统、LoRA 中如何落地。</p><h2 id=你将学到>你将学到</h2><ul><li><strong>优化视角</strong>：为什么"伪逆 = 最小二乘解"是一个统一定义</li><li><strong>SVD 算法</strong>：如何用$A = U\Sigma V^{\!\top}$构造$A^{+}$</li><li><strong>Eckart-Young 定理</strong>：为什么截断 SVD 是<strong>唯一</strong>的最优低秩近似</li><li><strong>数值稳定性</strong>：小奇异值如何放大误差，Tikhonov 正则化为什么能救场</li><li><strong>现代应用</strong>：从 PCA、推荐系统的矩阵分解，一直到 LoRA 微调</li></ul><h2 id=前置知识>前置知识</h2><ul><li>线性代数（矩阵乘法、内积、正交矩阵）</li><li>最小二乘回归的概念</li><li>Python + NumPy</li></ul><hr><h1 id=为什么需要伪逆>为什么需要伪逆？</h1><p>经典的逆矩阵$A^{-1}$只对<strong>方阵且满秩</strong>有效。一旦遇到下面任意一种情况，$A^{-1}$就不存在：</p><ul><li><strong>超定系统</strong>（行多于列）：$Ax = b$ 通常无解 -> 退而求其次找最小二乘</li><li><strong>欠定系统</strong>（列多于行）：解不唯一 -> 需要从无穷多解中选一个</li><li><strong>病态系统</strong>：数值上接近奇异，$A^{-1}$ 算得出来但算不准</li></ul><p>伪逆$A^{+}$ 把这三种情况<strong>统一处理</strong>：它总是存在、总是唯一，并且当$A^{-1}$ 存在时退化为$A^{-1}$。</p><h1 id=优化视角伪逆即最小二乘>优化视角：伪逆即最小二乘</h1><h2 id=定义>定义</h2><p>对矩阵$A \in \mathbb{R}^{m \times n}$，伪逆$A^{+}$ 通过下述优化问题定义：</p>$$A^{+} \;=\; \arg\min_{X \in \mathbb{R}^{n \times m}} \; \|AX - I_m\|_F^2$$<p>当解不唯一时（即$A$ 列空间不满秩），再叠加一层<strong>最小范数选择</strong>：在所有最小化目标的$X$ 中选 Frobenius 范数最小的那个。</p><blockquote><p><strong>直觉</strong>：方阵满秩时，$AX = I$ 有精确解$A^{-1}$；不满秩或非方阵时，没有$X$ 能让$AX = I$，伪逆退而求其次——让$AX$ <strong>尽可能接近</strong>$I$。</p></blockquote><h2 id=frobenius-范数>Frobenius 范数</h2>$$\|M\|_F^2 \;=\; \sum_{i,j} M_{ij}^2 \;=\; \mathrm{tr}(M^{\!\top} M)$$<p>它把矩阵当成一个长向量来度量"长度"，是把矩阵优化转化为标量优化的标准工具。$\mathrm{tr}(M^{\!\top}M)$ 写法的妙处：对$M = M^{\!\top}$ 等几何对象求导只需用迹的循环性质，比逐元素展开干净得多。</p><h2 id=求解满列秩情形>求解（满列秩情形）</h2><p>当$A$ <strong>列满秩</strong>时，$A^{\!\top}A$ 可逆，对目标函数求导并令导数为零：</p>$$\frac{\partial}{\partial X}\|AX - I\|_F^2 = 2 A^{\!\top}(AX - I) = 0
 \;\Longrightarrow\;
-X = (A^{\!\top}A)^{-1} A^{\!\top}.$$<p>这就是<strong>左伪逆</strong>$A^{+} = (A^{\!\top}A)^{-1}A^{\!\top}$，满足$A^{+}A = I_n$。 行满秩时类似可得<strong>右伪逆</strong>$A^{+} = A^{\!\top}(AA^{\!\top})^{-1}$。</p>
-<h2 id="penrose-四条件统一定义">Penrose 四条件（统一定义）</h2>
-<p>任何矩阵$A$ 的伪逆$A^{+}$ 是<strong>唯一</strong>满足下面四个等式的矩阵：</p>
-$$\begin{aligned}
+X = (A^{\!\top}A)^{-1} A^{\!\top}.$$<p>这就是<strong>左伪逆</strong>$A^{+} = (A^{\!\top}A)^{-1}A^{\!\top}$，满足$A^{+}A = I_n$。 行满秩时类似可得<strong>右伪逆</strong>$A^{+} = A^{\!\top}(AA^{\!\top})^{-1}$。</p><h2 id=penrose-四条件统一定义>Penrose 四条件（统一定义）</h2><p>任何矩阵$A$ 的伪逆$A^{+}$ 是<strong>唯一</strong>满足下面四个等式的矩阵：</p>$$\begin{aligned}
 &\text{(i)}\;\; A A^{+} A = A
 &&\text{(ii)}\;\; A^{+} A A^{+} = A^{+} \\
 &\text{(iii)}\;\; (A A^{+})^{\!\top} = A A^{+}
 &&\text{(iv)}\;\; (A^{+} A)^{\!\top} = A^{+} A
-\end{aligned}$$<p>第 (i)(ii) 条说$A$ 与$A^{+}$ 互为&quot;伪逆&quot;；第 (iii)(iv) 条要求$AA^{+}$ 与$A^{+}A$ 都是<strong>对称投影矩阵</strong>（这正是后面&quot;伪逆 = 投影&quot;几何图景的根源）。</p>
-<h1 id="通过-svd-计算伪逆">通过 SVD 计算伪逆</h1>
-<p>最小二乘公式$(A^{\!\top}A)^{-1}A^{\!\top}$ 在$A$ 列空间不满秩时会爆炸，而且数值上对小奇异值非常敏感。<strong>SVD 给出一个统一、稳定的算法</strong>。</p>
-<h2 id="步骤">步骤</h2>
-<p>对任意$A \in \mathbb{R}^{m \times n}$，SVD 给出</p>
-$$A \;=\; U \Sigma V^{\!\top}, \qquad
-\Sigma = \mathrm{diag}(\sigma_1, \sigma_2, \ldots, \sigma_r, 0, \ldots, 0),$$<p>其中$U \in \mathbb{R}^{m \times m}$、$V \in \mathbb{R}^{n \times n}$ 都是正交矩阵，$r = \mathrm{rank}(A)$，$\sigma_1 \ge \sigma_2 \ge \cdots \ge \sigma_r > 0$。 伪逆是</p>
-$$\boxed{\;A^{+} \;=\; V \Sigma^{+} U^{\!\top}, \qquad
-\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0 \\ 0 & \sigma_i = 0\end{cases}\;}$$<p>逐条验证 Penrose 四条件都自动成立——这是为什么 SVD 是<strong>最稳健、教科书级</strong>的伪逆算法。</p>
-<h2 id="几何图景投影到列空间">几何图景：投影到列空间</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig2_pseudoinverse_svd.png" alt="伪逆通过 SVD：最小二乘 = 正交投影" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图：超定回归$y \approx ax + b$，伪逆解$\hat\beta = A^{+}b$ 给出的最小二乘直线。 右图：几何上$AA^{+}b$ 是$b$ <strong>正交投影到列空间</strong>$\mathrm{col}(A)$ 的结果，残差$b - A\hat\beta$ 与列空间垂直——这是最小二乘的<strong>正规方程</strong>$A^{\!\top}(A\hat\beta - b) = 0$ 的几何含义。</p>
-<h2 id="代码">代码</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 方法 1：教科书的 SVD 方法</span>
-</span></span><span class="line"><span class="cl"><span class="n">U</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">Vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">S_pinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">s</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">A_pinv</span> <span class="o">=</span> <span class="n">Vt</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">S_pinv</span> <span class="o">@</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 方法 2：直接调用（推荐，内部就是 SVD + 阈值截断）</span>
-</span></span><span class="line"><span class="cl"><span class="n">A_pinv_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">A_pinv</span><span class="p">,</span> <span class="n">A_pinv_np</span><span class="p">))</span>   <span class="c1"># True</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">A_pinv</span> <span class="o">@</span> <span class="n">A</span><span class="p">)</span>                   <span class="c1"># 应当复原 A（Penrose 条件 i）</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>np.linalg.pinv</code> 内部已经做了<strong>奇异值阈值截断</strong>（默认$\mathrm{rcond} \approx \mathrm{eps} \cdot \max(m,n)$），把数值上等价于零的奇异值的倒数置零——下面会解释为什么这件事至关重要。</p>
-<h1 id="低秩近似eckart-young-定理">低秩近似：Eckart-Young 定理</h1>
-<p>伪逆只是 SVD 的一个用例。<strong>SVD 真正的杀手锏是低秩近似</strong>：用一个秩为$k$ 的矩阵尽可能逼近原矩阵$A$，最优解恰好是<strong>截断 SVD</strong>。</p>
-<h2 id="定理eckart-young-1936">定理（Eckart-Young, 1936）</h2>
-<p>设$A = U\Sigma V^{\!\top}$，记<strong>截断 SVD</strong></p>
-$$A_k \;=\; \sum_{i=1}^{k} \sigma_i\, u_i v_i^{\!\top} \;=\; U_{:,1:k} \,\Sigma_{1:k,1:k}\, V_{:,1:k}^{\!\top}.$$<p>则对任意$\mathrm{rank}(B) \le k$ 的矩阵$B$ 都有</p>
-$$\|A - A_k\|_F \;\le\; \|A - B\|_F, \qquad
-\|A - A_k\|_F \;=\; \sqrt{\sum_{i=k+1}^{r} \sigma_i^2}.$$<p>谱范数下也成立：$\|A - A_k\|_2 = \sigma_{k+1}$。 也就是说，<strong>截断 SVD 是唯一的（同构意义下）最优低秩近似</strong>——这是机器学习里几乎所有降维、压缩、矩阵分解方法的理论基石。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig3_eckart_young.png" alt="Eckart-Young 定理：截断 SVD 是最优的低秩近似" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>左图：奇异值快速衰减，黄色阴影部分（$\sigma_{k+1}, \sigma_{k+2}, \ldots$）就是被截掉的&quot;尾巴&quot;，它的$\ell_2$ 范数即近似误差。 右图：把截断 SVD 与 8 次&quot;随机秩-$k$ 投影&quot;对比——任何随机的低秩压缩都被截断 SVD <strong>碾压</strong>，而且差距不止一个数量级。</p>
-<h2 id="为什么截断尾巴有效图像压缩演示">为什么&quot;截断尾巴&quot;有效？图像压缩演示</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig1_lowrank_compression.png" alt="低秩近似作为图像压缩" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>把一张$96 \times 96$ 的图（共 9 216 个数）做 SVD，再分别保留$k = 2, 8, 32$ 个奇异值重建：</p>
-<table>
-  <thead>
-      <tr>
-          <th>秩$k$</th>
-          <th>存储参数</th>
-          <th>占比</th>
-          <th>相对 Frobenius 误差</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>2</td>
-          <td>386</td>
-          <td>4%</td>
-          <td>16.3%</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td>1 544</td>
-          <td>17%</td>
-          <td>4.0%</td>
-      </tr>
-      <tr>
-          <td>32</td>
-          <td>6 176</td>
-          <td>67%</td>
-          <td>1.7%</td>
-      </tr>
-  </tbody>
-</table>
-<p>下半部分是<strong>奇异值衰减谱</strong>和<strong>累计能量曲线</strong>：少量奇异值就承载了绝大部分&quot;信号&quot;——这就是为什么 SVD 既能压缩图片，又能去噪、又能做特征提取。<strong>奇异值衰减越快，矩阵就越&quot;低秩友好&quot;</strong>。</p>
-<h2 id="应用pca--中心化数据的-svd">应用：PCA = 中心化数据的 SVD</h2>
-<p>PCA 对中心化数据矩阵$X_c$ 做 SVD：$X_c = U\Sigma V^{\!\top}$，列向量$v_i$ 就是主成分方向，$\sigma_i^2 / (n-1)$ 是该方向的方差。 把数据投影到前$k$ 个主成分上，等价于用秩-$k$ 截断 SVD 近似$X_c$——所以 PCA 不是另一个算法，<strong>它就是 Eckart-Young 在中心化数据上的一个特例</strong>。</p>
-<h2 id="应用推荐系统的矩阵分解">应用：推荐系统的矩阵分解</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig4_recommender_mf.png" alt="推荐系统：稀疏评分矩阵的低秩分解" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Netflix Prize 的核心思想：用户-物品评分矩阵$R$ <strong>稀疏但低秩</strong>——少量&quot;潜在因子&quot;（题材偏好、风格、价位等）解释绝大部分评分。 记$R \approx UV^{\!\top}$，$U \in \mathbb{R}^{n_u \times r}$ 是用户因子，$V \in \mathbb{R}^{n_i \times r}$ 是物品因子，$r$ 一般取 10-200。 上图演示在仅 34% 评分可见的条件下，秩-3 的交替最小二乘 (ALS) 能把<strong>留出集 RMSE 压到 0.24</strong>（满分 5 分量纲），其本质就是在带掩码的低秩近似问题上做迭代最小二乘。</p>
-<blockquote>
-<p>SVD 不能直接处理缺失值，所以工业界用的不是直接 SVD，而是<strong>带掩码的非凸版本</strong>：<code>min_{U,V} sum_{(i,j) observed} (R_{ij} - u_i^T v_j)^2</code>。 用 ALS 或 SGD 求解，并加上$\ell_2$ 正则避免过拟合（参见下一节的 Tikhonov）。</p>
-</blockquote>
-<h1 id="数值稳定性与正则化">数值稳定性与正则化</h1>
-<h2 id="小奇异值如何放大误差">小奇异值如何放大误差</h2>
-<p>伪逆$A^{+} = V \Sigma^{+} U^{\!\top}$ 里的$\Sigma^{+}_{ii} = 1/\sigma_i$。 如果某个$\sigma_i$ 接近 0，$1/\sigma_i$ 就接近无穷大，<strong>任何在$u_i$ 方向上的微小噪声都会被放大成天文数字</strong>。 衡量这一现象的标准量是<strong>条件数</strong></p>
-$$\kappa(A) \;=\; \frac{\sigma_{\max}}{\sigma_{\min}}.$$<p>当$\kappa(A)$ 很大（比如$10^{10}$），求解$Ax = b$ 的相对误差大约会被放大$\kappa(A)$ 倍——也就是说有效精度直接掉 10 位。</p>
-<h2 id="解法-1截断-svd硬阈值">解法 1：截断 SVD（硬阈值）</h2>
-<p>最简单的策略：<strong>把数值上太小的奇异值直接丢掉</strong>。</p>
-$$\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i, & \sigma_i > \tau \\ 0, & \sigma_i \le \tau \end{cases}$$<p>阈值$\tau$ 一般取$\tau = \mathrm{rcond} \cdot \sigma_1$，<code>np.linalg.pinv</code> 的 <code>rcond</code> 参数就是这个。 截断 SVD 等价于把&quot;在小奇异值方向上的信号&quot;<strong>当成噪声</strong>——只在你确实相信小方向上没有真实信号时才能用。</p>
-<h2 id="解法-2tikhonov-正则化软阈值岭回归">解法 2��Tikhonov 正则化（软阈值，岭回归）</h2>
-<p>把目标函数改成</p>
-$$\min_{x} \;\|Ax - b\|_2^2 \;+\; \lambda \|x\|_2^2,$$<p>正规方程变成</p>
-$$x_\lambda \;=\; (A^{\!\top}A + \lambda I)^{-1} A^{\!\top} b \;=\; V \,\mathrm{diag}\!\left(\tfrac{\sigma_i}{\sigma_i^2 + \lambda}\right)\, U^{\!\top}\, b.$$<p>对比硬截断$1/\sigma_i$，Tikhonov 用的是<strong>软滤波器</strong>$\sigma_i / (\sigma_i^2 + \lambda)$：</p>
-<ul>
-<li>大奇异值（$\sigma_i^2 \gg \lambda$）：$\sigma_i/(\sigma_i^2+\lambda) \approx 1/\sigma_i$，几乎不变；</li>
-<li>小奇异值（$\sigma_i^2 \ll \lambda$）：$\sigma_i/(\sigma_i^2+\lambda) \approx \sigma_i/\lambda \to 0$，被压缩。</li>
-</ul>
-<p>这就是<strong>机器学习里的岭回归（Ridge）</strong>——它的本质就是<strong>给伪逆加了一个频域低通滤波器</strong>。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">ridge_pinv</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">lam</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Tikhonov 正则化伪逆，等价 (A^T A + lam I)^{-1} A^T。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">U</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">Vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">s_reg</span> <span class="o">=</span> <span class="n">s</span> <span class="o">/</span> <span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">s</span> <span class="o">+</span> <span class="n">lam</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">Vt</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">s_reg</span><span class="p">)</span> <span class="o">@</span> <span class="n">U</span><span class="o">.</span><span class="n">T</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="选谁">选谁？</h2>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>选</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>小奇异值是<strong>纯数值噪声</strong></td>
-          <td>截断 SVD（更激进）</td>
-      </tr>
-      <tr>
-          <td>小奇异值携带<strong>部分真实信号</strong>，不想完全丢</td>
-          <td>Tikhonov（更平滑）</td>
-      </tr>
-      <tr>
-          <td>高维稀疏特征，要做<strong>特征选择</strong></td>
-          <td>$\ell_1$ 正则（Lasso，不是这里）</td>
-      </tr>
-      <tr>
-          <td><strong>不确定</strong>，需要选超参</td>
-          <td>Tikhonov + 交叉验证</td>
-      </tr>
-  </tbody>
-</table>
-<h1 id="现代应用从-eckart-young-到-lora">现代应用：从 Eckart-Young 到 LoRA</h1>
-<p>低秩近似最让人意外的现代成功，是<strong>大模型的参数高效微调</strong>。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig5_lora_connection.png" alt="LoRA：低秩近似让微调便宜 100 倍" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="lora-的核心假设">LoRA 的核心假设</h2>
-<p>预训练大模型的某个权重$W \in \mathbb{R}^{d \times k}$（典型$d = k = 4096$，$1.7 \times 10^7$ 参数）。 全量微调要更新整个$W$；<strong>LoRA 假设</strong>任务相关的权重变化$\Delta W$ <strong>本身就是低秩的</strong>：</p>
-$$W' \;=\; W + \Delta W, \qquad \Delta W \;=\; B A, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k).$$<p>参数量从$dk$ 直降到$r(d + k)$。 上图中间面板：$r=8$ 时仅训练 0.07 M 参数，比全量微调省 <strong>256 倍</strong>。</p>
-<h2 id="为什么这么省还能-work">为什么这么省还能 work？</h2>
-<p>右侧面板给出经验解释：在大量任务上测出来的$\Delta W$ <strong>奇异值急剧衰减</strong>，有效秩往往只有几到几十——这是 Eckart-Young 在告诉你：<strong>&ldquo;低秩近似&quot;对$\Delta W$ 已经足够。</strong></p>
-<blockquote>
-<p>这一观察并非 LoRA 独创：Aghajanyan 等人 (2020) 用&quot;内蕴维度 (intrinsic dimensionality)&ldquo;实验发现，<strong>只更新几百维就能达到全量微调 90% 的效果</strong>。LoRA 把这个直觉做成了一个简单、可叠加、可合并的工程方案，也是这条线的标志性工作。</p>
-</blockquote>
-<h2 id="联系">联系</h2>
-<table>
-  <thead>
-      <tr>
-          <th>概念</th>
-          <th>形式</th>
-          <th>公共骨架</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>截断 SVD</td>
-          <td>$A_k = \sum_{i=1}^k \sigma_i u_i v_i^{\!\top}$</td>
-          <td>用低秩矩阵逼近高秩矩阵</td>
-      </tr>
-      <tr>
-          <td>PCA</td>
-          <td>$X_c \approx U_k \Sigma_k V_k^{\!\top}$</td>
-          <td>同上，作用在中心化数据上</td>
-      </tr>
-      <tr>
-          <td>推荐系统 MF</td>
-          <td>$R \approx U V^{\!\top}$</td>
-          <td>带掩码的低秩近似</td>
-      </tr>
-      <tr>
-          <td>LoRA</td>
-          <td>$\Delta W = B A$</td>
-          <td>对<strong>参数更新</strong>做低秩近似</td>
-      </tr>
-  </tbody>
-</table>
-<p>它们的母题都是<strong>Eckart-Young</strong>——&ldquo;在重要方向上保留信号，在剩下的方向上让步&rdquo;。</p>
-<h1 id="实战清单">实战清单</h1>
-<ul>
-<li>求$Ax = b$ 时，<strong>先看 condition number</strong>（<code>np.linalg.cond(A)</code>）。$\kappa > 10^{12}$ 就别再相信原始解了。</li>
-<li>想要稳健的最小二乘，永远走 SVD 路线（<code>np.linalg.lstsq</code> 或 <code>np.linalg.pinv</code>），别手写$(A^{\!\top}A)^{-1}A^{\!\top}$。</li>
-<li>做 PCA 时，<strong>对数据做中心化</strong>，再做 SVD；切忌直接对协方差矩阵做特征分解（数值精度差且贵）。</li>
-<li>做矩阵分解（推荐系统），秩$r$ 用<strong>留出集 RMSE</strong> 选，加$\ell_2$ 正则。</li>
-<li>做 LoRA，从$r=8$ 试起，alpha 一般取$2r$。再低就要看任务复杂度。</li>
-</ul>
-<h1 id="结论">结论</h1>
-<p>伪逆把&quot;逆矩阵&quot;的概念扩展到任意矩阵，背后是一个统一的优化定义——<strong>最小二乘解 + 最小范数选择</strong>。<strong>SVD 同时给出伪逆的稳健算法和最优低秩近似的解析解（Eckart-Young）</strong>。 真实数据的&quot;病态&quot;几乎总是来自小奇异值，而对策只有两条路：截断（硬阈值）或 Tikhonov 正则化（软滤波）。 这条线串起来：经典最小二乘 -&gt; 岭回归 -&gt; PCA -&gt; 推荐系统 MF -&gt; 现代 LoRA——它们看起来在做不同的事，本质上都是在用低秩结构对抗高维噪声。理解 SVD，就理解了这一整条线。</p>
-<h1 id="参考文献">参考文献</h1>
-<ul>
-<li><a href="https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse" target="_blank" rel="noopener noreferrer">Moore-Penrose 伪逆 (Wikipedia) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li><a href="https://en.wikipedia.org/wiki/Singular_value_decomposition" target="_blank" rel="noopener noreferrer">Singular Value Decomposition (Wikipedia) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li><a href="https://en.wikipedia.org/wiki/Tikhonov_regularization" target="_blank" rel="noopener noreferrer">Tikhonov 正则化 (Wikipedia) <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Eckart, C., &amp; Young, G. (1936). <em>The approximation of one matrix by another of lower rank</em>. Psychometrika, 1(3), 211-218.</li>
-<li>Koren, Y., Bell, R., &amp; Volinsky, C. (2009). <em>Matrix Factorization Techniques for Recommender Systems</em>. IEEE Computer.</li>
-<li>Hu, E. J., et al. (2021). <em>LoRA: Low-Rank Adaptation of Large Language Models</em>. arXiv:2106.09685.</li>
-<li>Aghajanyan, A., Zettlemoyer, L., &amp; Gupta, S. (2020). <em>Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em>. arXiv:2012.13255.</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#定义">定义</a></li>
-    <li><a href="#frobenius-范数">Frobenius 范数</a></li>
-    <li><a href="#求解满列秩情形">求解（满列秩情形）</a></li>
-    <li><a href="#penrose-四条件统一定义">Penrose 四条件（统一定义）</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#步骤">步骤</a></li>
-    <li><a href="#几何图景投影到列空间">几何图景：投影到列空间</a></li>
-    <li><a href="#代码">代码</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#定理eckart-young-1936">定理（Eckart-Young, 1936）</a></li>
-    <li><a href="#为什么截断尾巴有效图像压缩演示">为什么&quot;截断尾巴&quot;有效？图像压缩演示</a></li>
-    <li><a href="#应用pca--中心化数据的-svd">应用：PCA = 中心化数据的 SVD</a></li>
-    <li><a href="#应用推荐系统的矩阵分解">应用：推荐系统的矩阵分解</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#小奇异值如何放大误差">小奇异值如何放大误差</a></li>
-    <li><a href="#解法-1截断-svd硬阈值">解法 1：截断 SVD（硬阈值）</a></li>
-    <li><a href="#解法-2tikhonov-正则化软阈值岭回归">解法 2��Tikhonov 正则化（软阈值，岭回归）</a></li>
-    <li><a href="#选谁">选谁？</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#lora-的核心假设">LoRA 的核心假设</a></li>
-    <li><a href="#为什么这么省还能-work">为什么这么省还能 work？</a></li>
-    <li><a href="#联系">联系</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5200</strong></div>
-      <div class="row"><span>Published</span><strong>Jul 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+\end{aligned}$$<p>第 (i)(ii) 条说$A$ 与$A^{+}$ 互为"伪逆"；第 (iii)(iv) 条要求$AA^{+}$ 与$A^{+}A$ 都是<strong>对称投影矩阵</strong>（这正是后面"伪逆 = 投影"几何图景的根源）。</p><h1 id=通过-svd-计算伪逆>通过 SVD 计算伪逆</h1><p>最小二乘公式$(A^{\!\top}A)^{-1}A^{\!\top}$ 在$A$ 列空间不满秩时会爆炸，而且数值上对小奇异值非常敏感。<strong>SVD 给出一个统一、稳定的算法</strong>。</p><h2 id=步骤>步骤</h2><p>对任意$A \in \mathbb{R}^{m \times n}$，SVD 给出</p>$$A \;=\; U \Sigma V^{\!\top}, \qquad
+\Sigma = \mathrm{diag}(\sigma_1, \sigma_2, \ldots, \sigma_r, 0, \ldots, 0),$$<p>其中$U \in \mathbb{R}^{m \times m}$、$V \in \mathbb{R}^{n \times n}$ 都是正交矩阵，$r = \mathrm{rank}(A)$，$\sigma_1 \ge \sigma_2 \ge \cdots \ge \sigma_r > 0$。 伪逆是</p>$$\boxed{\;A^{+} \;=\; V \Sigma^{+} U^{\!\top}, \qquad
+\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i & \sigma_i > 0 \\ 0 & \sigma_i = 0\end{cases}\;}$$<p>逐条验证 Penrose 四条件都自动成立——这是为什么 SVD 是<strong>最稳健、教科书级</strong>的伪逆算法。</p><h2 id=几何图景投影到列空间>几何图景：投影到列空间</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig2_pseudoinverse_svd.png alt="伪逆通过 SVD：最小二乘 = 正交投影" loading=lazy decoding=async></figure></p><p>左图：超定回归$y \approx ax + b$，伪逆解$\hat\beta = A^{+}b$ 给出的最小二乘直线。 右图：几何上$AA^{+}b$ 是$b$ <strong>正交投影到列空间</strong>$\mathrm{col}(A)$ 的结果，残差$b - A\hat\beta$ 与列空间垂直——这是最小二乘的<strong>正规方程</strong>$A^{\!\top}(A\hat\beta - b) = 0$ 的几何含义。</p><h2 id=代码>代码</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>A</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mf>1.0</span><span class=p>,</span> <span class=mf>2.0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>              <span class=p>[</span><span class=mf>3.0</span><span class=p>,</span> <span class=mf>4.0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>              <span class=p>[</span><span class=mf>5.0</span><span class=p>,</span> <span class=mf>6.0</span><span class=p>]])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 方法 1：教科书的 SVD 方法</span>
+</span></span><span class=line><span class=cl><span class=n>U</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>Vt</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>svd</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>full_matrices</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>S_pinv</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>diag</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=n>s</span> <span class=o>&gt;</span> <span class=mf>1e-12</span><span class=p>,</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=n>s</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>A_pinv</span> <span class=o>=</span> <span class=n>Vt</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>S_pinv</span> <span class=o>@</span> <span class=n>U</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 方法 2：直接调用（推荐，内部就是 SVD + 阈值截断）</span>
+</span></span><span class=line><span class=cl><span class=n>A_pinv_np</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>pinv</span><span class=p>(</span><span class=n>A</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>allclose</span><span class=p>(</span><span class=n>A_pinv</span><span class=p>,</span> <span class=n>A_pinv_np</span><span class=p>))</span>   <span class=c1># True</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>A</span> <span class=o>@</span> <span class=n>A_pinv</span> <span class=o>@</span> <span class=n>A</span><span class=p>)</span>                   <span class=c1># 应当复原 A（Penrose 条件 i）</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>np.linalg.pinv</code> 内部已经做了<strong>奇异值阈值截断</strong>（默认$\mathrm{rcond} \approx \mathrm{eps} \cdot \max(m,n)$），把数值上等价于零的奇异值的倒数置零——下面会解释为什么这件事至关重要。</p><h1 id=低秩近似eckart-young-定理>低秩近似：Eckart-Young 定理</h1><p>伪逆只是 SVD 的一个用例。<strong>SVD 真正的杀手锏是低秩近似</strong>：用一个秩为$k$ 的矩阵尽可能逼近原矩阵$A$，最优解恰好是<strong>截断 SVD</strong>。</p><h2 id=定理eckart-young-1936>定理（Eckart-Young, 1936）</h2><p>设$A = U\Sigma V^{\!\top}$，记<strong>截断 SVD</strong></p>$$A_k \;=\; \sum_{i=1}^{k} \sigma_i\, u_i v_i^{\!\top} \;=\; U_{:,1:k} \,\Sigma_{1:k,1:k}\, V_{:,1:k}^{\!\top}.$$<p>则对任意$\mathrm{rank}(B) \le k$ 的矩阵$B$ 都有</p>$$\|A - A_k\|_F \;\le\; \|A - B\|_F, \qquad
+\|A - A_k\|_F \;=\; \sqrt{\sum_{i=k+1}^{r} \sigma_i^2}.$$<p>谱范数下也成立：$\|A - A_k\|_2 = \sigma_{k+1}$。 也就是说，<strong>截断 SVD 是唯一的（同构意义下）最优低秩近似</strong>——这是机器学习里几乎所有降维、压缩、矩阵分解方法的理论基石。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig3_eckart_young.png alt="Eckart-Young 定理：截断 SVD 是最优的低秩近似" loading=lazy decoding=async></figure></p><p>左图：奇异值快速衰减，黄色阴影部分（$\sigma_{k+1}, \sigma_{k+2}, \ldots$）就是被截掉的"尾巴"，它的$\ell_2$ 范数即近似误差。 右图：把截断 SVD 与 8 次"随机秩-$k$ 投影"对比——任何随机的低秩压缩都被截断 SVD <strong>碾压</strong>，而且差距不止一个数量级。</p><h2 id=为什么截断尾巴有效图像压缩演示>为什么"截断尾巴"有效？图像压缩演示</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig1_lowrank_compression.png alt=低秩近似作为图像压缩 loading=lazy decoding=async></figure></p><p>把一张$96 \times 96$ 的图（共 9 216 个数）做 SVD，再分别保留$k = 2, 8, 32$ 个奇异值重建：</p><table><thead><tr><th>秩$k$</th><th>存储参数</th><th>占比</th><th>相对 Frobenius 误差</th></tr></thead><tbody><tr><td>2</td><td>386</td><td>4%</td><td>16.3%</td></tr><tr><td>8</td><td>1 544</td><td>17%</td><td>4.0%</td></tr><tr><td>32</td><td>6 176</td><td>67%</td><td>1.7%</td></tr></tbody></table><p>下半部分是<strong>奇异值衰减谱</strong>和<strong>累计能量曲线</strong>：少量奇异值就承载了绝大部分"信号"——这就是为什么 SVD 既能压缩图片，又能去噪、又能做特征提取。<strong>奇异值衰减越快，矩阵就越"低秩友好"</strong>。</p><h2 id=应用pca--中心化数据的-svd>应用：PCA = 中心化数据的 SVD</h2><p>PCA 对中心化数据矩阵$X_c$ 做 SVD：$X_c = U\Sigma V^{\!\top}$，列向量$v_i$ 就是主成分方向，$\sigma_i^2 / (n-1)$ 是该方向的方差。 把数据投影到前$k$ 个主成分上，等价于用秩-$k$ 截断 SVD 近似$X_c$——所以 PCA 不是另一个算法，<strong>它就是 Eckart-Young 在中心化数据上的一个特例</strong>。</p><h2 id=应用推荐系统的矩阵分解>应用：推荐系统的矩阵分解</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig4_recommender_mf.png alt=推荐系统：稀疏评分矩阵的低秩分解 loading=lazy decoding=async></figure></p><p>Netflix Prize 的核心思想：用户-物品评分矩阵$R$ <strong>稀疏但低秩</strong>——少量"潜在因子"（题材偏好、风格、价位等）解释绝大部分评分。 记$R \approx UV^{\!\top}$，$U \in \mathbb{R}^{n_u \times r}$ 是用户因子，$V \in \mathbb{R}^{n_i \times r}$ 是物品因子，$r$ 一般取 10-200。 上图演示在仅 34% 评分可见的条件下，秩-3 的交替最小二乘 (ALS) 能把<strong>留出集 RMSE 压到 0.24</strong>（满分 5 分量纲），其本质就是在带掩码的低秩近似问题上做迭代最小二乘。</p><blockquote><p>SVD 不能直接处理缺失值，所以工业界用的不是直接 SVD，而是<strong>带掩码的非凸版本</strong>：<code>min_{U,V} sum_{(i,j) observed} (R_{ij} - u_i^T v_j)^2</code>。 用 ALS 或 SGD 求解，并加上$\ell_2$ 正则避免过拟合（参见下一节的 Tikhonov）。</p></blockquote><h1 id=数值稳定性与正则化>数值稳定性与正则化</h1><h2 id=小奇异值如何放大误差>小奇异值如何放大误差</h2><p>伪逆$A^{+} = V \Sigma^{+} U^{\!\top}$ 里的$\Sigma^{+}_{ii} = 1/\sigma_i$。 如果某个$\sigma_i$ 接近 0，$1/\sigma_i$ 就接近无穷大，<strong>任何在$u_i$ 方向上的微小噪声都会被放大成天文数字</strong>。 衡量这一现象的标准量是<strong>条件数</strong></p>$$\kappa(A) \;=\; \frac{\sigma_{\max}}{\sigma_{\min}}.$$<p>当$\kappa(A)$ 很大（比如$10^{10}$），求解$Ax = b$ 的相对误差大约会被放大$\kappa(A)$ 倍——也就是说有效精度直接掉 10 位。</p><h2 id=解法-1截断-svd硬阈值>解法 1：截断 SVD（硬阈值）</h2><p>最简单的策略：<strong>把数值上太小的奇异值直接丢掉</strong>。</p>$$\Sigma^{+}_{ii} = \begin{cases} 1/\sigma_i, & \sigma_i > \tau \\ 0, & \sigma_i \le \tau \end{cases}$$<p>阈值$\tau$ 一般取$\tau = \mathrm{rcond} \cdot \sigma_1$，<code>np.linalg.pinv</code> 的 <code>rcond</code> 参数就是这个。 截断 SVD 等价于把"在小奇异值方向上的信号"<strong>当成噪声</strong>——只在你确实相信小方向上没有真实信号时才能用。</p><h2 id=解法-2tikhonov-正则化软阈值岭回归>解法 2��Tikhonov 正则化（软阈值，岭回归）</h2><p>把目标函数改成</p>$$\min_{x} \;\|Ax - b\|_2^2 \;+\; \lambda \|x\|_2^2,$$<p>正规方程变成</p>$$x_\lambda \;=\; (A^{\!\top}A + \lambda I)^{-1} A^{\!\top} b \;=\; V \,\mathrm{diag}\!\left(\tfrac{\sigma_i}{\sigma_i^2 + \lambda}\right)\, U^{\!\top}\, b.$$<p>对比硬截断$1/\sigma_i$，Tikhonov 用的是<strong>软滤波器</strong>$\sigma_i / (\sigma_i^2 + \lambda)$：</p><ul><li>大奇异值（$\sigma_i^2 \gg \lambda$）：$\sigma_i/(\sigma_i^2+\lambda) \approx 1/\sigma_i$，几乎不变；</li><li>小奇异值（$\sigma_i^2 \ll \lambda$）：$\sigma_i/(\sigma_i^2+\lambda) \approx \sigma_i/\lambda \to 0$，被压缩。</li></ul><p>这就是<strong>机器学习里的岭回归（Ridge）</strong>——它的本质就是<strong>给伪逆加了一个频域低通滤波器</strong>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>ridge_pinv</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>lam</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Tikhonov 正则化伪逆，等价 (A^T A + lam I)^{-1} A^T。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>U</span><span class=p>,</span> <span class=n>s</span><span class=p>,</span> <span class=n>Vt</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>svd</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>full_matrices</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>s_reg</span> <span class=o>=</span> <span class=n>s</span> <span class=o>/</span> <span class=p>(</span><span class=n>s</span> <span class=o>*</span> <span class=n>s</span> <span class=o>+</span> <span class=n>lam</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>Vt</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>np</span><span class=o>.</span><span class=n>diag</span><span class=p>(</span><span class=n>s_reg</span><span class=p>)</span> <span class=o>@</span> <span class=n>U</span><span class=o>.</span><span class=n>T</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=选谁>选谁？</h2><table><thead><tr><th>场景</th><th>选</th></tr></thead><tbody><tr><td>小奇异值是<strong>纯数值噪声</strong></td><td>截断 SVD（更激进）</td></tr><tr><td>小奇异值携带<strong>部分真实信号</strong>，不想完全丢</td><td>Tikhonov（更平滑）</td></tr><tr><td>高维稀疏特征，要做<strong>特征选择</strong></td><td>$\ell_1$ 正则（Lasso，不是这里）</td></tr><tr><td><strong>不确定</strong>，需要选超参</td><td>Tikhonov + 交叉验证</td></tr></tbody></table><h1 id=现代应用从-eckart-young-到-lora>现代应用：从 Eckart-Young 到 LoRA</h1><p>低秩近似最让人意外的现代成功，是<strong>大模型的参数高效微调</strong>。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E7%9F%A9%E9%98%B5%E4%BD%8E%E7%A7%A9%E8%BF%91%E4%BC%BC-%E4%BC%AA%E9%80%86/fig5_lora_connection.png alt="LoRA：低秩近似让微调便宜 100 倍" loading=lazy decoding=async></figure></p><h2 id=lora-的核心假设>LoRA 的核心假设</h2><p>预训练大模型的某个权重$W \in \mathbb{R}^{d \times k}$（典型$d = k = 4096$，$1.7 \times 10^7$ 参数）。 全量微调要更新整个$W$；<strong>LoRA 假设</strong>任务相关的权重变化$\Delta W$ <strong>本身就是低秩的</strong>：</p>$$W' \;=\; W + \Delta W, \qquad \Delta W \;=\; B A, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k).$$<p>参数量从$dk$ 直降到$r(d + k)$。 上图中间面板：$r=8$ 时仅训练 0.07 M 参数，比全量微调省 <strong>256 倍</strong>。</p><h2 id=为什么这么省还能-work>为什么这么省还能 work？</h2><p>右侧面板给出经验解释：在大量任务上测出来的$\Delta W$ <strong>奇异值急剧衰减</strong>，有效秩往往只有几到几十——这是 Eckart-Young 在告诉你：<strong>&ldquo;低秩近似"对$\Delta W$ 已经足够。</strong></p><blockquote><p>这一观察并非 LoRA 独创：Aghajanyan 等人 (2020) 用"内蕴维度 (intrinsic dimensionality)&ldquo;实验发现，<strong>只更新几百维就能达到全量微调 90% 的效果</strong>。LoRA 把这个直觉做成了一个简单、可叠加、可合并的工程方案，也是这条线的标志性工作。</p></blockquote><h2 id=联系>联系</h2><table><thead><tr><th>概念</th><th>形式</th><th>公共骨架</th></tr></thead><tbody><tr><td>截断 SVD</td><td>$A_k = \sum_{i=1}^k \sigma_i u_i v_i^{\!\top}$</td><td>用低秩矩阵逼近高秩矩阵</td></tr><tr><td>PCA</td><td>$X_c \approx U_k \Sigma_k V_k^{\!\top}$</td><td>同上，作用在中心化数据上</td></tr><tr><td>推荐系统 MF</td><td>$R \approx U V^{\!\top}$</td><td>带掩码的低秩近似</td></tr><tr><td>LoRA</td><td>$\Delta W = B A$</td><td>对<strong>参数更新</strong>做低秩近似</td></tr></tbody></table><p>它们的母题都是<strong>Eckart-Young</strong>——&ldquo;在重要方向上保留信号，在剩下的方向上让步&rdquo;。</p><h1 id=实战清单>实战清单</h1><ul><li>求$Ax = b$ 时，<strong>先看 condition number</strong>（<code>np.linalg.cond(A)</code>）。$\kappa > 10^{12}$ 就别再相信原始解了。</li><li>想要稳健的最小二乘，永远走 SVD 路线（<code>np.linalg.lstsq</code> 或 <code>np.linalg.pinv</code>），别手写$(A^{\!\top}A)^{-1}A^{\!\top}$。</li><li>做 PCA 时，<strong>对数据做中心化</strong>，再做 SVD；切忌直接对协方差矩阵做特征分解（数值精度差且贵）。</li><li>做矩阵分解（推荐系统），秩$r$ 用<strong>留出集 RMSE</strong> 选，加$\ell_2$ 正则。</li><li>做 LoRA，从$r=8$ 试起，alpha 一般取$2r$。再低就要看任务复杂度。</li></ul><h1 id=结论>结论</h1><p>伪逆把"逆矩阵"的概念扩展到任意矩阵，背后是一个统一的优化定义——<strong>最小二乘解 + 最小范数选择</strong>。<strong>SVD 同时给出伪逆的稳健算法和最优低秩近似的解析解（Eckart-Young）</strong>。 真实数据的"病态"几乎总是来自小奇异值，而对策只有两条路：截断（硬阈值）或 Tikhonov 正则化（软滤波）。 这条线串起来：经典最小二乘 -> 岭回归 -> PCA -> 推荐系统 MF -> 现代 LoRA——它们看起来在做不同的事，本质上都是在用低秩结构对抗高维噪声。理解 SVD，就理解了这一整条线。</p><h1 id=参考文献>参考文献</h1><ul><li><a href=https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse target=_blank rel="noopener noreferrer">Moore-Penrose 伪逆 (Wikipedia) <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li><a href=https://en.wikipedia.org/wiki/Singular_value_decomposition target=_blank rel="noopener noreferrer">Singular Value Decomposition (Wikipedia) <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li><a href=https://en.wikipedia.org/wiki/Tikhonov_regularization target=_blank rel="noopener noreferrer">Tikhonov 正则化 (Wikipedia) <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Eckart, C., & Young, G. (1936). <em>The approximation of one matrix by another of lower rank</em>. Psychometrika, 1(3), 211-218.</li><li>Koren, Y., Bell, R., & Volinsky, C. (2009). <em>Matrix Factorization Techniques for Recommender Systems</em>. IEEE Computer.</li><li>Hu, E. J., et al. (2021). <em>LoRA: Low-Rank Adaptation of Large Language Models</em>. arXiv:2106.09685.</li><li>Aghajanyan, A., Zettlemoyer, L., & Gupta, S. (2020). <em>Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em>. arXiv:2012.13255.</li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li></ul><ul><li><a href=#定义>定义</a></li><li><a href=#frobenius-范数>Frobenius 范数</a></li><li><a href=#求解满列秩情形>求解（满列秩情形）</a></li><li><a href=#penrose-四条件统一定义>Penrose 四条件（统一定义）</a></li></ul><ul><li><a href=#步骤>步骤</a></li><li><a href=#几何图景投影到列空间>几何图景：投影到列空间</a></li><li><a href=#代码>代码</a></li></ul><ul><li><a href=#定理eckart-young-1936>定理（Eckart-Young, 1936）</a></li><li><a href=#为什么截断尾巴有效图像压缩演示>为什么"截断尾巴"有效？图像压缩演示</a></li><li><a href=#应用pca--中心化数据的-svd>应用：PCA = 中心化数据的 SVD</a></li><li><a href=#应用推荐系统的矩阵分解>应用：推荐系统的矩阵分解</a></li></ul><ul><li><a href=#小奇异值如何放大误差>小奇异值如何放大误差</a></li><li><a href=#解法-1截断-svd硬阈值>解法 1：截断 SVD（硬阈值）</a></li><li><a href=#解法-2tikhonov-正则化软阈值岭回归>解法 2��Tikhonov 正则化（软阈值，岭回归）</a></li><li><a href=#选谁>选谁？</a></li></ul><ul><li><a href=#lora-的核心假设>LoRA 的核心假设</a></li><li><a href=#为什么这么省还能-work>为什么这么省还能 work？</a></li><li><a href=#联系>联系</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5103</strong></div><div class=row><span>Published</span><strong>Jul 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

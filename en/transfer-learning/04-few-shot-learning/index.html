@@ -1,936 +1,363 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/transfer-learning/04-few-shot-learning/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Transfer Learning (4): Few-Shot Learning · Chen Kai Blog</title>
-<meta name="description" content="Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/04-few-shot-learning/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/04-few-shot-learning/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/04-few-shot-learning/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/transfer-learning/04-few-shot-learning/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Transfer Learning (4): Few-Shot Learning">
-<meta property="og:description" content="Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation.">
-<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/04-few-shot-learning/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
-         · Chapter 4
-      </div>
-      <h1>Transfer Learning (4): Few-Shot Learning</h1>
-      <p class="deck">Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-05-19">May 19, 2025</time> · 15 min read · 3200 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a><a href="/en/tags/few-shot-learning/" class="tag">#Few-Shot Learning</a><a href="/en/tags/meta-learning/" class="tag">#Meta-Learning</a><a href="/en/tags/maml/" class="tag">#MAML</a><a href="/en/tags/prototypical-networks/" class="tag">#Prototypical Networks</a><a href="/en/tags/metric-learning/" class="tag">#Metric Learning</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/transfer-learning/04-few-shot-learning/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Show a child one photograph of a pangolin and they will spot pangolins for life. Show a deep learning model one photograph and it will give you a uniformly random guess. Few-shot learning is the field that closes that gap: building classifiers that work with only one to ten labeled examples per class.</p>
-<p>The trick is not to memorize individual classes harder. It is to learn <em>how to learn</em> from very few examples, then carry that ability over to brand-new classes at test time. This article covers the two families that dominate the field today: <strong>metric learning</strong>, which learns a good distance function, and <strong>meta-learning</strong>, which learns a good initialization.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>The N-way K-shot evaluation protocol and why standard training fails on it</li>
-<li>Metric learning: Siamese, Prototypical, Matching, and Relation networks</li>
-<li>Meta-learning: MAML and its first-order cousins (FOMAML, Reptile)</li>
-<li>Episodic training: matching training-time difficulty to test-time difficulty</li>
-<li>A clean, end-to-end Prototypical Network implementation in PyTorch</li>
-</ul>
-<p><strong>Prerequisites:</strong> Parts 1-2 of this series; comfort with PyTorch and basic optimization.</p>
-<hr>
-<h2 id="the-few-shot-challenge">The Few-Shot Challenge</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig1_nway_kshot.png" alt="5-way 1-shot episode: support set on the left, query set on the right" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="problem-setup-n-way-k-shot">Problem Setup: N-way K-shot</h3>
-<p>The community uses a single, shared evaluation protocol so that papers are comparable:</p>
-<ul>
-<li><strong>N-way:</strong> the model must classify among $N$ classes.</li>
-<li><strong>K-shot:</strong> for each class, only $K$ labeled examples are available.</li>
-</ul>
-<p>A &ldquo;5-way 1-shot&rdquo; task is therefore: here is one labeled image from each of five classes you have never seen before; now classify a batch of new query images.</p>
-<p>Each evaluation episode consists of:</p>
-<ul>
-<li>a <strong>support set</strong> $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{NK}$ &ndash; the $N \times K$ labeled examples,</li>
-<li>a <strong>query set</strong> $\mathcal{Q} = \{(x_j, y_j)\}_{j=1}^{NQ}$ &ndash; the unlabeled images to classify (with hidden labels used only to measure accuracy).</li>
-</ul>
-<p>Reported numbers are averages over hundreds or thousands of episodes drawn from a held-out <strong>novel-class</strong> set, with 95% confidence intervals because the per-episode variance is large.</p>
-<h3 id="why-standard-training-fails">Why Standard Training Fails</h3>
-<p>Three forces conspire against a vanilla classifier:</p>
-<ul>
-<li><strong>Data scarcity.</strong> With $K = 1$ you literally cannot estimate a within-class variance. With $K = 5$ you can, but barely.</li>
-<li><strong>Overfitting.</strong> A high-capacity network will memorize the support examples instead of learning a class-discriminative rule.</li>
-<li><strong>Inter-class similarity.</strong> Novel classes drawn from the same domain (e.g. two breeds of dog) often differ only in subtle features that a randomly initialized classifier has no reason to attend to.</li>
-</ul>
-<p>Empirical risk minimization with weight decay is not enough: regularization stops parameters from blowing up, but it does not inject the inductive bias required to generalize from a single image.</p>
-<h3 id="the-core-insight">The Core Insight</h3>
-<p>To learn from few samples you need <strong>prior knowledge.</strong> Few-shot learning gets that prior by training on a large set of <em>base classes</em> (with many examples each), then evaluating on disjoint <em>novel classes</em> (with few). The two main routes are:</p>
-<ol>
-<li><strong>Metric learning</strong> &ndash; train a backbone whose embedding space already separates classes, so a fresh class can be characterized by the location of its few support points. Classify queries by their distance in this space.</li>
-<li><strong>Meta-learning</strong> &ndash; train across many simulated few-shot tasks so the network <em>learns to be adapted</em> by a few gradient steps. Treat &ldquo;fast adaptation&rdquo; itself as the thing to optimize.</li>
-</ol>
-<p>Both share the same data split (base vs. novel) but invest the prior knowledge differently: metric learning bakes it into the embedding; meta-learning bakes it into the optimization initialization.</p>
-<hr>
-<h2 id="metric-learning-classification-by-distance">Metric Learning: Classification by Distance</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig2_prototypical.png" alt="Prototypical Network embedding space with class clusters, prototypes, and decision regions" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The metric-learning recipe is one sentence long: learn an embedding $f_\theta$ such that same-class samples cluster together and different-class samples lie far apart, then classify a query by its proximity to the support points.</p>
-<h3 id="siamese-networks">Siamese Networks</h3>
-<p>The earliest member of the family. Two weight-shared encoders $f_\theta$ embed a pair of inputs and the distance is</p>
-$$d(x_1, x_2) = \|f_\theta(x_1) - f_\theta(x_2)\|_2.$$<p>Training uses the <strong>contrastive loss</strong></p>
-$$\mathcal{L} = y \cdot d^2 + (1 - y) \cdot \max(0, m - d)^2,$$<p>with $y = 1$ for same-class pairs (pull together) and $y = 0$ for different-class pairs (push apart until the distance exceeds margin $m$). At test time, classify a query by the label of its nearest support sample.</p>
-<h3 id="prototypical-networks">Prototypical Networks</h3>
-<p>Prototypical networks improve on the pairwise picture by collapsing each support class into a single point.</p>
-<h4 id="computing-prototypes">Computing prototypes</h4>
-<p>For class $c$ with support examples $\{x_1^c, \ldots, x_K^c\}$, the prototype is the mean embedding:</p>
-$$\mathbf{c}_c = \frac{1}{K} \sum_{k=1}^{K} f_\theta(x_k^c).$$<p>Geometrically it is the centroid of the class in embedding space.</p>
-<h4 id="classification">Classification</h4>
-<p>Score each class by the negative squared Euclidean distance from the query embedding to the prototype, then take a softmax:</p>
-$$P(y = c \mid x_q) = \frac{\exp\bigl(-d(f_\theta(x_q), \mathbf{c}_c)\bigr)}{\sum_{c'} \exp\bigl(-d(f_\theta(x_q), \mathbf{c}_{c'})\bigr)}, \qquad d(u, v) = \|u - v\|_2^2.$$<p>Train end-to-end with cross-entropy on the query predictions of each episode.</p>
-<h4 id="why-prototypes-are-principled">Why prototypes are principled</h4>
-<p>If we model class-conditional embeddings as Gaussians with shared isotropic covariance, $P(x \mid y = c) = \mathcal{N}(\mu_c, \sigma^2 I)$, then the maximum-likelihood class is exactly the nearest centroid. Prototypical networks are therefore the deep-learning incarnation of the Bayes-optimal classifier under that (admittedly strong) assumption &ndash; which is why it tends to work so well in practice.</p>
-<p>A second, cleaner, observation: under squared-Euclidean distance the decision boundary between any two classes is a hyperplane in embedding space. So Prototypical networks are equivalent to a <em>linear</em> classifier in the learned space, but with the linear weights tied to the prototype geometry.</p>
-<h3 id="matching-networks">Matching Networks</h3>
-<p>Matching networks replace the hard nearest-prototype rule with a soft attention over the entire support set.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig3_matching.png" alt="Matching Network attention: cosine similarity becomes a softmax weight over support samples" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The prediction is a label-weighted sum:</p>
-$$P(y \mid x_q, \mathcal{S}) = \sum_{i=1}^{NK} a(x_q, x_i) \cdot y_i, \qquad a(x_q, x_i) = \mathrm{softmax}_i\bigl(\cos(f(x_q), g(x_i))\bigr).$$<p>Here $y_i$ is a one-hot label vector, so the prediction is a convex combination of one-hots weighted by attention.</p>
-<p>The other contribution of the paper is <strong>full context embeddings</strong>: a bidirectional LSTM is run over the support set so each support embedding is aware of every other support sample. The intuition is that what counts as a discriminative feature depends on the other classes you are trying to separate from &ndash; and the LSTM lets the network express that.</p>
-<h3 id="relation-networks">Relation Networks</h3>
-<p>Relation networks take the next step: instead of choosing a fixed metric (Euclidean, cosine), they <em>learn</em> one. A small network $g_\phi$ takes the concatenated embeddings and outputs a scalar similarity:</p>
-$$r_{q, c} = g_\phi\bigl(\mathrm{concat}(f_\theta(x_q),\, \mathbf{c}_c)\bigr) \in [0, 1].$$<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig5_relation.png" alt="Relation Network: shared embedding &#43; learned relation module" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The training target is $r_{q, c} = \mathbb{1}\{y_q = c\}$ with mean-squared-error loss; both modules are trained jointly. Why bother? Fixed metrics implicitly assume the embedding space is isotropic &ndash; every dimension counts equally. A learned metric lets the network downweight dimensions that turn out to be uninformative for the task at hand.</p>
-<hr>
-<h2 id="meta-learning-learning-to-learn">Meta-Learning: Learning to Learn</h2>
-<p>Where metric learning bakes the prior into the embedding, meta-learning bakes it into the optimization process itself. The model is trained across many tasks so that <em>adapting</em> it to a new task takes only a handful of gradient steps.</p>
-<h3 id="maml-model-agnostic-meta-learning">MAML: Model-Agnostic Meta-Learning</h3>
-<p>MAML&rsquo;s idea is simple and surprisingly effective: search for an initialization $\theta$ such that one or two gradient steps on any new task&rsquo;s support set already produce a good model.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig4_maml.png" alt="MAML: a single meta-initialization adapts via inner-loop steps to many tasks" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h4 id="algorithm">Algorithm</h4>
-<p>For each sampled task $\mathcal{T}_i$ (with its own support and query sets):</p>
-<ol>
-<li><strong>Inner loop (per-task adaptation).</strong> Take one (or a few) gradient steps on the support loss:
-$$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).$$</li>
-<li><strong>Outer loop (meta-update).</strong> Evaluate the <em>adapted</em> parameters on the query set and update the initialization:
-$$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$</li>
-</ol>
-<p>The outer-loop gradient differentiates <em>through</em> the inner-loop update, which involves second derivatives of the support loss with respect to $\theta$ &ndash; a Hessian-vector product.</p>
-<h4 id="first-order-approximation-fomaml">First-order approximation (FOMAML)</h4>
-<p>The exact second-order MAML update costs $O(d^2)$ memory in the parameter dimension $d$ and is fiddly to implement. FOMAML drops the second-order term and approximates</p>
-$$\nabla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),$$<p>which is just the gradient at the adapted point, evaluated as if $\theta_i'$ did not depend on $\theta$. Cost drops to $O(d)$, and reported accuracies barely change.</p>
-<h4 id="geometric-intuition">Geometric intuition</h4>
-<p>MAML pushes $\theta$ toward a region of the loss landscape that is <em>flat with respect to fast adaptation</em>: from this point a few steps in any task-specific direction reach a low loss. Think of $\theta$ as a universal launching pad rather than a universally-good model.</p>
-<h3 id="reptile-even-simpler">Reptile: Even Simpler</h3>
-<p>Reptile drops the inner-loop differentiation entirely. Sample a task, run $k$ ordinary SGD steps on it to get $\tilde{\theta}$, then nudge the meta-parameters toward the result:</p>
-$$\theta \leftarrow \theta + \epsilon \,(\tilde{\theta} - \theta).$$<p>That&rsquo;s the whole algorithm. Despite the simplicity it works almost as well as MAML, because moving the meta-parameters toward task-specific solutions across many tasks ends up locating $\theta$ near a shared sweet spot.</p>
-<table>
-  <thead>
-      <tr>
-          <th>Method</th>
-          <th>Gradient order</th>
-          <th>Per-step cost</th>
-          <th>Implementation</th>
-          <th>miniImageNet (5w-5s)*</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>MAML</td>
-          <td>Second-order</td>
-          <td>High (Hessian)</td>
-          <td>Hard</td>
-          <td>~63%</td>
-      </tr>
-      <tr>
-          <td>FOMAML</td>
-          <td>First-order</td>
-          <td>Medium</td>
-          <td>Easy</td>
-          <td>~62%</td>
-      </tr>
-      <tr>
-          <td>Reptile</td>
-          <td>First-order</td>
-          <td>Low</td>
-          <td>Trivial</td>
-          <td>~66%</td>
-      </tr>
-  </tbody>
-</table>
-<p>*Reported in the original papers; numbers vary across implementations.</p>
-<hr>
-<h2 id="episodic-training">Episodic Training</h2>
-<p>Standard supervised training shows the network the entire base-class dataset and asks it to classify. Episodic training reframes the entire training loop to look like the test loop.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig7_episodic.png" alt="Episodic training: each step is a fresh N-way K-shot task sampled from the base classes" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="how-an-episode-is-built">How an episode is built</h3>
-<p>Each iteration:</p>
-<ol>
-<li>Sample $N$ classes from the base-class pool.</li>
-<li>Sample $K$ examples per class for the <strong>support set</strong>.</li>
-<li>Sample $Q$ additional examples per class for the <strong>query set</strong>.</li>
-<li>Train the model to classify the queries given only that support set.</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">episode</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">episodes_per_epoch</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">classes</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">base_classes</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">support</span> <span class="o">=</span> <span class="n">sample_from_classes</span><span class="p">(</span><span class="n">classes</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">query</span>   <span class="o">=</span> <span class="n">sample_from_classes</span><span class="p">(</span><span class="n">classes</span><span class="p">,</span> <span class="n">Q</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">prototypes</span> <span class="o">=</span> <span class="n">compute_prototypes</span><span class="p">(</span><span class="n">support</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits</span>     <span class="o">=</span> <span class="o">-</span><span class="n">distance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">prototypes</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span>       <span class="o">=</span> <span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">query_labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="why-this-matters">Why this matters</h3>
-<p>The model never gets to see the full base-class dataset at once. Every gradient update simulates a few-shot task, so the inductive bias the network develops is precisely the one needed at test time. This is curriculum learning where the curriculum <em>is</em> the test-time conditions.</p>
-<p>A good sanity check: turn off episodic training and just train a flat $|C_{\text{base}}|$-way classifier, then drop a linear head on the frozen features. With a strong backbone (deep ResNet, large augmentation) this &ldquo;Baseline++&rdquo; recipe is competitive with metric- and meta-learning approaches &ndash; a result Chen et al. (ICLR 2019) used to argue that episodic training matters less than people thought, and that backbone capacity matters more.</p>
-<hr>
-<h2 id="how-well-does-any-of-this-work">How Well Does Any of This Work?</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig6_mini_imagenet.png" alt="miniImageNet 5-way benchmark accuracies across representative methods" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The numbers above are from the original papers (with later work routinely surpassing them by using larger backbones and pre-training tricks). Two things to take away:</p>
-<ul>
-<li><strong>The 1-shot vs. 5-shot gap is huge.</strong> Going from one example to five typically adds 10-20 percentage points &ndash; a reminder that even a tiny amount of data dominates clever architecture choices.</li>
-<li><strong>Methods cluster.</strong> Once the backbone is held fixed, Prototypical, Matching, Relation, and MAML-family numbers land within a few points of each other. Pick by engineering taste (simplicity, compute budget, tooling) rather than chasing the last point of accuracy.</li>
-</ul>
-<hr>
-<h2 id="complete-implementation-prototypical-networks">Complete Implementation: Prototypical Networks</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">  1
-</span><span class="lnt">  2
-</span><span class="lnt">  3
-</span><span class="lnt">  4
-</span><span class="lnt">  5
-</span><span class="lnt">  6
-</span><span class="lnt">  7
-</span><span class="lnt">  8
-</span><span class="lnt">  9
-</span><span class="lnt"> 10
-</span><span class="lnt"> 11
-</span><span class="lnt"> 12
-</span><span class="lnt"> 13
-</span><span class="lnt"> 14
-</span><span class="lnt"> 15
-</span><span class="lnt"> 16
-</span><span class="lnt"> 17
-</span><span class="lnt"> 18
-</span><span class="lnt"> 19
-</span><span class="lnt"> 20
-</span><span class="lnt"> 21
-</span><span class="lnt"> 22
-</span><span class="lnt"> 23
-</span><span class="lnt"> 24
-</span><span class="lnt"> 25
-</span><span class="lnt"> 26
-</span><span class="lnt"> 27
-</span><span class="lnt"> 28
-</span><span class="lnt"> 29
-</span><span class="lnt"> 30
-</span><span class="lnt"> 31
-</span><span class="lnt"> 32
-</span><span class="lnt"> 33
-</span><span class="lnt"> 34
-</span><span class="lnt"> 35
-</span><span class="lnt"> 36
-</span><span class="lnt"> 37
-</span><span class="lnt"> 38
-</span><span class="lnt"> 39
-</span><span class="lnt"> 40
-</span><span class="lnt"> 41
-</span><span class="lnt"> 42
-</span><span class="lnt"> 43
-</span><span class="lnt"> 44
-</span><span class="lnt"> 45
-</span><span class="lnt"> 46
-</span><span class="lnt"> 47
-</span><span class="lnt"> 48
-</span><span class="lnt"> 49
-</span><span class="lnt"> 50
-</span><span class="lnt"> 51
-</span><span class="lnt"> 52
-</span><span class="lnt"> 53
-</span><span class="lnt"> 54
-</span><span class="lnt"> 55
-</span><span class="lnt"> 56
-</span><span class="lnt"> 57
-</span><span class="lnt"> 58
-</span><span class="lnt"> 59
-</span><span class="lnt"> 60
-</span><span class="lnt"> 61
-</span><span class="lnt"> 62
-</span><span class="lnt"> 63
-</span><span class="lnt"> 64
-</span><span class="lnt"> 65
-</span><span class="lnt"> 66
-</span><span class="lnt"> 67
-</span><span class="lnt"> 68
-</span><span class="lnt"> 69
-</span><span class="lnt"> 70
-</span><span class="lnt"> 71
-</span><span class="lnt"> 72
-</span><span class="lnt"> 73
-</span><span class="lnt"> 74
-</span><span class="lnt"> 75
-</span><span class="lnt"> 76
-</span><span class="lnt"> 77
-</span><span class="lnt"> 78
-</span><span class="lnt"> 79
-</span><span class="lnt"> 80
-</span><span class="lnt"> 81
-</span><span class="lnt"> 82
-</span><span class="lnt"> 83
-</span><span class="lnt"> 84
-</span><span class="lnt"> 85
-</span><span class="lnt"> 86
-</span><span class="lnt"> 87
-</span><span class="lnt"> 88
-</span><span class="lnt"> 89
-</span><span class="lnt"> 90
-</span><span class="lnt"> 91
-</span><span class="lnt"> 92
-</span><span class="lnt"> 93
-</span><span class="lnt"> 94
-</span><span class="lnt"> 95
-</span><span class="lnt"> 96
-</span><span class="lnt"> 97
-</span><span class="lnt"> 98
-</span><span class="lnt"> 99
-</span><span class="lnt">100
-</span><span class="lnt">101
-</span><span class="lnt">102
-</span><span class="lnt">103
-</span><span class="lnt">104
-</span><span class="lnt">105
-</span><span class="lnt">106
-</span><span class="lnt">107
-</span><span class="lnt">108
-</span><span class="lnt">109
-</span><span class="lnt">110
-</span><span class="lnt">111
-</span><span class="lnt">112
-</span><span class="lnt">113
-</span><span class="lnt">114
-</span><span class="lnt">115
-</span><span class="lnt">116
-</span><span class="lnt">117
-</span><span class="lnt">118
-</span><span class="lnt">119
-</span><span class="lnt">120
-</span><span class="lnt">121
-</span><span class="lnt">122
-</span><span class="lnt">123
-</span><span class="lnt">124
-</span><span class="lnt">125
-</span><span class="lnt">126
-</span><span class="lnt">127
-</span><span class="lnt">128
-</span><span class="lnt">129
-</span><span class="lnt">130
-</span><span class="lnt">131
-</span><span class="lnt">132
-</span><span class="lnt">133
-</span><span class="lnt">134
-</span><span class="lnt">135
-</span><span class="lnt">136
-</span><span class="lnt">137
-</span><span class="lnt">138
-</span><span class="lnt">139
-</span><span class="lnt">140
-</span><span class="lnt">141
-</span><span class="lnt">142
-</span><span class="lnt">143
-</span><span class="lnt">144
-</span><span class="lnt">145
-</span><span class="lnt">146
-</span><span class="lnt">147
-</span><span class="lnt">148
-</span><span class="lnt">149
-</span><span class="lnt">150
-</span><span class="lnt">151
-</span><span class="lnt">152
-</span><span class="lnt">153
-</span><span class="lnt">154
-</span><span class="lnt">155
-</span><span class="lnt">156
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ConvBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Conv -&gt; BN -&gt; ReLU -&gt; MaxPool, the standard miniImageNet building block.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_ch</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ProtoNetEncoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;4-layer CNN encoder. Maps an 84x84 RGB image to a 1600-d vector.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ConvBlock</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>   <span class="c1"># 84 -&gt; 42</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ConvBlock</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>    <span class="c1"># 42 -&gt; 21</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ConvBlock</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>    <span class="c1"># 21 -&gt; 10</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ConvBlock</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>    <span class="c1"># 10 -&gt;  5</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PrototypicalNetwork</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">compute_prototypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">support_emb</span><span class="p">,</span> <span class="n">support_labels</span><span class="p">,</span> <span class="n">n_way</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Average embeddings per class to form prototypes.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prototypes</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="n">support_emb</span><span class="p">[</span><span class="n">support_labels</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_way</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">prototypes</span><span class="p">)</span>  <span class="c1"># (n_way, embed_dim)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">support_imgs</span><span class="p">,</span> <span class="n">support_lbls</span><span class="p">,</span> <span class="n">query_imgs</span><span class="p">,</span> <span class="n">n_way</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">support_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">support_imgs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">query_emb</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">query_imgs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prototypes</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_prototypes</span><span class="p">(</span><span class="n">support_emb</span><span class="p">,</span> <span class="n">support_lbls</span><span class="p">,</span> <span class="n">n_way</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Negative squared Euclidean distance == logits</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dists</span>  <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">query_emb</span><span class="p">,</span> <span class="n">prototypes</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="n">dists</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">EpisodeSampler</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Yields N-way K-shot episodes from a flat (data, labels) array.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">n_way</span><span class="p">,</span> <span class="n">n_support</span><span class="p">,</span> <span class="n">n_query</span><span class="p">,</span> <span class="n">n_episodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span> <span class="n">labels</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_way</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_support</span> <span class="o">=</span> <span class="n">n_way</span><span class="p">,</span> <span class="n">n_support</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_query</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_episodes</span> <span class="o">=</span> <span class="n">n_query</span><span class="p">,</span> <span class="n">n_episodes</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">class_indices</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels</span> <span class="o">==</span> <span class="n">c</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_episodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">chosen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_way</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s_imgs</span><span class="p">,</span> <span class="n">s_lbls</span><span class="p">,</span> <span class="n">q_imgs</span><span class="p">,</span> <span class="n">q_lbls</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">new_label</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chosen</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">class_indices</span><span class="p">[</span><span class="n">c</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">n_support</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_query</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idxs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">n_support</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">s_imgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]);</span> <span class="n">s_lbls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_label</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">idxs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_support</span><span class="p">:]:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">q_imgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]);</span> <span class="n">q_lbls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_label</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">s_imgs</span><span class="p">]),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">s_lbls</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">q_imgs</span><span class="p">]),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">q_lbls</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">train_lbls</span><span class="p">,</span> <span class="n">val_data</span><span class="p">,</span> <span class="n">val_lbls</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="n">n_way</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n_query</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">n_episodes</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="n">num_epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Episodic training with periodic validation.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">optim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">crit</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># ---- train ----</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">sampler</span> <span class="o">=</span> <span class="n">EpisodeSampler</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">train_lbls</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                 <span class="n">n_way</span><span class="p">,</span> <span class="n">n_support</span><span class="p">,</span> <span class="n">n_query</span><span class="p">,</span> <span class="n">n_episodes</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss_sum</span><span class="p">,</span> <span class="n">acc_sum</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">s_img</span><span class="p">,</span> <span class="n">s_lbl</span><span class="p">,</span> <span class="n">q_img</span><span class="p">,</span> <span class="n">q_lbl</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">s_img</span><span class="p">,</span> <span class="n">s_lbl</span> <span class="o">=</span> <span class="n">s_img</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">s_lbl</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">q_img</span><span class="p">,</span> <span class="n">q_lbl</span> <span class="o">=</span> <span class="n">q_img</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">q_lbl</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">s_img</span><span class="p">,</span> <span class="n">s_lbl</span><span class="p">,</span> <span class="n">q_img</span><span class="p">,</span> <span class="n">n_way</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">crit</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">q_lbl</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">optim</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">();</span> <span class="n">optim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">acc_sum</span>  <span class="o">+=</span> <span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">q_lbl</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># ---- validate ----</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_sampler</span> <span class="o">=</span> <span class="n">EpisodeSampler</span><span class="p">(</span><span class="n">val_data</span><span class="p">,</span> <span class="n">val_lbls</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                     <span class="n">n_way</span><span class="p">,</span> <span class="n">n_support</span><span class="p">,</span> <span class="n">n_query</span><span class="p">,</span> <span class="n">n_episodes</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_acc</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">s_img</span><span class="p">,</span> <span class="n">s_lbl</span><span class="p">,</span> <span class="n">q_img</span><span class="p">,</span> <span class="n">q_lbl</span> <span class="ow">in</span> <span class="n">val_sampler</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">s_img</span><span class="p">,</span> <span class="n">s_lbl</span> <span class="o">=</span> <span class="n">s_img</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">s_lbl</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">q_img</span><span class="p">,</span> <span class="n">q_lbl</span> <span class="o">=</span> <span class="n">q_img</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">q_lbl</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">s_img</span><span class="p">,</span> <span class="n">s_lbl</span><span class="p">,</span> <span class="n">q_img</span><span class="p">,</span> <span class="n">n_way</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">val_acc</span> <span class="o">+=</span> <span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">q_lbl</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_acc</span> <span class="o">/=</span> <span class="n">n_episodes</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;  train_loss=</span><span class="si">{</span><span class="n">loss_sum</span><span class="o">/</span><span class="n">n_episodes</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  &#34;</span>
-</span></span><span class="line"><span class="cl">              <span class="sa">f</span><span class="s2">&#34;train_acc=</span><span class="si">{</span><span class="n">acc_sum</span><span class="o">/</span><span class="n">n_episodes</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  val_acc=</span><span class="si">{</span><span class="n">val_acc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">val_acc</span> <span class="o">&gt;</span> <span class="n">best</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">best</span> <span class="o">=</span> <span class="n">val_acc</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s1">&#39;best_protonet.pt&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># ---- demo with random data ----</span>
-</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">num_classes</span><span class="p">,</span> <span class="n">samples_per_class</span><span class="p">,</span> <span class="n">img_size</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="mi">84</span>
-</span></span><span class="line"><span class="cl">    <span class="n">all_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_classes</span> <span class="o">*</span> <span class="n">samples_per_class</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                               <span class="mi">3</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">img_size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">all_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_classes</span><span class="p">),</span> <span class="n">samples_per_class</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">train_classes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_classes</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">train_mask</span> <span class="o">=</span> <span class="n">all_labels</span> <span class="o">&lt;</span> <span class="n">train_classes</span>
-</span></span><span class="line"><span class="cl">    <span class="n">val_mask</span>   <span class="o">=</span> <span class="n">all_labels</span> <span class="o">&gt;=</span> <span class="n">train_classes</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">encoder</span> <span class="o">=</span> <span class="n">ProtoNetEncoder</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">PrototypicalNetwork</span><span class="p">(</span><span class="n">encoder</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">train</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">all_data</span><span class="p">[</span><span class="n">train_mask</span><span class="p">],</span> <span class="n">all_labels</span><span class="p">[</span><span class="n">train_mask</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">          <span class="n">all_data</span><span class="p">[</span><span class="n">val_mask</span><span class="p">],</span> <span class="n">all_labels</span><span class="p">[</span><span class="n">val_mask</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">          <span class="n">n_way</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n_query</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="code-walkthrough">Code Walkthrough</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Component</th>
-          <th>Role</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><code>ProtoNetEncoder</code></td>
-          <td>4-block CNN, the standard backbone for miniImageNet experiments</td>
-      </tr>
-      <tr>
-          <td><code>compute_prototypes</code></td>
-          <td>Averages support embeddings per class</td>
-      </tr>
-      <tr>
-          <td><code>forward</code></td>
-          <td>Returns negative Euclidean distances as logits</td>
-      </tr>
-      <tr>
-          <td><code>EpisodeSampler</code></td>
-          <td>Builds an N-way K-shot episode each iteration</td>
-      </tr>
-      <tr>
-          <td><code>train</code></td>
-          <td>Episodic training loop with periodic validation</td>
-      </tr>
-  </tbody>
-</table>
-<p>Two implementation notes worth highlighting:</p>
-<ul>
-<li><strong><code>torch.cdist(..., p=2)</code> returns the Euclidean (not squared) distance.</strong> Negating it as logits is fine for argmax but technically does not match the Bayes-optimal Gaussian-mean derivation. In practice the difference does not matter; if you want exact correspondence, square it.</li>
-<li><strong>Always relabel the support classes to $0, \ldots, N-1$</strong> inside the sampler so that the cross-entropy targets have the expected shape.</li>
-</ul>
-<hr>
-<h2 id="faq">FAQ</h2>
-<h3 id="how-is-few-shot-learning-different-from-ordinary-transfer-learning">How is few-shot learning different from ordinary transfer learning?</h3>
-<p>It is the limit case. Transfer learning assumes you have at least hundreds of target labels, so a fine-tuned head can do most of the work. Few-shot learning has 1-10. That gap is large enough that you need <em>training-time machinery</em> &ndash; episodic sampling, metric or meta objectives &ndash; not just a downstream training trick.</p>
-<h3 id="why-do-prototypical-networks-use-the-mean-as-the-prototype">Why do Prototypical networks use the mean as the prototype?</h3>
-<p>Under Gaussian class-conditionals with shared isotropic covariance, the class mean is the Bayes-optimal classifier. The mean is also robust enough to be useful even when that assumption fails &ndash; especially for $K \ge 5$.</p>
-<h3 id="maml-or-prototypical-networks----which-should-i-use">MAML or Prototypical Networks &ndash; which should I use?</h3>
-<p>Default to Prototypical Networks: simpler, faster, the prototypes are interpretable, and they tend to match or beat MAML on standard image benchmarks. Reach for MAML when (a) the tasks are diverse and look qualitatively different from one another, (b) the data is non-image and you do not have a great pretrained embedding, or (c) you specifically need adaptation that updates the <em>entire</em> network rather than just a final classifier.</p>
-<h3 id="how-many-base-classes-do-i-need">How many base classes do I need?</h3>
-<p>More is always better for generalization. Standard benchmarks use 64 base classes (miniImageNet) up to 1200+ (Omniglot). With fewer than ~30 base classes you tend to see severe overfitting to the base set itself, and novel-class accuracy collapses.</p>
-<h3 id="does-any-of-this-work-for-non-image-data">Does any of this work for non-image data?</h3>
-<p>Yes. Prototypical Networks work for anything with a meaningful embedding &ndash; text (use a transformer encoder), graphs (use a GNN), audio (use a spectrogram CNN). MAML and Reptile are model-agnostic by design. The episodic protocol does not care about modality.</p>
-<h3 id="why-are-confidence-intervals-always-reported">Why are confidence intervals always reported?</h3>
-<p>The per-episode accuracy variance is large &ndash; a single hard episode can swing 10-20 points. Reporting the mean over a few hundred episodes plus a 95% CI is the only way to make numbers comparable across papers.</p>
-<hr>
-<h2 id="summary">Summary</h2>
-<p>Few-shot learning attacks deep learning&rsquo;s biggest practical bottleneck: data scarcity in the long tail.</p>
-<ul>
-<li><strong>Metric learning</strong> (Siamese, Prototypical, Matching, Relation Networks) learns an embedding space where distance equals dissimilarity. Simple, fast, interpretable. Prototypical Networks are the workhorse default.</li>
-<li><strong>Meta-learning</strong> (MAML, FOMAML, Reptile) learns an initialization from which a few gradient steps reach the optimum of any new task. More flexible, costlier, less interpretable.</li>
-<li><strong>Episodic training</strong> is the unifying training paradigm: each iteration is a fresh few-shot task, so training-time difficulty matches test-time difficulty.</li>
-</ul>
-<p>Across families, accuracies converge once the backbone is held fixed &ndash; a reminder that backbone capacity and pretraining quality matter at least as much as the few-shot algorithm on top.</p>
-<p>Next: <a href="/en/transfer-learning-5-knowledge-distillation/">Part 5 &ndash; Knowledge Distillation</a>
-, where we compress a large teacher model into a small student that mimics it.</p>
-<hr>
-<h2 id="references">References</h2>
-<ol>
-<li>Snell et al. (2017). <em>Prototypical Networks for Few-shot Learning.</em> NeurIPS. <a href="https://arxiv.org/abs/1703.05175" target="_blank" rel="noopener noreferrer">arXiv:1703.05175 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Finn et al. (2017). <em>Model-Agnostic Meta-Learning (MAML).</em> ICML. <a href="https://arxiv.org/abs/1703.03400" target="_blank" rel="noopener noreferrer">arXiv:1703.03400 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Vinyals et al. (2016). <em>Matching Networks for One Shot Learning.</em> NeurIPS. <a href="https://arxiv.org/abs/1606.04080" target="_blank" rel="noopener noreferrer">arXiv:1606.04080 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Sung et al. (2018). <em>Learning to Compare: Relation Network for Few-Shot Learning.</em> CVPR. <a href="https://arxiv.org/abs/1711.06025" target="_blank" rel="noopener noreferrer">arXiv:1711.06025 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Nichol et al. (2018). <em>On First-Order Meta-Learning Algorithms (Reptile).</em> <a href="https://arxiv.org/abs/1803.02999" target="_blank" rel="noopener noreferrer">arXiv:1803.02999 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Koch et al. (2015). <em>Siamese Neural Networks for One-shot Image Recognition.</em> ICML Deep Learning Workshop.</li>
-<li>Chen et al. (2019). <em>A Closer Look at Few-shot Classification.</em> ICLR. <a href="https://arxiv.org/abs/1904.04232" target="_blank" rel="noopener noreferrer">arXiv:1904.04232 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Wang et al. (2020). <em>Generalizing from a Few Examples: A Survey on Few-Shot Learning.</em> ACM Computing Surveys. <a href="https://arxiv.org/abs/1904.05046" target="_blank" rel="noopener noreferrer">arXiv:1904.05046 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ol>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><a href="/en/transfer-learning-1-fundamentals-and-core-concepts/">1</a>
-</td>
-          <td>Fundamentals and Core Concepts</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-2-pre-training-and-fine-tuning/">2</a>
-</td>
-          <td>Pre-training and Fine-tuning</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-3-domain-adaptation/">3</a>
-</td>
-          <td>Domain Adaptation</td>
-      </tr>
-      <tr>
-          <td><strong>4</strong></td>
-          <td><strong>Few-Shot Learning</strong> (you are here)</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-5-knowledge-distillation/">5</a>
-</td>
-          <td>Knowledge Distillation</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-6-multi-task-learning/">6</a>
-</td>
-          <td>Multi-Task Learning</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#the-few-shot-challenge">The Few-Shot Challenge</a>
-      <ul>
-        <li><a href="#problem-setup-n-way-k-shot">Problem Setup: N-way K-shot</a></li>
-        <li><a href="#why-standard-training-fails">Why Standard Training Fails</a></li>
-        <li><a href="#the-core-insight">The Core Insight</a></li>
-      </ul>
-    </li>
-    <li><a href="#metric-learning-classification-by-distance">Metric Learning: Classification by Distance</a>
-      <ul>
-        <li><a href="#siamese-networks">Siamese Networks</a></li>
-        <li><a href="#prototypical-networks">Prototypical Networks</a>
-          <ul>
-            <li><a href="#computing-prototypes">Computing prototypes</a></li>
-            <li><a href="#classification">Classification</a></li>
-            <li><a href="#why-prototypes-are-principled">Why prototypes are principled</a></li>
-          </ul>
-        </li>
-        <li><a href="#matching-networks">Matching Networks</a></li>
-        <li><a href="#relation-networks">Relation Networks</a></li>
-      </ul>
-    </li>
-    <li><a href="#meta-learning-learning-to-learn">Meta-Learning: Learning to Learn</a>
-      <ul>
-        <li><a href="#maml-model-agnostic-meta-learning">MAML: Model-Agnostic Meta-Learning</a>
-          <ul>
-            <li><a href="#algorithm">Algorithm</a></li>
-            <li><a href="#first-order-approximation-fomaml">First-order approximation (FOMAML)</a></li>
-            <li><a href="#geometric-intuition">Geometric intuition</a></li>
-          </ul>
-        </li>
-        <li><a href="#reptile-even-simpler">Reptile: Even Simpler</a></li>
-      </ul>
-    </li>
-    <li><a href="#episodic-training">Episodic Training</a>
-      <ul>
-        <li><a href="#how-an-episode-is-built">How an episode is built</a></li>
-        <li><a href="#why-this-matters">Why this matters</a></li>
-      </ul>
-    </li>
-    <li><a href="#how-well-does-any-of-this-work">How Well Does Any of This Work?</a></li>
-    <li><a href="#complete-implementation-prototypical-networks">Complete Implementation: Prototypical Networks</a>
-      <ul>
-        <li><a href="#code-walkthrough">Code Walkthrough</a></li>
-      </ul>
-    </li>
-    <li><a href="#faq">FAQ</a>
-      <ul>
-        <li><a href="#how-is-few-shot-learning-different-from-ordinary-transfer-learning">How is few-shot learning different from ordinary transfer learning?</a></li>
-        <li><a href="#why-do-prototypical-networks-use-the-mean-as-the-prototype">Why do Prototypical networks use the mean as the prototype?</a></li>
-        <li><a href="#maml-or-prototypical-networks----which-should-i-use">MAML or Prototypical Networks &ndash; which should I use?</a></li>
-        <li><a href="#how-many-base-classes-do-i-need">How many base classes do I need?</a></li>
-        <li><a href="#does-any-of-this-work-for-non-image-data">Does any of this work for non-image data?</a></li>
-        <li><a href="#why-are-confidence-intervals-always-reported">Why are confidence intervals always reported?</a></li>
-      </ul>
-    </li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3200</strong></div>
-      <div class="row"><span>Published</span><strong>May 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/transfer-learning/04-few-shot-learning/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Transfer Learning (4): Few-Shot Learning · Chen Kai Blog</title>
+<meta name=description content="Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/transfer-learning/04-few-shot-learning/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/transfer-learning/04-few-shot-learning/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/transfer-learning/04-few-shot-learning/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/transfer-learning/04-few-shot-learning/><meta property="og:type" content="article"><meta property="og:title" content="Transfer Learning (4): Few-Shot Learning"><meta property="og:description" content="Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation."><meta property="og:url" content="https://www.chenk.top/en/transfer-learning/04-few-shot-learning/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Transfer Learning</a>
+· Chapter 4</div><h1>Transfer Learning (4): Few-Shot Learning</h1><p class=deck>Learn new concepts from a handful of examples. Covers the N-way K-shot protocol, metric learning (Siamese, Prototypical, Matching, Relation networks), meta-learning (MAML, Reptile), episodic training, miniImageNet benchmarks, and a complete Prototypical Network implementation.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-05-19>May 19, 2025</time> · 15 min read · 3144 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/transfer-learning/ class=tag>#Transfer Learning</a><a href=/en/tags/few-shot-learning/ class=tag>#Few-Shot Learning</a><a href=/en/tags/meta-learning/ class=tag>#Meta-Learning</a><a href=/en/tags/maml/ class=tag>#MAML</a><a href=/en/tags/prototypical-networks/ class=tag>#Prototypical Networks</a><a href=/en/tags/metric-learning/ class=tag>#Metric Learning</a></div><a class="pill pill-outline" href=/zh/transfer-learning/04-few-shot-learning/>Read in English →</a></div></header><div class=prose><p>Show a child one photograph of a pangolin and they will spot pangolins for life. Show a deep learning model one photograph and it will give you a uniformly random guess. Few-shot learning is the field that closes that gap: building classifiers that work with only one to ten labeled examples per class.</p><p>The trick is not to memorize individual classes harder. It is to learn <em>how to learn</em> from very few examples, then carry that ability over to brand-new classes at test time. This article covers the two families that dominate the field today: <strong>metric learning</strong>, which learns a good distance function, and <strong>meta-learning</strong>, which learns a good initialization.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>The N-way K-shot evaluation protocol and why standard training fails on it</li><li>Metric learning: Siamese, Prototypical, Matching, and Relation networks</li><li>Meta-learning: MAML and its first-order cousins (FOMAML, Reptile)</li><li>Episodic training: matching training-time difficulty to test-time difficulty</li><li>A clean, end-to-end Prototypical Network implementation in PyTorch</li></ul><p><strong>Prerequisites:</strong> Parts 1-2 of this series; comfort with PyTorch and basic optimization.</p><hr><h2 id=the-few-shot-challenge>The Few-Shot Challenge</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig1_nway_kshot.png alt="5-way 1-shot episode: support set on the left, query set on the right" loading=lazy decoding=async></figure></p><h3 id=problem-setup-n-way-k-shot>Problem Setup: N-way K-shot</h3><p>The community uses a single, shared evaluation protocol so that papers are comparable:</p><ul><li><strong>N-way:</strong> the model must classify among $N$ classes.</li><li><strong>K-shot:</strong> for each class, only $K$ labeled examples are available.</li></ul><p>A &ldquo;5-way 1-shot&rdquo; task is therefore: here is one labeled image from each of five classes you have never seen before; now classify a batch of new query images.</p><p>Each evaluation episode consists of:</p><ul><li>a <strong>support set</strong> $\mathcal{S} = \{(x_i, y_i)\}_{i=1}^{NK}$ &ndash; the $N \times K$ labeled examples,</li><li>a <strong>query set</strong> $\mathcal{Q} = \{(x_j, y_j)\}_{j=1}^{NQ}$ &ndash; the unlabeled images to classify (with hidden labels used only to measure accuracy).</li></ul><p>Reported numbers are averages over hundreds or thousands of episodes drawn from a held-out <strong>novel-class</strong> set, with 95% confidence intervals because the per-episode variance is large.</p><h3 id=why-standard-training-fails>Why Standard Training Fails</h3><p>Three forces conspire against a vanilla classifier:</p><ul><li><strong>Data scarcity.</strong> With $K = 1$ you literally cannot estimate a within-class variance. With $K = 5$ you can, but barely.</li><li><strong>Overfitting.</strong> A high-capacity network will memorize the support examples instead of learning a class-discriminative rule.</li><li><strong>Inter-class similarity.</strong> Novel classes drawn from the same domain (e.g. two breeds of dog) often differ only in subtle features that a randomly initialized classifier has no reason to attend to.</li></ul><p>Empirical risk minimization with weight decay is not enough: regularization stops parameters from blowing up, but it does not inject the inductive bias required to generalize from a single image.</p><h3 id=the-core-insight>The Core Insight</h3><p>To learn from few samples you need <strong>prior knowledge.</strong> Few-shot learning gets that prior by training on a large set of <em>base classes</em> (with many examples each), then evaluating on disjoint <em>novel classes</em> (with few). The two main routes are:</p><ol><li><strong>Metric learning</strong> &ndash; train a backbone whose embedding space already separates classes, so a fresh class can be characterized by the location of its few support points. Classify queries by their distance in this space.</li><li><strong>Meta-learning</strong> &ndash; train across many simulated few-shot tasks so the network <em>learns to be adapted</em> by a few gradient steps. Treat &ldquo;fast adaptation&rdquo; itself as the thing to optimize.</li></ol><p>Both share the same data split (base vs. novel) but invest the prior knowledge differently: metric learning bakes it into the embedding; meta-learning bakes it into the optimization initialization.</p><hr><h2 id=metric-learning-classification-by-distance>Metric Learning: Classification by Distance</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig2_prototypical.png alt="Prototypical Network embedding space with class clusters, prototypes, and decision regions" loading=lazy decoding=async></figure></p><p>The metric-learning recipe is one sentence long: learn an embedding $f_\theta$ such that same-class samples cluster together and different-class samples lie far apart, then classify a query by its proximity to the support points.</p><h3 id=siamese-networks>Siamese Networks</h3><p>The earliest member of the family. Two weight-shared encoders $f_\theta$ embed a pair of inputs and the distance is</p>$$d(x_1, x_2) = \|f_\theta(x_1) - f_\theta(x_2)\|_2.$$<p>Training uses the <strong>contrastive loss</strong></p>$$\mathcal{L} = y \cdot d^2 + (1 - y) \cdot \max(0, m - d)^2,$$<p>with $y = 1$ for same-class pairs (pull together) and $y = 0$ for different-class pairs (push apart until the distance exceeds margin $m$). At test time, classify a query by the label of its nearest support sample.</p><h3 id=prototypical-networks>Prototypical Networks</h3><p>Prototypical networks improve on the pairwise picture by collapsing each support class into a single point.</p><h4 id=computing-prototypes>Computing prototypes</h4><p>For class $c$ with support examples $\{x_1^c, \ldots, x_K^c\}$, the prototype is the mean embedding:</p>$$\mathbf{c}_c = \frac{1}{K} \sum_{k=1}^{K} f_\theta(x_k^c).$$<p>Geometrically it is the centroid of the class in embedding space.</p><h4 id=classification>Classification</h4><p>Score each class by the negative squared Euclidean distance from the query embedding to the prototype, then take a softmax:</p>$$P(y = c \mid x_q) = \frac{\exp\bigl(-d(f_\theta(x_q), \mathbf{c}_c)\bigr)}{\sum_{c'} \exp\bigl(-d(f_\theta(x_q), \mathbf{c}_{c'})\bigr)}, \qquad d(u, v) = \|u - v\|_2^2.$$<p>Train end-to-end with cross-entropy on the query predictions of each episode.</p><h4 id=why-prototypes-are-principled>Why prototypes are principled</h4><p>If we model class-conditional embeddings as Gaussians with shared isotropic covariance, $P(x \mid y = c) = \mathcal{N}(\mu_c, \sigma^2 I)$, then the maximum-likelihood class is exactly the nearest centroid. Prototypical networks are therefore the deep-learning incarnation of the Bayes-optimal classifier under that (admittedly strong) assumption &ndash; which is why it tends to work so well in practice.</p><p>A second, cleaner, observation: under squared-Euclidean distance the decision boundary between any two classes is a hyperplane in embedding space. So Prototypical networks are equivalent to a <em>linear</em> classifier in the learned space, but with the linear weights tied to the prototype geometry.</p><h3 id=matching-networks>Matching Networks</h3><p>Matching networks replace the hard nearest-prototype rule with a soft attention over the entire support set.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig3_matching.png alt="Matching Network attention: cosine similarity becomes a softmax weight over support samples" loading=lazy decoding=async></figure></p><p>The prediction is a label-weighted sum:</p>$$P(y \mid x_q, \mathcal{S}) = \sum_{i=1}^{NK} a(x_q, x_i) \cdot y_i, \qquad a(x_q, x_i) = \mathrm{softmax}_i\bigl(\cos(f(x_q), g(x_i))\bigr).$$<p>Here $y_i$ is a one-hot label vector, so the prediction is a convex combination of one-hots weighted by attention.</p><p>The other contribution of the paper is <strong>full context embeddings</strong>: a bidirectional LSTM is run over the support set so each support embedding is aware of every other support sample. The intuition is that what counts as a discriminative feature depends on the other classes you are trying to separate from &ndash; and the LSTM lets the network express that.</p><h3 id=relation-networks>Relation Networks</h3><p>Relation networks take the next step: instead of choosing a fixed metric (Euclidean, cosine), they <em>learn</em> one. A small network $g_\phi$ takes the concatenated embeddings and outputs a scalar similarity:</p>$$r_{q, c} = g_\phi\bigl(\mathrm{concat}(f_\theta(x_q),\, \mathbf{c}_c)\bigr) \in [0, 1].$$<p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig5_relation.png alt="Relation Network: shared embedding + learned relation module" loading=lazy decoding=async></figure></p><p>The training target is $r_{q, c} = \mathbb{1}\{y_q = c\}$ with mean-squared-error loss; both modules are trained jointly. Why bother? Fixed metrics implicitly assume the embedding space is isotropic &ndash; every dimension counts equally. A learned metric lets the network downweight dimensions that turn out to be uninformative for the task at hand.</p><hr><h2 id=meta-learning-learning-to-learn>Meta-Learning: Learning to Learn</h2><p>Where metric learning bakes the prior into the embedding, meta-learning bakes it into the optimization process itself. The model is trained across many tasks so that <em>adapting</em> it to a new task takes only a handful of gradient steps.</p><h3 id=maml-model-agnostic-meta-learning>MAML: Model-Agnostic Meta-Learning</h3><p>MAML&rsquo;s idea is simple and surprisingly effective: search for an initialization $\theta$ such that one or two gradient steps on any new task&rsquo;s support set already produce a good model.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig4_maml.png alt="MAML: a single meta-initialization adapts via inner-loop steps to many tasks" loading=lazy decoding=async></figure></p><h4 id=algorithm>Algorithm</h4><p>For each sampled task $\mathcal{T}_i$ (with its own support and query sets):</p><ol><li><strong>Inner loop (per-task adaptation).</strong> Take one (or a few) gradient steps on the support loss:
+$$\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}^{\text{support}}(\theta).$$</li><li><strong>Outer loop (meta-update).</strong> Evaluate the <em>adapted</em> parameters on the query set and update the initialization:
+$$\theta \leftarrow \theta - \beta \nabla_\theta \sum_i \mathcal{L}_{\mathcal{T}_i}^{\text{query}}(\theta_i').$$</li></ol><p>The outer-loop gradient differentiates <em>through</em> the inner-loop update, which involves second derivatives of the support loss with respect to $\theta$ &ndash; a Hessian-vector product.</p><h4 id=first-order-approximation-fomaml>First-order approximation (FOMAML)</h4><p>The exact second-order MAML update costs $O(d^2)$ memory in the parameter dimension $d$ and is fiddly to implement. FOMAML drops the second-order term and approximates</p>$$\nabla_\theta \mathcal{L}(\theta_i') \approx \nabla_{\theta_i'} \mathcal{L}(\theta_i'),$$<p>which is just the gradient at the adapted point, evaluated as if $\theta_i'$ did not depend on $\theta$. Cost drops to $O(d)$, and reported accuracies barely change.</p><h4 id=geometric-intuition>Geometric intuition</h4><p>MAML pushes $\theta$ toward a region of the loss landscape that is <em>flat with respect to fast adaptation</em>: from this point a few steps in any task-specific direction reach a low loss. Think of $\theta$ as a universal launching pad rather than a universally-good model.</p><h3 id=reptile-even-simpler>Reptile: Even Simpler</h3><p>Reptile drops the inner-loop differentiation entirely. Sample a task, run $k$ ordinary SGD steps on it to get $\tilde{\theta}$, then nudge the meta-parameters toward the result:</p>$$\theta \leftarrow \theta + \epsilon \,(\tilde{\theta} - \theta).$$<p>That&rsquo;s the whole algorithm. Despite the simplicity it works almost as well as MAML, because moving the meta-parameters toward task-specific solutions across many tasks ends up locating $\theta$ near a shared sweet spot.</p><table><thead><tr><th>Method</th><th>Gradient order</th><th>Per-step cost</th><th>Implementation</th><th>miniImageNet (5w-5s)*</th></tr></thead><tbody><tr><td>MAML</td><td>Second-order</td><td>High (Hessian)</td><td>Hard</td><td>~63%</td></tr><tr><td>FOMAML</td><td>First-order</td><td>Medium</td><td>Easy</td><td>~62%</td></tr><tr><td>Reptile</td><td>First-order</td><td>Low</td><td>Trivial</td><td>~66%</td></tr></tbody></table><p>*Reported in the original papers; numbers vary across implementations.</p><hr><h2 id=episodic-training>Episodic Training</h2><p>Standard supervised training shows the network the entire base-class dataset and asks it to classify. Episodic training reframes the entire training loop to look like the test loop.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig7_episodic.png alt="Episodic training: each step is a fresh N-way K-shot task sampled from the base classes" loading=lazy decoding=async></figure></p><h3 id=how-an-episode-is-built>How an episode is built</h3><p>Each iteration:</p><ol><li>Sample $N$ classes from the base-class pool.</li><li>Sample $K$ examples per class for the <strong>support set</strong>.</li><li>Sample $Q$ additional examples per class for the <strong>query set</strong>.</li><li>Train the model to classify the queries given only that support set.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>num_epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>episode</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>episodes_per_epoch</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>classes</span> <span class=o>=</span> <span class=n>sample</span><span class=p>(</span><span class=n>base_classes</span><span class=p>,</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>support</span> <span class=o>=</span> <span class=n>sample_from_classes</span><span class=p>(</span><span class=n>classes</span><span class=p>,</span> <span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>query</span>   <span class=o>=</span> <span class=n>sample_from_classes</span><span class=p>(</span><span class=n>classes</span><span class=p>,</span> <span class=n>Q</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>prototypes</span> <span class=o>=</span> <span class=n>compute_prototypes</span><span class=p>(</span><span class=n>support</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span>     <span class=o>=</span> <span class=o>-</span><span class=n>distance</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>prototypes</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span>       <span class=o>=</span> <span class=n>cross_entropy</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>query_labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=why-this-matters>Why this matters</h3><p>The model never gets to see the full base-class dataset at once. Every gradient update simulates a few-shot task, so the inductive bias the network develops is precisely the one needed at test time. This is curriculum learning where the curriculum <em>is</em> the test-time conditions.</p><p>A good sanity check: turn off episodic training and just train a flat $|C_{\text{base}}|$-way classifier, then drop a linear head on the frozen features. With a strong backbone (deep ResNet, large augmentation) this &ldquo;Baseline++&rdquo; recipe is competitive with metric- and meta-learning approaches &ndash; a result Chen et al. (ICLR 2019) used to argue that episodic training matters less than people thought, and that backbone capacity matters more.</p><hr><h2 id=how-well-does-any-of-this-work>How Well Does Any of This Work?</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/04-few-shot-learning/fig6_mini_imagenet.png alt="miniImageNet 5-way benchmark accuracies across representative methods" loading=lazy decoding=async></figure></p><p>The numbers above are from the original papers (with later work routinely surpassing them by using larger backbones and pre-training tricks). Two things to take away:</p><ul><li><strong>The 1-shot vs. 5-shot gap is huge.</strong> Going from one example to five typically adds 10-20 percentage points &ndash; a reminder that even a tiny amount of data dominates clever architecture choices.</li><li><strong>Methods cluster.</strong> Once the backbone is held fixed, Prototypical, Matching, Relation, and MAML-family numbers land within a few points of each other. Pick by engineering taste (simplicity, compute budget, tooling) rather than chasing the last point of accuracy.</li></ul><hr><h2 id=complete-implementation-prototypical-networks>Complete Implementation: Prototypical Networks</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>tqdm</span> <span class=kn>import</span> <span class=n>tqdm</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ConvBlock</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Conv -&gt; BN -&gt; ReLU -&gt; MaxPool, the standard miniImageNet building block.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>in_ch</span><span class=p>,</span> <span class=n>out_ch</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>block</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>in_ch</span><span class=p>,</span> <span class=n>out_ch</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>BatchNorm2d</span><span class=p>(</span><span class=n>out_ch</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(</span><span class=n>inplace</span><span class=o>=</span><span class=kc>True</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>MaxPool2d</span><span class=p>(</span><span class=mi>2</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>block</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ProtoNetEncoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;4-layer CNN encoder. Maps an 84x84 RGB image to a 1600-d vector.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>in_channels</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>ConvBlock</span><span class=p>(</span><span class=n>in_channels</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span>   <span class=c1># 84 -&gt; 42</span>
+</span></span><span class=line><span class=cl>            <span class=n>ConvBlock</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span>    <span class=c1># 42 -&gt; 21</span>
+</span></span><span class=line><span class=cl>            <span class=n>ConvBlock</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span>    <span class=c1># 21 -&gt; 10</span>
+</span></span><span class=line><span class=cl>            <span class=n>ConvBlock</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span>    <span class=c1># 10 -&gt;  5</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>),</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PrototypicalNetwork</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>encoder</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>encoder</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>compute_prototypes</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>support_emb</span><span class=p>,</span> <span class=n>support_labels</span><span class=p>,</span> <span class=n>n_way</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Average embeddings per class to form prototypes.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>prototypes</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=n>support_emb</span><span class=p>[</span><span class=n>support_labels</span> <span class=o>==</span> <span class=n>c</span><span class=p>]</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_way</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>(</span><span class=n>prototypes</span><span class=p>)</span>  <span class=c1># (n_way, embed_dim)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>support_imgs</span><span class=p>,</span> <span class=n>support_lbls</span><span class=p>,</span> <span class=n>query_imgs</span><span class=p>,</span> <span class=n>n_way</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>support_emb</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>support_imgs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>query_emb</span>   <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>query_imgs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>prototypes</span>  <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>compute_prototypes</span><span class=p>(</span><span class=n>support_emb</span><span class=p>,</span> <span class=n>support_lbls</span><span class=p>,</span> <span class=n>n_way</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Negative squared Euclidean distance == logits</span>
+</span></span><span class=line><span class=cl>        <span class=n>dists</span>  <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cdist</span><span class=p>(</span><span class=n>query_emb</span><span class=p>,</span> <span class=n>prototypes</span><span class=p>,</span> <span class=n>p</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=n>dists</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>EpisodeSampler</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Yields N-way K-shot episodes from a flat (data, labels) array.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>,</span> <span class=n>labels</span><span class=p>,</span> <span class=n>n_way</span><span class=p>,</span> <span class=n>n_support</span><span class=p>,</span> <span class=n>n_query</span><span class=p>,</span> <span class=n>n_episodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>data</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>labels</span> <span class=o>=</span> <span class=n>data</span><span class=p>,</span> <span class=n>labels</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_way</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_support</span> <span class=o>=</span> <span class=n>n_way</span><span class=p>,</span> <span class=n>n_support</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_query</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_episodes</span> <span class=o>=</span> <span class=n>n_query</span><span class=p>,</span> <span class=n>n_episodes</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>classes</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>class_indices</span> <span class=o>=</span> <span class=p>{</span><span class=n>c</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=n>labels</span> <span class=o>==</span> <span class=n>c</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__iter__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n_episodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=k>yield</span> <span class=bp>self</span><span class=o>.</span><span class=n>_sample</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_sample</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>chosen</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_way</span><span class=p>,</span> <span class=n>replace</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>s_imgs</span><span class=p>,</span> <span class=n>s_lbls</span><span class=p>,</span> <span class=n>q_imgs</span><span class=p>,</span> <span class=n>q_lbls</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[],</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>new_label</span><span class=p>,</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>chosen</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>idxs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>class_indices</span><span class=p>[</span><span class=n>c</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>n_support</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_query</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>replace</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>idx</span> <span class=ow>in</span> <span class=n>idxs</span><span class=p>[:</span><span class=bp>self</span><span class=o>.</span><span class=n>n_support</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                <span class=n>s_imgs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=n>idx</span><span class=p>]);</span> <span class=n>s_lbls</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>new_label</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>idx</span> <span class=ow>in</span> <span class=n>idxs</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>n_support</span><span class=p>:]:</span>
+</span></span><span class=line><span class=cl>                <span class=n>q_imgs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=n>idx</span><span class=p>]);</span> <span class=n>q_lbls</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>new_label</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>s_imgs</span><span class=p>]),</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>(</span><span class=n>s_lbls</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>q_imgs</span><span class=p>]),</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>(</span><span class=n>q_lbls</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>train_data</span><span class=p>,</span> <span class=n>train_lbls</span><span class=p>,</span> <span class=n>val_data</span><span class=p>,</span> <span class=n>val_lbls</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=n>n_way</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>n_support</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>n_query</span><span class=o>=</span><span class=mi>15</span><span class=p>,</span> <span class=n>n_episodes</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=n>num_epochs</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s1>&#39;cpu&#39;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Episodic training with periodic validation.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>optim</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>crit</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>num_epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># ---- train ----</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>sampler</span> <span class=o>=</span> <span class=n>EpisodeSampler</span><span class=p>(</span><span class=n>train_data</span><span class=p>,</span> <span class=n>train_lbls</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                 <span class=n>n_way</span><span class=p>,</span> <span class=n>n_support</span><span class=p>,</span> <span class=n>n_query</span><span class=p>,</span> <span class=n>n_episodes</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss_sum</span><span class=p>,</span> <span class=n>acc_sum</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>s_img</span><span class=p>,</span> <span class=n>s_lbl</span><span class=p>,</span> <span class=n>q_img</span><span class=p>,</span> <span class=n>q_lbl</span> <span class=ow>in</span> <span class=n>tqdm</span><span class=p>(</span><span class=n>sampler</span><span class=p>,</span> <span class=n>desc</span><span class=o>=</span><span class=sa>f</span><span class=s1>&#39;Epoch </span><span class=si>{</span><span class=n>epoch</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s1>&#39;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>s_img</span><span class=p>,</span> <span class=n>s_lbl</span> <span class=o>=</span> <span class=n>s_img</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>s_lbl</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>q_img</span><span class=p>,</span> <span class=n>q_lbl</span> <span class=o>=</span> <span class=n>q_img</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>q_lbl</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>s_img</span><span class=p>,</span> <span class=n>s_lbl</span><span class=p>,</span> <span class=n>q_img</span><span class=p>,</span> <span class=n>n_way</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>crit</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>q_lbl</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>optim</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>();</span> <span class=n>optim</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss_sum</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>acc_sum</span>  <span class=o>+=</span> <span class=p>(</span><span class=n>logits</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span> <span class=o>==</span> <span class=n>q_lbl</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># ---- validate ----</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_sampler</span> <span class=o>=</span> <span class=n>EpisodeSampler</span><span class=p>(</span><span class=n>val_data</span><span class=p>,</span> <span class=n>val_lbls</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                     <span class=n>n_way</span><span class=p>,</span> <span class=n>n_support</span><span class=p>,</span> <span class=n>n_query</span><span class=p>,</span> <span class=n>n_episodes</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_acc</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>s_img</span><span class=p>,</span> <span class=n>s_lbl</span><span class=p>,</span> <span class=n>q_img</span><span class=p>,</span> <span class=n>q_lbl</span> <span class=ow>in</span> <span class=n>val_sampler</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>s_img</span><span class=p>,</span> <span class=n>s_lbl</span> <span class=o>=</span> <span class=n>s_img</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>s_lbl</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>q_img</span><span class=p>,</span> <span class=n>q_lbl</span> <span class=o>=</span> <span class=n>q_img</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>q_lbl</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>s_img</span><span class=p>,</span> <span class=n>s_lbl</span><span class=p>,</span> <span class=n>q_img</span><span class=p>,</span> <span class=n>n_way</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>val_acc</span> <span class=o>+=</span> <span class=p>(</span><span class=n>logits</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span> <span class=o>==</span> <span class=n>q_lbl</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_acc</span> <span class=o>/=</span> <span class=n>n_episodes</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;  train_loss=</span><span class=si>{</span><span class=n>loss_sum</span><span class=o>/</span><span class=n>n_episodes</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>              <span class=sa>f</span><span class=s2>&#34;train_acc=</span><span class=si>{</span><span class=n>acc_sum</span><span class=o>/</span><span class=n>n_episodes</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  val_acc=</span><span class=si>{</span><span class=n>val_acc</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>val_acc</span> <span class=o>&gt;</span> <span class=n>best</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>best</span> <span class=o>=</span> <span class=n>val_acc</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=s1>&#39;best_protonet.pt&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># ---- demo with random data ----</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s1>&#39;__main__&#39;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_classes</span><span class=p>,</span> <span class=n>samples_per_class</span><span class=p>,</span> <span class=n>img_size</span> <span class=o>=</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>600</span><span class=p>,</span> <span class=mi>84</span>
+</span></span><span class=line><span class=cl>    <span class=n>all_data</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>num_classes</span> <span class=o>*</span> <span class=n>samples_per_class</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                               <span class=mi>3</span><span class=p>,</span> <span class=n>img_size</span><span class=p>,</span> <span class=n>img_size</span><span class=p>)</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>all_labels</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>repeat</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>num_classes</span><span class=p>),</span> <span class=n>samples_per_class</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>train_classes</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>num_classes</span> <span class=o>*</span> <span class=mf>0.8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>train_mask</span> <span class=o>=</span> <span class=n>all_labels</span> <span class=o>&lt;</span> <span class=n>train_classes</span>
+</span></span><span class=line><span class=cl>    <span class=n>val_mask</span>   <span class=o>=</span> <span class=n>all_labels</span> <span class=o>&gt;=</span> <span class=n>train_classes</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>encoder</span> <span class=o>=</span> <span class=n>ProtoNetEncoder</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>PrototypicalNetwork</span><span class=p>(</span><span class=n>encoder</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>all_data</span><span class=p>[</span><span class=n>train_mask</span><span class=p>],</span> <span class=n>all_labels</span><span class=p>[</span><span class=n>train_mask</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>          <span class=n>all_data</span><span class=p>[</span><span class=n>val_mask</span><span class=p>],</span> <span class=n>all_labels</span><span class=p>[</span><span class=n>val_mask</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>          <span class=n>n_way</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>n_support</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>n_query</span><span class=o>=</span><span class=mi>15</span><span class=p>,</span> <span class=n>num_epochs</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=code-walkthrough>Code Walkthrough</h3><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>ProtoNetEncoder</code></td><td>4-block CNN, the standard backbone for miniImageNet experiments</td></tr><tr><td><code>compute_prototypes</code></td><td>Averages support embeddings per class</td></tr><tr><td><code>forward</code></td><td>Returns negative Euclidean distances as logits</td></tr><tr><td><code>EpisodeSampler</code></td><td>Builds an N-way K-shot episode each iteration</td></tr><tr><td><code>train</code></td><td>Episodic training loop with periodic validation</td></tr></tbody></table><p>Two implementation notes worth highlighting:</p><ul><li><strong><code>torch.cdist(..., p=2)</code> returns the Euclidean (not squared) distance.</strong> Negating it as logits is fine for argmax but technically does not match the Bayes-optimal Gaussian-mean derivation. In practice the difference does not matter; if you want exact correspondence, square it.</li><li><strong>Always relabel the support classes to $0, \ldots, N-1$</strong> inside the sampler so that the cross-entropy targets have the expected shape.</li></ul><hr><h2 id=faq>FAQ</h2><h3 id=how-is-few-shot-learning-different-from-ordinary-transfer-learning>How is few-shot learning different from ordinary transfer learning?</h3><p>It is the limit case. Transfer learning assumes you have at least hundreds of target labels, so a fine-tuned head can do most of the work. Few-shot learning has 1-10. That gap is large enough that you need <em>training-time machinery</em> &ndash; episodic sampling, metric or meta objectives &ndash; not just a downstream training trick.</p><h3 id=why-do-prototypical-networks-use-the-mean-as-the-prototype>Why do Prototypical networks use the mean as the prototype?</h3><p>Under Gaussian class-conditionals with shared isotropic covariance, the class mean is the Bayes-optimal classifier. The mean is also robust enough to be useful even when that assumption fails &ndash; especially for $K \ge 5$.</p><h3 id=maml-or-prototypical-networks----which-should-i-use>MAML or Prototypical Networks &ndash; which should I use?</h3><p>Default to Prototypical Networks: simpler, faster, the prototypes are interpretable, and they tend to match or beat MAML on standard image benchmarks. Reach for MAML when (a) the tasks are diverse and look qualitatively different from one another, (b) the data is non-image and you do not have a great pretrained embedding, or (c) you specifically need adaptation that updates the <em>entire</em> network rather than just a final classifier.</p><h3 id=how-many-base-classes-do-i-need>How many base classes do I need?</h3><p>More is always better for generalization. Standard benchmarks use 64 base classes (miniImageNet) up to 1200+ (Omniglot). With fewer than ~30 base classes you tend to see severe overfitting to the base set itself, and novel-class accuracy collapses.</p><h3 id=does-any-of-this-work-for-non-image-data>Does any of this work for non-image data?</h3><p>Yes. Prototypical Networks work for anything with a meaningful embedding &ndash; text (use a transformer encoder), graphs (use a GNN), audio (use a spectrogram CNN). MAML and Reptile are model-agnostic by design. The episodic protocol does not care about modality.</p><h3 id=why-are-confidence-intervals-always-reported>Why are confidence intervals always reported?</h3><p>The per-episode accuracy variance is large &ndash; a single hard episode can swing 10-20 points. Reporting the mean over a few hundred episodes plus a 95% CI is the only way to make numbers comparable across papers.</p><hr><h2 id=summary>Summary</h2><p>Few-shot learning attacks deep learning&rsquo;s biggest practical bottleneck: data scarcity in the long tail.</p><ul><li><strong>Metric learning</strong> (Siamese, Prototypical, Matching, Relation Networks) learns an embedding space where distance equals dissimilarity. Simple, fast, interpretable. Prototypical Networks are the workhorse default.</li><li><strong>Meta-learning</strong> (MAML, FOMAML, Reptile) learns an initialization from which a few gradient steps reach the optimum of any new task. More flexible, costlier, less interpretable.</li><li><strong>Episodic training</strong> is the unifying training paradigm: each iteration is a fresh few-shot task, so training-time difficulty matches test-time difficulty.</li></ul><p>Across families, accuracies converge once the backbone is held fixed &ndash; a reminder that backbone capacity and pretraining quality matter at least as much as the few-shot algorithm on top.</p><p>Next: <a href=/en/transfer-learning-5-knowledge-distillation/>Part 5 &ndash; Knowledge Distillation</a>
+, where we compress a large teacher model into a small student that mimics it.</p><hr><h2 id=references>References</h2><ol><li>Snell et al. (2017). <em>Prototypical Networks for Few-shot Learning.</em> NeurIPS. <a href=https://arxiv.org/abs/1703.05175 target=_blank rel="noopener noreferrer">arXiv:1703.05175 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Finn et al. (2017). <em>Model-Agnostic Meta-Learning (MAML).</em> ICML. <a href=https://arxiv.org/abs/1703.03400 target=_blank rel="noopener noreferrer">arXiv:1703.03400 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Vinyals et al. (2016). <em>Matching Networks for One Shot Learning.</em> NeurIPS. <a href=https://arxiv.org/abs/1606.04080 target=_blank rel="noopener noreferrer">arXiv:1606.04080 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Sung et al. (2018). <em>Learning to Compare: Relation Network for Few-Shot Learning.</em> CVPR. <a href=https://arxiv.org/abs/1711.06025 target=_blank rel="noopener noreferrer">arXiv:1711.06025 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Nichol et al. (2018). <em>On First-Order Meta-Learning Algorithms (Reptile).</em> <a href=https://arxiv.org/abs/1803.02999 target=_blank rel="noopener noreferrer">arXiv:1803.02999 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Koch et al. (2015). <em>Siamese Neural Networks for One-shot Image Recognition.</em> ICML Deep Learning Workshop.</li><li>Chen et al. (2019). <em>A Closer Look at Few-shot Classification.</em> ICLR. <a href=https://arxiv.org/abs/1904.04232 target=_blank rel="noopener noreferrer">arXiv:1904.04232 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Wang et al. (2020). <em>Generalizing from a Few Examples: A Survey on Few-Shot Learning.</em> ACM Computing Surveys. <a href=https://arxiv.org/abs/1904.05046 target=_blank rel="noopener noreferrer">arXiv:1904.05046 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ol><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th></tr></thead><tbody><tr><td><a href=/en/transfer-learning-1-fundamentals-and-core-concepts/>1</a></td><td>Fundamentals and Core Concepts</td></tr><tr><td><a href=/en/transfer-learning-2-pre-training-and-fine-tuning/>2</a></td><td>Pre-training and Fine-tuning</td></tr><tr><td><a href=/en/transfer-learning-3-domain-adaptation/>3</a></td><td>Domain Adaptation</td></tr><tr><td><strong>4</strong></td><td><strong>Few-Shot Learning</strong> (you are here)</td></tr><tr><td><a href=/en/transfer-learning-5-knowledge-distillation/>5</a></td><td>Knowledge Distillation</td></tr><tr><td><a href=/en/transfer-learning-6-multi-task-learning/>6</a></td><td>Multi-Task Learning</td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#the-few-shot-challenge>The Few-Shot Challenge</a><ul><li><a href=#problem-setup-n-way-k-shot>Problem Setup: N-way K-shot</a></li><li><a href=#why-standard-training-fails>Why Standard Training Fails</a></li><li><a href=#the-core-insight>The Core Insight</a></li></ul></li><li><a href=#metric-learning-classification-by-distance>Metric Learning: Classification by Distance</a><ul><li><a href=#siamese-networks>Siamese Networks</a></li><li><a href=#prototypical-networks>Prototypical Networks</a><ul><li><a href=#computing-prototypes>Computing prototypes</a></li><li><a href=#classification>Classification</a></li><li><a href=#why-prototypes-are-principled>Why prototypes are principled</a></li></ul></li><li><a href=#matching-networks>Matching Networks</a></li><li><a href=#relation-networks>Relation Networks</a></li></ul></li><li><a href=#meta-learning-learning-to-learn>Meta-Learning: Learning to Learn</a><ul><li><a href=#maml-model-agnostic-meta-learning>MAML: Model-Agnostic Meta-Learning</a><ul><li><a href=#algorithm>Algorithm</a></li><li><a href=#first-order-approximation-fomaml>First-order approximation (FOMAML)</a></li><li><a href=#geometric-intuition>Geometric intuition</a></li></ul></li><li><a href=#reptile-even-simpler>Reptile: Even Simpler</a></li></ul></li><li><a href=#episodic-training>Episodic Training</a><ul><li><a href=#how-an-episode-is-built>How an episode is built</a></li><li><a href=#why-this-matters>Why this matters</a></li></ul></li><li><a href=#how-well-does-any-of-this-work>How Well Does Any of This Work?</a></li><li><a href=#complete-implementation-prototypical-networks>Complete Implementation: Prototypical Networks</a><ul><li><a href=#code-walkthrough>Code Walkthrough</a></li></ul></li><li><a href=#faq>FAQ</a><ul><li><a href=#how-is-few-shot-learning-different-from-ordinary-transfer-learning>How is few-shot learning different from ordinary transfer learning?</a></li><li><a href=#why-do-prototypical-networks-use-the-mean-as-the-prototype>Why do Prototypical networks use the mean as the prototype?</a></li><li><a href=#maml-or-prototypical-networks----which-should-i-use>MAML or Prototypical Networks &ndash; which should I use?</a></li><li><a href=#how-many-base-classes-do-i-need>How many base classes do I need?</a></li><li><a href=#does-any-of-this-work-for-non-image-data>Does any of this work for non-image data?</a></li><li><a href=#why-are-confidence-intervals-always-reported>Why are confidence intervals always reported?</a></li></ul></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>15 min</strong></div><div class=row><span>Word count</span><strong>3144</strong></div><div class=row><span>Published</span><strong>May 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

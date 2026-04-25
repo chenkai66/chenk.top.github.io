@@ -1,551 +1,210 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>NLP (8): Model Fine-tuning and PEFT · Chen Kai Blog</title>
-<meta name="description" content="A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA&#39;s low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/nlp/fine-tuning-peft/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/nlp/fine-tuning-peft/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="NLP (8): Model Fine-tuning and PEFT">
-<meta property="og:description" content="A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA&#39;s low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production.">
-<meta property="og:url" content="https://www.chenk.top/en/nlp/fine-tuning-peft/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-4);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">NLP</a>
-         · Chapter 8
-      </div>
-      <h1>NLP (8): Model Fine-tuning and PEFT</h1>
-      <p class="deck">A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA&#39;s low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-11-05">November 5, 2025</time> · 15 min read · 3100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/nlp/" class="tag">#NLP</a><a href="/en/tags/peft/" class="tag">#PEFT</a><a href="/en/tags/lora/" class="tag">#LoRA</a><a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/fine-tuning/" class="tag">#Fine-tuning</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>In 2020, fine-tuning a 7-billion-parameter language model was a project budget item: eight A100s, several days, and an engineer who knew how to babysit gradient checkpointing. In 2024, a graduate student does it on a laptop. The distance between those two worlds is almost entirely covered by one paper — Hu et al.&rsquo;s LoRA (ICLR 2022) — and one follow-up — Dettmers et al.&rsquo;s QLoRA (NeurIPS 2023).</p>
-<p>The shift is not just engineering. Parameter-Efficient Fine-Tuning (PEFT) reframes what it means to &ldquo;have a model.&rdquo; Instead of one binary blob per task, you keep a single frozen base model and a directory of small adapter files, each a few tens of megabytes. Switching tasks becomes loading a new adapter; serving N domains becomes O(1) base + N · ε.</p>
-<p>This article reconstructs PEFT from first principles. We start with the question full fine-tuning answers — and the questions it does not — then derive LoRA&rsquo;s low-rank assumption, walk through the memory math that makes QLoRA fit a 7B model in 6 GB, and finish with practical choices: which method, which rank, which modules.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li><strong>Why</strong> full fine-tuning is wasteful in the LLM era — overparameterization and the intrinsic-rank hypothesis</li>
-<li><strong>LoRA mechanics</strong>: the decomposition $\Delta W = BA$, why $B$ is initialized to zero, how $\alpha/r$ scaling changes effective learning rate</li>
-<li><strong>QLoRA</strong>: NF4 quantization, double quantization, and paged optimizers — and the exact memory accounting</li>
-<li><strong>Adapters and Prefix-Tuning</strong>: where they sit in the Transformer block, when they win, when they lose</li>
-<li><strong>Production choices</strong>: rank selection, target modules, multi-LoRA serving, alignment via instruction tuning and RLHF</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Transformer architecture (<a href="/en/nlp-attention-transformer/">Part 4</a>
-)</li>
-<li>GPT-style decoders (<a href="/en/nlp-gpt-generative-models/">Part 6</a>
-)</li>
-<li>PyTorch and basic GPU memory intuition (optimizer state, activations, gradients)</li>
-</ul>
-<hr>
-<h2 id="1-why-not-just-fine-tune-everything">1. Why not just fine-tune everything?</h2>
-<h3 id="the-cost-ledger">The cost ledger</h3>
-<p>Full fine-tuning means every parameter is unfrozen, every gradient is stored, and the optimizer (typically AdamW) keeps two extra fp32 buffers per parameter. For a 7B model in mixed precision, the per-step VRAM bill looks like this:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Component</th>
-          <th>Bytes per parameter</th>
-          <th>7B model</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Weights (fp16)</td>
-          <td>2</td>
-          <td>14 GB</td>
-      </tr>
-      <tr>
-          <td>Gradients (fp16)</td>
-          <td>2</td>
-          <td>14 GB</td>
-      </tr>
-      <tr>
-          <td>AdamW states (fp32 m + v)</td>
-          <td>8</td>
-          <td>56 GB</td>
-      </tr>
-      <tr>
-          <td>Activations (varies with seq, batch)</td>
-          <td>—</td>
-          <td>8–20 GB</td>
-      </tr>
-      <tr>
-          <td><strong>Total</strong></td>
-          <td>—</td>
-          <td><strong>~95 GB</strong></td>
-      </tr>
-  </tbody>
-</table>
-<p>That is two A100-80GB cards minimum, before you have written a single line of training code. The ledger explains why PEFT is not a &ldquo;nice optimization&rdquo; — it is the <em>only</em> way most practitioners can touch a 7B+ model at all.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig1_full_vs_peft.png" alt="Trainable parameters across PEFT methods on a 7B base, and disk cost when serving N tasks." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="the-intrinsic-rank-hypothesis">The intrinsic-rank hypothesis</h3>
-<p>There is also a deeper reason to prefer PEFT, articulated by Aghajanyan et al. (2020) and the LoRA paper: <strong>fine-tuning updates have very low intrinsic rank</strong>. If the change you need to make to a pre-trained model lives in a low-dimensional subspace, then training a full $d \times k$ matrix is not just expensive — it is the wrong hypothesis class. You should be searching the low-rank submanifold directly.</p>
-<p>Empirically, fine-tuning a 175B model on a downstream task can be matched by training as few as $\sim$200 directions in parameter space (Aghajanyan et al., 2020). This is the conceptual key that unlocks LoRA.</p>
-<h3 id="frozen-fine-tuning--the-weak-baseline">Frozen fine-tuning — the weak baseline</h3>
-<p>Before PEFT, the simplest cost-saver was to freeze the body and train only the head, or unfreeze the top few layers:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">transformer</span><span class="o">.</span><span class="n">h</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>This works for classification on top of BERT-class encoders, but fails on generative tasks: the trained layers cannot redirect the upstream representations enough. PEFT methods, in contrast, inject trainable parameters <em>throughout</em> the network while keeping the count tiny.</p>
-<hr>
-<h2 id="2-lora-low-rank-adaptation">2. LoRA: low-rank adaptation</h2>
-<h3 id="the-decomposition">The decomposition</h3>
-<p>For a frozen weight matrix $W_0 \in \mathbb{R}^{d \times k}$, LoRA learns an additive update parameterized as a product of two thin matrices:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>NLP (8): Model Fine-tuning and PEFT · Chen Kai Blog</title>
+<meta name=description content="A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA's low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/nlp/fine-tuning-peft/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/fine-tuning-peft/><meta property="og:type" content="article"><meta property="og:title" content="NLP (8): Model Fine-tuning and PEFT"><meta property="og:description" content="A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA's low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production."><meta property="og:url" content="https://www.chenk.top/en/nlp/fine-tuning-peft/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-4)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>NLP</a>
+· Chapter 8</div><h1>NLP (8): Model Fine-tuning and PEFT</h1><p class=deck>A deep dive into Parameter-Efficient Fine-Tuning. Why LoRA's low-rank update works, the math and memory accounting behind QLoRA, how Adapters and Prefix-Tuning differ, and how to choose between them in production.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-11-05>November 5, 2025</time> · 15 min read · 3015 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/nlp/ class=tag>#NLP</a><a href=/en/tags/peft/ class=tag>#PEFT</a><a href=/en/tags/lora/ class=tag>#LoRA</a><a href=/en/tags/llm/ class=tag>#LLM</a><a href=/en/tags/fine-tuning/ class=tag>#Fine-tuning</a></div></div></header><div class=prose><p>In 2020, fine-tuning a 7-billion-parameter language model was a project budget item: eight A100s, several days, and an engineer who knew how to babysit gradient checkpointing. In 2024, a graduate student does it on a laptop. The distance between those two worlds is almost entirely covered by one paper — Hu et al.&rsquo;s LoRA (ICLR 2022) — and one follow-up — Dettmers et al.&rsquo;s QLoRA (NeurIPS 2023).</p><p>The shift is not just engineering. Parameter-Efficient Fine-Tuning (PEFT) reframes what it means to &ldquo;have a model.&rdquo; Instead of one binary blob per task, you keep a single frozen base model and a directory of small adapter files, each a few tens of megabytes. Switching tasks becomes loading a new adapter; serving N domains becomes O(1) base + N · ε.</p><p>This article reconstructs PEFT from first principles. We start with the question full fine-tuning answers — and the questions it does not — then derive LoRA&rsquo;s low-rank assumption, walk through the memory math that makes QLoRA fit a 7B model in 6 GB, and finish with practical choices: which method, which rank, which modules.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li><strong>Why</strong> full fine-tuning is wasteful in the LLM era — overparameterization and the intrinsic-rank hypothesis</li><li><strong>LoRA mechanics</strong>: the decomposition $\Delta W = BA$, why $B$ is initialized to zero, how $\alpha/r$ scaling changes effective learning rate</li><li><strong>QLoRA</strong>: NF4 quantization, double quantization, and paged optimizers — and the exact memory accounting</li><li><strong>Adapters and Prefix-Tuning</strong>: where they sit in the Transformer block, when they win, when they lose</li><li><strong>Production choices</strong>: rank selection, target modules, multi-LoRA serving, alignment via instruction tuning and RLHF</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Transformer architecture (<a href=/en/nlp-attention-transformer/>Part 4</a>
+)</li><li>GPT-style decoders (<a href=/en/nlp-gpt-generative-models/>Part 6</a>
+)</li><li>PyTorch and basic GPU memory intuition (optimizer state, activations, gradients)</li></ul><hr><h2 id=1-why-not-just-fine-tune-everything>1. Why not just fine-tune everything?</h2><h3 id=the-cost-ledger>The cost ledger</h3><p>Full fine-tuning means every parameter is unfrozen, every gradient is stored, and the optimizer (typically AdamW) keeps two extra fp32 buffers per parameter. For a 7B model in mixed precision, the per-step VRAM bill looks like this:</p><table><thead><tr><th>Component</th><th>Bytes per parameter</th><th>7B model</th></tr></thead><tbody><tr><td>Weights (fp16)</td><td>2</td><td>14 GB</td></tr><tr><td>Gradients (fp16)</td><td>2</td><td>14 GB</td></tr><tr><td>AdamW states (fp32 m + v)</td><td>8</td><td>56 GB</td></tr><tr><td>Activations (varies with seq, batch)</td><td>—</td><td>8–20 GB</td></tr><tr><td><strong>Total</strong></td><td>—</td><td><strong>~95 GB</strong></td></tr></tbody></table><p>That is two A100-80GB cards minimum, before you have written a single line of training code. The ledger explains why PEFT is not a &ldquo;nice optimization&rdquo; — it is the <em>only</em> way most practitioners can touch a 7B+ model at all.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig1_full_vs_peft.png alt="Trainable parameters across PEFT methods on a 7B base, and disk cost when serving N tasks." loading=lazy decoding=async></figure></p><h3 id=the-intrinsic-rank-hypothesis>The intrinsic-rank hypothesis</h3><p>There is also a deeper reason to prefer PEFT, articulated by Aghajanyan et al. (2020) and the LoRA paper: <strong>fine-tuning updates have very low intrinsic rank</strong>. If the change you need to make to a pre-trained model lives in a low-dimensional subspace, then training a full $d \times k$ matrix is not just expensive — it is the wrong hypothesis class. You should be searching the low-rank submanifold directly.</p><p>Empirically, fine-tuning a 175B model on a downstream task can be matched by training as few as $\sim$200 directions in parameter space (Aghajanyan et al., 2020). This is the conceptual key that unlocks LoRA.</p><h3 id=frozen-fine-tuning--the-weak-baseline>Frozen fine-tuning — the weak baseline</h3><p>Before PEFT, the simplest cost-saver was to freeze the body and train only the head, or unfreeze the top few layers:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>for</span> <span class=n>param</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>param</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>param</span> <span class=ow>in</span> <span class=n>model</span><span class=o>.</span><span class=n>transformer</span><span class=o>.</span><span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>:]</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>param</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>True</span>
+</span></span></code></pre></td></tr></table></div></div><p>This works for classification on top of BERT-class encoders, but fails on generative tasks: the trained layers cannot redirect the upstream representations enough. PEFT methods, in contrast, inject trainable parameters <em>throughout</em> the network while keeping the count tiny.</p><hr><h2 id=2-lora-low-rank-adaptation>2. LoRA: low-rank adaptation</h2><h3 id=the-decomposition>The decomposition</h3><p>For a frozen weight matrix $W_0 \in \mathbb{R}^{d \times k}$, LoRA learns an additive update parameterized as a product of two thin matrices:</p>$$
 W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r}\, B A,
 \qquad B \in \mathbb{R}^{d \times r},\ A \in \mathbb{R}^{r \times k},\ r \ll \min(d, k).
-$$<p>The forward pass becomes $h = x W_0^\top + \frac{\alpha}{r} (x A^\top) B^\top$. The original computation $x W_0^\top$ is unchanged; the LoRA branch adds a rank-$r$ correction.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig2_lora_decomp.png" alt="LoRA decomposes the weight update into two thin matrices, $B$ initialized to zero and $A$ to small random values." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="counting-parameters">Counting parameters</h3>
-<p>For $d = k = 4096$ (LLaMA-7B&rsquo;s hidden size) and $r = 8$:</p>
-<ul>
-<li>Original $W_0$: $d \cdot k = 16{,}777{,}216$ parameters</li>
-<li>LoRA $A, B$: $r \cdot (d + k) = 65{,}536$ parameters</li>
-<li>Reduction: <strong>256× fewer trainable parameters per matrix</strong></li>
-</ul>
-<p>Apply LoRA to all four attention projections in 32 layers and you are training roughly 8 M parameters out of 7 B — about 0.12%.</p>
-<h3 id="two-design-choices-that-matter">Two design choices that matter</h3>
-<p><strong>Initialization asymmetry.</strong> $B$ is initialized to zero, $A$ to a small Gaussian. Therefore $BA = 0$ at step zero, and the model behaves <em>exactly</em> like the pre-trained version on its first forward pass. Training begins from a known-good operating point — no warmup gymnastics needed.</p>
-<p><strong>The $\alpha/r$ scale.</strong> This is not a cosmetic constant. Increasing $r$ at fixed $\alpha$ would otherwise increase the update magnitude (more directions, larger combined norm), forcing you to retune learning rate. The $\alpha/r$ factor decouples them: pick $\alpha$ once (typical $\alpha = 2r$), sweep $r$ for capacity, the effective step size stays roughly constant.</p>
-<h3 id="a-minimal-implementation">A minimal implementation</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Wraps a frozen nn.Linear with a trainable low-rank update.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">in_f</span><span class="p">,</span> <span class="n">out_f</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="n">base</span><span class="o">.</span><span class="n">out_features</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># A: (r, in_features) — small Gaussian init</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">in_f</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">5</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># B: (out_features, r) — zero init so the branch starts inert</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">out_f</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">r</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span> <span class="k">if</span> <span class="n">dropout</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># original frozen path</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># low-rank branch: x @ A^T @ B^T, scaled</span>
-</span></span><span class="line"><span class="cl">        <span class="n">lora_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">*</span> <span class="n">lora_out</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Fold the LoRA delta into the base weight (zero inference overhead).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">lora_A</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">+=</span> <span class="n">delta</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lora_B</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The <code>merge()</code> method is the trick that makes LoRA cost nothing at inference: once trained, fold $\Delta W$ into $W_0$ and the model becomes architecturally identical to the original — no extra matmul, no extra latency.</p>
-<h3 id="where-to-apply-lora">Where to apply LoRA</h3>
-<p>Hu et al. found that applying LoRA to <strong>query and value projections</strong> (<code>q_proj</code>, <code>v_proj</code>) recovers most of the gain. The current production default is broader — all four attention projections, sometimes the FFN as well:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">peft</span> <span class="kn">import</span> <span class="n">LoraConfig</span><span class="p">,</span> <span class="n">get_peft_model</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">config</span> <span class="o">=</span> <span class="n">LoraConfig</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">lora_alpha</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">target_modules</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;q_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;k_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;v_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;o_proj&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">lora_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="s2">&#34;none&#34;</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s2">&#34;CAUSAL_LM&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">get_peft_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">print_trainable_parameters</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># trainable params: 8,388,608 || all params: 6,746,804,224 || trainable%: 0.124</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Adding <code>gate_proj</code>, <code>up_proj</code>, <code>down_proj</code> (the LLaMA FFN trio) typically buys a fraction of a point on benchmarks at 3× the trainable parameter count. Worth it for code generation; rarely worth it for classification.</p>
-<hr>
-<h2 id="3-qlora-pushing-the-base-into-4-bits">3. QLoRA: pushing the base into 4 bits</h2>
-<p>LoRA solved the <em>trainable</em> parameter problem. The <em>frozen</em> parameters still sit in fp16 and dominate VRAM. QLoRA attacks that.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig5_qlora.png" alt="QLoRA combines a 4-bit quantized base with bf16 LoRA adapters; gradients flow only through the small green path." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="the-three-qlora-innovations">The three QLoRA innovations</h3>
-<p><strong>1. NF4 (NormalFloat 4-bit) quantization.</strong> Standard 4-bit integer quantization wastes resolution because LLM weights are not uniformly distributed — they are approximately Gaussian. NF4 picks 16 quantization levels that are equiprobable under a standard normal distribution, giving information-theoretically optimal coverage. The block size is typically 64 weights, with one fp16 scale per block.</p>
-<p><strong>2. Double quantization.</strong> Each block needs a scale constant; for a 7B model with block size 64, that is $\sim$110 M scale constants × 4 bytes = 0.44 GB of overhead. QLoRA quantizes the <em>constants themselves</em> to 8-bit, recovering ~0.4 bit per parameter — small but meaningful at 7B scale.</p>
-<p><strong>3. Paged optimizers.</strong> Long sequences cause activation memory to spike. Paged AdamW offloads optimizer state to CPU RAM via NVIDIA Unified Memory, then pages it back in. You trade some throughput for the ability to train sequences that would otherwise OOM.</p>
-<h3 id="the-setup">The setup</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">BitsAndBytesConfig</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">peft</span> <span class="kn">import</span> <span class="n">LoraConfig</span><span class="p">,</span> <span class="n">get_peft_model</span><span class="p">,</span> <span class="n">prepare_model_for_kbit_training</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">bnb</span> <span class="o">=</span> <span class="n">BitsAndBytesConfig</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">load_in_4bit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bnb_4bit_quant_type</span><span class="o">=</span><span class="s2">&#34;nf4&#34;</span><span class="p">,</span>          <span class="c1"># NormalFloat 4-bit</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bnb_4bit_compute_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bnb_4bit_use_double_quant</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>     <span class="c1"># quantize the quantization constants</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;meta-llama/Llama-2-7b-hf&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">quantization_config</span><span class="o">=</span><span class="n">bnb</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">prepare_model_for_kbit_training</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>   <span class="c1"># cast LayerNorms to fp32, etc.</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">lora</span> <span class="o">=</span> <span class="n">LoraConfig</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">lora_alpha</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">lora_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">target_modules</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;q_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;k_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;v_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;o_proj&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bias</span><span class="o">=</span><span class="s2">&#34;none&#34;</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s2">&#34;CAUSAL_LM&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">get_peft_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">lora</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="what-it-costs-you-what-it-saves">What it costs you, what it saves</h3>
-<p>QLoRA gives back about 1–2 percentage points on most benchmarks compared with fp16 LoRA, and recovers most of full fine-tuning. The win is dramatic VRAM:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig6_memory.png" alt="Training memory by component, and peak VRAM across model scales — QLoRA brings 70B inside an A100." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>For a 70B model, full fine-tuning needs roughly a terabyte of VRAM (and is essentially never done outside frontier labs). QLoRA brings it inside a single 80 GB GPU. That is the difference between &ldquo;research-only&rdquo; and &ldquo;your team can do this.&rdquo;</p>
-<hr>
-<h2 id="4-adapters-the-og-peft-method">4. Adapters: the OG PEFT method</h2>
-<p>Houlsby et al. (2019) proposed adapters two years before LoRA. The idea: insert a small bottleneck module after each sub-layer of the Transformer.</p>
-$$
+$$<p>The forward pass becomes $h = x W_0^\top + \frac{\alpha}{r} (x A^\top) B^\top$. The original computation $x W_0^\top$ is unchanged; the LoRA branch adds a rank-$r$ correction.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig2_lora_decomp.png alt="LoRA decomposes the weight update into two thin matrices, $B$ initialized to zero and $A$ to small random values." loading=lazy decoding=async></figure></p><h3 id=counting-parameters>Counting parameters</h3><p>For $d = k = 4096$ (LLaMA-7B&rsquo;s hidden size) and $r = 8$:</p><ul><li>Original $W_0$: $d \cdot k = 16{,}777{,}216$ parameters</li><li>LoRA $A, B$: $r \cdot (d + k) = 65{,}536$ parameters</li><li>Reduction: <strong>256× fewer trainable parameters per matrix</strong></li></ul><p>Apply LoRA to all four attention projections in 32 layers and you are training roughly 8 M parameters out of 7 B — about 0.12%.</p><h3 id=two-design-choices-that-matter>Two design choices that matter</h3><p><strong>Initialization asymmetry.</strong> $B$ is initialized to zero, $A$ to a small Gaussian. Therefore $BA = 0$ at step zero, and the model behaves <em>exactly</em> like the pre-trained version on its first forward pass. Training begins from a known-good operating point — no warmup gymnastics needed.</p><p><strong>The $\alpha/r$ scale.</strong> This is not a cosmetic constant. Increasing $r$ at fixed $\alpha$ would otherwise increase the update magnitude (more directions, larger combined norm), forcing you to retune learning rate. The $\alpha/r$ factor decouples them: pick $\alpha$ once (typical $\alpha = 2r$), sweep $r$ for capacity, the effective step size stays roughly constant.</p><h3 id=a-minimal-implementation>A minimal implementation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>LoRALinear</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Wraps a frozen nn.Linear with a trainable low-rank update.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>,</span> <span class=n>r</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>,</span> <span class=n>alpha</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>in_f</span><span class=p>,</span> <span class=n>out_f</span> <span class=o>=</span> <span class=n>base</span><span class=o>.</span><span class=n>in_features</span><span class=p>,</span> <span class=n>base</span><span class=o>.</span><span class=n>out_features</span>
+</span></span><span class=line><span class=cl>        <span class=c1># A: (r, in_features) — small Gaussian init</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>r</span><span class=p>,</span> <span class=n>in_f</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>kaiming_uniform_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=p>,</span> <span class=n>a</span><span class=o>=</span><span class=mi>5</span> <span class=o>**</span> <span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># B: (out_features, r) — zero init so the branch starts inert</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>out_f</span><span class=p>,</span> <span class=n>r</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>=</span> <span class=n>alpha</span> <span class=o>/</span> <span class=n>r</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span> <span class=k>if</span> <span class=n>dropout</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>nn</span><span class=o>.</span><span class=n>Identity</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># original frozen path</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># low-rank branch: x @ A^T @ B^T, scaled</span>
+</span></span><span class=line><span class=cl>        <span class=n>lora_out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>*</span> <span class=n>lora_out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>merge</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Fold the LoRA delta into the base weight (zero inference overhead).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>delta</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scaling</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>lora_A</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>data</span> <span class=o>+=</span> <span class=n>delta</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lora_B</span><span class=o>.</span><span class=n>zero_</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>merge()</code> method is the trick that makes LoRA cost nothing at inference: once trained, fold $\Delta W$ into $W_0$ and the model becomes architecturally identical to the original — no extra matmul, no extra latency.</p><h3 id=where-to-apply-lora>Where to apply LoRA</h3><p>Hu et al. found that applying LoRA to <strong>query and value projections</strong> (<code>q_proj</code>, <code>v_proj</code>) recovers most of the gain. The current production default is broader — all four attention projections, sometimes the FFN as well:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>peft</span> <span class=kn>import</span> <span class=n>LoraConfig</span><span class=p>,</span> <span class=n>get_peft_model</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>config</span> <span class=o>=</span> <span class=n>LoraConfig</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lora_alpha</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_modules</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;q_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;k_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;v_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;o_proj&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>lora_dropout</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span> <span class=n>bias</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>,</span> <span class=n>task_type</span><span class=o>=</span><span class=s2>&#34;CAUSAL_LM&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>get_peft_model</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>config</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>print_trainable_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=c1># trainable params: 8,388,608 || all params: 6,746,804,224 || trainable%: 0.124</span>
+</span></span></code></pre></td></tr></table></div></div><p>Adding <code>gate_proj</code>, <code>up_proj</code>, <code>down_proj</code> (the LLaMA FFN trio) typically buys a fraction of a point on benchmarks at 3× the trainable parameter count. Worth it for code generation; rarely worth it for classification.</p><hr><h2 id=3-qlora-pushing-the-base-into-4-bits>3. QLoRA: pushing the base into 4 bits</h2><p>LoRA solved the <em>trainable</em> parameter problem. The <em>frozen</em> parameters still sit in fp16 and dominate VRAM. QLoRA attacks that.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig5_qlora.png alt="QLoRA combines a 4-bit quantized base with bf16 LoRA adapters; gradients flow only through the small green path." loading=lazy decoding=async></figure></p><h3 id=the-three-qlora-innovations>The three QLoRA innovations</h3><p><strong>1. NF4 (NormalFloat 4-bit) quantization.</strong> Standard 4-bit integer quantization wastes resolution because LLM weights are not uniformly distributed — they are approximately Gaussian. NF4 picks 16 quantization levels that are equiprobable under a standard normal distribution, giving information-theoretically optimal coverage. The block size is typically 64 weights, with one fp16 scale per block.</p><p><strong>2. Double quantization.</strong> Each block needs a scale constant; for a 7B model with block size 64, that is $\sim$110 M scale constants × 4 bytes = 0.44 GB of overhead. QLoRA quantizes the <em>constants themselves</em> to 8-bit, recovering ~0.4 bit per parameter — small but meaningful at 7B scale.</p><p><strong>3. Paged optimizers.</strong> Long sequences cause activation memory to spike. Paged AdamW offloads optimizer state to CPU RAM via NVIDIA Unified Memory, then pages it back in. You trade some throughput for the ability to train sequences that would otherwise OOM.</p><h3 id=the-setup>The setup</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>AutoModelForCausalLM</span><span class=p>,</span> <span class=n>BitsAndBytesConfig</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>peft</span> <span class=kn>import</span> <span class=n>LoraConfig</span><span class=p>,</span> <span class=n>get_peft_model</span><span class=p>,</span> <span class=n>prepare_model_for_kbit_training</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>bnb</span> <span class=o>=</span> <span class=n>BitsAndBytesConfig</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>load_in_4bit</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_quant_type</span><span class=o>=</span><span class=s2>&#34;nf4&#34;</span><span class=p>,</span>          <span class=c1># NormalFloat 4-bit</span>
+</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_compute_dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>bfloat16</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_use_double_quant</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>     <span class=c1># quantize the quantization constants</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>AutoModelForCausalLM</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;meta-llama/Llama-2-7b-hf&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>quantization_config</span><span class=o>=</span><span class=n>bnb</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>device_map</span><span class=o>=</span><span class=s2>&#34;auto&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>prepare_model_for_kbit_training</span><span class=p>(</span><span class=n>model</span><span class=p>)</span>   <span class=c1># cast LayerNorms to fp32, etc.</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>lora</span> <span class=o>=</span> <span class=n>LoraConfig</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lora_alpha</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>lora_dropout</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_modules</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;q_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;k_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;v_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;o_proj&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>bias</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>,</span> <span class=n>task_type</span><span class=o>=</span><span class=s2>&#34;CAUSAL_LM&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>get_peft_model</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>lora</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=what-it-costs-you-what-it-saves>What it costs you, what it saves</h3><p>QLoRA gives back about 1–2 percentage points on most benchmarks compared with fp16 LoRA, and recovers most of full fine-tuning. The win is dramatic VRAM:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig6_memory.png alt="Training memory by component, and peak VRAM across model scales — QLoRA brings 70B inside an A100." loading=lazy decoding=async></figure></p><p>For a 70B model, full fine-tuning needs roughly a terabyte of VRAM (and is essentially never done outside frontier labs). QLoRA brings it inside a single 80 GB GPU. That is the difference between &ldquo;research-only&rdquo; and &ldquo;your team can do this.&rdquo;</p><hr><h2 id=4-adapters-the-og-peft-method>4. Adapters: the OG PEFT method</h2><p>Houlsby et al. (2019) proposed adapters two years before LoRA. The idea: insert a small bottleneck module after each sub-layer of the Transformer.</p>$$
 \text{Adapter}(x) = x + W_{\text{up}}\, \sigma(W_{\text{down}}\, x), \qquad
 W_{\text{down}} \in \mathbb{R}^{m \times d},\ W_{\text{up}} \in \mathbb{R}^{d \times m},\ m \ll d.
-$$<p>$W_{\text{up}}$ is initialized to zero so the adapter is initially the identity — same trick as LoRA&rsquo;s $B$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig3_adapter.png" alt="Adapters are inserted after attention and FFN sub-layers; each is a down-project / nonlinearity / up-project bottleneck with a residual." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Adapter</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bottleneck</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">down</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">bottleneck</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">up</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">bottleneck</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">up</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">up</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">act</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">up</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">down</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="adapter-vs-lora--when-each-wins">Adapter vs LoRA — when each wins</h3>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th><strong>Adapter</strong></th>
-          <th><strong>LoRA</strong></th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Where it sits</td>
-          <td><em>Inside</em> the residual path</td>
-          <td><em>Beside</em> a weight matrix</td>
-      </tr>
-      <tr>
-          <td>Inference overhead</td>
-          <td>Extra matmul per block (~5–10% latency)</td>
-          <td>None after <code>merge()</code></td>
-      </tr>
-      <tr>
-          <td>Composability</td>
-          <td>Stack adapters</td>
-          <td>Add LoRA deltas</td>
-      </tr>
-      <tr>
-          <td>Multi-task serving</td>
-          <td>One adapter per task</td>
-          <td>One LoRA per task; supports batched mixing</td>
-      </tr>
-      <tr>
-          <td>Typical size</td>
-          <td>~0.5–3% of base</td>
-          <td>~0.1–1%</td>
-      </tr>
-      <tr>
-          <td>Best for</td>
-          <td>Settings with stable inference graph</td>
-          <td>LLM serving with strict latency budgets</td>
-      </tr>
-  </tbody>
-</table>
-<p>LoRA has eaten most of adapters&rsquo; market share because of the zero-overhead inference property. Adapters remain attractive when you want very explicit modular composition — multilingual setups, for instance, where AdapterFusion (Pfeiffer et al., 2021) combines language-specific adapters at inference.</p>
-<hr>
-<h2 id="5-prompt-based-peft-tuning-the-input-not-the-weights">5. Prompt-based PEFT: tuning the input, not the weights</h2>
-<p>A radically different idea: leave the model entirely frozen and learn <em>what to feed it</em>.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig4_prefix_prompt.png" alt="Three flavors of prompt-based PEFT — soft prompt at the input, KV prefix per layer, and deep prompts everywhere." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="prompt-tuning-lester-et-al-2021">Prompt-Tuning (Lester et al., 2021)</h3>
-<p>Prepend $n$ trainable embedding vectors to the input sequence. That is the entire method. With a 11B T5 model, prompt-tuning matches full fine-tuning on SuperGLUE — but the result <em>only holds at scale</em>. For sub-1B models prompt-tuning lags badly.</p>
-<h3 id="prefix-tuning-li--liang-2021">Prefix-Tuning (Li &amp; Liang, 2021)</h3>
-<p>Same idea but applied at every Transformer layer&rsquo;s attention: learn key and value prefix matrices $P_K, P_V$ that get prepended before attention computation:</p>
-$$
+$$<p>$W_{\text{up}}$ is initialized to zero so the adapter is initially the identity — same trick as LoRA&rsquo;s $B$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig3_adapter.png alt="Adapters are inserted after attention and FFN sub-layers; each is a down-project / nonlinearity / up-project bottleneck with a residual." loading=lazy decoding=async></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>Adapter</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>d_model</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>bottleneck</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>down</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>bottleneck</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>up</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>bottleneck</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>zeros_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>up</span><span class=o>.</span><span class=n>weight</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>zeros_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>up</span><span class=o>.</span><span class=n>bias</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>act</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>GELU</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>x</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>up</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>act</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>down</span><span class=p>(</span><span class=n>x</span><span class=p>)))</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=adapter-vs-lora--when-each-wins>Adapter vs LoRA — when each wins</h3><table><thead><tr><th></th><th><strong>Adapter</strong></th><th><strong>LoRA</strong></th></tr></thead><tbody><tr><td>Where it sits</td><td><em>Inside</em> the residual path</td><td><em>Beside</em> a weight matrix</td></tr><tr><td>Inference overhead</td><td>Extra matmul per block (~5–10% latency)</td><td>None after <code>merge()</code></td></tr><tr><td>Composability</td><td>Stack adapters</td><td>Add LoRA deltas</td></tr><tr><td>Multi-task serving</td><td>One adapter per task</td><td>One LoRA per task; supports batched mixing</td></tr><tr><td>Typical size</td><td>~0.5–3% of base</td><td>~0.1–1%</td></tr><tr><td>Best for</td><td>Settings with stable inference graph</td><td>LLM serving with strict latency budgets</td></tr></tbody></table><p>LoRA has eaten most of adapters&rsquo; market share because of the zero-overhead inference property. Adapters remain attractive when you want very explicit modular composition — multilingual setups, for instance, where AdapterFusion (Pfeiffer et al., 2021) combines language-specific adapters at inference.</p><hr><h2 id=5-prompt-based-peft-tuning-the-input-not-the-weights>5. Prompt-based PEFT: tuning the input, not the weights</h2><p>A radically different idea: leave the model entirely frozen and learn <em>what to feed it</em>.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig4_prefix_prompt.png alt="Three flavors of prompt-based PEFT — soft prompt at the input, KV prefix per layer, and deep prompts everywhere." loading=lazy decoding=async></figure></p><h3 id=prompt-tuning-lester-et-al-2021>Prompt-Tuning (Lester et al., 2021)</h3><p>Prepend $n$ trainable embedding vectors to the input sequence. That is the entire method. With a 11B T5 model, prompt-tuning matches full fine-tuning on SuperGLUE — but the result <em>only holds at scale</em>. For sub-1B models prompt-tuning lags badly.</p><h3 id=prefix-tuning-li--liang-2021>Prefix-Tuning (Li & Liang, 2021)</h3><p>Same idea but applied at every Transformer layer&rsquo;s attention: learn key and value prefix matrices $P_K, P_V$ that get prepended before attention computation:</p>$$
 \text{Attention}(Q,\ [P_K; K],\ [P_V; V]).
-$$<p>Because each layer has its own prefix, the model can rewrite its computation more deeply than a single input prompt allows.</p>
-<h3 id="p-tuning-v2-liu-et-al-2022">P-Tuning v2 (Liu et al., 2022)</h3>
-<p>Drops the reparameterization MLP that Prefix-Tuning used (it was unstable across model scales) and applies deep prompts uniformly. P-Tuning v2 is the first prompt-based method to match full fine-tuning on <strong>NLU tasks at all scales</strong>, including small models.</p>
-<p><strong>When to use them.</strong> Prompt methods shine when (a) you need extreme parameter efficiency — a few KB per task — or (b) you want to ship many prompts behind a single served model. They tend to underperform LoRA on generative tasks.</p>
-<hr>
-<h2 id="6-choosing-among-methods">6. Choosing among methods</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig7_perf_vs_params.png" alt="PEFT methods on the parameter-efficiency / quality plane, and how LoRA rank affects different task types." loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A practical decision tree:</p>
-<pre tabindex="0"><code>                     ┌─ Need the absolute best score? → Full FT (if you can afford it)
+$$<p>Because each layer has its own prefix, the model can rewrite its computation more deeply than a single input prompt allows.</p><h3 id=p-tuning-v2-liu-et-al-2022>P-Tuning v2 (Liu et al., 2022)</h3><p>Drops the reparameterization MLP that Prefix-Tuning used (it was unstable across model scales) and applies deep prompts uniformly. P-Tuning v2 is the first prompt-based method to match full fine-tuning on <strong>NLU tasks at all scales</strong>, including small models.</p><p><strong>When to use them.</strong> Prompt methods shine when (a) you need extreme parameter efficiency — a few KB per task — or (b) you want to ship many prompts behind a single served model. They tend to underperform LoRA on generative tasks.</p><hr><h2 id=6-choosing-among-methods>6. Choosing among methods</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/fine-tuning-peft/fig7_perf_vs_params.png alt="PEFT methods on the parameter-efficiency / quality plane, and how LoRA rank affects different task types." loading=lazy decoding=async></figure></p><p>A practical decision tree:</p><pre tabindex=0><code>                     ┌─ Need the absolute best score? → Full FT (if you can afford it)
                      │
 Have GPU memory?  ───┤
                      │  Yes → LoRA r=16 on q/k/v/o
@@ -556,393 +215,167 @@ Need many tasks served from one base? → LoRA (mergeable, swappable)
 Generative task with strict latency? → LoRA after merge
 Encoder NLU task, want minimal params? → P-Tuning v2 or BitFit
 Modular / compositional setup?         → Adapter (with AdapterFusion)
-</code></pre><h3 id="choosing-the-rank">Choosing the rank</h3>
-<p>Start with $r = 16$. From the right panel of the figure above, you can see the diminishing-returns inflection sits between $r = 8$ and $r = 32$ for most tasks:</p>
-<ul>
-<li><strong>Simple classification</strong> saturates by $r = 8$</li>
-<li><strong>Code generation, reasoning</strong> benefits up to $r = 32$ or $r = 64$</li>
-<li><strong>Domain adaptation</strong> (medical, legal) typically wants $r = 16$–$32$</li>
-</ul>
-<p>If you are unsure, sweep $r \in \{8, 16, 32\}$ and pick the smallest that closes the gap to your held-out target metric.</p>
-<hr>
-<h2 id="7-alignment-instruction-tuning-and-rlhf">7. Alignment: instruction tuning and RLHF</h2>
-<p>PEFT is the lever, alignment is what you usually pull it for. Two stages dominate modern LLM post-training:</p>
-<p><strong>Supervised instruction tuning.</strong> Fine-tune the base model on <code>(instruction, response)</code> pairs so it learns to follow human-written prompts. Quality dominates quantity: 1K–10K carefully curated examples often beat 100K crowd-sourced ones (the LIMA paper, Zhou et al., 2023, made 1K examples work surprisingly well on a 65B model).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">format_example</span><span class="p">(</span><span class="n">ex</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">ex</span><span class="p">[</span><span class="s2">&#34;input&#34;</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&#34;### Instruction:</span><span class="se">\n</span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;instruction&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;### Input:</span><span class="se">\n</span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">                <span class="sa">f</span><span class="s2">&#34;### Response:</span><span class="se">\n</span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&#34;### Instruction:</span><span class="se">\n</span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;instruction&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="sa">f</span><span class="s2">&#34;### Response:</span><span class="se">\n</span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;output&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>RLHF</strong> (Ouyang et al., 2022, the InstructGPT paper). After SFT, train a reward model on human preference pairs and optimize the policy with PPO against that reward. The Bradley–Terry preference loss:</p>
-$$
+</code></pre><h3 id=choosing-the-rank>Choosing the rank</h3><p>Start with $r = 16$. From the right panel of the figure above, you can see the diminishing-returns inflection sits between $r = 8$ and $r = 32$ for most tasks:</p><ul><li><strong>Simple classification</strong> saturates by $r = 8$</li><li><strong>Code generation, reasoning</strong> benefits up to $r = 32$ or $r = 64$</li><li><strong>Domain adaptation</strong> (medical, legal) typically wants $r = 16$–$32$</li></ul><p>If you are unsure, sweep $r \in \{8, 16, 32\}$ and pick the smallest that closes the gap to your held-out target metric.</p><hr><h2 id=7-alignment-instruction-tuning-and-rlhf>7. Alignment: instruction tuning and RLHF</h2><p>PEFT is the lever, alignment is what you usually pull it for. Two stages dominate modern LLM post-training:</p><p><strong>Supervised instruction tuning.</strong> Fine-tune the base model on <code>(instruction, response)</code> pairs so it learns to follow human-written prompts. Quality dominates quantity: 1K–10K carefully curated examples often beat 100K crowd-sourced ones (the LIMA paper, Zhou et al., 2023, made 1K examples work surprisingly well on a 65B model).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>format_example</span><span class=p>(</span><span class=n>ex</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>ex</span><span class=p>[</span><span class=s2>&#34;input&#34;</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>&#34;### Instruction:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;instruction&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>                <span class=sa>f</span><span class=s2>&#34;### Input:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;input&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>                <span class=sa>f</span><span class=s2>&#34;### Response:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;output&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>&#34;### Instruction:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;instruction&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;### Response:</span><span class=se>\n</span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;output&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>RLHF</strong> (Ouyang et al., 2022, the InstructGPT paper). After SFT, train a reward model on human preference pairs and optimize the policy with PPO against that reward. The Bradley–Terry preference loss:</p>$$
 \mathcal{L}_{\text{RM}} = -\log \sigma\bigl(r_\theta(x, y_{\text{chosen}}) - r_\theta(x, y_{\text{rejected}})\bigr).
-$$<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RewardModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="n">input_ids</span><span class="o">=</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">last</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">last_hidden_state</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">last</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>For the RL side of the story, see <a href="/en/reinforcement-learning-12-rlhf-and-llm-applications/">RL Part 12: RLHF and LLM Applications</a>
-. DPO (Rafailov et al., 2023) is now a popular simpler alternative that skips the explicit reward model.</p>
-<hr>
-<h2 id="8-end-to-end-recipe">8. End-to-end recipe</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="p">(</span><span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                          <span class="n">TrainingArguments</span><span class="p">,</span> <span class="n">BitsAndBytesConfig</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">peft</span> <span class="kn">import</span> <span class="n">LoraConfig</span><span class="p">,</span> <span class="n">get_peft_model</span><span class="p">,</span> <span class="n">prepare_model_for_kbit_training</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">trl</span> <span class="kn">import</span> <span class="n">SFTTrainer</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">MODEL</span> <span class="o">=</span> <span class="s2">&#34;meta-llama/Llama-2-7b-hf&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 1. 4-bit base</span>
-</span></span><span class="line"><span class="cl"><span class="n">bnb</span> <span class="o">=</span> <span class="n">BitsAndBytesConfig</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">load_in_4bit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bnb_4bit_quant_type</span><span class="o">=</span><span class="s2">&#34;nf4&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bnb_4bit_compute_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span> <span class="n">bnb_4bit_use_double_quant</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">MODEL</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">MODEL</span><span class="p">,</span> <span class="n">quantization_config</span><span class="o">=</span><span class="n">bnb</span><span class="p">,</span> <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">prepare_model_for_kbit_training</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 2. LoRA on attention projections</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">get_peft_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">LoraConfig</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">lora_alpha</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">lora_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">target_modules</span><span class="o">=</span><span class="p">[</span><span class="s2">&#34;q_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;k_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;v_proj&#34;</span><span class="p">,</span> <span class="s2">&#34;o_proj&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bias</span><span class="o">=</span><span class="s2">&#34;none&#34;</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s2">&#34;CAUSAL_LM&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">print_trainable_parameters</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># trainable params: 8,388,608 || all params: 3,508,801,536 || trainable%: 0.239</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 3. Train with SFTTrainer (handles formatting + collation)</span>
-</span></span><span class="line"><span class="cl"><span class="n">ds</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">&#34;yahma/alpaca-cleaned&#34;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&#34;train&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">args</span> <span class="o">=</span> <span class="n">TrainingArguments</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">output_dir</span><span class="o">=</span><span class="s2">&#34;./llama-qlora&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">per_device_train_batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">gradient_accumulation_steps</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">num_train_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">2e-4</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">warmup_ratio</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bf16</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">optim</span><span class="o">=</span><span class="s2">&#34;paged_adamw_8bit&#34;</span><span class="p">,</span>     <span class="c1"># the QLoRA paged optimizer</span>
-</span></span><span class="line"><span class="cl">    <span class="n">logging_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">save_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">trainer</span> <span class="o">=</span> <span class="n">SFTTrainer</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">train_dataset</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">dataset_text_field</span><span class="o">=</span><span class="s2">&#34;text&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">save_pretrained</span><span class="p">(</span><span class="s2">&#34;./llama-qlora-adapter&#34;</span><span class="p">)</span>  <span class="c1"># ~80 MB on disk</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="multi-lora-serving">Multi-LoRA serving</h3>
-<p>Because LoRA adapters are tiny and additive, you can keep dozens of them in memory and switch per request:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># load multiple adapters into the same base model</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">load_adapter</span><span class="p">(</span><span class="s2">&#34;./adapter-medical&#34;</span><span class="p">,</span> <span class="n">adapter_name</span><span class="o">=</span><span class="s2">&#34;med&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">load_adapter</span><span class="p">(</span><span class="s2">&#34;./adapter-legal&#34;</span><span class="p">,</span>   <span class="n">adapter_name</span><span class="o">=</span><span class="s2">&#34;legal&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">set_adapter</span><span class="p">(</span><span class="s2">&#34;med&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">out_a</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">set_adapter</span><span class="p">(</span><span class="s2">&#34;legal&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">out_b</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Frameworks like vLLM and S-LoRA push this further: batch requests targeting different adapters in a single forward pass by stacking the LoRA deltas. One 7B base in VRAM, hundreds of fine-tuned models served.</p>
-<hr>
-<h2 id="faq">FAQ</h2>
-<h3 id="when-is-full-fine-tuning-worth-it">When is full fine-tuning worth it?</h3>
-<p>When you have abundant compute, $\geq$100K high-quality examples, and need every fraction of a point — e.g. base-model providers shipping a flagship instruct model. For everyone else: LoRA or QLoRA.</p>
-<h3 id="lora-rank--how-to-pick">LoRA rank — how to pick?</h3>
-<p>Start at 16. If it underfits (training loss plateaus high), bump to 32 or 64. If overfits and you have little data, drop to 4–8. For classification tasks 8 is usually plenty.</p>
-<h3 id="which-target-modules">Which target modules?</h3>
-<p><code>q_proj</code> and <code>v_proj</code> give you 80% of the gain. Add <code>k_proj</code> and <code>o_proj</code> for the rest. Add the FFN trio (<code>gate/up/down_proj</code>) only if you have a generation-heavy task and the budget for 3× more trainable parameters.</p>
-<h3 id="does-lora-cost-inference">Does LoRA cost inference?</h3>
-<p>No, after merging. Before merging there is one tiny extra matmul per LoRA-wrapped layer — negligible but nonzero.</p>
-<h3 id="qlora-quality-drop">QLoRA quality drop?</h3>
-<p>Typically 1–2 points on standard benchmarks compared with fp16 LoRA, often within noise. The memory savings are worth it for almost every practitioner.</p>
-<h3 id="how-much-instruction-data">How much instruction data?</h3>
-<p>LIMA showed 1K hand-curated examples can produce a coherent assistant from a strong base model. Practical floor: 1K–10K high-quality examples; quality matters far more than count.</p>
-<h3 id="can-i-combine-peft-methods">Can I combine PEFT methods?</h3>
-<p>Yes — LoRA + prompt tuning is a documented combination, and QLoRA is itself a stack (4-bit base + LoRA + paged optimizer). Adapter + LoRA in the same model is unusual.</p>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<ul>
-<li><strong>Previous</strong>: <a href="/en/nlp-prompt-engineering-icl/">Part 7 — Prompt Engineering and In-Context Learning</a>
-</li>
-<li><strong>Next</strong>: <a href="/en/nlp-llm-architecture-deep-dive/">Part 9 — Deep Dive into LLM Architecture</a>
-</li>
-<li><a href="/tags/NLP/">View all 12 parts in the NLP series</a>
-</li>
-</ul>
-<h2 id="references">References</h2>
-<ol>
-<li>Hu, E. J. et al. (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models</em>. ICLR.</li>
-<li>Dettmers, T. et al. (2023). <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>. NeurIPS.</li>
-<li>Houlsby, N. et al. (2019). <em>Parameter-Efficient Transfer Learning for NLP</em>. ICML.</li>
-<li>Li, X. L. &amp; Liang, P. (2021). <em>Prefix-Tuning: Optimizing Continuous Prompts for Generation</em>. ACL.</li>
-<li>Lester, B. et al. (2021). <em>The Power of Scale for Parameter-Efficient Prompt Tuning</em>. EMNLP.</li>
-<li>Liu, X. et al. (2022). <em>P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-tuning Universally</em>. ACL.</li>
-<li>Aghajanyan, A. et al. (2020). <em>Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em>. ACL 2021.</li>
-<li>Ouyang, L. et al. (2022). <em>Training language models to follow instructions with human feedback (InstructGPT)</em>. NeurIPS.</li>
-<li>Rafailov, R. et al. (2023). <em>Direct Preference Optimization</em>. NeurIPS.</li>
-<li>Zhou, C. et al. (2023). <em>LIMA: Less Is More for Alignment</em>. NeurIPS.</li>
-</ol>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/nlp/prompt-engineering-icl/"><span class="title">NLP (7): Prompt Engineering and In-Context Learning</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/nlp/llm-architecture-deep-dive/"><span class="title">NLP (9): Deep Dive into LLM Architecture</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-why-not-just-fine-tune-everything">1. Why not just fine-tune everything?</a>
-      <ul>
-        <li><a href="#the-cost-ledger">The cost ledger</a></li>
-        <li><a href="#the-intrinsic-rank-hypothesis">The intrinsic-rank hypothesis</a></li>
-        <li><a href="#frozen-fine-tuning--the-weak-baseline">Frozen fine-tuning — the weak baseline</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-lora-low-rank-adaptation">2. LoRA: low-rank adaptation</a>
-      <ul>
-        <li><a href="#the-decomposition">The decomposition</a></li>
-        <li><a href="#counting-parameters">Counting parameters</a></li>
-        <li><a href="#two-design-choices-that-matter">Two design choices that matter</a></li>
-        <li><a href="#a-minimal-implementation">A minimal implementation</a></li>
-        <li><a href="#where-to-apply-lora">Where to apply LoRA</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-qlora-pushing-the-base-into-4-bits">3. QLoRA: pushing the base into 4 bits</a>
-      <ul>
-        <li><a href="#the-three-qlora-innovations">The three QLoRA innovations</a></li>
-        <li><a href="#the-setup">The setup</a></li>
-        <li><a href="#what-it-costs-you-what-it-saves">What it costs you, what it saves</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-adapters-the-og-peft-method">4. Adapters: the OG PEFT method</a>
-      <ul>
-        <li><a href="#adapter-vs-lora--when-each-wins">Adapter vs LoRA — when each wins</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-prompt-based-peft-tuning-the-input-not-the-weights">5. Prompt-based PEFT: tuning the input, not the weights</a>
-      <ul>
-        <li><a href="#prompt-tuning-lester-et-al-2021">Prompt-Tuning (Lester et al., 2021)</a></li>
-        <li><a href="#prefix-tuning-li--liang-2021">Prefix-Tuning (Li &amp; Liang, 2021)</a></li>
-        <li><a href="#p-tuning-v2-liu-et-al-2022">P-Tuning v2 (Liu et al., 2022)</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-choosing-among-methods">6. Choosing among methods</a>
-      <ul>
-        <li><a href="#choosing-the-rank">Choosing the rank</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-alignment-instruction-tuning-and-rlhf">7. Alignment: instruction tuning and RLHF</a></li>
-    <li><a href="#8-end-to-end-recipe">8. End-to-end recipe</a>
-      <ul>
-        <li><a href="#multi-lora-serving">Multi-LoRA serving</a></li>
-      </ul>
-    </li>
-    <li><a href="#faq">FAQ</a>
-      <ul>
-        <li><a href="#when-is-full-fine-tuning-worth-it">When is full fine-tuning worth it?</a></li>
-        <li><a href="#lora-rank--how-to-pick">LoRA rank — how to pick?</a></li>
-        <li><a href="#which-target-modules">Which target modules?</a></li>
-        <li><a href="#does-lora-cost-inference">Does LoRA cost inference?</a></li>
-        <li><a href="#qlora-quality-drop">QLoRA quality drop?</a></li>
-        <li><a href="#how-much-instruction-data">How much instruction data?</a></li>
-        <li><a href="#can-i-combine-peft-methods">Can I combine PEFT methods?</a></li>
-      </ul>
-    </li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">NLP</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3100</strong></div>
-      <div class="row"><span>Published</span><strong>Nov 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>RewardModel</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>base</span><span class=o>.</span><span class=n>config</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>input_ids</span><span class=o>=</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=o>=</span><span class=n>attention_mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>last</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>last_hidden_state</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>last</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>For the RL side of the story, see <a href=/en/reinforcement-learning-12-rlhf-and-llm-applications/>RL Part 12: RLHF and LLM Applications</a>
+. DPO (Rafailov et al., 2023) is now a popular simpler alternative that skips the explicit reward model.</p><hr><h2 id=8-end-to-end-recipe>8. End-to-end recipe</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=p>(</span><span class=n>AutoModelForCausalLM</span><span class=p>,</span> <span class=n>AutoTokenizer</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                          <span class=n>TrainingArguments</span><span class=p>,</span> <span class=n>BitsAndBytesConfig</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>peft</span> <span class=kn>import</span> <span class=n>LoraConfig</span><span class=p>,</span> <span class=n>get_peft_model</span><span class=p>,</span> <span class=n>prepare_model_for_kbit_training</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>datasets</span> <span class=kn>import</span> <span class=n>load_dataset</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>trl</span> <span class=kn>import</span> <span class=n>SFTTrainer</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>MODEL</span> <span class=o>=</span> <span class=s2>&#34;meta-llama/Llama-2-7b-hf&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 1. 4-bit base</span>
+</span></span><span class=line><span class=cl><span class=n>bnb</span> <span class=o>=</span> <span class=n>BitsAndBytesConfig</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>load_in_4bit</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>bnb_4bit_quant_type</span><span class=o>=</span><span class=s2>&#34;nf4&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>bnb_4bit_compute_dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>bfloat16</span><span class=p>,</span> <span class=n>bnb_4bit_use_double_quant</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>AutoTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>MODEL</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>tokenizer</span><span class=o>.</span><span class=n>pad_token</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>AutoModelForCausalLM</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>MODEL</span><span class=p>,</span> <span class=n>quantization_config</span><span class=o>=</span><span class=n>bnb</span><span class=p>,</span> <span class=n>device_map</span><span class=o>=</span><span class=s2>&#34;auto&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>prepare_model_for_kbit_training</span><span class=p>(</span><span class=n>model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. LoRA on attention projections</span>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>get_peft_model</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>LoraConfig</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lora_alpha</span><span class=o>=</span><span class=mi>32</span><span class=p>,</span> <span class=n>lora_dropout</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_modules</span><span class=o>=</span><span class=p>[</span><span class=s2>&#34;q_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;k_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;v_proj&#34;</span><span class=p>,</span> <span class=s2>&#34;o_proj&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>bias</span><span class=o>=</span><span class=s2>&#34;none&#34;</span><span class=p>,</span> <span class=n>task_type</span><span class=o>=</span><span class=s2>&#34;CAUSAL_LM&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>print_trainable_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=c1># trainable params: 8,388,608 || all params: 3,508,801,536 || trainable%: 0.239</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. Train with SFTTrainer (handles formatting + collation)</span>
+</span></span><span class=line><span class=cl><span class=n>ds</span> <span class=o>=</span> <span class=n>load_dataset</span><span class=p>(</span><span class=s2>&#34;yahma/alpaca-cleaned&#34;</span><span class=p>,</span> <span class=n>split</span><span class=o>=</span><span class=s2>&#34;train&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>args</span> <span class=o>=</span> <span class=n>TrainingArguments</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>output_dir</span><span class=o>=</span><span class=s2>&#34;./llama-qlora&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>per_device_train_batch_size</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>gradient_accumulation_steps</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_train_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>learning_rate</span><span class=o>=</span><span class=mf>2e-4</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>warmup_ratio</span><span class=o>=</span><span class=mf>0.03</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>bf16</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>optim</span><span class=o>=</span><span class=s2>&#34;paged_adamw_8bit&#34;</span><span class=p>,</span>     <span class=c1># the QLoRA paged optimizer</span>
+</span></span><span class=line><span class=cl>    <span class=n>logging_steps</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>save_steps</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>trainer</span> <span class=o>=</span> <span class=n>SFTTrainer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=n>model</span><span class=p>,</span> <span class=n>args</span><span class=o>=</span><span class=n>args</span><span class=p>,</span> <span class=n>train_dataset</span><span class=o>=</span><span class=n>ds</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>tokenizer</span><span class=o>=</span><span class=n>tokenizer</span><span class=p>,</span> <span class=n>max_seq_length</span><span class=o>=</span><span class=mi>1024</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>dataset_text_field</span><span class=o>=</span><span class=s2>&#34;text&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>trainer</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>save_pretrained</span><span class=p>(</span><span class=s2>&#34;./llama-qlora-adapter&#34;</span><span class=p>)</span>  <span class=c1># ~80 MB on disk</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=multi-lora-serving>Multi-LoRA serving</h3><p>Because LoRA adapters are tiny and additive, you can keep dozens of them in memory and switch per request:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># load multiple adapters into the same base model</span>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>load_adapter</span><span class=p>(</span><span class=s2>&#34;./adapter-medical&#34;</span><span class=p>,</span> <span class=n>adapter_name</span><span class=o>=</span><span class=s2>&#34;med&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>load_adapter</span><span class=p>(</span><span class=s2>&#34;./adapter-legal&#34;</span><span class=p>,</span>   <span class=n>adapter_name</span><span class=o>=</span><span class=s2>&#34;legal&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>set_adapter</span><span class=p>(</span><span class=s2>&#34;med&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>out_a</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span><span class=o>...</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>set_adapter</span><span class=p>(</span><span class=s2>&#34;legal&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>out_b</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span><span class=o>...</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Frameworks like vLLM and S-LoRA push this further: batch requests targeting different adapters in a single forward pass by stacking the LoRA deltas. One 7B base in VRAM, hundreds of fine-tuned models served.</p><hr><h2 id=faq>FAQ</h2><h3 id=when-is-full-fine-tuning-worth-it>When is full fine-tuning worth it?</h3><p>When you have abundant compute, $\geq$100K high-quality examples, and need every fraction of a point — e.g. base-model providers shipping a flagship instruct model. For everyone else: LoRA or QLoRA.</p><h3 id=lora-rank--how-to-pick>LoRA rank — how to pick?</h3><p>Start at 16. If it underfits (training loss plateaus high), bump to 32 or 64. If overfits and you have little data, drop to 4–8. For classification tasks 8 is usually plenty.</p><h3 id=which-target-modules>Which target modules?</h3><p><code>q_proj</code> and <code>v_proj</code> give you 80% of the gain. Add <code>k_proj</code> and <code>o_proj</code> for the rest. Add the FFN trio (<code>gate/up/down_proj</code>) only if you have a generation-heavy task and the budget for 3× more trainable parameters.</p><h3 id=does-lora-cost-inference>Does LoRA cost inference?</h3><p>No, after merging. Before merging there is one tiny extra matmul per LoRA-wrapped layer — negligible but nonzero.</p><h3 id=qlora-quality-drop>QLoRA quality drop?</h3><p>Typically 1–2 points on standard benchmarks compared with fp16 LoRA, often within noise. The memory savings are worth it for almost every practitioner.</p><h3 id=how-much-instruction-data>How much instruction data?</h3><p>LIMA showed 1K hand-curated examples can produce a coherent assistant from a strong base model. Practical floor: 1K–10K high-quality examples; quality matters far more than count.</p><h3 id=can-i-combine-peft-methods>Can I combine PEFT methods?</h3><p>Yes — LoRA + prompt tuning is a documented combination, and QLoRA is itself a stack (4-bit base + LoRA + paged optimizer). Adapter + LoRA in the same model is unusual.</p><hr><h2 id=series-navigation>Series Navigation</h2><ul><li><strong>Previous</strong>: <a href=/en/nlp-prompt-engineering-icl/>Part 7 — Prompt Engineering and In-Context Learning</a></li><li><strong>Next</strong>: <a href=/en/nlp-llm-architecture-deep-dive/>Part 9 — Deep Dive into LLM Architecture</a></li><li><a href=/tags/NLP/>View all 12 parts in the NLP series</a></li></ul><h2 id=references>References</h2><ol><li>Hu, E. J. et al. (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models</em>. ICLR.</li><li>Dettmers, T. et al. (2023). <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>. NeurIPS.</li><li>Houlsby, N. et al. (2019). <em>Parameter-Efficient Transfer Learning for NLP</em>. ICML.</li><li>Li, X. L. & Liang, P. (2021). <em>Prefix-Tuning: Optimizing Continuous Prompts for Generation</em>. ACL.</li><li>Lester, B. et al. (2021). <em>The Power of Scale for Parameter-Efficient Prompt Tuning</em>. EMNLP.</li><li>Liu, X. et al. (2022). <em>P-Tuning v2: Prompt Tuning Can Be Comparable to Fine-tuning Universally</em>. ACL.</li><li>Aghajanyan, A. et al. (2020). <em>Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning</em>. ACL 2021.</li><li>Ouyang, L. et al. (2022). <em>Training language models to follow instructions with human feedback (InstructGPT)</em>. NeurIPS.</li><li>Rafailov, R. et al. (2023). <em>Direct Preference Optimization</em>. NeurIPS.</li><li>Zhou, C. et al. (2023). <em>LIMA: Less Is More for Alignment</em>. NeurIPS.</li></ol></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/nlp/prompt-engineering-icl/><span class=title>NLP (7): Prompt Engineering and In-Context Learning</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/nlp/llm-architecture-deep-dive/><span class=title>NLP (9): Deep Dive into LLM Architecture</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-why-not-just-fine-tune-everything>1. Why not just fine-tune everything?</a><ul><li><a href=#the-cost-ledger>The cost ledger</a></li><li><a href=#the-intrinsic-rank-hypothesis>The intrinsic-rank hypothesis</a></li><li><a href=#frozen-fine-tuning--the-weak-baseline>Frozen fine-tuning — the weak baseline</a></li></ul></li><li><a href=#2-lora-low-rank-adaptation>2. LoRA: low-rank adaptation</a><ul><li><a href=#the-decomposition>The decomposition</a></li><li><a href=#counting-parameters>Counting parameters</a></li><li><a href=#two-design-choices-that-matter>Two design choices that matter</a></li><li><a href=#a-minimal-implementation>A minimal implementation</a></li><li><a href=#where-to-apply-lora>Where to apply LoRA</a></li></ul></li><li><a href=#3-qlora-pushing-the-base-into-4-bits>3. QLoRA: pushing the base into 4 bits</a><ul><li><a href=#the-three-qlora-innovations>The three QLoRA innovations</a></li><li><a href=#the-setup>The setup</a></li><li><a href=#what-it-costs-you-what-it-saves>What it costs you, what it saves</a></li></ul></li><li><a href=#4-adapters-the-og-peft-method>4. Adapters: the OG PEFT method</a><ul><li><a href=#adapter-vs-lora--when-each-wins>Adapter vs LoRA — when each wins</a></li></ul></li><li><a href=#5-prompt-based-peft-tuning-the-input-not-the-weights>5. Prompt-based PEFT: tuning the input, not the weights</a><ul><li><a href=#prompt-tuning-lester-et-al-2021>Prompt-Tuning (Lester et al., 2021)</a></li><li><a href=#prefix-tuning-li--liang-2021>Prefix-Tuning (Li & Liang, 2021)</a></li><li><a href=#p-tuning-v2-liu-et-al-2022>P-Tuning v2 (Liu et al., 2022)</a></li></ul></li><li><a href=#6-choosing-among-methods>6. Choosing among methods</a><ul><li><a href=#choosing-the-rank>Choosing the rank</a></li></ul></li><li><a href=#7-alignment-instruction-tuning-and-rlhf>7. Alignment: instruction tuning and RLHF</a></li><li><a href=#8-end-to-end-recipe>8. End-to-end recipe</a><ul><li><a href=#multi-lora-serving>Multi-LoRA serving</a></li></ul></li><li><a href=#faq>FAQ</a><ul><li><a href=#when-is-full-fine-tuning-worth-it>When is full fine-tuning worth it?</a></li><li><a href=#lora-rank--how-to-pick>LoRA rank — how to pick?</a></li><li><a href=#which-target-modules>Which target modules?</a></li><li><a href=#does-lora-cost-inference>Does LoRA cost inference?</a></li><li><a href=#qlora-quality-drop>QLoRA quality drop?</a></li><li><a href=#how-much-instruction-data>How much instruction data?</a></li><li><a href=#can-i-combine-peft-methods>Can I combine PEFT methods?</a></li></ul></li><li><a href=#series-navigation>Series Navigation</a></li><li><a href=#references>References</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>NLP</a>
+<span class=count>6</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/prompt-engineering-icl/><span class=chapter-num>07</span>
+<span class=chapter-title>NLP (7): Prompt Engineering and In-Context Learning</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
+<span class=chapter-title>NLP (8): Model Fine-tuning and PEFT</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/llm-architecture-deep-dive/><span class=chapter-num>09</span>
+<span class=chapter-title>NLP (9): Deep Dive into LLM Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/rag-knowledge-enhancement/><span class=chapter-num>10</span>
+<span class=chapter-title>NLP (10): RAG and Knowledge Enhancement Systems</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/multimodal-nlp/><span class=chapter-num>11</span>
+<span class=chapter-title>NLP (11): Multimodal Large Language Models</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/nlp/frontiers-applications/><span class=chapter-num>12</span>
+<span class=chapter-title>NLP (12): Frontiers and Practical Applications</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>15 min</strong></div><div class=row><span>Word count</span><strong>3015</strong></div><div class=row><span>Published</span><strong>Nov 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

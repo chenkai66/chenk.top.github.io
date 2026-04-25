@@ -1,1020 +1,384 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Linux 软件包管理 · Chen Kai Blog</title>
-<meta name="description" content="跨发行版的包管理实战：Debian/Ubuntu 的 dpkg/apt、RHEL/Rocky 的 rpm/dnf、Arch 的 pacman，依赖排障、版本锁定、镜像源、源码编译与 Snap/Flatpak/AppImage 等现代方案。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Linux 软件包管理">
-<meta property="og:description" content="跨发行版的包管理实战：Debian/Ubuntu 的 dpkg/apt、RHEL/Rocky 的 rpm/dnf、Arch 的 pacman，依赖排障、版本锁定、镜像源、源码编译与 Snap/Flatpak/AppImage 等现代方案。">
-<meta property="og:url" content="https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Linux</a>
-         · Chapter 4
-      </div>
-      <h1>Linux 软件包管理</h1>
-      <p class="deck">跨发行版的包管理实战：Debian/Ubuntu 的 dpkg/apt、RHEL/Rocky 的 rpm/dnf、Arch 的 pacman，依赖排障、版本锁定、镜像源、源码编译与 Snap/Flatpak/AppImage 等现代方案。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2022-02-09">February 9, 2022</time> · 18 min read · 9100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/linux/" class="tag">#Linux</a><a href="/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/" class="tag">#系统管理</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>很多人是从「装、删、升」三个动词开始学包管理的，平时也够用，直到出问题——依赖冲突装不上、升级以后服务起不来、内核换完机器进不去系统、国内拉镜像慢得想哭。这时候你需要的不是再背几条命令，而是一个心智模型：一个<strong>包</strong>里到底装了什么、<strong>包管理器</strong>在背后到底求解什么、状态记录在哪里、Debian 系的 <code>apt/dpkg</code> 和 Red Hat 系的 <code>dnf/rpm</code> 在哪儿一致、又在哪儿分叉，凌晨两点登录线上机器才不至于慌。</p>
-<p>这篇文章既给模型，也给配方。先讲一个 <code>.deb</code> 或 <code>.rpm</code> 文件里装了什么、为什么需要包管理器；再把 <code>apt</code>、<code>dnf</code>、<code>pacman</code> 摊开横向对比——不只是「等价命令表」，还包括它们在依赖求解、版本锁定、降级、仓库信任链上各自的脾气。然后是只能踩坑学到的事：把国内镜像源真正配对、源码编译 Nginx（顺便讲清楚 <code>configure/make/make install</code> 三步到底干了什么）、用二进制压缩包扔下一个 JDK、以及一组能让生产机器维持「永远可升级」状态的运维习惯。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig1_package_manager_comparison.png" alt="主流 Linux 包管理工具链" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="一个包里到底有什么">一个包里到底有什么</h1>
-<p>软件包是一个文件（<code>.deb</code>、<code>.rpm</code>、<code>.pkg.tar.zst</code>），里面打包了一份软件运行所需的全部内容，<strong>外加描述如何安装的元数据</strong>。元数据才是它和普通压缩包的区别——没有元数据，它就只是个 tarball。</p>
-<p>具体到一个典型的服务端包，里面通常有六类东西：</p>
-<p><strong>1. 可执行文件。</strong> 编译好的二进制，按惯例放在 <code>/usr/bin</code>（普通用户命令）或 <code>/usr/sbin</code>（系统管理命令）。比如 <code>/usr/bin/vim</code>、<code>/usr/sbin/nginx</code>、<code>/usr/bin/gcc</code>。</p>
-<p><strong>2. 配置文件。</strong> 软件自带的默认配置，几乎全在 <code>/etc</code> 下。包管理器对它们有特殊待遇：升级时<strong>不会覆盖你改过的配置</strong>。<code>apt</code> 会弹出 <code>Y/I/N/O/D/Z</code> 提示，并把新版本另存为 <code>.dpkg-dist</code>；<code>dnf</code> 直接把新默认值存为 <code>.rpmnew</code>，你的文件原样不动。这条规则救过的线上事故比想象中多得多。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">/etc/nginx/nginx.conf       # nginx 配置
-</span></span><span class="line"><span class="cl">/etc/mysql/my.cnf           # mysql 配置
-</span></span><span class="line"><span class="cl">/etc/ssh/sshd_config        # SSH 守护进程配置
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>3. 共享库。</strong> 即可执行文件运行时动态链接的 <code>.so</code>，相当于 Windows 的 DLL，放在 <code>/usr/lib</code>、<code>/lib</code> 或发行版特有的路径下，比如 <code>/lib/x86_64-linux-gnu/</code>。共享库的好处是省盘省内存（一份库被所有进程共用），更重要的是——升级一次 <code>libssl3</code> 就能把全机所有 TLS 客户端一起打补丁。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">/usr/lib/x86_64-linux-gnu/libssl.so.3   # OpenSSL
-</span></span><span class="line"><span class="cl">/lib/x86_64-linux-gnu/libc.so.6         # GNU C 库
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>4. 数据文件。</strong> 程序运行需要、但既不是代码也不是配置的东西：<code>/var/lib/mysql</code> 下的空数据库模板、<code>/var/www/html</code> 下的默认站点、locale 数据、示例证书等等。</p>
-<p><strong>5. 文档。</strong> <code>/usr/share/man/</code> 下的 man 手册，<code>/usr/share/doc/&lt;pkg&gt;/</code> 下的 README 与 changelog。出问题时第一时间应该翻的不是搜索引擎，而是这里。</p>
-<p><strong>6. systemd 服务单元。</strong> 如果包带守护进程，会顺手把 <code>.service</code> 文件丢到 <code>/usr/lib/systemd/system/</code>，所以你装完立刻 <code>systemctl enable nginx</code> 就能用。这些文件归包所有；管理员要覆盖的话写到 <code>/etc/systemd/system/</code> 下，免得升级被冲掉。</p>
-<p>除了这些「文件载荷」，包元数据还记录了：包名与版本、依赖（<code>.deb</code> 里叫 <code>Depends:</code>，<code>.rpm</code> 里叫 <code>Requires:</code>）、冲突关系、安装后脚本（比如 <code>useradd nginx</code>），以及每个文件的 SHA256。最后这条是后来 <code>dpkg -V</code> 或 <code>rpm -V</code> 能告诉你「哪些文件被动过」的依据。</p>
-<h2 id="没有包管理器会怎样">没有包管理器会怎样</h2>
-<p>得这样过日子：每装一个软件都要</p>
-<ol>
-<li>自己找下载链接（顺便祈祷源站是干净的）；</li>
-<li>自己解依赖——A 要 B 1.1+，B 要 C，C 又跟你装过的 D 冲突；</li>
-<li>自己决定每个文件放在哪；</li>
-<li>自己记下你拷过哪些文件，以后才能卸干净；</li>
-<li>自己定期上游网查安全更新。</li>
-</ol>
-<p>包管理器把这堆活换成了一个<strong>数据库</strong>（<code>/var/lib/dpkg/</code> 或 <code>rpmdb</code>）加一个<strong>求解器</strong>。数据库知道每一个已安装包占了哪些文件，求解器知道仓库里有什么、依赖怎么连，所有装、升、删都被规约成对这个数据库的一致变更。这就是包管理器的全部价值——而它的价值大得惊人。</p>
-<h1 id="主流的几个工具链">主流的几个工具链</h1>
-<p>Linux 包管理几十年前就分成了若干派系，之后非常稳定。下面这张表是最该记的：</p>
-<table>
-  <thead>
-      <tr>
-          <th>派系</th>
-          <th>代表发行版</th>
-          <th>包格式</th>
-          <th>底层工具</th>
-          <th>高层工具</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Debian</td>
-          <td>Debian / Ubuntu / Mint</td>
-          <td><code>.deb</code></td>
-          <td><code>dpkg</code></td>
-          <td><code>apt</code>、<code>apt-get</code></td>
-      </tr>
-      <tr>
-          <td>Red Hat</td>
-          <td>RHEL / CentOS / Rocky / Alma / Fedora</td>
-          <td><code>.rpm</code></td>
-          <td><code>rpm</code></td>
-          <td><code>dnf</code>（EL7 上是 <code>yum</code>）</td>
-      </tr>
-      <tr>
-          <td>Arch</td>
-          <td>Arch / Manjaro / EndeavourOS</td>
-          <td><code>.pkg.tar.zst</code></td>
-          <td><code>pacman</code></td>
-          <td><code>pacman</code>、<code>yay</code></td>
-      </tr>
-      <tr>
-          <td>SUSE</td>
-          <td>openSUSE / SLES</td>
-          <td><code>.rpm</code></td>
-          <td><code>rpm</code></td>
-          <td><code>zypper</code></td>
-      </tr>
-      <tr>
-          <td>Gentoo</td>
-          <td>Gentoo</td>
-          <td>源码 <code>ebuild</code></td>
-          <td>-</td>
-          <td><code>portage</code>（<code>emerge</code>）</td>
-      </tr>
-  </tbody>
-</table>
-<p>实战中真正要分清的不是派系，而是<strong>底层 vs 高层</strong>。底层工具（<code>dpkg</code>、<code>rpm</code>、裸 <code>pacman -U</code>）只对一个文件操作：解压、跑脚本、更新本地数据库——但<strong>不会</strong>主动去拉缺失依赖。高层工具（<code>apt</code>、<code>dnf</code>、<code>pacman -S</code>、<code>zypper</code>）是同样的动作外面套了一层依赖求解器和远程仓库通信。绝大多数时候你应该用高层工具；只有当你要做的事情正好是高层工具不让你做的——比如硬装一个理论上冲突的包，或者把一个 <code>.deb</code> 拆开看里面有什么——才轮到底层工具上场。</p>
-<p>后面主要讲 <code>apt</code>（Debian/Ubuntu）、<code>dnf</code>（RHEL/Rocky/Fedora）和 <code>pacman</code>（Arch），中间穿插底层 <code>dpkg</code> / <code>rpm</code> 在哪些场景下要用。</p>
-<h1 id="依赖求解这才是真正难的部分">依赖求解：这才是真正难的部分</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig2_dependency_resolution.png" alt="依赖求解图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>包管理器最反直觉的地方是：它的代码大头不在「安装」，而在<strong>求解器</strong>。<code>apt install nginx</code> 实际要做的事情是：</p>
-<ol>
-<li>从本地缓存的 <code>Packages</code> 索引里<strong>读出 nginx 的元数据</strong>；</li>
-<li><strong>遍历依赖图</strong>——<code>nginx</code> 依赖 <code>libssl3</code>、<code>libpcre2-8</code>、<code>zlib1g</code>、<code>libc6</code>……每个又有自己的依赖，遇到「已安装且版本满足」就停；</li>
-<li><strong>统一版本</strong>。如果两条路径要的 <code>libc6</code> 版本不一样，求解器要么找一个能同时满足的版本，要么报冲突。共享库没有「两份都装」的选项——动态链接器按名字解析，不按路径，最终每个进程只会绑定到一份；</li>
-<li><strong>决定安装顺序</strong>，让「必须先装的依赖」真的先装，这样安装后脚本运行时不会找不到东西；</li>
-<li><strong>找不到一致解就大声失败</strong>，绝不留下半装不装的烂摊子。</li>
-</ol>
-<p>绕开高层工具，求解就没了：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dpkg -i nginx_1.24.0-1_amd64.deb
-</span></span><span class="line"><span class="cl"><span class="c1"># dpkg: 处理 nginx 时出错: 依赖问题：</span>
-</span></span><span class="line"><span class="cl"><span class="c1">#  nginx 依赖 libssl3 (&gt;= 3.0.0); 然而:</span>
-</span></span><span class="line"><span class="cl"><span class="c1">#   未安装 libssl3。</span>
-</span></span><span class="line"><span class="cl">sudo apt install -f         <span class="c1"># 让 apt 来收拾 dpkg 的烂摊子</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>apt install -f</code> 的作用就是事后把求解器跑一遍来修复部分安装的状态。其实你完全可以一开始就让高层工具来处理本地文件：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install ./nginx_1.24.0-1_amd64.deb     <span class="c1"># apt 会从仓库里解依赖</span>
-</span></span><span class="line"><span class="cl">sudo dnf install ./nginx-1.24.0-1.x86_64.rpm    <span class="c1"># Red Hat 系同理</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>卸载</strong>也一样。如果你装了 <code>nginx</code> 和它的 <code>libcache-extra</code>，单独卸 <code>libcache-extra</code> 没问题；但卸 <code>nginx</code> 时，原本只是为了 <code>nginx</code> 才装上的 <code>libpcre2-8</code>，如果没人再依赖它，应该顺手清理掉。<code>apt autoremove</code> 和 <code>dnf autoremove</code> 干的就是这件事。</p>
-<h1 id="debian--ubuntuapt-和-dpkg">Debian / Ubuntu：apt 和 dpkg</h1>
-<h2 id="三个工具怎么选">三个工具怎么选</h2>
-<table>
-  <thead>
-      <tr>
-          <th>工具</th>
-          <th>是什么</th>
-          <th>用在哪儿</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><code>apt</code></td>
-          <td>现代用户友好前端：彩色输出、进度条、合理默认值。</td>
-          <td>交互式 shell、日常使用。</td>
-      </tr>
-      <tr>
-          <td><code>apt-get</code></td>
-          <td>老前端，引擎相同，输出稳定、可被脚本解析。</td>
-          <td>Shell 脚本、Ansible、Dockerfile。</td>
-      </tr>
-      <tr>
-          <td><code>dpkg</code></td>
-          <td>底层工具，一次只处理一个 <code>.deb</code>，不解依赖。</td>
-          <td>检查包内容、强制状态、应急修复。</td>
-      </tr>
-  </tbody>
-</table>
-<p>记忆方法：<code>apt</code> = <code>apt-get</code> + 交互优化；<code>apt-get</code> = 依赖求解器包着 <code>dpkg</code>；<code>dpkg</code> 才是真正解压文件、跑维护脚本的那一层。</p>
-<h2 id="日常命令">日常命令</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt update                       <span class="c1"># 刷新仓库索引（不装任何东西）</span>
-</span></span><span class="line"><span class="cl">sudo apt upgrade                      <span class="c1"># 应用所有可升级包，绝不删包</span>
-</span></span><span class="line"><span class="cl">sudo apt full-upgrade                 <span class="c1"># 升级时如有必要可以删旧包</span>
-</span></span><span class="line"><span class="cl">sudo apt install nginx                <span class="c1"># 装 nginx（含依赖）</span>
-</span></span><span class="line"><span class="cl">sudo apt install <span class="nv">nginx</span><span class="o">=</span>1.24.0-2ubuntu1   <span class="c1"># 安装指定版本</span>
-</span></span><span class="line"><span class="cl">sudo apt remove nginx                 <span class="c1"># 卸载，但保留 /etc/nginx</span>
-</span></span><span class="line"><span class="cl">sudo apt purge nginx                  <span class="c1"># 卸载并清掉配置</span>
-</span></span><span class="line"><span class="cl">sudo apt autoremove                   <span class="c1"># 清理不再被依赖的包</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>新人最常踩的两条命令：</p>
-<ul>
-<li><code>apt update</code> <strong>不装任何东西</strong>，它只是把镜像源上最新的 <code>Packages</code> 索引拉到本地，下一条 <code>apt install</code> 才能看到最新版本。「明明仓库有这个包却装不上」十有八九是没跑过 <code>update</code>。</li>
-<li><code>apt remove</code> <strong>保留 <code>/etc</code></strong>。绝大多数场景这正是你要的（重装时还能恢复配置）；但如果你是真要彻底下线一个服务，应该用 <code>apt purge</code>。</li>
-</ul>
-<h2 id="搜索查看定位">搜索、查看、定位</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apt search nginx                  <span class="c1"># 在已配置的源里搜索</span>
-</span></span><span class="line"><span class="cl">apt show nginx                    <span class="c1"># 版本、依赖、描述、大小</span>
-</span></span><span class="line"><span class="cl">apt-cache policy nginx            <span class="c1"># 可装的候选版本 + 来自哪个源</span>
-</span></span><span class="line"><span class="cl">dpkg -l                           <span class="c1"># 列出所有已装包</span>
-</span></span><span class="line"><span class="cl">dpkg -l <span class="p">|</span> grep nginx              <span class="c1"># nginx 装了吗</span>
-</span></span><span class="line"><span class="cl">dpkg -L nginx                     <span class="c1"># nginx 装了哪些文件</span>
-</span></span><span class="line"><span class="cl">dpkg -S /usr/sbin/nginx           <span class="c1"># 这个文件属于哪个包</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>后两条是排障神器。「这个包到底往磁盘上扔了什么文件？」「PATH 里这个不知道哪来的二进制是哪个包带的？」是事故调查的高频问题，而 Linux 上没有别的命令能像 <code>dpkg -S</code> 这样反查文件归属。</p>
-<h2 id="锁定降级冻结">锁定、降级、冻结</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt-mark hold nginx          <span class="c1"># 不让 nginx 自动升级</span>
-</span></span><span class="line"><span class="cl">apt-mark showhold                 <span class="c1"># 当前哪些包被冻结</span>
-</span></span><span class="line"><span class="cl">sudo apt-mark unhold nginx        <span class="c1"># 解除冻结</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 降级三步走</span>
-</span></span><span class="line"><span class="cl">apt-cache policy nginx                       <span class="c1"># 1) 看可选版本</span>
-</span></span><span class="line"><span class="cl">sudo apt install <span class="nv">nginx</span><span class="o">=</span>1.22.1-1ubuntu1       <span class="c1"># 2) 装回老版本</span>
-</span></span><span class="line"><span class="cl">sudo apt-mark hold nginx                     <span class="c1"># 3) 冻结，下次升级才不会被冲</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>hold</code> 是你应对「上游发了一个有问题的版本」的武器：钉住老版本，找个维护窗口再升级，不让自动化在半夜替你做决定。</p>
-<h2 id="清理">清理</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt clean        <span class="c1"># 删 /var/cache/apt/archives 下所有缓存的 .deb</span>
-</span></span><span class="line"><span class="cl">sudo apt autoclean    <span class="c1"># 只删已经不在任何源里的过期 .deb</span>
-</span></span><span class="line"><span class="cl">sudo apt autoremove   <span class="c1"># 清理已不被依赖的孤儿包</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>我自己肌肉记忆里常用的一条组合：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt update <span class="o">&amp;&amp;</span> sudo apt upgrade -y <span class="o">&amp;&amp;</span> sudo apt autoremove -y <span class="o">&amp;&amp;</span> sudo apt autoclean
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>每周对每台机器跑一次，<code>/var</code> 不会平白被撑爆。</p>
-<h1 id="rhel--rocky--fedoradnf顺带-yum-和-rpm">RHEL / Rocky / Fedora：dnf（顺带 yum 和 rpm）</h1>
-<p><code>dnf</code> 在 CentOS 8 / RHEL 8 和 Fedora 22 替代了 <code>yum</code>，命令名几乎一一对应（这是有意保留的兼容性），但底层用 Python 重写，并换上了真正的 SAT 求解器（<code>libsolv</code>）。所以 <code>dnf</code> 在大事务上明显更快。CentOS 7 还在用 <code>yum</code>，其他地方都按 <code>dnf</code> 来。</p>
-<h2 id="日常命令-1">日常命令</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dnf makecache                 <span class="c1"># 刷新元数据</span>
-</span></span><span class="line"><span class="cl">sudo dnf check-update              <span class="c1"># 列出能升级的包</span>
-</span></span><span class="line"><span class="cl">sudo dnf upgrade                   <span class="c1"># 升级一切</span>
-</span></span><span class="line"><span class="cl">sudo dnf install nginx             <span class="c1"># 装</span>
-</span></span><span class="line"><span class="cl">sudo dnf install nginx-1.24.0      <span class="c1"># 装指定版本</span>
-</span></span><span class="line"><span class="cl">sudo dnf remove nginx              <span class="c1"># 卸</span>
-</span></span><span class="line"><span class="cl">sudo dnf autoremove                <span class="c1"># 清孤儿</span>
-</span></span><span class="line"><span class="cl">sudo dnf downgrade nginx-1.22.1    <span class="c1"># 原生降级（apt 没有等价命令）</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>dnf downgrade</code> 是 <code>dnf</code> 比 <code>apt</code> 体验好的地方之一——<code>apt</code> 世界里降级是「装回老版本祈祷不冲突」，<code>dnf</code> 里它是一等公民。</p>
-<h2 id="搜索查看定位-1">搜索、查看、定位</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dnf search nginx                   <span class="c1"># 搜索</span>
-</span></span><span class="line"><span class="cl">dnf info nginx                     <span class="c1"># 详情</span>
-</span></span><span class="line"><span class="cl">dnf list --showduplicates nginx    <span class="c1"># 所有源里所有版本</span>
-</span></span><span class="line"><span class="cl">rpm -qa                            <span class="c1"># 所有已装包</span>
-</span></span><span class="line"><span class="cl">rpm -qa <span class="p">|</span> grep nginx               <span class="c1"># 装了吗</span>
-</span></span><span class="line"><span class="cl">rpm -ql nginx                      <span class="c1"># nginx 装了哪些文件</span>
-</span></span><span class="line"><span class="cl">rpm -qf /usr/sbin/nginx            <span class="c1"># 这文件属于哪个包</span>
-</span></span><span class="line"><span class="cl">rpm -qc nginx                      <span class="c1"># 只看配置文件</span>
-</span></span><span class="line"><span class="cl">rpm -V nginx                       <span class="c1"># 校验文件有没有被改过</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>rpm -V</code> 是被低估的工具。输出 <code>S.5....T.  c /etc/nginx/nginx.conf</code> 的解读是：大小变了（<code>S</code>）、MD5 变了（<code>5</code>）、修改时间变了（<code>T</code>），且这是一个配置文件（<code>c</code>）。配置文件被改是正常的；但如果 <code>/usr/sbin/</code> 下的二进制被改了——这就是排查入侵痕迹的入口。</p>
-<h2 id="锁定与历史">锁定与历史</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo dnf install <span class="s1">&#39;dnf-command(versionlock)&#39;</span>   <span class="c1"># 一次性安装插件</span>
-</span></span><span class="line"><span class="cl">sudo dnf versionlock add nginx                <span class="c1"># 锁定 nginx</span>
-</span></span><span class="line"><span class="cl">dnf versionlock list                          <span class="c1"># 查看</span>
-</span></span><span class="line"><span class="cl">sudo dnf versionlock delete nginx             <span class="c1"># 解锁</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">dnf <span class="nb">history</span>                                   <span class="c1"># 这台机器上每一次事务</span>
-</span></span><span class="line"><span class="cl">dnf <span class="nb">history</span> info <span class="m">42</span>                           <span class="c1"># 第 42 号事务到底装了/删了什么</span>
-</span></span><span class="line"><span class="cl">sudo dnf <span class="nb">history</span> undo <span class="m">42</span>                      <span class="c1"># 把它整个回滚</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>dnf history</code> 没有真正的 <code>apt</code> 等价物。它把每一次事务的时间戳、命令行、完整 diff 都记下来，并且任何一次都能回滚。在被多任管理员折腾过的服务器上，这是你还原「到底什么时候发生了什么」的唯一办法。</p>
-<h1 id="archpacman">Arch：pacman</h1>
-<p>Arch 的 <code>pacman</code> 既是底层也是高层工具。Arch 是滚动发行，不存在「Arch 22.04」，只有「现在仓库长什么样」，所以工作流天然偏向「永远整体升级」：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pacman -Syu                  <span class="c1"># 同步源 + 升级一切（Arch 的金科玉律）</span>
-</span></span><span class="line"><span class="cl">sudo pacman -S nginx              <span class="c1"># 装</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Ss nginx             <span class="c1"># 搜</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Si nginx             <span class="c1"># 仓库里这个包的信息</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Qi nginx             <span class="c1"># 已装包的信息</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Ql nginx             <span class="c1"># 文件列表</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Qo /usr/bin/nginx    <span class="c1"># 文件归属</span>
-</span></span><span class="line"><span class="cl">sudo pacman -R nginx              <span class="c1"># 卸（保留依赖）</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Rns nginx            <span class="c1"># 卸 + 顺便清孤儿依赖 + 清配置</span>
-</span></span><span class="line"><span class="cl">sudo pacman -Sc                   <span class="c1"># 清缓存</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Arch 的铁律：<strong>永远不要部分升级</strong>。隔几周没跑 <code>pacman -Syu</code> 直接来一句 <code>pacman -S nginx</code>，你装的可能是依赖了新版本库的 <code>nginx</code>，而你机器上还是老库——结果就是 <code>nginx</code> 起不来。要么先 <code>-Syu</code>，要么干脆 <code>pacman -Syu nginx</code> 一步到位。</p>
-<p>Arch User Repository（AUR）由社区维护构建脚本，前端工具如 <code>yay</code>、<code>paru</code> 把 <code>pacman</code> 加上 <code>makepkg</code> 一锅端：拉源码、构建、安装。挺好用，但 AUR 的东西要按「我会读完 PKGBUILD 再装」的态度来对待。</p>
-<h1 id="一台机器上的包生命周期">一台机器上的包生命周期</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig3_package_lifecycle.png" alt="包生命周期" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>抛开具体工具，每个包在你机器上都走同样的循环：<strong>搜 → 装 → 升（或冻结）→ 卸</strong>。包管理器把每个包的当前状态记在数据库里（Debian 是 <code>/var/lib/dpkg/status</code>，Red Hat 是 <code>/var/lib/rpm/</code> 下的 <code>rpmdb</code>）。你跑的每一条命令，本质上都是对这个数据库的一笔事务，加上对磁盘的对应操作。</p>
-<p>正因如此，「我手动 <code>rm</code> 掉那个二进制了」永远是错的：数据库里那个包还显示装着，下次升级会悄悄把文件放回来，<code>dpkg -V</code> / <code>rpm -V</code> 又会报「文件丢失」。要么把包正经卸掉（<code>apt purge</code> / <code>dnf remove</code>），要么——如果你确实需要保留包但屏蔽某个文件——用 <code>dpkg-divert</code> 这种正经手段。</p>
-<h1 id="仓库到底长什么样">仓库到底长什么样</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig4_repository_structure.png" alt="仓库结构与信任链" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><code>apt update</code> 时，机器走 HTTPS 连镜像，按一套很具体的目录结构去拉索引文件。理解这个结构，调试镜像问题就只是 <code>curl</code> 几条 URL 的事。</p>
-<p>Debian 风格的 apt 仓库提供两棵树：</p>
-<ul>
-<li><strong><code>dists/&lt;suite&gt;/</code></strong>：每个 suite 的元数据。顶层文件是 <code>Release</code>（或者它的 inline-签名版本 <code>InRelease</code>），里面列出每个组件（<code>main</code>、<code>universe</code> 等）和架构，附上每个 <code>Packages.gz</code> 索引的 SHA256。<code>Release.gpg</code> 是分离的 GPG 签名。这棵树是信任的根。</li>
-<li><strong><code>pool/</code></strong>：真正的 <code>.deb</code> 文件，按源码包名分目录（<code>pool/main/n/nginx/nginx_1.24.0-1_amd64.deb</code>）。</li>
-</ul>
-<p><code>apt install nginx</code> 的信任链是：</p>
-<ol>
-<li>你机器上 <code>/etc/apt/trusted.gpg.d/</code> 里有一组你信任的 GPG 公钥（通过源里的 <code>signed-by=</code> 字段或老的 <code>apt-key</code> 放进去）；</li>
-<li><code>apt update</code> 拉 <code>InRelease</code>，用上面那些公钥验签——验不过就直接拒绝使用整个 suite（<code>NO_PUBKEY</code> 错误就来自这一步）；</li>
-<li>从 <code>InRelease</code> 拿到每个组件 <code>Packages.gz</code> 的 SHA256，拉下来再校验；</li>
-<li>从 <code>Packages.gz</code> 拿到 <code>nginx_1.24.0-1_amd64.deb</code> 的 SHA256，从 <code>pool/</code> 拉下来校验，<strong>然后</strong>才交给 <code>dpkg</code>。</li>
-</ol>
-<p>链上任何一环断了——公钥缺失、<code>Release</code> 被改、<code>.deb</code> 校验对不上——<code>apt</code> 都会拒绝继续。这就是它的安全保证：哪怕镜像被人替换，能给你的也只是合法的字节流，要伪造内容必须同时拿到上游签名密钥。</p>
-<p>Red Hat 这边结构类似：<code>repodata/repomd.xml</code> 是签名清单，里面是 <code>primary.xml.gz</code> 索引和各个 <code>.rpm</code> 的校验信息。<code>dnf</code> 默认强制走这条链，除非你显式关掉 <code>gpgcheck</code>（请别关）。</p>
-<h2 id="配国内镜像源">配国内镜像源</h2>
-<p>国内拉默认 Ubuntu / CentOS 源很慢，办法是改成国内镜像。两个最大的是阿里云（<code>mirrors.aliyun.com</code>）和清华（<code>mirrors.tuna.tsinghua.edu.cn</code>），都覆盖主流发行版。</p>
-<p><strong>Ubuntu（apt）：</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 先备份</span>
-</span></span><span class="line"><span class="cl">sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 2. 原地改 URL（Ubuntu 22.04 &#39;jammy&#39;）</span>
-</span></span><span class="line"><span class="cl">sudo sed -i.aliyun <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -e <span class="s1">&#39;s|http://.*archive.ubuntu.com|http://mirrors.aliyun.com|g&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -e <span class="s1">&#39;s|http://.*security.ubuntu.com|http://mirrors.aliyun.com|g&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    /etc/apt/sources.list
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 3. 刷新 + 验证</span>
-</span></span><span class="line"><span class="cl">sudo apt update
-</span></span><span class="line"><span class="cl">grep mirrors.aliyun.com /etc/apt/sources.list   <span class="c1"># 看一眼确认</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>常见 Ubuntu LTS 的代号：<code>bionic</code>（18.04）、<code>focal</code>（20.04）、<code>jammy</code>（22.04）、<code>noble</code>（24.04），写到源里别写错。</p>
-<p>Ubuntu 24.04 起把 <code>/etc/apt/sources.list</code> 移到了 <code>/etc/apt/sources.list.d/ubuntu.sources</code>，格式也换成了 deb822。同样的 <code>sed</code> 在新文件上一样能跑。</p>
-<p><strong>CentOS / Rocky（dnf）：</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># CentOS 7</span>
-</span></span><span class="line"><span class="cl">sudo curl -o /etc/yum.repos.d/CentOS-Base.repo <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    http://mirrors.aliyun.com/repo/Centos-7.repo
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Rocky Linux 9（CentOS 8/Stream 已 EOL，生产请用 Rocky 或 Alma）</span>
-</span></span><span class="line"><span class="cl">sudo sed -e <span class="s1">&#39;s|^mirrorlist=|#mirrorlist=|g&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>         -e <span class="s1">&#39;s|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>         -i.bak /etc/yum.repos.d/rocky-*.repo
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo dnf clean all <span class="o">&amp;&amp;</span> sudo dnf makecache
-</span></span><span class="line"><span class="cl">dnf repolist                                <span class="c1"># 确认能看到 aliyun</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>清华源把上面命令里的域名换成 <code>mirrors.tuna.tsinghua.edu.cn</code> 即可，路径完全一样，按你网络情况选快的那个。配完一定要真的跑一次升级（<code>apt upgrade -y</code> / <code>dnf upgrade -y</code>），有问题立刻就能发现，省得真要装东西时才意识到镜像根本没生效。</p>
-<h1 id="源码编译configure--make--make-install">源码编译：configure / make / make install</h1>
-<p>有时候仓库里的版本太老，或者你需要一个发行版包没有的编译选项（一个 Nginx 模块、一个特定 OpenSSL 版本、一个调优开关）。源码编译就是后路。经典的 autotools <strong>三步曲</strong>：</p>
-<ol>
-<li><strong><code>./configure</code></strong>：探测系统——什么编译器、有哪些库、有哪些头文件，再根据你给的参数生成 <code>Makefile</code>；</li>
-<li><strong><code>make</code></strong>：按这个 <code>Makefile</code> 调编译器把代码编出来；</li>
-<li><strong><code>sudo make install</code></strong>：把编译产物拷到 <code>Makefile</code> 里记录的目录（通常就是你给 <code>configure</code> 的 <code>--prefix</code>）。</li>
-</ol>
-<p>CMake 和 Meson 的命令不一样（<code>cmake -B build</code> / <code>cmake --build build</code> / <code>cmake --install build</code>），但形状一致：先 configure，再 build，再 install。</p>
-<h2 id="实战在-ubuntu-上编译-tengine">实战：在 Ubuntu 上编译 Tengine</h2>
-<p>Tengine 是淘宝维护的 Nginx 分支，多了不少模块。构建流程跟上游 Nginx 完全一致——会编 Tengine 就会编 Nginx。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 装编译依赖</span>
-</span></span><span class="line"><span class="cl">sudo apt install -y build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev
-</span></span><span class="line"><span class="cl"><span class="c1"># Red Hat 系等价命令：</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># sudo dnf install -y gcc make pcre-devel openssl-devel zlib-devel</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 2. 拉源码</span>
-</span></span><span class="line"><span class="cl">wget http://tengine.taobao.org/download/tengine-2.3.3.tar.gz
-</span></span><span class="line"><span class="cl">tar -zxvf tengine-2.3.3.tar.gz
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> tengine-2.3.3
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 3. configure：所有构建选择都在这步定下来</span>
-</span></span><span class="line"><span class="cl">./configure <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --prefix<span class="o">=</span>/usr/local/nginx <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --with-http_ssl_module <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --with-http_v2_module <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --with-http_realip_module <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --with-http_gzip_static_module
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 4. 编译，所有核心一起上</span>
-</span></span><span class="line"><span class="cl">make -j<span class="s2">&#34;</span><span class="k">$(</span>nproc<span class="k">)</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 5. 安装：把二进制、默认配置、html 拷到 --prefix 下</span>
-</span></span><span class="line"><span class="cl">sudo make install
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>每一步实际干了什么：</p>
-<ul>
-<li><code>./configure</code> 检查你有没有 C 编译器，有没有 OpenSSL/PCRE/zlib 的开发头文件。哪个缺了它会清楚地报错——补上对应的 <code>-dev</code> 包再来一次。然后它会生成一个 <code>Makefile</code>，把 <code>/usr/local/nginx</code> 写进去作为安装路径，并启用你要的四个 HTTP 模块。</li>
-<li><code>make</code> 按 <code>Makefile</code> 一路编下去，产出 <code>objs/nginx</code> 和几个辅助文件。</li>
-<li><code>sudo make install</code> 创建 <code>/usr/local/nginx/{sbin,conf,logs,html}</code>，把二进制、默认配置和示例 HTML 拷进去。它<strong>不会</strong>给你写 systemd 单元、建用户、开防火墙——这些都得你自己来。</li>
-</ul>
-<p>跑起来：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/usr/local/nginx/sbin/nginx                    <span class="c1"># 启动</span>
-</span></span><span class="line"><span class="cl">/usr/local/nginx/sbin/nginx -s reload          <span class="c1"># 重载配置</span>
-</span></span><span class="line"><span class="cl">/usr/local/nginx/sbin/nginx -s stop            <span class="c1"># 停止</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>接到 systemd 下管的话，写个 <code>/etc/systemd/system/nginx.service</code>：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="k">[Unit]</span>
-</span></span><span class="line"><span class="cl"><span class="na">Description</span><span class="o">=</span><span class="s">Nginx HTTP Server (built from source)</span>
-</span></span><span class="line"><span class="cl"><span class="na">After</span><span class="o">=</span><span class="s">network.target</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">[Service]</span>
-</span></span><span class="line"><span class="cl"><span class="na">Type</span><span class="o">=</span><span class="s">forking</span>
-</span></span><span class="line"><span class="cl"><span class="na">PIDFile</span><span class="o">=</span><span class="s">/usr/local/nginx/logs/nginx.pid</span>
-</span></span><span class="line"><span class="cl"><span class="na">ExecStart</span><span class="o">=</span><span class="s">/usr/local/nginx/sbin/nginx</span>
-</span></span><span class="line"><span class="cl"><span class="na">ExecReload</span><span class="o">=</span><span class="s">/usr/local/nginx/sbin/nginx -s reload</span>
-</span></span><span class="line"><span class="cl"><span class="na">ExecStop</span><span class="o">=</span><span class="s">/usr/local/nginx/sbin/nginx -s stop</span>
-</span></span><span class="line"><span class="cl"><span class="na">PrivateTmp</span><span class="o">=</span><span class="s">true</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">[Install]</span>
-</span></span><span class="line"><span class="cl"><span class="na">WantedBy</span><span class="o">=</span><span class="s">multi-user.target</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>然后：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl daemon-reload
-</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now nginx
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>源码编译要付的代价是：<strong>没有 <code>apt upgrade</code> 替你管它</strong>。升级路径、安全跟踪、OpenSSL 出问题时重编整个软件，都是你自己的工作。大多数生产场景里正确答案是「除非有具体理由，否则用发行版包」。源码编译是用来解决那个「具体理由」的。</p>
-<h1 id="二进制压缩包以-jdk-为例">二进制压缩包：以 JDK 为例</h1>
-<p>有些软件以「解压即用」的二进制压缩包发布——JDK、Go、Node.js、大部分数据库引擎都有这种形式。没有安装程序好商量，文件放哪、环境变量怎么设，都是你的决定。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 1. 下载（Adoptium / Oracle / 内网镜像）</span>
-</span></span><span class="line"><span class="cl">wget https://download.example.com/jdk-17_linux-x64_bin.tar.gz
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 2. 解压到 /opt——「第三方独立软件」按惯例放这里</span>
-</span></span><span class="line"><span class="cl">sudo tar -zxf jdk-17_linux-x64_bin.tar.gz -C /opt
-</span></span><span class="line"><span class="cl">sudo mv /opt/jdk-17* /opt/jdk-17                <span class="c1"># 改成短而稳定的路径</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 3. 全局生效</span>
-</span></span><span class="line"><span class="cl">sudo tee /etc/profile.d/jdk17.sh &gt; /dev/null <span class="s">&lt;&lt;&#39;EOF&#39;
-</span></span></span><span class="line"><span class="cl"><span class="s">export JAVA_HOME=/opt/jdk-17
-</span></span></span><span class="line"><span class="cl"><span class="s">export PATH=$JAVA_HOME/bin:$PATH
-</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 4. 让当前 shell 也立刻生效</span>
-</span></span><span class="line"><span class="cl"><span class="nb">source</span> /etc/profile.d/jdk17.sh
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 5. 验证</span>
-</span></span><span class="line"><span class="cl">java -version
-</span></span><span class="line"><span class="cl">javac -version
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>/etc/profile.d/*.sh</code> 会被所有用户的登录 shell source 到，这正是 JDK 想要的作用域。只想给当前用户用，写到 <code>~/.bashrc</code> 或 <code>~/.zshrc</code> 即可。要并行多个 JDK，统一放在 <code>/opt/jdk-XX</code> 下，靠切 <code>JAVA_HOME</code> 切换（或者上 <code>sdkman</code>、<code>jenv</code>）。</p>
-<p>同样的套路适用于 Go（<code>/opt/go</code>）、Node.js（<code>/opt/node-vXX</code>）等等。它们之所以流行，正是因为绕开了发行版的发布周期——上游版本和你急用的版本不匹配时这一招特别管用。</p>
-<h1 id="现代方案snapflatpakappimage">现代方案：Snap、Flatpak、AppImage</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig5_modern_alternatives.png" alt="Snap、Flatpak、AppImage 与发行版包对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>发行版包模型有个长期痛点：它把软件牢牢绑在发行版的其它部分上。一个针对 Ubuntu 22.04 的 <code>glibc</code> 和 <code>gtk</code> 编出来的 Firefox，不能轻易塞到 RHEL 8 上跑。三种方案分别从不同角度解决这件事：</p>
-<ul>
-<li><strong>Snap</strong>（Canonical）：把依赖打包进一个 <code>.snap</code> 文件（其实是 SquashFS 镜像），用 AppArmor 沙箱跑，<code>snapd</code> 自动更新。Ubuntu 上一些应用（Firefox、Chromium 的 snap 版）默认就是 snap，其他发行版上少见。</li>
-<li><strong>Flatpak</strong>（freedesktop.org / RHEL 社区）：基于共享 <strong>runtime</strong>（比如 <code>org.freedesktop.Platform//22.08</code>）打包，用 <code>bubblewrap</code> 沙箱，主要走 Flathub 分发。Linux 桌面 GUI 应用的事实标准。</li>
-<li><strong>AppImage</strong>：单个自包含可执行文件，不装、无守护进程、默认无沙箱。双击就跑，「我只想试一下这个软件」或者内部工具分发的好选择。</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 装</span>
-</span></span><span class="line"><span class="cl">sudo apt install snapd                                  <span class="c1"># 一次性</span>
-</span></span><span class="line"><span class="cl">sudo snap install firefox
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo dnf install flatpak                                <span class="c1"># 一次性</span>
-</span></span><span class="line"><span class="cl">flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-</span></span><span class="line"><span class="cl">flatpak install flathub org.gimp.GIMP
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># AppImage：下载、chmod +x、跑</span>
-</span></span><span class="line"><span class="cl">wget https://example.com/foo.AppImage
-</span></span><span class="line"><span class="cl">chmod +x foo.AppImage
-</span></span><span class="line"><span class="cl">./foo.AppImage
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>什么时候用哪个：</p>
-<ul>
-<li><strong>服务器端的东西</strong>（<code>nginx</code>、<code>mysql</code>、<code>python</code>、<code>redis</code>）一律走发行版包：体积小、跟 systemd 集成好、安全更新由发行版安全团队推送。</li>
-<li><strong>桌面 GUI 应用</strong>且发行版包跟不上上游的：上 Flatpak（Flathub 选择最广）或 Snap。</li>
-<li><strong>临时跑一下试试</strong>的工具：AppImage。</li>
-</ul>
-<p>四种可以同台共存，安装根目录、更新机制都是分开的，互不干扰。</p>
-<h1 id="让生产机器一直可升级的几条习惯">让生产机器一直可升级的几条习惯</h1>
-<p>这是我修过太多别人留下的烂摊子之后总结出来的：</p>
-<p><strong>1. 按计划升级，不是出事再升。</strong> 每周一次 <code>apt upgrade -y</code> / <code>dnf upgrade -y</code>，走你那套变更管理流程。一台机器越久没升级，下一次升级就越疼。</p>
-<p><strong>2. 边用边清。</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt autoremove -y <span class="o">&amp;&amp;</span> sudo apt autoclean      <span class="c1"># Debian/Ubuntu</span>
-</span></span><span class="line"><span class="cl">sudo dnf autoremove -y <span class="o">&amp;&amp;</span> sudo dnf clean all      <span class="c1"># Red Hat 系</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>/var</code> 莫名其妙满了，第一时间查包缓存：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">du -sh /var/cache/apt/archives    <span class="c1"># Debian/Ubuntu</span>
-</span></span><span class="line"><span class="cl">du -sh /var/cache/dnf             <span class="c1"># Red Hat 系</span>
-</span></span><span class="line"><span class="cl">du -sh /var/lib/snapd/cache       <span class="c1"># snap 的旧版本特别能涨</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>3. 升不起的就钉死。</strong> 数据库、带自定义模块的内核、被你压测过特定版本的中间件——<code>apt-mark hold</code> / <code>dnf versionlock add</code> 锁住，留到运维窗口里手动升。</p>
-<p><strong>4. 包管理器和源码编译的同一软件不要并存。</strong> <code>apt install nginx</code> 和 <code>make install</code> 都往 <code>PATH</code> 里塞了 <code>nginx</code>，迟早你会启错那个、改错配置，然后浪费一小时排查。<strong>只用其中一种。</strong></p>
-<p><strong>5. 源码装的东西放 <code>/opt</code> 或 <code>/usr/local</code>。</strong> 包管理器拥有 <code>/usr</code>（除了 <code>/usr/local</code>），你别去抢它的地盘。</p>
-<p><strong>6. 改 <code>/etc</code> 之前先备份。</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo cp /etc/nginx/nginx.conf<span class="o">{</span>,.bak.<span class="k">$(</span>date +%F<span class="k">)</span><span class="o">}</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>凌晨三点你把配置改坏了，包管理器救不了你，备份能。</p>
-<p><strong>7. 语言生态用语言生态自己的隔离。</strong> Python 用 <code>python3 -m venv</code> 或 <code>uv</code>，Node.js 版本用 <code>nvm</code>、项目依赖用 <code>npm</code>/<code>pnpm</code>。别让 <code>pip install --user</code> 污染了系统 Python——其它发行版包还指望它呢。</p>
-<p><strong>8. 看清楚你在做什么。</strong> <code>apt</code>/<code>dnf</code> 在执行前会把整个计划打印出来。如果它要删的包数量明显异常，<strong>先停下来</strong>搞清楚原因再确认。「我用 apt 把系统弄废了」的故事，绝大多数都开头于：有人在「即将删除 200 个包」的提示里直接按了 <code>y</code>。</p>
-<h1 id="总结">总结</h1>
-<p>希望你带走的心智地图：</p>
-<ul>
-<li><strong>包</strong>是文件加元数据；包管理器存在是为了让这个映射在数据库里始终一致并跨重启保留。</li>
-<li><strong>高层工具</strong>（<code>apt</code>、<code>dnf</code>、<code>pacman</code>）跑求解器、对接仓库；<strong>底层工具</strong>（<code>dpkg</code>、<code>rpm</code>）一次只处理一个文件。</li>
-<li>包管理器真正难的地方是<strong>依赖求解</strong>，绕开高层工具基本就是给自己找事。</li>
-<li><strong>仓库</strong>是签名过的文件树，信任从你机器上的 GPG 公钥，沿 <code>Release</code> / <code>repomd.xml</code> 一路传到每一个 <code>.deb</code> / <code>.rpm</code>。</li>
-<li><strong>源码编译</strong>是仓库版本不顶用时的后路；自愿背上升级税。</li>
-<li><strong>Snap / Flatpak / AppImage</strong> 用磁盘和集成度换「跨发行版分发」，桌面应用合适，服务端少见。</li>
-</ul>
-<p>扩展阅读：</p>
-<ul>
-<li>Debian 包管理参考：<a href="https://www.debian.org/doc/manuals/debian-reference/ch02" target="_blank" rel="noopener noreferrer">https://www.debian.org/doc/manuals/debian-reference/ch02 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>DNF 文档：<a href="https://dnf.readthedocs.io/" target="_blank" rel="noopener noreferrer">https://dnf.readthedocs.io/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Arch Pacman/Rosetta：<a href="https://wiki.archlinux.org/title/Pacman/Rosetta" target="_blank" rel="noopener noreferrer">https://wiki.archlinux.org/title/Pacman/Rosetta <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-（跨发行版命令对照表）</li>
-<li>RPM 打包指南：<a href="https://rpm-packaging-guide.github.io/" target="_blank" rel="noopener noreferrer">https://rpm-packaging-guide.github.io/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-<p>系列下一篇：</p>
-<ul>
-<li>《Linux 进程与资源管理》—— cgroups、<code>ps</code>、<code>top</code>、<code>nice</code>、OOM killer。</li>
-<li>《Linux 用户管理》—— 用户、组、sudoers、PAM。</li>
-</ul>
-<p>当你能配镜像源、能锁版本、能调试依赖冲突、能在「发行版包 / 源码编译 / Flatpak」三者之间按理由选择时，你就从「跟包管理器较劲」升级到「让它替你干活」了。</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/zh/linux/%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/"><span class="title">Linux 磁盘管理</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next</div>
-      <span class="title" style="color: var(--ink-faint)">—</span>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#没有包管理器会怎样">没有包管理器会怎样</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#三个工具怎么选">三个工具怎么选</a></li>
-    <li><a href="#日常命令">日常命令</a></li>
-    <li><a href="#搜索查看定位">搜索、查看、定位</a></li>
-    <li><a href="#锁定降级冻结">锁定、降级、冻结</a></li>
-    <li><a href="#清理">清理</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#日常命令-1">日常命令</a></li>
-    <li><a href="#搜索查看定位-1">搜索、查看、定位</a></li>
-    <li><a href="#锁定与历史">锁定与历史</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#配国内镜像源">配国内镜像源</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#实战在-ubuntu-上编译-tengine">实战：在 Ubuntu 上编译 Tengine</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Linux</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
-      <div class="row"><span>Word count</span><strong>9100</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2022</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Linux 软件包管理 · Chen Kai Blog</title>
+<meta name=description content="跨发行版的包管理实战：Debian/Ubuntu 的 dpkg/apt、RHEL/Rocky 的 rpm/dnf、Arch 的 pacman，依赖排障、版本锁定、镜像源、源码编译与 Snap/Flatpak/AppImage 等现代方案。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/><meta property="og:type" content="article"><meta property="og:title" content="Linux 软件包管理"><meta property="og:description" content="跨发行版的包管理实战：Debian/Ubuntu 的 dpkg/apt、RHEL/Rocky 的 rpm/dnf、Arch 的 pacman，依赖排障、版本锁定、镜像源、源码编译与 Snap/Flatpak/AppImage 等现代方案。"><meta property="og:url" content="https://www.chenk.top/zh/linux/%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%AE%A1%E7%90%86/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Linux</a>
+· Chapter 4</div><h1>Linux 软件包管理</h1><p class=deck>跨发行版的包管理实战：Debian/Ubuntu 的 dpkg/apt、RHEL/Rocky 的 rpm/dnf、Arch 的 pacman，依赖排障、版本锁定、镜像源、源码编译与 Snap/Flatpak/AppImage 等现代方案。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2022-02-09>February 9, 2022</time> · 18 min read · 9012 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/ class=tag>#云计算</a><a href=/zh/tags/linux/ class=tag>#Linux</a><a href=/zh/tags/%E7%B3%BB%E7%BB%9F%E7%AE%A1%E7%90%86/ class=tag>#系统管理</a></div></div></header><div class=prose><p>很多人是从「装、删、升」三个动词开始学包管理的，平时也够用，直到出问题——依赖冲突装不上、升级以后服务起不来、内核换完机器进不去系统、国内拉镜像慢得想哭。这时候你需要的不是再背几条命令，而是一个心智模型：一个<strong>包</strong>里到底装了什么、<strong>包管理器</strong>在背后到底求解什么、状态记录在哪里、Debian 系的 <code>apt/dpkg</code> 和 Red Hat 系的 <code>dnf/rpm</code> 在哪儿一致、又在哪儿分叉，凌晨两点登录线上机器才不至于慌。</p><p>这篇文章既给模型，也给配方。先讲一个 <code>.deb</code> 或 <code>.rpm</code> 文件里装了什么、为什么需要包管理器；再把 <code>apt</code>、<code>dnf</code>、<code>pacman</code> 摊开横向对比——不只是「等价命令表」，还包括它们在依赖求解、版本锁定、降级、仓库信任链上各自的脾气。然后是只能踩坑学到的事：把国内镜像源真正配对、源码编译 Nginx（顺便讲清楚 <code>configure/make/make install</code> 三步到底干了什么）、用二进制压缩包扔下一个 JDK、以及一组能让生产机器维持「永远可升级」状态的运维习惯。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig1_package_manager_comparison.png alt="主流 Linux 包管理工具链" loading=lazy decoding=async></figure></p><h1 id=一个包里到底有什么>一个包里到底有什么</h1><p>软件包是一个文件（<code>.deb</code>、<code>.rpm</code>、<code>.pkg.tar.zst</code>），里面打包了一份软件运行所需的全部内容，<strong>外加描述如何安装的元数据</strong>。元数据才是它和普通压缩包的区别——没有元数据，它就只是个 tarball。</p><p>具体到一个典型的服务端包，里面通常有六类东西：</p><p><strong>1. 可执行文件。</strong> 编译好的二进制，按惯例放在 <code>/usr/bin</code>（普通用户命令）或 <code>/usr/sbin</code>（系统管理命令）。比如 <code>/usr/bin/vim</code>、<code>/usr/sbin/nginx</code>、<code>/usr/bin/gcc</code>。</p><p><strong>2. 配置文件。</strong> 软件自带的默认配置，几乎全在 <code>/etc</code> 下。包管理器对它们有特殊待遇：升级时<strong>不会覆盖你改过的配置</strong>。<code>apt</code> 会弹出 <code>Y/I/N/O/D/Z</code> 提示，并把新版本另存为 <code>.dpkg-dist</code>；<code>dnf</code> 直接把新默认值存为 <code>.rpmnew</code>，你的文件原样不动。这条规则救过的线上事故比想象中多得多。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/etc/nginx/nginx.conf       # nginx 配置
+</span></span><span class=line><span class=cl>/etc/mysql/my.cnf           # mysql 配置
+</span></span><span class=line><span class=cl>/etc/ssh/sshd_config        # SSH 守护进程配置
+</span></span></code></pre></td></tr></table></div></div><p><strong>3. 共享库。</strong> 即可执行文件运行时动态链接的 <code>.so</code>，相当于 Windows 的 DLL，放在 <code>/usr/lib</code>、<code>/lib</code> 或发行版特有的路径下，比如 <code>/lib/x86_64-linux-gnu/</code>。共享库的好处是省盘省内存（一份库被所有进程共用），更重要的是——升级一次 <code>libssl3</code> 就能把全机所有 TLS 客户端一起打补丁。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>/usr/lib/x86_64-linux-gnu/libssl.so.3   # OpenSSL
+</span></span><span class=line><span class=cl>/lib/x86_64-linux-gnu/libc.so.6         # GNU C 库
+</span></span></code></pre></td></tr></table></div></div><p><strong>4. 数据文件。</strong> 程序运行需要、但既不是代码也不是配置的东西：<code>/var/lib/mysql</code> 下的空数据库模板、<code>/var/www/html</code> 下的默认站点、locale 数据、示例证书等等。</p><p><strong>5. 文档。</strong> <code>/usr/share/man/</code> 下的 man 手册，<code>/usr/share/doc/&lt;pkg>/</code> 下的 README 与 changelog。出问题时第一时间应该翻的不是搜索引擎，而是这里。</p><p><strong>6. systemd 服务单元。</strong> 如果包带守护进程，会顺手把 <code>.service</code> 文件丢到 <code>/usr/lib/systemd/system/</code>，所以你装完立刻 <code>systemctl enable nginx</code> 就能用。这些文件归包所有；管理员要覆盖的话写到 <code>/etc/systemd/system/</code> 下，免得升级被冲掉。</p><p>除了这些「文件载荷」，包元数据还记录了：包名与版本、依赖（<code>.deb</code> 里叫 <code>Depends:</code>，<code>.rpm</code> 里叫 <code>Requires:</code>）、冲突关系、安装后脚本（比如 <code>useradd nginx</code>），以及每个文件的 SHA256。最后这条是后来 <code>dpkg -V</code> 或 <code>rpm -V</code> 能告诉你「哪些文件被动过」的依据。</p><h2 id=没有包管理器会怎样>没有包管理器会怎样</h2><p>得这样过日子：每装一个软件都要</p><ol><li>自己找下载链接（顺便祈祷源站是干净的）；</li><li>自己解依赖——A 要 B 1.1+，B 要 C，C 又跟你装过的 D 冲突；</li><li>自己决定每个文件放在哪；</li><li>自己记下你拷过哪些文件，以后才能卸干净；</li><li>自己定期上游网查安全更新。</li></ol><p>包管理器把这堆活换成了一个<strong>数据库</strong>（<code>/var/lib/dpkg/</code> 或 <code>rpmdb</code>）加一个<strong>求解器</strong>。数据库知道每一个已安装包占了哪些文件，求解器知道仓库里有什么、依赖怎么连，所有装、升、删都被规约成对这个数据库的一致变更。这就是包管理器的全部价值——而它的价值大得惊人。</p><h1 id=主流的几个工具链>主流的几个工具链</h1><p>Linux 包管理几十年前就分成了若干派系，之后非常稳定。下面这张表是最该记的：</p><table><thead><tr><th>派系</th><th>代表发行版</th><th>包格式</th><th>底层工具</th><th>高层工具</th></tr></thead><tbody><tr><td>Debian</td><td>Debian / Ubuntu / Mint</td><td><code>.deb</code></td><td><code>dpkg</code></td><td><code>apt</code>、<code>apt-get</code></td></tr><tr><td>Red Hat</td><td>RHEL / CentOS / Rocky / Alma / Fedora</td><td><code>.rpm</code></td><td><code>rpm</code></td><td><code>dnf</code>（EL7 上是 <code>yum</code>）</td></tr><tr><td>Arch</td><td>Arch / Manjaro / EndeavourOS</td><td><code>.pkg.tar.zst</code></td><td><code>pacman</code></td><td><code>pacman</code>、<code>yay</code></td></tr><tr><td>SUSE</td><td>openSUSE / SLES</td><td><code>.rpm</code></td><td><code>rpm</code></td><td><code>zypper</code></td></tr><tr><td>Gentoo</td><td>Gentoo</td><td>源码 <code>ebuild</code></td><td>-</td><td><code>portage</code>（<code>emerge</code>）</td></tr></tbody></table><p>实战中真正要分清的不是派系，而是<strong>底层 vs 高层</strong>。底层工具（<code>dpkg</code>、<code>rpm</code>、裸 <code>pacman -U</code>）只对一个文件操作：解压、跑脚本、更新本地数据库——但<strong>不会</strong>主动去拉缺失依赖。高层工具（<code>apt</code>、<code>dnf</code>、<code>pacman -S</code>、<code>zypper</code>）是同样的动作外面套了一层依赖求解器和远程仓库通信。绝大多数时候你应该用高层工具；只有当你要做的事情正好是高层工具不让你做的——比如硬装一个理论上冲突的包，或者把一个 <code>.deb</code> 拆开看里面有什么——才轮到底层工具上场。</p><p>后面主要讲 <code>apt</code>（Debian/Ubuntu）、<code>dnf</code>（RHEL/Rocky/Fedora）和 <code>pacman</code>（Arch），中间穿插底层 <code>dpkg</code> / <code>rpm</code> 在哪些场景下要用。</p><h1 id=依赖求解这才是真正难的部分>依赖求解：这才是真正难的部分</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig2_dependency_resolution.png alt=依赖求解图 loading=lazy decoding=async></figure></p><p>包管理器最反直觉的地方是：它的代码大头不在「安装」，而在<strong>求解器</strong>。<code>apt install nginx</code> 实际要做的事情是：</p><ol><li>从本地缓存的 <code>Packages</code> 索引里<strong>读出 nginx 的元数据</strong>；</li><li><strong>遍历依赖图</strong>——<code>nginx</code> 依赖 <code>libssl3</code>、<code>libpcre2-8</code>、<code>zlib1g</code>、<code>libc6</code>……每个又有自己的依赖，遇到「已安装且版本满足」就停；</li><li><strong>统一版本</strong>。如果两条路径要的 <code>libc6</code> 版本不一样，求解器要么找一个能同时满足的版本，要么报冲突。共享库没有「两份都装」的选项——动态链接器按名字解析，不按路径，最终每个进程只会绑定到一份；</li><li><strong>决定安装顺序</strong>，让「必须先装的依赖」真的先装，这样安装后脚本运行时不会找不到东西；</li><li><strong>找不到一致解就大声失败</strong>，绝不留下半装不装的烂摊子。</li></ol><p>绕开高层工具，求解就没了：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo dpkg -i nginx_1.24.0-1_amd64.deb
+</span></span><span class=line><span class=cl><span class=c1># dpkg: 处理 nginx 时出错: 依赖问题：</span>
+</span></span><span class=line><span class=cl><span class=c1>#  nginx 依赖 libssl3 (&gt;= 3.0.0); 然而:</span>
+</span></span><span class=line><span class=cl><span class=c1>#   未安装 libssl3。</span>
+</span></span><span class=line><span class=cl>sudo apt install -f         <span class=c1># 让 apt 来收拾 dpkg 的烂摊子</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>apt install -f</code> 的作用就是事后把求解器跑一遍来修复部分安装的状态。其实你完全可以一开始就让高层工具来处理本地文件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt install ./nginx_1.24.0-1_amd64.deb     <span class=c1># apt 会从仓库里解依赖</span>
+</span></span><span class=line><span class=cl>sudo dnf install ./nginx-1.24.0-1.x86_64.rpm    <span class=c1># Red Hat 系同理</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>卸载</strong>也一样。如果你装了 <code>nginx</code> 和它的 <code>libcache-extra</code>，单独卸 <code>libcache-extra</code> 没问题；但卸 <code>nginx</code> 时，原本只是为了 <code>nginx</code> 才装上的 <code>libpcre2-8</code>，如果没人再依赖它，应该顺手清理掉。<code>apt autoremove</code> 和 <code>dnf autoremove</code> 干的就是这件事。</p><h1 id=debian--ubuntuapt-和-dpkg>Debian / Ubuntu：apt 和 dpkg</h1><h2 id=三个工具怎么选>三个工具怎么选</h2><table><thead><tr><th>工具</th><th>是什么</th><th>用在哪儿</th></tr></thead><tbody><tr><td><code>apt</code></td><td>现代用户友好前端：彩色输出、进度条、合理默认值。</td><td>交互式 shell、日常使用。</td></tr><tr><td><code>apt-get</code></td><td>老前端，引擎相同，输出稳定、可被脚本解析。</td><td>Shell 脚本、Ansible、Dockerfile。</td></tr><tr><td><code>dpkg</code></td><td>底层工具，一次只处理一个 <code>.deb</code>，不解依赖。</td><td>检查包内容、强制状态、应急修复。</td></tr></tbody></table><p>记忆方法：<code>apt</code> = <code>apt-get</code> + 交互优化；<code>apt-get</code> = 依赖求解器包着 <code>dpkg</code>；<code>dpkg</code> 才是真正解压文件、跑维护脚本的那一层。</p><h2 id=日常命令>日常命令</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt update                       <span class=c1># 刷新仓库索引（不装任何东西）</span>
+</span></span><span class=line><span class=cl>sudo apt upgrade                      <span class=c1># 应用所有可升级包，绝不删包</span>
+</span></span><span class=line><span class=cl>sudo apt full-upgrade                 <span class=c1># 升级时如有必要可以删旧包</span>
+</span></span><span class=line><span class=cl>sudo apt install nginx                <span class=c1># 装 nginx（含依赖）</span>
+</span></span><span class=line><span class=cl>sudo apt install <span class=nv>nginx</span><span class=o>=</span>1.24.0-2ubuntu1   <span class=c1># 安装指定版本</span>
+</span></span><span class=line><span class=cl>sudo apt remove nginx                 <span class=c1># 卸载，但保留 /etc/nginx</span>
+</span></span><span class=line><span class=cl>sudo apt purge nginx                  <span class=c1># 卸载并清掉配置</span>
+</span></span><span class=line><span class=cl>sudo apt autoremove                   <span class=c1># 清理不再被依赖的包</span>
+</span></span></code></pre></td></tr></table></div></div><p>新人最常踩的两条命令：</p><ul><li><code>apt update</code> <strong>不装任何东西</strong>，它只是把镜像源上最新的 <code>Packages</code> 索引拉到本地，下一条 <code>apt install</code> 才能看到最新版本。「明明仓库有这个包却装不上」十有八九是没跑过 <code>update</code>。</li><li><code>apt remove</code> <strong>保留 <code>/etc</code></strong>。绝大多数场景这正是你要的（重装时还能恢复配置）；但如果你是真要彻底下线一个服务，应该用 <code>apt purge</code>。</li></ul><h2 id=搜索查看定位>搜索、查看、定位</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>apt search nginx                  <span class=c1># 在已配置的源里搜索</span>
+</span></span><span class=line><span class=cl>apt show nginx                    <span class=c1># 版本、依赖、描述、大小</span>
+</span></span><span class=line><span class=cl>apt-cache policy nginx            <span class=c1># 可装的候选版本 + 来自哪个源</span>
+</span></span><span class=line><span class=cl>dpkg -l                           <span class=c1># 列出所有已装包</span>
+</span></span><span class=line><span class=cl>dpkg -l <span class=p>|</span> grep nginx              <span class=c1># nginx 装了吗</span>
+</span></span><span class=line><span class=cl>dpkg -L nginx                     <span class=c1># nginx 装了哪些文件</span>
+</span></span><span class=line><span class=cl>dpkg -S /usr/sbin/nginx           <span class=c1># 这个文件属于哪个包</span>
+</span></span></code></pre></td></tr></table></div></div><p>后两条是排障神器。「这个包到底往磁盘上扔了什么文件？」「PATH 里这个不知道哪来的二进制是哪个包带的？」是事故调查的高频问题，而 Linux 上没有别的命令能像 <code>dpkg -S</code> 这样反查文件归属。</p><h2 id=锁定降级冻结>锁定、降级、冻结</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt-mark hold nginx          <span class=c1># 不让 nginx 自动升级</span>
+</span></span><span class=line><span class=cl>apt-mark showhold                 <span class=c1># 当前哪些包被冻结</span>
+</span></span><span class=line><span class=cl>sudo apt-mark unhold nginx        <span class=c1># 解除冻结</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 降级三步走</span>
+</span></span><span class=line><span class=cl>apt-cache policy nginx                       <span class=c1># 1) 看可选版本</span>
+</span></span><span class=line><span class=cl>sudo apt install <span class=nv>nginx</span><span class=o>=</span>1.22.1-1ubuntu1       <span class=c1># 2) 装回老版本</span>
+</span></span><span class=line><span class=cl>sudo apt-mark hold nginx                     <span class=c1># 3) 冻结，下次升级才不会被冲</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>hold</code> 是你应对「上游发了一个有问题的版本」的武器：钉住老版本，找个维护窗口再升级，不让自动化在半夜替你做决定。</p><h2 id=清理>清理</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt clean        <span class=c1># 删 /var/cache/apt/archives 下所有缓存的 .deb</span>
+</span></span><span class=line><span class=cl>sudo apt autoclean    <span class=c1># 只删已经不在任何源里的过期 .deb</span>
+</span></span><span class=line><span class=cl>sudo apt autoremove   <span class=c1># 清理已不被依赖的孤儿包</span>
+</span></span></code></pre></td></tr></table></div></div><p>我自己肌肉记忆里常用的一条组合：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt update <span class=o>&amp;&amp;</span> sudo apt upgrade -y <span class=o>&amp;&amp;</span> sudo apt autoremove -y <span class=o>&amp;&amp;</span> sudo apt autoclean
+</span></span></code></pre></td></tr></table></div></div><p>每周对每台机器跑一次，<code>/var</code> 不会平白被撑爆。</p><h1 id=rhel--rocky--fedoradnf顺带-yum-和-rpm>RHEL / Rocky / Fedora：dnf（顺带 yum 和 rpm）</h1><p><code>dnf</code> 在 CentOS 8 / RHEL 8 和 Fedora 22 替代了 <code>yum</code>，命令名几乎一一对应（这是有意保留的兼容性），但底层用 Python 重写，并换上了真正的 SAT 求解器（<code>libsolv</code>）。所以 <code>dnf</code> 在大事务上明显更快。CentOS 7 还在用 <code>yum</code>，其他地方都按 <code>dnf</code> 来。</p><h2 id=日常命令-1>日常命令</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo dnf makecache                 <span class=c1># 刷新元数据</span>
+</span></span><span class=line><span class=cl>sudo dnf check-update              <span class=c1># 列出能升级的包</span>
+</span></span><span class=line><span class=cl>sudo dnf upgrade                   <span class=c1># 升级一切</span>
+</span></span><span class=line><span class=cl>sudo dnf install nginx             <span class=c1># 装</span>
+</span></span><span class=line><span class=cl>sudo dnf install nginx-1.24.0      <span class=c1># 装指定版本</span>
+</span></span><span class=line><span class=cl>sudo dnf remove nginx              <span class=c1># 卸</span>
+</span></span><span class=line><span class=cl>sudo dnf autoremove                <span class=c1># 清孤儿</span>
+</span></span><span class=line><span class=cl>sudo dnf downgrade nginx-1.22.1    <span class=c1># 原生降级（apt 没有等价命令）</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>dnf downgrade</code> 是 <code>dnf</code> 比 <code>apt</code> 体验好的地方之一——<code>apt</code> 世界里降级是「装回老版本祈祷不冲突」，<code>dnf</code> 里它是一等公民。</p><h2 id=搜索查看定位-1>搜索、查看、定位</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>dnf search nginx                   <span class=c1># 搜索</span>
+</span></span><span class=line><span class=cl>dnf info nginx                     <span class=c1># 详情</span>
+</span></span><span class=line><span class=cl>dnf list --showduplicates nginx    <span class=c1># 所有源里所有版本</span>
+</span></span><span class=line><span class=cl>rpm -qa                            <span class=c1># 所有已装包</span>
+</span></span><span class=line><span class=cl>rpm -qa <span class=p>|</span> grep nginx               <span class=c1># 装了吗</span>
+</span></span><span class=line><span class=cl>rpm -ql nginx                      <span class=c1># nginx 装了哪些文件</span>
+</span></span><span class=line><span class=cl>rpm -qf /usr/sbin/nginx            <span class=c1># 这文件属于哪个包</span>
+</span></span><span class=line><span class=cl>rpm -qc nginx                      <span class=c1># 只看配置文件</span>
+</span></span><span class=line><span class=cl>rpm -V nginx                       <span class=c1># 校验文件有没有被改过</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>rpm -V</code> 是被低估的工具。输出 <code>S.5....T. c /etc/nginx/nginx.conf</code> 的解读是：大小变了（<code>S</code>）、MD5 变了（<code>5</code>）、修改时间变了（<code>T</code>），且这是一个配置文件（<code>c</code>）。配置文件被改是正常的；但如果 <code>/usr/sbin/</code> 下的二进制被改了——这就是排查入侵痕迹的入口。</p><h2 id=锁定与历史>锁定与历史</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo dnf install <span class=s1>&#39;dnf-command(versionlock)&#39;</span>   <span class=c1># 一次性安装插件</span>
+</span></span><span class=line><span class=cl>sudo dnf versionlock add nginx                <span class=c1># 锁定 nginx</span>
+</span></span><span class=line><span class=cl>dnf versionlock list                          <span class=c1># 查看</span>
+</span></span><span class=line><span class=cl>sudo dnf versionlock delete nginx             <span class=c1># 解锁</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>dnf <span class=nb>history</span>                                   <span class=c1># 这台机器上每一次事务</span>
+</span></span><span class=line><span class=cl>dnf <span class=nb>history</span> info <span class=m>42</span>                           <span class=c1># 第 42 号事务到底装了/删了什么</span>
+</span></span><span class=line><span class=cl>sudo dnf <span class=nb>history</span> undo <span class=m>42</span>                      <span class=c1># 把它整个回滚</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>dnf history</code> 没有真正的 <code>apt</code> 等价物。它把每一次事务的时间戳、命令行、完整 diff 都记下来，并且任何一次都能回滚。在被多任管理员折腾过的服务器上，这是你还原「到底什么时候发生了什么」的唯一办法。</p><h1 id=archpacman>Arch：pacman</h1><p>Arch 的 <code>pacman</code> 既是底层也是高层工具。Arch 是滚动发行，不存在「Arch 22.04」，只有「现在仓库长什么样」，所以工作流天然偏向「永远整体升级」：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo pacman -Syu                  <span class=c1># 同步源 + 升级一切（Arch 的金科玉律）</span>
+</span></span><span class=line><span class=cl>sudo pacman -S nginx              <span class=c1># 装</span>
+</span></span><span class=line><span class=cl>sudo pacman -Ss nginx             <span class=c1># 搜</span>
+</span></span><span class=line><span class=cl>sudo pacman -Si nginx             <span class=c1># 仓库里这个包的信息</span>
+</span></span><span class=line><span class=cl>sudo pacman -Qi nginx             <span class=c1># 已装包的信息</span>
+</span></span><span class=line><span class=cl>sudo pacman -Ql nginx             <span class=c1># 文件列表</span>
+</span></span><span class=line><span class=cl>sudo pacman -Qo /usr/bin/nginx    <span class=c1># 文件归属</span>
+</span></span><span class=line><span class=cl>sudo pacman -R nginx              <span class=c1># 卸（保留依赖）</span>
+</span></span><span class=line><span class=cl>sudo pacman -Rns nginx            <span class=c1># 卸 + 顺便清孤儿依赖 + 清配置</span>
+</span></span><span class=line><span class=cl>sudo pacman -Sc                   <span class=c1># 清缓存</span>
+</span></span></code></pre></td></tr></table></div></div><p>Arch 的铁律：<strong>永远不要部分升级</strong>。隔几周没跑 <code>pacman -Syu</code> 直接来一句 <code>pacman -S nginx</code>，你装的可能是依赖了新版本库的 <code>nginx</code>，而你机器上还是老库——结果就是 <code>nginx</code> 起不来。要么先 <code>-Syu</code>，要么干脆 <code>pacman -Syu nginx</code> 一步到位。</p><p>Arch User Repository（AUR）由社区维护构建脚本，前端工具如 <code>yay</code>、<code>paru</code> 把 <code>pacman</code> 加上 <code>makepkg</code> 一锅端：拉源码、构建、安装。挺好用，但 AUR 的东西要按「我会读完 PKGBUILD 再装」的态度来对待。</p><h1 id=一台机器上的包生命周期>一台机器上的包生命周期</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig3_package_lifecycle.png alt=包生命周期 loading=lazy decoding=async></figure></p><p>抛开具体工具，每个包在你机器上都走同样的循环：<strong>搜 → 装 → 升（或冻结）→ 卸</strong>。包管理器把每个包的当前状态记在数据库里（Debian 是 <code>/var/lib/dpkg/status</code>，Red Hat 是 <code>/var/lib/rpm/</code> 下的 <code>rpmdb</code>）。你跑的每一条命令，本质上都是对这个数据库的一笔事务，加上对磁盘的对应操作。</p><p>正因如此，「我手动 <code>rm</code> 掉那个二进制了」永远是错的：数据库里那个包还显示装着，下次升级会悄悄把文件放回来，<code>dpkg -V</code> / <code>rpm -V</code> 又会报「文件丢失」。要么把包正经卸掉（<code>apt purge</code> / <code>dnf remove</code>），要么——如果你确实需要保留包但屏蔽某个文件——用 <code>dpkg-divert</code> 这种正经手段。</p><h1 id=仓库到底长什么样>仓库到底长什么样</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig4_repository_structure.png alt=仓库结构与信任链 loading=lazy decoding=async></figure></p><p><code>apt update</code> 时，机器走 HTTPS 连镜像，按一套很具体的目录结构去拉索引文件。理解这个结构，调试镜像问题就只是 <code>curl</code> 几条 URL 的事。</p><p>Debian 风格的 apt 仓库提供两棵树：</p><ul><li><strong><code>dists/&lt;suite>/</code></strong>：每个 suite 的元数据。顶层文件是 <code>Release</code>（或者它的 inline-签名版本 <code>InRelease</code>），里面列出每个组件（<code>main</code>、<code>universe</code> 等）和架构，附上每个 <code>Packages.gz</code> 索引的 SHA256。<code>Release.gpg</code> 是分离的 GPG 签名。这棵树是信任的根。</li><li><strong><code>pool/</code></strong>：真正的 <code>.deb</code> 文件，按源码包名分目录（<code>pool/main/n/nginx/nginx_1.24.0-1_amd64.deb</code>）。</li></ul><p><code>apt install nginx</code> 的信任链是：</p><ol><li>你机器上 <code>/etc/apt/trusted.gpg.d/</code> 里有一组你信任的 GPG 公钥（通过源里的 <code>signed-by=</code> 字段或老的 <code>apt-key</code> 放进去）；</li><li><code>apt update</code> 拉 <code>InRelease</code>，用上面那些公钥验签——验不过就直接拒绝使用整个 suite（<code>NO_PUBKEY</code> 错误就来自这一步）；</li><li>从 <code>InRelease</code> 拿到每个组件 <code>Packages.gz</code> 的 SHA256，拉下来再校验；</li><li>从 <code>Packages.gz</code> 拿到 <code>nginx_1.24.0-1_amd64.deb</code> 的 SHA256，从 <code>pool/</code> 拉下来校验，<strong>然后</strong>才交给 <code>dpkg</code>。</li></ol><p>链上任何一环断了——公钥缺失、<code>Release</code> 被改、<code>.deb</code> 校验对不上——<code>apt</code> 都会拒绝继续。这就是它的安全保证：哪怕镜像被人替换，能给你的也只是合法的字节流，要伪造内容必须同时拿到上游签名密钥。</p><p>Red Hat 这边结构类似：<code>repodata/repomd.xml</code> 是签名清单，里面是 <code>primary.xml.gz</code> 索引和各个 <code>.rpm</code> 的校验信息。<code>dnf</code> 默认强制走这条链，除非你显式关掉 <code>gpgcheck</code>（请别关）。</p><h2 id=配国内镜像源>配国内镜像源</h2><p>国内拉默认 Ubuntu / CentOS 源很慢，办法是改成国内镜像。两个最大的是阿里云（<code>mirrors.aliyun.com</code>）和清华（<code>mirrors.tuna.tsinghua.edu.cn</code>），都覆盖主流发行版。</p><p><strong>Ubuntu（apt）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. 先备份</span>
+</span></span><span class=line><span class=cl>sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. 原地改 URL（Ubuntu 22.04 &#39;jammy&#39;）</span>
+</span></span><span class=line><span class=cl>sudo sed -i.aliyun <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=s1>&#39;s|http://.*archive.ubuntu.com|http://mirrors.aliyun.com|g&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -e <span class=s1>&#39;s|http://.*security.ubuntu.com|http://mirrors.aliyun.com|g&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    /etc/apt/sources.list
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. 刷新 + 验证</span>
+</span></span><span class=line><span class=cl>sudo apt update
+</span></span><span class=line><span class=cl>grep mirrors.aliyun.com /etc/apt/sources.list   <span class=c1># 看一眼确认</span>
+</span></span></code></pre></td></tr></table></div></div><p>常见 Ubuntu LTS 的代号：<code>bionic</code>（18.04）、<code>focal</code>（20.04）、<code>jammy</code>（22.04）、<code>noble</code>（24.04），写到源里别写错。</p><p>Ubuntu 24.04 起把 <code>/etc/apt/sources.list</code> 移到了 <code>/etc/apt/sources.list.d/ubuntu.sources</code>，格式也换成了 deb822。同样的 <code>sed</code> 在新文件上一样能跑。</p><p><strong>CentOS / Rocky（dnf）：</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># CentOS 7</span>
+</span></span><span class=line><span class=cl>sudo curl -o /etc/yum.repos.d/CentOS-Base.repo <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    http://mirrors.aliyun.com/repo/Centos-7.repo
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Rocky Linux 9（CentOS 8/Stream 已 EOL，生产请用 Rocky 或 Alma）</span>
+</span></span><span class=line><span class=cl>sudo sed -e <span class=s1>&#39;s|^mirrorlist=|#mirrorlist=|g&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>         -e <span class=s1>&#39;s|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>         -i.bak /etc/yum.repos.d/rocky-*.repo
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo dnf clean all <span class=o>&amp;&amp;</span> sudo dnf makecache
+</span></span><span class=line><span class=cl>dnf repolist                                <span class=c1># 确认能看到 aliyun</span>
+</span></span></code></pre></td></tr></table></div></div><p>清华源把上面命令里的域名换成 <code>mirrors.tuna.tsinghua.edu.cn</code> 即可，路径完全一样，按你网络情况选快的那个。配完一定要真的跑一次升级（<code>apt upgrade -y</code> / <code>dnf upgrade -y</code>），有问题立刻就能发现，省得真要装东西时才意识到镜像根本没生效。</p><h1 id=源码编译configure--make--make-install>源码编译：configure / make / make install</h1><p>有时候仓库里的版本太老，或者你需要一个发行版包没有的编译选项（一个 Nginx 模块、一个特定 OpenSSL 版本、一个调优开关）。源码编译就是后路。经典的 autotools <strong>三步曲</strong>：</p><ol><li><strong><code>./configure</code></strong>：探测系统——什么编译器、有哪些库、有哪些头文件，再根据你给的参数生成 <code>Makefile</code>；</li><li><strong><code>make</code></strong>：按这个 <code>Makefile</code> 调编译器把代码编出来；</li><li><strong><code>sudo make install</code></strong>：把编译产物拷到 <code>Makefile</code> 里记录的目录（通常就是你给 <code>configure</code> 的 <code>--prefix</code>）。</li></ol><p>CMake 和 Meson 的命令不一样（<code>cmake -B build</code> / <code>cmake --build build</code> / <code>cmake --install build</code>），但形状一致：先 configure，再 build，再 install。</p><h2 id=实战在-ubuntu-上编译-tengine>实战：在 Ubuntu 上编译 Tengine</h2><p>Tengine 是淘宝维护的 Nginx 分支，多了不少模块。构建流程跟上游 Nginx 完全一致——会编 Tengine 就会编 Nginx。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. 装编译依赖</span>
+</span></span><span class=line><span class=cl>sudo apt install -y build-essential libpcre3 libpcre3-dev libssl-dev zlib1g-dev
+</span></span><span class=line><span class=cl><span class=c1># Red Hat 系等价命令：</span>
+</span></span><span class=line><span class=cl><span class=c1># sudo dnf install -y gcc make pcre-devel openssl-devel zlib-devel</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. 拉源码</span>
+</span></span><span class=line><span class=cl>wget http://tengine.taobao.org/download/tengine-2.3.3.tar.gz
+</span></span><span class=line><span class=cl>tar -zxvf tengine-2.3.3.tar.gz
+</span></span><span class=line><span class=cl><span class=nb>cd</span> tengine-2.3.3
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. configure：所有构建选择都在这步定下来</span>
+</span></span><span class=line><span class=cl>./configure <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --prefix<span class=o>=</span>/usr/local/nginx <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --with-http_ssl_module <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --with-http_v2_module <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --with-http_realip_module <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    --with-http_gzip_static_module
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. 编译，所有核心一起上</span>
+</span></span><span class=line><span class=cl>make -j<span class=s2>&#34;</span><span class=k>$(</span>nproc<span class=k>)</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. 安装：把二进制、默认配置、html 拷到 --prefix 下</span>
+</span></span><span class=line><span class=cl>sudo make install
+</span></span></code></pre></td></tr></table></div></div><p>每一步实际干了什么：</p><ul><li><code>./configure</code> 检查你有没有 C 编译器，有没有 OpenSSL/PCRE/zlib 的开发头文件。哪个缺了它会清楚地报错——补上对应的 <code>-dev</code> 包再来一次。然后它会生成一个 <code>Makefile</code>，把 <code>/usr/local/nginx</code> 写进去作为安装路径，并启用你要的四个 HTTP 模块。</li><li><code>make</code> 按 <code>Makefile</code> 一路编下去，产出 <code>objs/nginx</code> 和几个辅助文件。</li><li><code>sudo make install</code> 创建 <code>/usr/local/nginx/{sbin,conf,logs,html}</code>，把二进制、默认配置和示例 HTML 拷进去。它<strong>不会</strong>给你写 systemd 单元、建用户、开防火墙——这些都得你自己来。</li></ul><p>跑起来：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>/usr/local/nginx/sbin/nginx                    <span class=c1># 启动</span>
+</span></span><span class=line><span class=cl>/usr/local/nginx/sbin/nginx -s reload          <span class=c1># 重载配置</span>
+</span></span><span class=line><span class=cl>/usr/local/nginx/sbin/nginx -s stop            <span class=c1># 停止</span>
+</span></span></code></pre></td></tr></table></div></div><p>接到 systemd 下管的话，写个 <code>/etc/systemd/system/nginx.service</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=k>[Unit]</span>
+</span></span><span class=line><span class=cl><span class=na>Description</span><span class=o>=</span><span class=s>Nginx HTTP Server (built from source)</span>
+</span></span><span class=line><span class=cl><span class=na>After</span><span class=o>=</span><span class=s>network.target</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>[Service]</span>
+</span></span><span class=line><span class=cl><span class=na>Type</span><span class=o>=</span><span class=s>forking</span>
+</span></span><span class=line><span class=cl><span class=na>PIDFile</span><span class=o>=</span><span class=s>/usr/local/nginx/logs/nginx.pid</span>
+</span></span><span class=line><span class=cl><span class=na>ExecStart</span><span class=o>=</span><span class=s>/usr/local/nginx/sbin/nginx</span>
+</span></span><span class=line><span class=cl><span class=na>ExecReload</span><span class=o>=</span><span class=s>/usr/local/nginx/sbin/nginx -s reload</span>
+</span></span><span class=line><span class=cl><span class=na>ExecStop</span><span class=o>=</span><span class=s>/usr/local/nginx/sbin/nginx -s stop</span>
+</span></span><span class=line><span class=cl><span class=na>PrivateTmp</span><span class=o>=</span><span class=s>true</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>[Install]</span>
+</span></span><span class=line><span class=cl><span class=na>WantedBy</span><span class=o>=</span><span class=s>multi-user.target</span>
+</span></span></code></pre></td></tr></table></div></div><p>然后：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo systemctl daemon-reload
+</span></span><span class=line><span class=cl>sudo systemctl <span class=nb>enable</span> --now nginx
+</span></span></code></pre></td></tr></table></div></div><p>源码编译要付的代价是：<strong>没有 <code>apt upgrade</code> 替你管它</strong>。升级路径、安全跟踪、OpenSSL 出问题时重编整个软件，都是你自己的工作。大多数生产场景里正确答案是「除非有具体理由，否则用发行版包」。源码编译是用来解决那个「具体理由」的。</p><h1 id=二进制压缩包以-jdk-为例>二进制压缩包：以 JDK 为例</h1><p>有些软件以「解压即用」的二进制压缩包发布——JDK、Go、Node.js、大部分数据库引擎都有这种形式。没有安装程序好商量，文件放哪、环境变量怎么设，都是你的决定。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 1. 下载（Adoptium / Oracle / 内网镜像）</span>
+</span></span><span class=line><span class=cl>wget https://download.example.com/jdk-17_linux-x64_bin.tar.gz
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 2. 解压到 /opt——「第三方独立软件」按惯例放这里</span>
+</span></span><span class=line><span class=cl>sudo tar -zxf jdk-17_linux-x64_bin.tar.gz -C /opt
+</span></span><span class=line><span class=cl>sudo mv /opt/jdk-17* /opt/jdk-17                <span class=c1># 改成短而稳定的路径</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 3. 全局生效</span>
+</span></span><span class=line><span class=cl>sudo tee /etc/profile.d/jdk17.sh &gt; /dev/null <span class=s>&lt;&lt;&#39;EOF&#39;
+</span></span></span><span class=line><span class=cl><span class=s>export JAVA_HOME=/opt/jdk-17
+</span></span></span><span class=line><span class=cl><span class=s>export PATH=$JAVA_HOME/bin:$PATH
+</span></span></span><span class=line><span class=cl><span class=s>EOF</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 4. 让当前 shell 也立刻生效</span>
+</span></span><span class=line><span class=cl><span class=nb>source</span> /etc/profile.d/jdk17.sh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 5. 验证</span>
+</span></span><span class=line><span class=cl>java -version
+</span></span><span class=line><span class=cl>javac -version
+</span></span></code></pre></td></tr></table></div></div><p><code>/etc/profile.d/*.sh</code> 会被所有用户的登录 shell source 到，这正是 JDK 想要的作用域。只想给当前用户用，写到 <code>~/.bashrc</code> 或 <code>~/.zshrc</code> 即可。要并行多个 JDK，统一放在 <code>/opt/jdk-XX</code> 下，靠切 <code>JAVA_HOME</code> 切换（或者上 <code>sdkman</code>、<code>jenv</code>）。</p><p>同样的套路适用于 Go（<code>/opt/go</code>）、Node.js（<code>/opt/node-vXX</code>）等等。它们之所以流行，正是因为绕开了发行版的发布周期——上游版本和你急用的版本不匹配时这一招特别管用。</p><h1 id=现代方案snapflatpakappimage>现代方案：Snap、Flatpak、AppImage</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/linux/package-management/fig5_modern_alternatives.png alt="Snap、Flatpak、AppImage 与发行版包对比" loading=lazy decoding=async></figure></p><p>发行版包模型有个长期痛点：它把软件牢牢绑在发行版的其它部分上。一个针对 Ubuntu 22.04 的 <code>glibc</code> 和 <code>gtk</code> 编出来的 Firefox，不能轻易塞到 RHEL 8 上跑。三种方案分别从不同角度解决这件事：</p><ul><li><strong>Snap</strong>（Canonical）：把依赖打包进一个 <code>.snap</code> 文件（其实是 SquashFS 镜像），用 AppArmor 沙箱跑，<code>snapd</code> 自动更新。Ubuntu 上一些应用（Firefox、Chromium 的 snap 版）默认就是 snap，其他发行版上少见。</li><li><strong>Flatpak</strong>（freedesktop.org / RHEL 社区）：基于共享 <strong>runtime</strong>（比如 <code>org.freedesktop.Platform//22.08</code>）打包，用 <code>bubblewrap</code> 沙箱，主要走 Flathub 分发。Linux 桌面 GUI 应用的事实标准。</li><li><strong>AppImage</strong>：单个自包含可执行文件，不装、无守护进程、默认无沙箱。双击就跑，「我只想试一下这个软件」或者内部工具分发的好选择。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 装</span>
+</span></span><span class=line><span class=cl>sudo apt install snapd                                  <span class=c1># 一次性</span>
+</span></span><span class=line><span class=cl>sudo snap install firefox
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo dnf install flatpak                                <span class=c1># 一次性</span>
+</span></span><span class=line><span class=cl>flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+</span></span><span class=line><span class=cl>flatpak install flathub org.gimp.GIMP
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># AppImage：下载、chmod +x、跑</span>
+</span></span><span class=line><span class=cl>wget https://example.com/foo.AppImage
+</span></span><span class=line><span class=cl>chmod +x foo.AppImage
+</span></span><span class=line><span class=cl>./foo.AppImage
+</span></span></code></pre></td></tr></table></div></div><p>什么时候用哪个：</p><ul><li><strong>服务器端的东西</strong>（<code>nginx</code>、<code>mysql</code>、<code>python</code>、<code>redis</code>）一律走发行版包：体积小、跟 systemd 集成好、安全更新由发行版安全团队推送。</li><li><strong>桌面 GUI 应用</strong>且发行版包跟不上上游的：上 Flatpak（Flathub 选择最广）或 Snap。</li><li><strong>临时跑一下试试</strong>的工具：AppImage。</li></ul><p>四种可以同台共存，安装根目录、更新机制都是分开的，互不干扰。</p><h1 id=让生产机器一直可升级的几条习惯>让生产机器一直可升级的几条习惯</h1><p>这是我修过太多别人留下的烂摊子之后总结出来的：</p><p><strong>1. 按计划升级，不是出事再升。</strong> 每周一次 <code>apt upgrade -y</code> / <code>dnf upgrade -y</code>，走你那套变更管理流程。一台机器越久没升级，下一次升级就越疼。</p><p><strong>2. 边用边清。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt autoremove -y <span class=o>&amp;&amp;</span> sudo apt autoclean      <span class=c1># Debian/Ubuntu</span>
+</span></span><span class=line><span class=cl>sudo dnf autoremove -y <span class=o>&amp;&amp;</span> sudo dnf clean all      <span class=c1># Red Hat 系</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>/var</code> 莫名其妙满了，第一时间查包缓存：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>du -sh /var/cache/apt/archives    <span class=c1># Debian/Ubuntu</span>
+</span></span><span class=line><span class=cl>du -sh /var/cache/dnf             <span class=c1># Red Hat 系</span>
+</span></span><span class=line><span class=cl>du -sh /var/lib/snapd/cache       <span class=c1># snap 的旧版本特别能涨</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>3. 升不起的就钉死。</strong> 数据库、带自定义模块的内核、被你压测过特定版本的中间件——<code>apt-mark hold</code> / <code>dnf versionlock add</code> 锁住，留到运维窗口里手动升。</p><p><strong>4. 包管理器和源码编译的同一软件不要并存。</strong> <code>apt install nginx</code> 和 <code>make install</code> 都往 <code>PATH</code> 里塞了 <code>nginx</code>，迟早你会启错那个、改错配置，然后浪费一小时排查。<strong>只用其中一种。</strong></p><p><strong>5. 源码装的东西放 <code>/opt</code> 或 <code>/usr/local</code>。</strong> 包管理器拥有 <code>/usr</code>（除了 <code>/usr/local</code>），你别去抢它的地盘。</p><p><strong>6. 改 <code>/etc</code> 之前先备份。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo cp /etc/nginx/nginx.conf<span class=o>{</span>,.bak.<span class=k>$(</span>date +%F<span class=k>)</span><span class=o>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>凌晨三点你把配置改坏了，包管理器救不了你，备份能。</p><p><strong>7. 语言生态用语言生态自己的隔离。</strong> Python 用 <code>python3 -m venv</code> 或 <code>uv</code>，Node.js 版本用 <code>nvm</code>、项目依赖用 <code>npm</code>/<code>pnpm</code>。别让 <code>pip install --user</code> 污染了系统 Python——其它发行版包还指望它呢。</p><p><strong>8. 看清楚你在做什么。</strong> <code>apt</code>/<code>dnf</code> 在执行前会把整个计划打印出来。如果它要删的包数量明显异常，<strong>先停下来</strong>搞清楚原因再确认。「我用 apt 把系统弄废了」的故事，绝大多数都开头于：有人在「即将删除 200 个包」的提示里直接按了 <code>y</code>。</p><h1 id=总结>总结</h1><p>希望你带走的心智地图：</p><ul><li><strong>包</strong>是文件加元数据；包管理器存在是为了让这个映射在数据库里始终一致并跨重启保留。</li><li><strong>高层工具</strong>（<code>apt</code>、<code>dnf</code>、<code>pacman</code>）跑求解器、对接仓库；<strong>底层工具</strong>（<code>dpkg</code>、<code>rpm</code>）一次只处理一个文件。</li><li>包管理器真正难的地方是<strong>依赖求解</strong>，绕开高层工具基本就是给自己找事。</li><li><strong>仓库</strong>是签名过的文件树，信任从你机器上的 GPG 公钥，沿 <code>Release</code> / <code>repomd.xml</code> 一路传到每一个 <code>.deb</code> / <code>.rpm</code>。</li><li><strong>源码编译</strong>是仓库版本不顶用时的后路；自愿背上升级税。</li><li><strong>Snap / Flatpak / AppImage</strong> 用磁盘和集成度换「跨发行版分发」，桌面应用合适，服务端少见。</li></ul><p>扩展阅读：</p><ul><li>Debian 包管理参考：<a href=https://www.debian.org/doc/manuals/debian-reference/ch02 target=_blank rel="noopener noreferrer">https://www.debian.org/doc/manuals/debian-reference/ch02 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>DNF 文档：<a href=https://dnf.readthedocs.io/ target=_blank rel="noopener noreferrer">https://dnf.readthedocs.io/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Arch Pacman/Rosetta：<a href=https://wiki.archlinux.org/title/Pacman/Rosetta target=_blank rel="noopener noreferrer">https://wiki.archlinux.org/title/Pacman/Rosetta <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+（跨发行版命令对照表）</li><li>RPM 打包指南：<a href=https://rpm-packaging-guide.github.io/ target=_blank rel="noopener noreferrer">https://rpm-packaging-guide.github.io/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul><p>系列下一篇：</p><ul><li>《Linux 进程与资源管理》—— cgroups、<code>ps</code>、<code>top</code>、<code>nice</code>、OOM killer。</li><li>《Linux 用户管理》—— 用户、组、sudoers、PAM。</li></ul><p>当你能配镜像源、能锁版本、能调试依赖冲突、能在「发行版包 / 源码编译 / Flatpak」三者之间按理由选择时，你就从「跟包管理器较劲」升级到「让它替你干活」了。</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/zh/linux/%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/><span class=title>Linux 磁盘管理</span></a></div><div class="nav-item next-item"><div class=label>Next</div><span class=title style=color:var(--ink-faint)>—</span></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#没有包管理器会怎样>没有包管理器会怎样</a></li></ul><ul><li><a href=#三个工具怎么选>三个工具怎么选</a></li><li><a href=#日常命令>日常命令</a></li><li><a href=#搜索查看定位>搜索、查看、定位</a></li><li><a href=#锁定降级冻结>锁定、降级、冻结</a></li><li><a href=#清理>清理</a></li></ul><ul><li><a href=#日常命令-1>日常命令</a></li><li><a href=#搜索查看定位-1>搜索、查看、定位</a></li><li><a href=#锁定与历史>锁定与历史</a></li></ul><ul><li><a href=#配国内镜像源>配国内镜像源</a></li></ul><ul><li><a href=#实战在-ubuntu-上编译-tengine>实战：在 Ubuntu 上编译 Tengine</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/zh/series/ class=series-name>Linux</a>
+<span class=count>2</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/linux/%E7%A3%81%E7%9B%98%E7%AE%A1%E7%90%86/><span class=chapter-num>03</span>
+<span class=chapter-title>Linux 磁盘管理</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>Linux 软件包管理</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>18 min</strong></div><div class=row><span>Word count</span><strong>9012</strong></div><div class=row><span>Published</span><strong>Feb 2022</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

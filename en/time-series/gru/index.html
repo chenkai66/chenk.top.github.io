@@ -1,652 +1,189 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs · Chen Kai Blog</title>
-<meta name="description" content="GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/time-series/gru/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/time-series/gru/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs">
-<meta property="og:description" content="GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix.">
-<meta property="og:url" content="https://www.chenk.top/en/time-series/gru/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Time series forecasting</a>
-         · Chapter 3
-      </div>
-      <h1>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</h1>
-      <p class="deck">GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-10-01">October 1, 2024</time> · 11 min read · 2300 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/time-series/" class="tag">#Time Series</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/gru/" class="tag">#GRU</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>How GRU&rsquo;s <strong>update gate</strong> $z_t$ and <strong>reset gate</strong> $r_t$ achieve LSTM-quality memory with one fewer gate and one fewer state.</li>
-<li>Why GRU has exactly <strong>25% fewer parameters</strong> than LSTM, and what that buys you in practice.</li>
-<li>How to read GRU <strong>gate activations</strong> to debug what the model is paying attention to.</li>
-<li>A practical <strong>decision matrix</strong> for picking GRU vs LSTM, backed by parameter, speed, and forecast-quality benchmarks.</li>
-<li>A clean PyTorch reference implementation with the regularisation and stability tricks that actually matter.</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Comfort with the LSTM gates from <a href="/en/time-series-lstm/">Part 2</a>
-.</li>
-<li>Basic PyTorch (<code>nn.Module</code>, autograd, optimizers).</li>
-<li>Recall that gradient flow through tanh nonlinearities is what kills vanilla RNNs.</li>
-</ul>
-<hr>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig1_gru_cell_architecture.png" alt="GRU cell with reset and update gates and the (1 - z) gradient highway from h_{t-1} to h_t." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 1. The GRU cell. Two gates (<code>r</code>, <code>z</code>) and one state (<code>h</code>) replace LSTM&rsquo;s three gates and separate cell state. The orange <code>(1 - z) ⊙ h_{t-1}</code> skip path is the linear gradient highway that makes long-range learning tractable.</em></p>
-<p>If LSTM is a memory system with <strong>fine-grained, three-valve control</strong>, then GRU is its <strong>lightweight version</strong>: the same kind of additive memory ledger, but expressed with two gates and a single hidden state. The result is a model with about a quarter fewer parameters, 10&ndash;15% faster training, and &ndash; on a large class of time-series problems &ndash; forecasting quality that is statistically indistinguishable from LSTM.</p>
-<p>This article walks through GRU end-to-end:</p>
-<ol>
-<li>The four equations that define a GRU cell, and the intuition behind each one.</li>
-<li>Why the update gate $z_t$ creates a <strong>gradient highway</strong> that solves vanishing gradients.</li>
-<li>Empirical comparisons against LSTM on parameters, training speed, and forecast accuracy.</li>
-<li>A practical decision framework so you don&rsquo;t have to A/B-test every project.</li>
-</ol>
-<hr>
-<h2 id="1-the-gru-cell-in-four-equations">1. The GRU Cell in Four Equations</h2>
-<p>Let $x_t \in \mathbb{R}^{d_{in}}$ be the input and $h_{t-1} \in \mathbb{R}^{h}$ the previous hidden state. GRU computes the next hidden state $h_t$ in four steps.</p>
-<p><strong>(1) Update gate</strong> &ndash; &ldquo;how much of the past should I keep?&rdquo;</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs · Chen Kai Blog</title>
+<meta name=description content="GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/time-series/gru/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/time-series/gru/><meta property="og:type" content="article"><meta property="og:title" content="Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs"><meta property="og:description" content="GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix."><meta property="og:url" content="https://www.chenk.top/en/time-series/gru/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Time series forecasting</a>
+· Chapter 3</div><h1>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</h1><p class=deck>GRU distills LSTM into two gates for faster training and 25% fewer parameters. Learn when GRU beats LSTM, with formulas, benchmarks, PyTorch code, and a decision matrix.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-10-01>October 1, 2024</time> · 11 min read · 2291 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/time-series/ class=tag>#Time Series</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/gru/ class=tag>#GRU</a></div></div></header><div class=prose><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>How GRU&rsquo;s <strong>update gate</strong> $z_t$ and <strong>reset gate</strong> $r_t$ achieve LSTM-quality memory with one fewer gate and one fewer state.</li><li>Why GRU has exactly <strong>25% fewer parameters</strong> than LSTM, and what that buys you in practice.</li><li>How to read GRU <strong>gate activations</strong> to debug what the model is paying attention to.</li><li>A practical <strong>decision matrix</strong> for picking GRU vs LSTM, backed by parameter, speed, and forecast-quality benchmarks.</li><li>A clean PyTorch reference implementation with the regularisation and stability tricks that actually matter.</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Comfort with the LSTM gates from <a href=/en/time-series-lstm/>Part 2</a>
+.</li><li>Basic PyTorch (<code>nn.Module</code>, autograd, optimizers).</li><li>Recall that gradient flow through tanh nonlinearities is what kills vanilla RNNs.</li></ul><hr><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig1_gru_cell_architecture.png alt="GRU cell with reset and update gates and the (1 - z) gradient highway from h_{t-1} to h_t." loading=lazy decoding=async></figure><em>Figure 1. The GRU cell. Two gates (<code>r</code>, <code>z</code>) and one state (<code>h</code>) replace LSTM&rsquo;s three gates and separate cell state. The orange <code>(1 - z) ⊙ h_{t-1}</code> skip path is the linear gradient highway that makes long-range learning tractable.</em></p><p>If LSTM is a memory system with <strong>fine-grained, three-valve control</strong>, then GRU is its <strong>lightweight version</strong>: the same kind of additive memory ledger, but expressed with two gates and a single hidden state. The result is a model with about a quarter fewer parameters, 10&ndash;15% faster training, and &ndash; on a large class of time-series problems &ndash; forecasting quality that is statistically indistinguishable from LSTM.</p><p>This article walks through GRU end-to-end:</p><ol><li>The four equations that define a GRU cell, and the intuition behind each one.</li><li>Why the update gate $z_t$ creates a <strong>gradient highway</strong> that solves vanishing gradients.</li><li>Empirical comparisons against LSTM on parameters, training speed, and forecast accuracy.</li><li>A practical decision framework so you don&rsquo;t have to A/B-test every project.</li></ol><hr><h2 id=1-the-gru-cell-in-four-equations>1. The GRU Cell in Four Equations</h2><p>Let $x_t \in \mathbb{R}^{d_{in}}$ be the input and $h_{t-1} \in \mathbb{R}^{h}$ the previous hidden state. GRU computes the next hidden state $h_t$ in four steps.</p><p><strong>(1) Update gate</strong> &ndash; &ldquo;how much of the past should I keep?&rdquo;</p>$$
 z_t = \sigma\!\left(W_z\,[h_{t-1},\, x_t] + b_z\right)
-$$<p>A sigmoid in $[0,1]$. When $z_t \to 0$ the cell <strong>freezes</strong> (keeps $h_{t-1}$ untouched); when $z_t \to 1$ it <strong>fully refreshes</strong> with new content.</p>
-<p><strong>(2) Reset gate</strong> &ndash; &ldquo;how much of the past should I let in when forming the candidate?&rdquo;</p>
-$$
+$$<p>A sigmoid in $[0,1]$. When $z_t \to 0$ the cell <strong>freezes</strong> (keeps $h_{t-1}$ untouched); when $z_t \to 1$ it <strong>fully refreshes</strong> with new content.</p><p><strong>(2) Reset gate</strong> &ndash; &ldquo;how much of the past should I let in when forming the candidate?&rdquo;</p>$$
 r_t = \sigma\!\left(W_r\,[h_{t-1},\, x_t] + b_r\right)
-$$<p>This gate gates the <em>input</em> to the candidate, not the final mix. Setting $r_t \to 0$ effectively says &ldquo;ignore history when proposing $\tilde h_t$&rdquo;.</p>
-<p><strong>(3) Candidate hidden state</strong> &ndash; a fresh proposal mixing reset history with new input:</p>
-$$
+$$<p>This gate gates the <em>input</em> to the candidate, not the final mix. Setting $r_t \to 0$ effectively says &ldquo;ignore history when proposing $\tilde h_t$&rdquo;.</p><p><strong>(3) Candidate hidden state</strong> &ndash; a fresh proposal mixing reset history with new input:</p>$$
 \tilde h_t = \tanh\!\left(W_h\,[\,r_t \odot h_{t-1},\; x_t\,] + b_h\right)
-$$<p>The element-wise product $r_t \odot h_{t-1}$ is the only place the reset gate appears.</p>
-<p><strong>(4) Linear interpolation</strong> &ndash; the output is a convex combination of &ldquo;old&rdquo; and &ldquo;new&rdquo;:</p>
-$$
+$$<p>The element-wise product $r_t \odot h_{t-1}$ is the only place the reset gate appears.</p><p><strong>(4) Linear interpolation</strong> &ndash; the output is a convex combination of &ldquo;old&rdquo; and &ldquo;new&rdquo;:</p>$$
 h_t = (1 - z_t)\odot h_{t-1} \;+\; z_t \odot \tilde h_t
-$$<p>This last equation is the heart of GRU. It is <strong>linear in $h_{t-1}$</strong>, which means the gradient $\partial h_t / \partial h_{t-1}$ contains the term $(1 - z_t)$ &ndash; a direct, additive path that does not pass through any nonlinearity. That is the gradient highway in Figure 1.</p>
-<h3 id="why-this-fixes-vanishing-gradients">Why this fixes vanishing gradients</h3>
-<p>A vanilla RNN has $h_t = \tanh(W h_{t-1} + U x_t)$, so</p>
-$$
+$$<p>This last equation is the heart of GRU. It is <strong>linear in $h_{t-1}$</strong>, which means the gradient $\partial h_t / \partial h_{t-1}$ contains the term $(1 - z_t)$ &ndash; a direct, additive path that does not pass through any nonlinearity. That is the gradient highway in Figure 1.</p><h3 id=why-this-fixes-vanishing-gradients>Why this fixes vanishing gradients</h3><p>A vanilla RNN has $h_t = \tanh(W h_{t-1} + U x_t)$, so</p>$$
 \frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}\!\left(1 - \tanh^2(\cdot)\right) W.
-$$<p>Across $T$ steps this product is bounded by $\|\,W\,\|^T$ times a small derivative &ndash; decaying exponentially. In GRU,</p>
-$$
+$$<p>Across $T$ steps this product is bounded by $\|\,W\,\|^T$ times a small derivative &ndash; decaying exponentially. In GRU,</p>$$
 \frac{\partial h_t}{\partial h_{t-1}} = \operatorname{diag}(1 - z_t) \;+\; (\text{nonlinear terms via } \tilde h_t).
-$$<p>Whenever the model <strong>wants</strong> to remember (learns $z_t \approx 0$), the Jacobian is essentially the identity and the gradient flows back through hundreds of steps with no attenuation.</p>
-<hr>
-<h2 id="2-why-gru-is-lighter-a-parameter-accounting">2. Why GRU is Lighter: A Parameter Accounting</h2>
-<p>A single GRU layer has three weight blocks ($W_z$, $W_r$, $W_h$), each of shape $h \times (d_{in} + h)$, plus biases. LSTM has four blocks (forget, input, candidate, output). Counting:</p>
-$$
+$$<p>Whenever the model <strong>wants</strong> to remember (learns $z_t \approx 0$), the Jacobian is essentially the identity and the gradient flows back through hundreds of steps with no attenuation.</p><hr><h2 id=2-why-gru-is-lighter-a-parameter-accounting>2. Why GRU is Lighter: A Parameter Accounting</h2><p>A single GRU layer has three weight blocks ($W_z$, $W_r$, $W_h$), each of shape $h \times (d_{in} + h)$, plus biases. LSTM has four blocks (forget, input, candidate, output). Counting:</p>$$
 P_{\text{GRU}} = 3\,(d_{in} \cdot h + h^2 + 2h),\qquad
 P_{\text{LSTM}} = 4\,(d_{in} \cdot h + h^2 + 2h).
-$$<p>So $P_{\text{GRU}} = \tfrac{3}{4}\,P_{\text{LSTM}}$ &ndash; <strong>exactly 25% fewer parameters</strong>, regardless of width.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig2_param_count_comparison.png" alt="Parameter counts for GRU vs LSTM at hidden sizes 32 to 512." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 2. The 25% saving is structural, not empirical: GRU has 3 weight blocks where LSTM has 4. At hidden size 256, GRU saves ~70k parameters; at 512, ~270k. On embedded inference targets this often determines whether the model fits at all.</em></p>
-<p>The downstream effects:</p>
-<ul>
-<li><strong>Training speed</strong>: ~10&ndash;15% wall-clock saving per epoch (we will measure this in §4).</li>
-<li><strong>Memory</strong>: smaller activations and gradients during backprop &ndash; useful when sequence length forces small batch sizes.</li>
-<li><strong>Regularisation</strong>: fewer parameters means less variance, which matters most when data is scarce.</li>
-</ul>
-<hr>
-<h2 id="3-what-the-hidden-state-actually-looks-like">3. What the Hidden State Actually Looks Like</h2>
-<p>Equations are easier to trust when you can see them at work. Figure 3 runs a 16-unit GRU on a composite signal containing a slow oscillation, a noise burst around $t=27$, and a step change at $t=45$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig3_hidden_state_evolution.png" alt="Heatmap of 16 GRU hidden units across 80 time steps overlaid with the input signal." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 3. Different units specialise on different timescales. Some rows (notably 3, 5 and 12) act as <strong>slow integrators</strong> &ndash; their colour drifts in lock-step with the trend of the signal. Others (rows 8, 11, 15) flip sign across the step change at $t=45$, behaving as <strong>change detectors</strong>. The noise burst around $t=27$ shakes only the high-frequency units; the slow rows are protected by $z_t \approx 0$.</em></p>
-<p>This is the practical payoff of having gates: the network learns a basis of timescales without you ever specifying one.</p>
-<hr>
-<h2 id="4-forecast-quality-is-gru-actually-worse-than-lstm">4. Forecast Quality: Is GRU Actually Worse Than LSTM?</h2>
-<p>The headline finding from Chung et al. (2014) and Jozefowicz et al. (2015) &ndash; repeatedly reproduced &ndash; is that <strong>on most sequence tasks, GRU and LSTM are statistically indistinguishable</strong>. Figure 4 makes this concrete on a synthetic but realistic seasonal-plus-trend signal.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig4_forecast_quality.png" alt="Truth, GRU forecast, and LSTM forecast on the held-out portion of a synthetic time series." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 4. Both architectures track the test region tightly. RMSEs differ by less than 0.02 on a signal with unit amplitude &ndash; a difference well within the noise of random initialisation.</em></p>
-<p>When LSTM <strong>does</strong> pull ahead it is usually because of one of three things: very long sequences (&gt;200 steps) where the explicit cell state $c_t$ helps preserve specific facts; large datasets (&gt;50k samples) that can absorb the extra parameters; or tasks (translation, summarisation) where decoupling &ldquo;what to remember&rdquo; from &ldquo;what to emit&rdquo; is genuinely useful.</p>
-<h3 id="training-speed">Training speed</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig5_training_speed.png" alt="GRU vs LSTM seconds per epoch and the per-length speedup." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 5. The ratio is remarkably stable: GRU gives a ~12% wall-clock saving across two orders of magnitude of sequence length. The right panel shows this is not an artefact of any single configuration &ndash; it is the consequence of doing one fewer gate computation per step.</em></p>
-<p>For prototyping or hyperparameter sweeps, that 12% compounds quickly: a one-week LSTM sweep becomes a six-day GRU sweep, freeing a day for analysis.</p>
-<hr>
-<h2 id="5-reading-the-gates-a-diagnostic-tool">5. Reading the Gates: A Diagnostic Tool</h2>
-<p>The most underused feature of any gated RNN is that the gate activations are <em>interpretable signals</em> you can plot. Figure 6 shows the mean reset and update gate traces while a GRU processes a signal that contains a regime shift at $t=40$ and a transient spike at $t \in [68, 72]$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig6_gate_activations.png" alt="Three-panel plot: input signal, most-responsive reset gate unit, most-responsive update gate unit over 100 time steps." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 6. Both gates <strong>saturate towards 0</strong> after the regime shift at $t=40$. A low $z_t$ tells the cell &ldquo;stop updating, the new level is what matters&rdquo; &ndash; the unit freezes onto the elevated baseline. A low $r_t$ tells the cell &ldquo;ignore the old hidden state when constructing the candidate&rdquo; &ndash; this lets the model rapidly forget the pre-shift oscillation. Saturation deepens further during the spike at $t \in [68, 72]$, when the model commits even harder to ignoring history.</em></p>
-<p>Two practical uses:</p>
-<ul>
-<li><strong>Debugging dead training</strong>: if $z_t$ is stuck near 0 everywhere from epoch 1, the model has frozen &ndash; usually a sign the update-gate bias was initialised badly. Initialise $b_z$ to $-1$ to encourage early conservatism, or to $+1$ if the model needs to refresh aggressively from the first step.</li>
-<li><strong>Detecting regime change in production</strong>: a sudden drop in $r_t$ across many units is a leading indicator that the model has decided &ldquo;the past is no longer informative&rdquo;. This is a useful covariate-shift signal.</li>
-</ul>
-<hr>
-<h2 id="6-pytorch-reference-implementation">6. PyTorch Reference Implementation</h2>
-<p>A clean, production-ready GRU forecaster. Notice the explicit weight initialisation (orthogonal on the recurrent matrix is the single most impactful trick for stability).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GRUForecaster</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gru</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GRU</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">hidden_size</span><span class="o">=</span><span class="n">hidden_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span> <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_init_weights</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_init_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gru</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="s2">&#34;weight_ih&#34;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="s2">&#34;weight_hh&#34;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">orthogonal_</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>            <span class="c1"># critical for stability</span>
-</span></span><span class="line"><span class="cl">            <span class="k">elif</span> <span class="s2">&#34;bias&#34;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="c1"># Encourage remembering at init: bias on update gate -&gt; -1</span>
-</span></span><span class="line"><span class="cl">                <span class="c1"># Layout: [r_bias | z_bias | n_bias], each of size hidden</span>
-</span></span><span class="line"><span class="cl">                <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">//</span> <span class="mi">3</span>
-</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">h</span><span class="p">:</span><span class="mi">2</span> <span class="o">*</span> <span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>                          <span class="c1"># x: (B, T, d_in)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gru</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">out</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span>            <span class="c1"># last-step prediction</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="training-loop-with-the-four-stability-essentials">Training loop with the four stability essentials</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_one_epoch</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">max_grad_norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 1. gradient clipping -- non-negotiable for any RNN</span>
-</span></span><span class="line"><span class="cl">        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">max_grad_norm</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The four essentials:</p>
-<ol>
-<li><strong>Gradient clipping</strong> (<code>max_norm=1.0</code>) &ndash; catches the rare exploding step.</li>
-<li><strong>Orthogonal init</strong> of <code>weight_hh</code> &ndash; keeps the spectral radius near 1 at initialisation.</li>
-<li><strong>Layer norm</strong> in the head &ndash; decouples the regression scale from the GRU activations.</li>
-<li><strong>Dropout between layers</strong> (PyTorch only applies it between stacked GRU layers, not across time &ndash; that is intentional, do not try to add per-step dropout naively).</li>
-</ol>
-<hr>
-<h2 id="7-gru-vs-lstm-a-decision-matrix">7. GRU vs LSTM: A Decision Matrix</h2>
-<p>There is no universal winner. Use Figure 7 as a checklist; if most of your boxes are blue, start with GRU.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig7_decision_guide.png" alt="Two-column decision card listing six criteria each for GRU and LSTM." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 7. The heuristic at the bottom is the one I actually use: try GRU first, and only escalate to LSTM if validation RMSE plateaus while you still have data and compute headroom.</em></p>
-<table>
-  <thead>
-      <tr>
-          <th>Dimension</th>
-          <th>GRU</th>
-          <th>LSTM</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Number of gates</td>
-          <td>2 (<code>r</code>, <code>z</code>)</td>
-          <td>3 (<code>f</code>, <code>i</code>, <code>o</code>)</td>
-      </tr>
-      <tr>
-          <td>State variables</td>
-          <td>1 (<code>h</code>)</td>
-          <td>2 (<code>h</code>, <code>c</code>)</td>
-      </tr>
-      <tr>
-          <td>Parameters at fixed <code>h</code></td>
-          <td>-25%</td>
-          <td>baseline</td>
-      </tr>
-      <tr>
-          <td>Wall-clock training</td>
-          <td>~12% faster</td>
-          <td>baseline</td>
-      </tr>
-      <tr>
-          <td>Sequence length sweet spot</td>
-          <td>20&ndash;150</td>
-          <td>100&ndash;1000+</td>
-      </tr>
-      <tr>
-          <td>Dataset size sweet spot</td>
-          <td>&lt; 50k</td>
-          <td>&gt; 10k</td>
-      </tr>
-      <tr>
-          <td>Interpretability</td>
-          <td>Easier (fewer gates)</td>
-          <td>Harder</td>
-      </tr>
-      <tr>
-          <td>Common failure mode</td>
-          <td>Under-capacity on hard tasks</td>
-          <td>Overfitting on small data</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="when-the-choice-barely-matters">When the choice barely matters</h3>
-<p>In about half of well-posed forecasting problems, both architectures land within noise of each other. In that regime, <strong>pick GRU</strong> &ndash; the iteration speed is free productivity. Only switch when you have a measured reason to.</p>
-<hr>
-<h2 id="8-common-variants-worth-knowing">8. Common Variants Worth Knowing</h2>
-<p><strong>Bidirectional GRU</strong>. Concatenates a forward and backward pass; doubles the parameter count and disqualifies you from causal forecasting (you cannot use future data at inference time). Useful for sequence-tagging tasks like NER.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="bp">self</span><span class="o">.</span><span class="n">bigru</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GRU</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="bp">self</span><span class="o">.</span><span class="n">head</span>  <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Attention over GRU outputs</strong>. Replaces the &ldquo;use the last hidden state&rdquo; head with a learned weighted sum over all timesteps. Often gives 1&ndash;3% RMSE improvement at the cost of one extra linear layer:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">AttnHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h_seq</span><span class="p">):</span>                       <span class="c1"># (B, T, H)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">h_seq</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, T, 1)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">h_seq</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>                <span class="c1"># (B, H)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Conv1D + GRU stack</strong>. A 1D convolution as a featuriser before the GRU. The conv extracts local motifs; the GRU integrates them across time. This is the workhorse for sensor data and is usually a stronger first try than a deeper stack of GRUs.</p>
-<hr>
-<h2 id="9-common-pitfalls-and-their-fixes">9. Common Pitfalls and Their Fixes</h2>
-<p><strong>Loss explodes after a few hundred steps.</strong> Lower the learning rate to <code>1e-4</code>, double-check that gradient clipping is actually being called <em>before</em> <code>optimizer.step()</code>, and verify input normalisation. If inputs have unit variance and gradients still explode, the recurrent weights were not initialised orthogonally.</p>
-<p><strong>Loss decreases then plateaus high.</strong> Usually under-capacity. Try doubling <code>hidden_size</code> or stacking 2 layers before adding fancy variants. If that does not help, this is your signal to try LSTM.</p>
-<p><strong>Validation loss diverges from training loss early.</strong> Classic small-data overfit. Bump dropout to 0.4, add weight decay (<code>weight_decay=1e-5</code>), and shorten the training run with early stopping (patience=10).</p>
-<p><strong>Variable-length sequences.</strong> Use <code>pack_padded_sequence</code> / <code>pad_packed_sequence</code>. This is not a performance optimisation &ndash; it is correctness: without packing the GRU runs over the padding tokens and your last-step output is meaningless.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pack_padded_sequence</span><span class="p">,</span> <span class="n">pad_packed_sequence</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">packed</span> <span class="o">=</span> <span class="n">pack_padded_sequence</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">lengths</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                              <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">gru</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">last</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="n">lengths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>   <span class="c1"># true last step</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="summary">Summary</h2>
-<p>GRU is the rational default for sequence modelling problems that are not obviously hard. It removes one gate and one state from LSTM, keeps the gradient highway through the linear interpolation $h_t = (1 - z_t)\odot h_{t-1} + z_t \odot \tilde h_t$, and pays for itself in training speed and parameter efficiency.</p>
-<p>The four numbers to remember:</p>
-<ul>
-<li><strong>2</strong> gates, <strong>1</strong> state.</li>
-<li><strong>25%</strong> fewer parameters than LSTM.</li>
-<li><strong>12%</strong> faster wall-clock training.</li>
-<li><strong>0</strong> measurable accuracy loss on most short-to-medium sequence tasks.</li>
-</ul>
-<p>Start with GRU. Escalate to LSTM only when you have measured a reason to.</p>
-<h2 id="further-reading">Further Reading</h2>
-<ul>
-<li>Cho et al., <em>Learning Phrase Representations using RNN Encoder&ndash;Decoder for Statistical Machine Translation</em>, EMNLP 2014. (Original GRU paper.)</li>
-<li>Chung et al., <em>Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling</em>, NIPS Workshop 2014.</li>
-<li>Jozefowicz, Zaremba, Sutskever, <em>An Empirical Exploration of Recurrent Network Architectures</em>, ICML 2015.</li>
-<li>Greff et al., <em>LSTM: A Search Space Odyssey</em>, IEEE TNNLS 2017.</li>
-</ul>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/time-series/lstm/"><span class="title">Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/time-series/attention-mechanism/"><span class="title">Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-the-gru-cell-in-four-equations">1. The GRU Cell in Four Equations</a>
-      <ul>
-        <li><a href="#why-this-fixes-vanishing-gradients">Why this fixes vanishing gradients</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-why-gru-is-lighter-a-parameter-accounting">2. Why GRU is Lighter: A Parameter Accounting</a></li>
-    <li><a href="#3-what-the-hidden-state-actually-looks-like">3. What the Hidden State Actually Looks Like</a></li>
-    <li><a href="#4-forecast-quality-is-gru-actually-worse-than-lstm">4. Forecast Quality: Is GRU Actually Worse Than LSTM?</a>
-      <ul>
-        <li><a href="#training-speed">Training speed</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-reading-the-gates-a-diagnostic-tool">5. Reading the Gates: A Diagnostic Tool</a></li>
-    <li><a href="#6-pytorch-reference-implementation">6. PyTorch Reference Implementation</a>
-      <ul>
-        <li><a href="#training-loop-with-the-four-stability-essentials">Training loop with the four stability essentials</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-gru-vs-lstm-a-decision-matrix">7. GRU vs LSTM: A Decision Matrix</a>
-      <ul>
-        <li><a href="#when-the-choice-barely-matters">When the choice barely matters</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-common-variants-worth-knowing">8. Common Variants Worth Knowing</a></li>
-    <li><a href="#9-common-pitfalls-and-their-fixes">9. Common Pitfalls and Their Fixes</a></li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#further-reading">Further Reading</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Time series forecasting</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2300</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>So $P_{\text{GRU}} = \tfrac{3}{4}\,P_{\text{LSTM}}$ &ndash; <strong>exactly 25% fewer parameters</strong>, regardless of width.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig2_param_count_comparison.png alt="Parameter counts for GRU vs LSTM at hidden sizes 32 to 512." loading=lazy decoding=async></figure><em>Figure 2. The 25% saving is structural, not empirical: GRU has 3 weight blocks where LSTM has 4. At hidden size 256, GRU saves ~70k parameters; at 512, ~270k. On embedded inference targets this often determines whether the model fits at all.</em></p><p>The downstream effects:</p><ul><li><strong>Training speed</strong>: ~10&ndash;15% wall-clock saving per epoch (we will measure this in §4).</li><li><strong>Memory</strong>: smaller activations and gradients during backprop &ndash; useful when sequence length forces small batch sizes.</li><li><strong>Regularisation</strong>: fewer parameters means less variance, which matters most when data is scarce.</li></ul><hr><h2 id=3-what-the-hidden-state-actually-looks-like>3. What the Hidden State Actually Looks Like</h2><p>Equations are easier to trust when you can see them at work. Figure 3 runs a 16-unit GRU on a composite signal containing a slow oscillation, a noise burst around $t=27$, and a step change at $t=45$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig3_hidden_state_evolution.png alt="Heatmap of 16 GRU hidden units across 80 time steps overlaid with the input signal." loading=lazy decoding=async></figure><em>Figure 3. Different units specialise on different timescales. Some rows (notably 3, 5 and 12) act as <strong>slow integrators</strong> &ndash; their colour drifts in lock-step with the trend of the signal. Others (rows 8, 11, 15) flip sign across the step change at $t=45$, behaving as <strong>change detectors</strong>. The noise burst around $t=27$ shakes only the high-frequency units; the slow rows are protected by $z_t \approx 0$.</em></p><p>This is the practical payoff of having gates: the network learns a basis of timescales without you ever specifying one.</p><hr><h2 id=4-forecast-quality-is-gru-actually-worse-than-lstm>4. Forecast Quality: Is GRU Actually Worse Than LSTM?</h2><p>The headline finding from Chung et al. (2014) and Jozefowicz et al. (2015) &ndash; repeatedly reproduced &ndash; is that <strong>on most sequence tasks, GRU and LSTM are statistically indistinguishable</strong>. Figure 4 makes this concrete on a synthetic but realistic seasonal-plus-trend signal.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig4_forecast_quality.png alt="Truth, GRU forecast, and LSTM forecast on the held-out portion of a synthetic time series." loading=lazy decoding=async></figure><em>Figure 4. Both architectures track the test region tightly. RMSEs differ by less than 0.02 on a signal with unit amplitude &ndash; a difference well within the noise of random initialisation.</em></p><p>When LSTM <strong>does</strong> pull ahead it is usually because of one of three things: very long sequences (>200 steps) where the explicit cell state $c_t$ helps preserve specific facts; large datasets (>50k samples) that can absorb the extra parameters; or tasks (translation, summarisation) where decoupling &ldquo;what to remember&rdquo; from &ldquo;what to emit&rdquo; is genuinely useful.</p><h3 id=training-speed>Training speed</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig5_training_speed.png alt="GRU vs LSTM seconds per epoch and the per-length speedup." loading=lazy decoding=async></figure><em>Figure 5. The ratio is remarkably stable: GRU gives a ~12% wall-clock saving across two orders of magnitude of sequence length. The right panel shows this is not an artefact of any single configuration &ndash; it is the consequence of doing one fewer gate computation per step.</em></p><p>For prototyping or hyperparameter sweeps, that 12% compounds quickly: a one-week LSTM sweep becomes a six-day GRU sweep, freeing a day for analysis.</p><hr><h2 id=5-reading-the-gates-a-diagnostic-tool>5. Reading the Gates: A Diagnostic Tool</h2><p>The most underused feature of any gated RNN is that the gate activations are <em>interpretable signals</em> you can plot. Figure 6 shows the mean reset and update gate traces while a GRU processes a signal that contains a regime shift at $t=40$ and a transient spike at $t \in [68, 72]$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig6_gate_activations.png alt="Three-panel plot: input signal, most-responsive reset gate unit, most-responsive update gate unit over 100 time steps." loading=lazy decoding=async></figure><em>Figure 6. Both gates <strong>saturate towards 0</strong> after the regime shift at $t=40$. A low $z_t$ tells the cell &ldquo;stop updating, the new level is what matters&rdquo; &ndash; the unit freezes onto the elevated baseline. A low $r_t$ tells the cell &ldquo;ignore the old hidden state when constructing the candidate&rdquo; &ndash; this lets the model rapidly forget the pre-shift oscillation. Saturation deepens further during the spike at $t \in [68, 72]$, when the model commits even harder to ignoring history.</em></p><p>Two practical uses:</p><ul><li><strong>Debugging dead training</strong>: if $z_t$ is stuck near 0 everywhere from epoch 1, the model has frozen &ndash; usually a sign the update-gate bias was initialised badly. Initialise $b_z$ to $-1$ to encourage early conservatism, or to $+1$ if the model needs to refresh aggressively from the first step.</li><li><strong>Detecting regime change in production</strong>: a sudden drop in $r_t$ across many units is a leading indicator that the model has decided &ldquo;the past is no longer informative&rdquo;. This is a useful covariate-shift signal.</li></ul><hr><h2 id=6-pytorch-reference-implementation>6. PyTorch Reference Implementation</h2><p>A clean, production-ready GRU forecaster. Notice the explicit weight initialisation (orthogonal on the recurrent matrix is the single most impactful trick for stability).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>GRUForecaster</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>output_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>num_layers</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>gru</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>GRU</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>input_size</span><span class=o>=</span><span class=n>input_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>hidden_size</span><span class=o>=</span><span class=n>hidden_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>num_layers</span><span class=o>=</span><span class=n>num_layers</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>dropout</span><span class=o>=</span><span class=n>dropout</span> <span class=k>if</span> <span class=n>num_layers</span> <span class=o>&gt;</span> <span class=mi>1</span> <span class=k>else</span> <span class=mf>0.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>LayerNorm</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>output_size</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_init_weights</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_init_weights</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>name</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>gru</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=s2>&#34;weight_ih&#34;</span> <span class=ow>in</span> <span class=n>name</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>xavier_uniform_</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>elif</span> <span class=s2>&#34;weight_hh&#34;</span> <span class=ow>in</span> <span class=n>name</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>orthogonal_</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>            <span class=c1># critical for stability</span>
+</span></span><span class=line><span class=cl>            <span class=k>elif</span> <span class=s2>&#34;bias&#34;</span> <span class=ow>in</span> <span class=n>name</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>zeros_</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=c1># Encourage remembering at init: bias on update gate -&gt; -1</span>
+</span></span><span class=line><span class=cl>                <span class=c1># Layout: [r_bias | z_bias | n_bias], each of size hidden</span>
+</span></span><span class=line><span class=cl>                <span class=n>h</span> <span class=o>=</span> <span class=n>p</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span> <span class=o>//</span> <span class=mi>3</span>
+</span></span><span class=line><span class=cl>                <span class=n>p</span><span class=o>.</span><span class=n>data</span><span class=p>[</span><span class=n>h</span><span class=p>:</span><span class=mi>2</span> <span class=o>*</span> <span class=n>h</span><span class=p>]</span><span class=o>.</span><span class=n>fill_</span><span class=p>(</span><span class=o>-</span><span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>                          <span class=c1># x: (B, T, d_in)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>gru</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>out</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:])</span>            <span class=c1># last-step prediction</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=training-loop-with-the-four-stability-essentials>Training loop with the four stability essentials</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_one_epoch</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>loader</span><span class=p>,</span> <span class=n>opt</span><span class=p>,</span> <span class=n>max_grad_norm</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>losses</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>y</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>pred</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>mse_loss</span><span class=p>(</span><span class=n>pred</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 1. gradient clipping -- non-negotiable for any RNN</span>
+</span></span><span class=line><span class=cl>        <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>max_grad_norm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>losses</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>sum</span><span class=p>(</span><span class=n>losses</span><span class=p>)</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=n>losses</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The four essentials:</p><ol><li><strong>Gradient clipping</strong> (<code>max_norm=1.0</code>) &ndash; catches the rare exploding step.</li><li><strong>Orthogonal init</strong> of <code>weight_hh</code> &ndash; keeps the spectral radius near 1 at initialisation.</li><li><strong>Layer norm</strong> in the head &ndash; decouples the regression scale from the GRU activations.</li><li><strong>Dropout between layers</strong> (PyTorch only applies it between stacked GRU layers, not across time &ndash; that is intentional, do not try to add per-step dropout naively).</li></ol><hr><h2 id=7-gru-vs-lstm-a-decision-matrix>7. GRU vs LSTM: A Decision Matrix</h2><p>There is no universal winner. Use Figure 7 as a checklist; if most of your boxes are blue, start with GRU.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/gru/fig7_decision_guide.png alt="Two-column decision card listing six criteria each for GRU and LSTM." loading=lazy decoding=async></figure><em>Figure 7. The heuristic at the bottom is the one I actually use: try GRU first, and only escalate to LSTM if validation RMSE plateaus while you still have data and compute headroom.</em></p><table><thead><tr><th>Dimension</th><th>GRU</th><th>LSTM</th></tr></thead><tbody><tr><td>Number of gates</td><td>2 (<code>r</code>, <code>z</code>)</td><td>3 (<code>f</code>, <code>i</code>, <code>o</code>)</td></tr><tr><td>State variables</td><td>1 (<code>h</code>)</td><td>2 (<code>h</code>, <code>c</code>)</td></tr><tr><td>Parameters at fixed <code>h</code></td><td>-25%</td><td>baseline</td></tr><tr><td>Wall-clock training</td><td>~12% faster</td><td>baseline</td></tr><tr><td>Sequence length sweet spot</td><td>20&ndash;150</td><td>100&ndash;1000+</td></tr><tr><td>Dataset size sweet spot</td><td>&lt; 50k</td><td>> 10k</td></tr><tr><td>Interpretability</td><td>Easier (fewer gates)</td><td>Harder</td></tr><tr><td>Common failure mode</td><td>Under-capacity on hard tasks</td><td>Overfitting on small data</td></tr></tbody></table><h3 id=when-the-choice-barely-matters>When the choice barely matters</h3><p>In about half of well-posed forecasting problems, both architectures land within noise of each other. In that regime, <strong>pick GRU</strong> &ndash; the iteration speed is free productivity. Only switch when you have a measured reason to.</p><hr><h2 id=8-common-variants-worth-knowing>8. Common Variants Worth Knowing</h2><p><strong>Bidirectional GRU</strong>. Concatenates a forward and backward pass; doubles the parameter count and disqualifies you from causal forecasting (you cannot use future data at inference time). Useful for sequence-tagging tasks like NER.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=bp>self</span><span class=o>.</span><span class=n>bigru</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>GRU</span><span class=p>(</span><span class=n>input_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_layers</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                    <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>bidirectional</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=bp>self</span><span class=o>.</span><span class=n>head</span>  <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_size</span> <span class=o>*</span> <span class=mi>2</span><span class=p>,</span> <span class=n>output_size</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Attention over GRU outputs</strong>. Replaces the &ldquo;use the last hidden state&rdquo; head with a learned weighted sum over all timesteps. Often gives 1&ndash;3% RMSE improvement at the cost of one extra linear layer:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>AttnHead</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>hidden</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>score</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>h_seq</span><span class=p>):</span>                       <span class=c1># (B, T, H)</span>
+</span></span><span class=line><span class=cl>        <span class=n>w</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>score</span><span class=p>(</span><span class=n>h_seq</span><span class=p>),</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># (B, T, 1)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>w</span> <span class=o>*</span> <span class=n>h_seq</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>                <span class=c1># (B, H)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Conv1D + GRU stack</strong>. A 1D convolution as a featuriser before the GRU. The conv extracts local motifs; the GRU integrates them across time. This is the workhorse for sensor data and is usually a stronger first try than a deeper stack of GRUs.</p><hr><h2 id=9-common-pitfalls-and-their-fixes>9. Common Pitfalls and Their Fixes</h2><p><strong>Loss explodes after a few hundred steps.</strong> Lower the learning rate to <code>1e-4</code>, double-check that gradient clipping is actually being called <em>before</em> <code>optimizer.step()</code>, and verify input normalisation. If inputs have unit variance and gradients still explode, the recurrent weights were not initialised orthogonally.</p><p><strong>Loss decreases then plateaus high.</strong> Usually under-capacity. Try doubling <code>hidden_size</code> or stacking 2 layers before adding fancy variants. If that does not help, this is your signal to try LSTM.</p><p><strong>Validation loss diverges from training loss early.</strong> Classic small-data overfit. Bump dropout to 0.4, add weight decay (<code>weight_decay=1e-5</code>), and shorten the training run with early stopping (patience=10).</p><p><strong>Variable-length sequences.</strong> Use <code>pack_padded_sequence</code> / <code>pad_packed_sequence</code>. This is not a performance optimisation &ndash; it is correctness: without packing the GRU runs over the padding tokens and your last-step output is meaningless.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.nn.utils.rnn</span> <span class=kn>import</span> <span class=n>pack_padded_sequence</span><span class=p>,</span> <span class=n>pad_packed_sequence</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>packed</span> <span class=o>=</span> <span class=n>pack_padded_sequence</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>lengths</span><span class=o>.</span><span class=n>cpu</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                              <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>enforce_sorted</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>out</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>gru</span><span class=p>(</span><span class=n>packed</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>out</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>pad_packed_sequence</span><span class=p>(</span><span class=n>out</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>last</span> <span class=o>=</span> <span class=n>out</span><span class=p>[</span><span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)),</span> <span class=n>lengths</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span>   <span class=c1># true last step</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=summary>Summary</h2><p>GRU is the rational default for sequence modelling problems that are not obviously hard. It removes one gate and one state from LSTM, keeps the gradient highway through the linear interpolation $h_t = (1 - z_t)\odot h_{t-1} + z_t \odot \tilde h_t$, and pays for itself in training speed and parameter efficiency.</p><p>The four numbers to remember:</p><ul><li><strong>2</strong> gates, <strong>1</strong> state.</li><li><strong>25%</strong> fewer parameters than LSTM.</li><li><strong>12%</strong> faster wall-clock training.</li><li><strong>0</strong> measurable accuracy loss on most short-to-medium sequence tasks.</li></ul><p>Start with GRU. Escalate to LSTM only when you have measured a reason to.</p><h2 id=further-reading>Further Reading</h2><ul><li>Cho et al., <em>Learning Phrase Representations using RNN Encoder&ndash;Decoder for Statistical Machine Translation</em>, EMNLP 2014. (Original GRU paper.)</li><li>Chung et al., <em>Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling</em>, NIPS Workshop 2014.</li><li>Jozefowicz, Zaremba, Sutskever, <em>An Empirical Exploration of Recurrent Network Architectures</em>, ICML 2015.</li><li>Greff et al., <em>LSTM: A Search Space Odyssey</em>, IEEE TNNLS 2017.</li></ul></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/time-series/lstm/><span class=title>Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/time-series/attention-mechanism/><span class=title>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-the-gru-cell-in-four-equations>1. The GRU Cell in Four Equations</a><ul><li><a href=#why-this-fixes-vanishing-gradients>Why this fixes vanishing gradients</a></li></ul></li><li><a href=#2-why-gru-is-lighter-a-parameter-accounting>2. Why GRU is Lighter: A Parameter Accounting</a></li><li><a href=#3-what-the-hidden-state-actually-looks-like>3. What the Hidden State Actually Looks Like</a></li><li><a href=#4-forecast-quality-is-gru-actually-worse-than-lstm>4. Forecast Quality: Is GRU Actually Worse Than LSTM?</a><ul><li><a href=#training-speed>Training speed</a></li></ul></li><li><a href=#5-reading-the-gates-a-diagnostic-tool>5. Reading the Gates: A Diagnostic Tool</a></li><li><a href=#6-pytorch-reference-implementation>6. PyTorch Reference Implementation</a><ul><li><a href=#training-loop-with-the-four-stability-essentials>Training loop with the four stability essentials</a></li></ul></li><li><a href=#7-gru-vs-lstm-a-decision-matrix>7. GRU vs LSTM: A Decision Matrix</a><ul><li><a href=#when-the-choice-barely-matters>When the choice barely matters</a></li></ul></li><li><a href=#8-common-variants-worth-knowing>8. Common Variants Worth Knowing</a></li><li><a href=#9-common-pitfalls-and-their-fixes>9. Common Pitfalls and Their Fixes</a></li><li><a href=#summary>Summary</a></li><li><a href=#further-reading>Further Reading</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Time series forecasting</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/01-traditional-models/><span class=chapter-num>01</span>
+<span class=chapter-title>Time Series Forecasting (1): Traditional Statistical Models</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/lstm/><span class=chapter-num>02</span>
+<span class=chapter-title>Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/attention-mechanism/><span class=chapter-num>04</span>
+<span class=chapter-title>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/transformer/><span class=chapter-num>05</span>
+<span class=chapter-title>Time Series Forecasting (5): Transformer Architecture for Time Series</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/temporal-convolutional-networks/><span class=chapter-num>06</span>
+<span class=chapter-title>Time Series Forecasting (6): Temporal Convolutional Networks (TCN)</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/n-beats/><span class=chapter-num>07</span>
+<span class=chapter-title>Time Series Forecasting (7): N-BEATS -- Interpretable Deep Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/informer-long-sequence/><span class=chapter-num>08</span>
+<span class=chapter-title>Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>2291</strong></div><div class=row><span>Published</span><strong>Oct 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

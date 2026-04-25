@@ -1,984 +1,450 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>时间序列模型（六）：时序卷积网络 (TCN) · Chen Kai Blog</title>
-<meta name="description" content="TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="时间序列模型（六）：时序卷积网络 (TCN)">
-<meta property="og:description" content="TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。">
-<meta property="og:url" content="https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">时间序列模型</a>
-         · Chapter 6
-      </div>
-      <h1>时间序列模型（六）：时序卷积网络 (TCN)</h1>
-      <p class="deck">TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-11-15">November 15, 2024</time> · 12 min read · 5900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/" class="tag">#时间序列</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/tcn/" class="tag">#TCN</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>整个 2010 年代，&ldquo;用深度学习做时间序列&quot;基本上等价于&quot;上 LSTM&rdquo;。这件事在 2018 年被 Bai、Kolter、Koltun 的 <em>An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling</em> 改变。结论简单到令人有些不爽：把若干个 1D 卷积叠起来，让它们都是因果的（不偷看���来���，让卷积核的步距按指数膨胀（dilation），整个块外面套一层残差连接，然后训练。在一个又一个任务上，这个<strong>时序卷积网络</strong>（TCN）的表现都和 LSTM/GRU 持平甚至更好——而且训练快好几倍，因为它的前向传播在每一个时间步上都是并行的。</p>
-<p>本章把这个配方拆开来讲：先推那条让 dilation 值得用的感受野公式，再一步步看清残差块的内部，最后用一份你可以直接拿走的 PyTorch 实现做两个实战（交通流预测、多变量 IoT 传感器预测）。</p>
-<h2 id="这一篇你会学到">这一篇你会学到</h2>
-<ul>
-<li>为什么&quot;诚实的预测&quot;必须用因果一维卷积，左侧 padding 是怎么做到这件事的。</li>
-<li>膨胀卷积如何让感受野按 $\mathcal{O}(2^L)$ 而不是 $\mathcal{O}(L)$ 增长。</li>
-<li>TCN 残差块的精确构造（两个膨胀因果卷积 + 权重归一化 + dropout + 1x1 残差投影）。</li>
-<li>TCN vs LSTM/GRU/Transformer 在训练速度、显存、精度上的正面对比。</li>
-<li>两个案例：每小时交通流预测和多变量 IoT 传感器预测。</li>
-</ul>
-<p><strong>前置知识</strong>：第 2 部分（LSTM）和第 5 部分（Transformer）。会用 PyTorch 的 <code>nn.Conv1d</code> 并理解基本复杂度记号。</p>
-<hr>
-<h2 id="当年用-lstm-的疼点">当年用 LSTM 的疼点</h2>
-<p>在 TCN 之前，时间序列的深度学习剧本是这样的：叠两层 LSTM，需要的话再加点 attention，慢慢训。能用，但每一环都在拖你后腿：</p>
-<ul>
-<li><strong>前向传播是顺序的</strong>。算 $h_t$ 要用到 $h_{t-1}$，GPU 要在那干等。哪怕硬件并行能力无限，序列长度翻倍，墙钟时间也是翻倍。</li>
-<li><strong>梯度沿时间方向消失或爆炸</strong>。反向传播要走 $L$ 个乘法步。LSTM 有门可以缓解，但超过 ~200 步就开始变脆。梯度裁剪、layer norm、各种小心翼翼的初始化只是为了让训练别炸。</li>
-<li><strong>隐状态是黑盒</strong>。&ldquo;模型为什么这么预测？&ldquo;通常没有好答案，因为隐状态把所有信息都搅在一起。</li>
-<li><strong>超参税</strong>。层数、隐藏维度、门变种、dropout 类型、recurrent dropout 的位置之间互相影响。组合错了往往要白训一天。</li>
-</ul>
-<p>TCN 的卖点：用可以并行运行的卷积代替递归，用显式的感受野代替隐状态那种暧昧的&quot;记忆&rdquo;，用残差连接保住梯度。表达能力相当，可动的零件少得多。</p>
-<hr>
-<h2 id="一维卷积但要是因果的">一维卷积：但要是&quot;因果的&rdquo;</h2>
-<p>标准的一维卷积把长度为 $k$ 的核 $f$ 滑过输入序列 $x$：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>时间序列模型（六）：时序卷积网络 (TCN) · Chen Kai Blog</title>
+<meta name=description content="TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/><meta property="og:type" content="article"><meta property="og:title" content="时间序列模型（六）：时序卷积网络 (TCN)"><meta property="og:description" content="TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。"><meta property="og:url" content="https://www.chenk.top/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9Ctcn/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>时间序列模型</a>
+· Chapter 6</div><h1>时间序列模型（六）：时序卷积网络 (TCN)</h1><p class=deck>TCN 用因果膨胀卷积换取并行训练和指数级感受野。完整 PyTorch 实现，附交通流和多变量传感器两个实战案例。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-11-15>November 15, 2024</time> · 12 min read · 5862 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%97%B6%E9%97%B4%E5%BA%8F%E5%88%97/ class=tag>#时间序列</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/tcn/ class=tag>#TCN</a></div></div></header><div class=prose><p>整个 2010 年代，&ldquo;用深度学习做时间序列"基本上等价于"上 LSTM&rdquo;。这件事在 2018 年被 Bai、Kolter、Koltun 的 <em>An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling</em> 改变。结论简单到令人有些不爽：把若干个 1D 卷积叠起来，让它们都是因果的（不偷看���来���，让卷积核的步距按指数膨胀（dilation），整个块外面套一层残差连接，然后训练。在一个又一个任务上，这个<strong>时序卷积网络</strong>（TCN）的表现都和 LSTM/GRU 持平甚至更好——而且训练快好几倍，因为它的前向传播在每一个时间步上都是并行的。</p><p>本章把这个配方拆开来讲：先推那条让 dilation 值得用的感受野公式，再一步步看清残差块的内部，最后用一份你可以直接拿走的 PyTorch 实现做两个实战（交通流预测、多变量 IoT 传感器预测）。</p><h2 id=这一篇你会学到>这一篇你会学到</h2><ul><li>为什么"诚实的预测"必须用因果一维卷积，左侧 padding 是怎么做到这件事的。</li><li>膨胀卷积如何让感受野按 $\mathcal{O}(2^L)$ 而不是 $\mathcal{O}(L)$ 增长。</li><li>TCN 残差块的精确构造（两个膨胀因果卷积 + 权重归一化 + dropout + 1x1 残差投影）。</li><li>TCN vs LSTM/GRU/Transformer 在训练速度、显存、精度上的正面对比。</li><li>两个案例：每小时交通流预测和多变量 IoT 传感器预测。</li></ul><p><strong>前置知识</strong>：第 2 部分（LSTM）和第 5 部分（Transformer）。会用 PyTorch 的 <code>nn.Conv1d</code> 并理解基本复杂度记号。</p><hr><h2 id=当年用-lstm-的疼点>当年用 LSTM 的疼点</h2><p>在 TCN 之前，时间序列的深度学习剧本是这样的：叠两层 LSTM，需要的话再加点 attention，慢慢训。能用，但每一环都在拖你后腿：</p><ul><li><strong>前向传播是顺序的</strong>。算 $h_t$ 要用到 $h_{t-1}$，GPU 要在那干等。哪怕硬件并行能力无限，序列长度翻倍，墙钟时间也是翻倍。</li><li><strong>梯度沿时间方向消失或爆炸</strong>。反向传播要走 $L$ 个乘法步。LSTM 有门可以缓解，但超过 ~200 步就开始变脆。梯度裁剪、layer norm、各种小心翼翼的初始化只是为了让训练别炸。</li><li><strong>隐状态是黑盒</strong>。&ldquo;模型为什么这么预测？&ldquo;通常没有好答案，因为隐状态把所有信息都搅在一起。</li><li><strong>超参税</strong>。层数、隐藏维度、门变种、dropout 类型、recurrent dropout 的位置之间互相影响。组合错了往往要白训一天。</li></ul><p>TCN 的卖点：用可以并行运行的卷积代替递归，用显式的感受野代替隐状态那种暧昧的"记忆&rdquo;，用残差连接保住梯度。表达能力相当，可动的零件少得多。</p><hr><h2 id=一维卷积但要是因果的>一维卷积：但要是"因果的&rdquo;</h2><p>标准的一维卷积把长度为 $k$ 的核 $f$ 滑过输入序列 $x$：</p>$$
 y_t = \sum_{i=0}^{k-1} f_i \, x_{t-i+\lfloor k/2 \rfloor}.
-$$<p>这种&quot;居中&quot;形式让 $t$ 时刻的输出同时看到了过去和未来。对于预测来说这是<strong>信息泄漏</strong>——你不能用明天的交通流去预测明天的交通流。</p>
-<p><strong>因果</strong>卷积把核往左推一格，让 $t$ 时刻的输出只用到 $1, \ldots, t$ 的输入：</p>
-$$
+$$<p>这种"居中"形式让 $t$ 时刻的输出同时看到了过去和未来。对于预测来说这是<strong>信息泄漏</strong>——你不能用明天的交通流去预测明天的交通流。</p><p><strong>因果</strong>卷积把核往左推一格，让 $t$ 时刻的输出只用到 $1, \ldots, t$ 的输入：</p>$$
 y_t = \sum_{i=0}^{k-1} f_i \, x_{t-i}.
-$$<p>实现上，给输入左侧 pad $k - 1$ 个零，跑一个普通的 <code>nn.Conv1d</code>，再把右侧多出来的 padding 切掉，输出长度就和输入一样了。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig2_causal_convolution.png" alt="因果 vs 非因果一维卷积，t = 6" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>图里两侧的绿色输出 $y_6$ 是同一个，但它读到的输入（橙色）不同：左边的非因果卷积读到了 $x_7$，落在了阴影标出的&quot;未来&quot;区——预测里绝对不能这么干。右边的因果版本永远只看左侧。</p>
-<p>PyTorch 实现：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CausalConv1d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;左 padding + 右侧裁剪 的一维卷积。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dilation</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dilation</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># x: (batch, channels, time)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">y</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>两个细节：</p>
-<ol>
-<li>padding 量是 $(k-1) \cdot d$，依赖于 dilation $d$（下文马上会讲）。</li>
-<li>卷积之后要切掉的是<strong>右侧</strong>。常见的 bug 是切了左侧，结果默默地把序列开头那几步毁掉了。</li>
-</ol>
-<hr>
-<h2 id="膨胀用线性深度换指数感受野">膨胀：用线性深度换指数感受野</h2>
-<p>核大小 $k = 3$ 的因果卷积叠 $L$ 层，感受野是 $1 + 2L$。线性增长。要看到 200 步以前，得叠 100 层，根本没法用。</p>
-<p><strong>膨胀卷积</strong>让卷积核的相邻 tap 之间留出 $d$ 的间隔：</p>
-$$
+$$<p>实现上，给输入左侧 pad $k - 1$ 个零，跑一个普通的 <code>nn.Conv1d</code>，再把右侧多出来的 padding 切掉，输出长度就和输入一样了。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig2_causal_convolution.png alt="因果 vs 非因果一维卷积，t = 6" loading=lazy decoding=async></figure></p><p>图里两侧的绿色输出 $y_6$ 是同一个，但它读到的输入（橙色）不同：左边的非因果卷积读到了 $x_7$，落在了阴影标出的"未来"区——预测里绝对不能这么干。右边的因果版本永远只看左侧。</p><p>PyTorch 实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CausalConv1d</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;左 padding + 右侧裁剪 的一维卷积。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>in_channels</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>out_channels</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>kernel_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>dilation</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>padding</span> <span class=o>=</span> <span class=p>(</span><span class=n>kernel_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>dilation</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>conv</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Conv1d</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_channels</span><span class=p>,</span> <span class=n>out_channels</span><span class=p>,</span> <span class=n>kernel_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>padding</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>padding</span><span class=p>,</span> <span class=n>dilation</span><span class=o>=</span><span class=n>dilation</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># x: (batch, channels, time)</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>conv</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>padding</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>y</span> <span class=o>=</span> <span class=n>y</span><span class=p>[:,</span> <span class=p>:,</span> <span class=p>:</span> <span class=o>-</span><span class=bp>self</span><span class=o>.</span><span class=n>padding</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>y</span>
+</span></span></code></pre></td></tr></table></div></div><p>两个细节：</p><ol><li>padding 量是 $(k-1) \cdot d$，依赖于 dilation $d$（下文马上会讲）。</li><li>卷积之后要切掉的是<strong>右侧</strong>。常见的 bug 是切了左侧，结果默默地把序列开头那几步毁掉了。</li></ol><hr><h2 id=膨胀用线性深度换指数感受野>膨胀：用线性深度换指数感受野</h2><p>核大小 $k = 3$ 的因果卷积叠 $L$ 层，感受野是 $1 + 2L$。线性增长。要看到 200 步以前，得叠 100 层，根本没法用。</p><p><strong>膨胀卷积</strong>让卷积核的相邻 tap 之间留出 $d$ 的间隔：</p>$$
 y_t = \sum_{i=0}^{k-1} f_i \, x_{t-d \cdot i}.
-$$<p>如果每层都把 dilation 翻倍（$d_\ell = 2^{\ell-1}$），$L$ 层网络的感受野就变成</p>
-$$
+$$<p>如果每层都把 dilation 翻倍（$d_\ell = 2^{\ell-1}$），$L$ 层网络的感受野就变成</p>$$
 \text{RF}(L) = 1 + (k - 1)\sum_{\ell=1}^{L} d_\ell = 1 + (k - 1)(2^L - 1).
-$$<p>$k = 3$、$L = 8$ 时，感受野是 <strong>511 步</strong>——一周的小时级数据绰绰有余。参数量和 8 层普通卷积一样，覆盖范围却是指数级的。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig1_dilated_convolution.png" alt="膨胀因果卷积的感受野" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>图里追踪了所有对最顶层那个绿色输出节点有贡献的输入。dilation 1、2、4、8 让这四层网络看上去像一棵稀疏的树——这种稀疏性正是它能覆盖那么远的原因。</p>
-<p>一个常用的小工具，帮你定层数：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">required_layers</span><span class="p">(</span><span class="n">receptive_field</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;让 1 + (k-1)(2**L - 1) &gt;= receptive_field 的最小 L。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">L</span> <span class="o">=</span> <span class="p">(</span><span class="n">receptive_field</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">L</span><span class="p">)))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>required_layers(168, kernel_size=3)</code> 返回 <code>7</code>——对应小时级数据需要回看一周的场景。</p>
-<hr>
-<h2 id="tcn-残差块">TCN 残差块</h2>
-<p>把膨胀因果卷积叠起来只是一半，另一半是包在外面的残差块。Bai 等人定下来的结构如下（和 WaveNet 几乎一样，差别只在激活的选择）：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig3_residual_block.png" alt="TCN 残差块" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>数学形式，给定输入 $x$：</p>
-$$
+$$<p>$k = 3$、$L = 8$ 时，感受野是 <strong>511 步</strong>——一周的小时级数据绰绰有余。参数量和 8 层普通卷积一样，覆盖范围却是指数级的。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig1_dilated_convolution.png alt=膨胀因果卷积的感受野 loading=lazy decoding=async></figure></p><p>图里追踪了所有对最顶层那个绿色输出节点有贡献的输入。dilation 1、2、4、8 让这四层网络看上去像一棵稀疏的树——这种稀疏性正是它能覆盖那么远的原因。</p><p>一个常用的小工具，帮你定层数：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>math</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>required_layers</span><span class=p>(</span><span class=n>receptive_field</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>kernel_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;让 1 + (k-1)(2**L - 1) &gt;= receptive_field 的最小 L。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span> <span class=o>=</span> <span class=p>(</span><span class=n>receptive_field</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>kernel_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>math</span><span class=o>.</span><span class=n>ceil</span><span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>log2</span><span class=p>(</span><span class=n>L</span><span class=p>)))</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>required_layers(168, kernel_size=3)</code> 返回 <code>7</code>——对应小时级数据需要回看一周的场景。</p><hr><h2 id=tcn-残差块>TCN 残差块</h2><p>把膨胀因果卷积叠起来只是一半，另一半是包在外面的残差块。Bai 等人定下来的结构如下（和 WaveNet 几乎一样，差别只在激活的选择）：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig3_residual_block.png alt="TCN 残差块" loading=lazy decoding=async></figure></p><p>数学形式，给定输入 $x$：</p>$$
 F(x) = \mathrm{Dropout}\!\big(\mathrm{ReLU}(\mathrm{WN}(\mathrm{Conv}_2 \, \mathrm{Dropout}(\mathrm{ReLU}(\mathrm{WN}(\mathrm{Conv}_1 \, x))))) \big),
 $$$$
 o = \mathrm{ReLU}\!\big( F(x) + W_{\text{skip}} \, x \big).
-$$<p>三个有意思的设计选择：</p>
-<ul>
-<li><strong>每块两个卷积</strong>。一个卷积太弱；两个让块本身有学非平凡映射的能力，又不至于让总深度膨胀。</li>
-<li><strong>权重归一化</strong>。Bai 等人发现 batch norm 在长序列上会拖后腿（统计量随位置漂）。weight norm 把每个滤波器的方向和模长解耦，不去碰激活值，训练更稳。</li>
-<li><strong>1x1 残差投影</strong>。当输入输出通道数相同时残差就是恒等；不同时用一个 1x1 卷积投影一下，代价几乎为零。</li>
-</ul>
-<p>PyTorch 实现：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TCNResidualBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dilation</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dilation</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">conv1</span><span class="p">,</span> <span class="n">conv2</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">relu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">skip</span> <span class="o">=</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">in_channels</span> <span class="o">!=</span> <span class="n">out_channels</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_init_weights</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_init_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_causal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conv</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">y</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">y</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_causal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">,</span> <span class="n">x</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_causal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">,</span> <span class="n">out</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这个块简单到大家经常直接 inline，但拆成模块的好处是感受野算起来一目了然，必要时也能把 weight norm 换成 layer norm。</p>
-<hr>
-<h2 id="把网络搭起来">把网络搭起来</h2>
-<p>完整的 TCN 就是按指数 dilation 叠的残差块，最后接一个 1x1 卷积投影到你想要的输出维度。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TCN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prev</span> <span class="o">=</span> <span class="n">input_size</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">channels</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TCNResidualBlock</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="n">prev</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">prev</span> <span class="o">=</span> <span class="n">c</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">prev</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_channels</span> <span class="o">=</span> <span class="n">channels</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">_k</span> <span class="o">=</span> <span class="n">kernel_size</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@property</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">receptive_field</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_channels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>配置时几个建议：</p>
-<ul>
-<li><strong>通道数</strong>。多数论文用恒定宽度（比如 <code>[64] * 8</code>）。如果输出维度比输入大很多，可以让靠近 head 的几层加宽。</li>
-<li><strong>核大小</strong>。$k = 3$ 是默认。$k = 5/7$ 把参数翻倍但精度提升很小；想要更大感受野，几乎永远是用 dilation 更划算。</li>
-<li><strong>dropout</strong>。0.2 是安全默认；小数据集推到 0.3-0.5。</li>
-</ul>
-<hr>
-<h2 id="tcn-vs-rnn架构层面的对比">TCN vs RNN：架构层面的对比</h2>
-<p>下面这张信息流图比任何 benchmark 表都更直观地说明了速度差距：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig4_tcn_vs_rnn.png" alt="RNN 顺序依赖 vs TCN 并行前向" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>RNN 那一列里每条红色箭头都是硬性的顺序依赖。GPU 可以并行算一个 cell 内部的工作，但没法跳过 $t$ 直接开始 $t+1$。前向传播的墙钟时间因此随序列长度线性增长，硬件并行能力再强都救不了。</p>
-<p>TCN 那一列里每个输出节点只是固定输入集合的函数。同一个卷积核滑遍全长，整层就是一次大矩阵乘法，GPU 一次 kernel launch 就完事。</p>
-<p>具体到单卡的每 epoch 墙钟：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig5_parallel_training.png" alt="训练时间和 TCN 相对 LSTM 的加速比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>两个要点：</p>
-<ol>
-<li><strong>训练时间的扩展性才是关键</strong>。$L = 128$ 时四种架构差别不大；到了 $L = 1024$，TCN 比 LSTM 快 3-4 倍，比朴素 Transformer（attention 是 $L^2$）快约 6 倍。这正是大多数实际预测问题所处的区间。</li>
-<li><strong>推理基本持平</strong>。推理时 RNN 和 TCN 通常在 1.5 倍以内，差距只是训练时的事。如果你只关心单样本延迟，两者都可以。</li>
-</ol>
-<p>什么时候用什么？给一个朴素的决策表：</p>
-<table>
-  <thead>
-      <tr>
-          <th>场景</th>
-          <th>推荐</th>
-          <th>理由</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>固定窗口、有 GPU</td>
-          <td>TCN</td>
-          <td>训练并行，感受野可预测</td>
-      </tr>
-      <tr>
-          <td>序列长度变化大、padding 不可接受</td>
-          <td>LSTM/GRU</td>
-          <td>原生支持，没有 padding 浪费</td>
-      </tr>
-      <tr>
-          <td>流式 / 在线推理，逐步进数据</td>
-          <td>LSTM/GRU</td>
-          <td>隐状态就是天然的状态</td>
-      </tr>
-      <tr>
-          <td>多变量、跨特征交互值得用 attention</td>
-          <td>Transformer / Informer</td>
-          <td>attention 显式建模两两关系</td>
-      </tr>
-      <tr>
-          <td>不确定</td>
-          <td>先试 TCN</td>
-          <td>训练快、超参少</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="pytorch-训练循环">PyTorch 训练循环</h2>
-<p>上面那两个类是核心，训练循环很普通：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">TensorDataset</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_tcn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">              <span class="n">num_epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">sched</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ReduceLROnPlateau</span><span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&#34;min&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                                 <span class="n">factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">crit</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="o">=</span> <span class="n">xb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">yb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">crit</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xb</span><span class="p">),</span> <span class="n">yb</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">train_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="n">xb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">train_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="ow">in</span> <span class="n">val_loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">xb</span><span class="p">,</span> <span class="n">yb</span> <span class="o">=</span> <span class="n">xb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">yb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">val_loss</span> <span class="o">+=</span> <span class="n">crit</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">xb</span><span class="p">),</span> <span class="n">yb</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="n">xb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">val_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">sched</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">val_loss</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">val_loss</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">best</span> <span class="o">=</span> <span class="n">val_loss</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s2">&#34;tcn_best.pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">: train </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> val </span><span class="si">{</span><span class="n">val_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>两个点：梯度裁剪对 TCN <strong>不是必须的</strong>（残差 + weight norm 已经把梯度管得很好），但加上不亏。<code>ReduceLROnPlateau</code> 比固定 schedule 鲁棒，因为合适的学习率取决于数据集和感受野。</p>
-<p>构造单变量窗口的小帮手：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_windows</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">history</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">horizon</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;单变量序列 -&gt; (X, y) 张量，用于直接多步预测。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">series</span><span class="p">)</span> <span class="o">-</span> <span class="n">history</span> <span class="o">-</span> <span class="n">horizon</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">series</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">history</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">series</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">history</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">history</span> <span class="o">+</span> <span class="n">horizon</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (N, 1, history)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (N, 1, horizon)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="案例-1每小时交通流预测">案例 1：每小时交通流预测</h2>
-<p><strong>任务</strong>：给定单个高速公路传感器过去一周（168 小时）的车流量，预测未来 24 小时。单变量、强日季节性 + 周季节性，偶尔有事件性尖峰。</p>
-<p><strong>感受野预算</strong>：希望输出端能看到至少一周的历史。$k = 3$、$L = 7$ 时 $\text{RF} = 1 + 2 \cdot 2 \cdot 127 = 509$，宽裕。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">synthetic_traffic</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">daily</span> <span class="o">=</span> <span class="mi">1000</span> <span class="o">+</span> <span class="mi">500</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">weekly</span> <span class="o">=</span> <span class="mi">200</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">7</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">trend</span> <span class="o">=</span> <span class="mf">0.05</span> <span class="o">*</span> <span class="n">t</span>
-</span></span><span class="line"><span class="cl">    <span class="n">noise</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">daily</span> <span class="o">+</span> <span class="n">weekly</span> <span class="o">+</span> <span class="n">trend</span> <span class="o">+</span> <span class="n">noise</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">raw</span> <span class="o">=</span> <span class="n">synthetic_traffic</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">scaler</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">series</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">make_windows</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="mi">168</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">split</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">X</span><span class="p">[:</span><span class="n">split</span><span class="p">],</span> <span class="n">y</span><span class="p">[:</span><span class="n">split</span><span class="p">]),</span>
-</span></span><span class="line"><span class="cl">                          <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">val_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">TensorDataset</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">split</span><span class="p">:],</span> <span class="n">y</span><span class="p">[</span><span class="n">split</span><span class="p">:]),</span>
-</span></span><span class="line"><span class="cl">                        <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">TCN</span><span class="p">(</span><span class="n">input_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">channels</span><span class="o">=</span><span class="p">[</span><span class="mi">64</span><span class="p">]</span> <span class="o">*</span> <span class="mi">7</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;感受野：&#34;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">receptive_field</span><span class="p">)</span>  <span class="c1"># 509</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">train_tcn</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span> <span class="n">num_epochs</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>output_size=1</code> 意味着模型输出一通道的序列。直接多步预测里你通常想让网络一次把整个 horizon 输出来。两种做法：</p>
-<ol>
-<li><strong>序列到序列 head</strong>：保留 <code>output_size=1</code>，取输出序列的最后 $H$ 步。简单，但 horizon 和历史长度耦合。</li>
-<li><strong>flatten + 线性 head</strong>：把最后的 <code>nn.Conv1d(C, 1, 1)</code> 换成 <code>nn.Linear(C * history, horizon)</code>，模型直接输出 $H$ 维向量。更灵活。</li>
-</ol>
-<p>两种都能用，做法 1 参数更少，本案例就用这个。</p>
-<p><strong>预期表现</strong>：合成数据上模型训 30 epoch 之后能把日内峰值打到 ~10% MAPE 以内。真实 Caltrans 风格数据上没什么特别调参，MAPE 落在 8-15% 是合理区间，比朴素季节基线明显好。</p>
-<hr>
-<h2 id="案例-2多变量传感器预测">案例 2：多变量传感器预测</h2>
-<p><strong>任务</strong>：四个相关 IoT 传感器（温度、湿度、气压、光照），5 分钟采样。给定过去 6 小时（72 步）预测未来 1 小时（12 步）的温度。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">synthetic_sensors</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">temp</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">+</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="mi">288</span><span class="p">)</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hum</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">-</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="p">(</span><span class="n">temp</span> <span class="o">-</span> <span class="mi">20</span><span class="p">)</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">pres</span> <span class="o">=</span> <span class="mi">1013</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">light</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="mi">288</span><span class="p">))</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">temp</span><span class="p">,</span> <span class="n">hum</span><span class="p">,</span> <span class="n">pres</span><span class="p">,</span> <span class="n">light</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">sensors</span> <span class="o">=</span> <span class="n">synthetic_sensors</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">scaler</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">sensors_s</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">sensors</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">make_multivariate_windows</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">target_idx</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">horizon</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">-</span> <span class="n">history</span> <span class="o">-</span> <span class="n">horizon</span> <span class="o">+</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">history</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span>  <span class="c1"># (N, F, T)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">arr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">history</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">history</span> <span class="o">+</span> <span class="n">horizon</span><span class="p">,</span> <span class="n">target_idx</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">                  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Xm</span><span class="p">,</span> <span class="n">ym</span> <span class="o">=</span> <span class="n">make_multivariate_windows</span><span class="p">(</span><span class="n">sensors_s</span><span class="p">,</span> <span class="n">target_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                                   <span class="n">history</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># ... 构造 loader ...</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">TCN</span><span class="p">(</span><span class="n">input_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">channels</span><span class="o">=</span><span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;感受野：&#34;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">receptive_field</span><span class="p">)</span>  <span class="c1"># 253</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>为什么多变量&quot;自然就好用&quot;</strong>：第一层卷积在每个时间步上就跨越所有 4 个输入通道做加权，跨特征交互天然内嵌。不需要额外的融合模块。</p>
-<p><strong>简易特征重要性</strong>：把每个通道置零，看验证 MAE 上升多少：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">feature_ablation</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">base</span> <span class="o">=</span> <span class="p">((</span><span class="n">model</span><span class="p">(</span><span class="n">X_val</span><span class="p">)</span> <span class="o">-</span> <span class="n">y_val</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">Xz</span> <span class="o">=</span> <span class="n">X_val</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">Xz</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">model</span><span class="p">(</span><span class="n">Xz</span><span class="p">)</span> <span class="o">-</span> <span class="n">y_val</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">-</span> <span class="n">base</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">out</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">feature_ablation</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Xm</span><span class="p">[:</span><span class="mi">200</span><span class="p">],</span> <span class="n">ym</span><span class="p">[:</span><span class="mi">200</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                       <span class="p">[</span><span class="s2">&#34;temp&#34;</span><span class="p">,</span> <span class="s2">&#34;hum&#34;</span><span class="p">,</span> <span class="s2">&#34;pres&#34;</span><span class="p">,</span> <span class="s2">&#34;light&#34;</span><span class="p">]))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>合成数据上湿度会主导（按构造它就和温度强相关）。真实传感器数据上图景更复杂，但作为 sanity check 还是有价值的。</p>
-<hr>
-<h2 id="超参与设计-cheat-sheet">超参与设计 cheat sheet</h2>
-<p>按&quot;问题特征 -&gt; 默认值&quot;列：</p>
-<table>
-  <thead>
-      <tr>
-          <th>超参</th>
-          <th>默认</th>
-          <th>何时改</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>核大小 $k$</td>
-          <td>3</td>
-          <td>几乎不动。要扩感受野就用 dilation。</td>
-      </tr>
-      <tr>
-          <td>dilation 序列</td>
-          <td>$2^i$</td>
-          <td>几乎不动。2 的幂就是答案。</td>
-      </tr>
-      <tr>
-          <td>通道数</td>
-          <td>恒定 32-128</td>
-          <td>欠拟合就加宽，过拟合就缩窄。</td>
-      </tr>
-      <tr>
-          <td>层数 $L$</td>
-          <td>满足 $\text{RF}(L) \geq$ 上下文的最小值</td>
-          <td>用公式算，别多叠。</td>
-      </tr>
-      <tr>
-          <td>dropout</td>
-          <td>0.2</td>
-          <td>小数据 0.3-0.5；大数据 0.1。</td>
-      </tr>
-      <tr>
-          <td>归一化</td>
-          <td>weight norm</td>
-          <td>batch 极小时 layer norm；避免 batch norm。</td>
-      </tr>
-      <tr>
-          <td>优化器</td>
-          <td>Adam，lr 1e-3</td>
-          <td>大数据上 SGD + momentum 偶尔更优。</td>
-      </tr>
-      <tr>
-          <td>LR 调度</td>
-          <td><code>ReduceLROnPlateau</code>，factor 0.5</td>
-          <td>长训练换 cosine annealing。</td>
-      </tr>
-      <tr>
-          <td>梯度裁剪</td>
-          <td>1.0</td>
-          <td>留着，便宜的保险。</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="常见坑和排查">常见坑和排查</h2>
-<ul>
-<li><strong>输出整体右移</strong>：忘了切右侧 padding。检查 <code>y[:, :, : -self.padding]</code>。</li>
-<li><strong>训练降但验证不降</strong>：感受野小于数据中的主导周期。重新算 <code>required_layers</code>。</li>
-<li><strong>loss 很早就走平</strong>：通道太窄或学习率太低。试着把通道翻倍或把 lr 调到 <code>3e-3</code>。</li>
-<li><strong>验证 loss 突然爆炸</strong>：八成是 batch norm + 小 batch，或者小数据没加 dropout。换 weight norm，dropout 调到 0.3。</li>
-<li><strong>预测无视近期值</strong>：网络完全靠长程结构。少叠几层，或者从输入到输出加一条 1 步 skip。</li>
-</ul>
-<hr>
-<h2 id="什么时候不用-tcn">什么时候<strong>不</strong>用 TCN</h2>
-<p>TCN 不是万能：</p>
-<ul>
-<li><strong>序列长度差异大且不能 padding</strong> → 用 LSTM/GRU。</li>
-<li><strong>需要真正流式推理</strong>（一次进一个新点，微秒级响应）→ 因果 CNN 也能做流式，但比直接跑一个 LSTM cell 麻烦。</li>
-<li><strong>目标比窗口长得多</strong>（比如要 50k 上下文的 100k 步生理信号）→ 用 N-BEATS-X、Informer 这类层级化模型。</li>
-<li><strong>需要 attention 风格的可解释性</strong> → TCN 的滤波器能可视化但意思偏局部，attention map 直观得多。</li>
-</ul>
-<p>除上面这些情况，TCN 几乎永远是值得先试的&quot;无聊但快&quot;的方案。</p>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="tcn-和-wavenet-是什么关系">TCN 和 WaveNet 是什么关系？</h3>
-<p>WaveNet（2016）本质上是一个 TCN，激活换成了门控的 $\tanh(W_f x) \odot \sigma(W_g x)$，并且为音频生成加了更复杂的条件机制。TCN 把这些去掉，留下 ReLU + 残差，作为通用序列模型。</p>
-<h3 id="用-batchnorm-还是-weightnorm">用 BatchNorm 还是 WeightNorm？</h3>
-<p>WeightNorm。BatchNorm 的 running statistics 在长序列上漂得厉害；WeightNorm 直接绕开这个问题。LayerNorm 也行，但 1D 卷积的张量布局要 transpose 一下。</p>
-<h3 id="需要像-transformer-那样加位置编码吗">需要像 Transformer 那样加位置编码吗？</h3>
-<p>不需要。卷积本身就是位置等变的，位置信息隐含在感受野结构里。</p>
-<h3 id="直接多步预测还是递归多步">直接多步预测还是递归多步？</h3>
-<p>直接预测（一次输出整个 horizon）更准，因为误差不会累积，但参数多一点而且训练时就锁定了 horizon。递归（预测一步、喂回去、再预测）更灵活但会累积误差。默认选直接。</p>
-<h3 id="想要分位数预测怎么办">想要分位数预测怎么办？</h3>
-<p>把 L2 损失换成多个分位的 pinball loss，head 输出每个分位一通道。TCN 主体不变。</p>
-<hr>
-<h2 id="小结">小结</h2>
-<p>TCN 把序列建模的核心收敛到一句话：因果膨胀卷积加残差连接就能给你长记忆、并行训练、稳定梯度，整套递归机制都不需要。数学只有 $\text{RF}(L) = 1 + (k-1)(2^L - 1)$ 这一条值得记，PyTorch 实现 60 行能写完，在大多数固定窗口的 benchmark 上对调过参的 LSTM 至少打平。</p>
-<p>把它当你做预测任务的第一基线。被更复杂的模型干掉，说明那些复杂度真的赚到了；它赢——经常会赢——你就送出了一个又快又简单的模型。</p>
-<p>下一章我们离开卷积，进入 <strong>N-BEATS</strong>：连卷积和递归都不要，只用全连接块加基函数展开，就拿了 M4 预测竞赛冠军，而且保持可解释。</p>
-<hr>
-<h2 id="参考资料">参考资料</h2>
-<ul>
-<li>Bai, S., Kolter, J. Z., &amp; Koltun, V. (2018). <em>An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling.</em> arXiv:1803.01271.</li>
-<li>van den Oord, A. et al. (2016). <em>WaveNet: A Generative Model for Raw Audio.</em> arXiv:1609.03499.</li>
-<li>Lea, C. et al. (2017). <em>Temporal Convolutional Networks for Action Segmentation and Detection.</em> CVPR.</li>
-<li>Salimans, T., &amp; Kingma, D. P. (2016). <em>Weight Normalization.</em> NeurIPS.</li>
-</ul>
-<hr>
-<p><strong>系列导航</strong></p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#这一篇你会学到">这一篇你会学到</a></li>
-    <li><a href="#当年用-lstm-的疼点">当年用 LSTM 的疼点</a></li>
-    <li><a href="#一维卷积但要是因果的">一维卷积：但要是&quot;因果的&rdquo;</a></li>
-    <li><a href="#膨胀用线性深度换指数感受野">膨胀：用线性深度换指数感受野</a></li>
-    <li><a href="#tcn-残差块">TCN 残差块</a></li>
-    <li><a href="#把网络搭起来">把网络搭起来</a></li>
-    <li><a href="#tcn-vs-rnn架构层面的对比">TCN vs RNN：架构层面的对比</a></li>
-    <li><a href="#pytorch-训练循环">PyTorch 训练循环</a></li>
-    <li><a href="#案例-1每小时交通流预测">案例 1：每小时交通流预测</a></li>
-    <li><a href="#案例-2多变量传感器预测">案例 2：多变量传感器预测</a></li>
-    <li><a href="#超参与设计-cheat-sheet">超参与设计 cheat sheet</a></li>
-    <li><a href="#常见坑和排查">常见坑和排查</a></li>
-    <li><a href="#什么时候不用-tcn">什么时候<strong>不</strong>用 TCN</a></li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#tcn-和-wavenet-是什么关系">TCN 和 WaveNet 是什么关系？</a></li>
-        <li><a href="#用-batchnorm-还是-weightnorm">用 BatchNorm 还是 WeightNorm？</a></li>
-        <li><a href="#需要像-transformer-那样加位置编码吗">需要像 Transformer 那样加位置编码吗？</a></li>
-        <li><a href="#直接多步预测还是递归多步">直接多步预测还是递归多步？</a></li>
-        <li><a href="#想要分位数预测怎么办">想要分位数预测怎么办？</a></li>
-      </ul>
-    </li>
-    <li><a href="#小结">小结</a></li>
-    <li><a href="#参考资料">参考资料</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">时间序列模型</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5900</strong></div>
-      <div class="row"><span>Published</span><strong>Nov 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>三个有意思的设计选择：</p><ul><li><strong>每块两个卷积</strong>。一个卷积太弱；两个让块本身有学非平凡映射的能力，又不至于让总深度膨胀。</li><li><strong>权重归一化</strong>。Bai 等人发现 batch norm 在长序列上会拖后腿（统计量随位置漂）。weight norm 把每个滤波器的方向和模长解耦，不去碰激活值，训练更稳。</li><li><strong>1x1 残差投影</strong>。当输入输出通道数相同时残差就是恒等；不同时用一个 1x1 卷积投影一下，代价几乎为零。</li></ul><p>PyTorch 实现：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>TCNResidualBlock</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>in_channels</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>out_channels</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>kernel_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>dilation</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>conv1</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>weight_norm</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Conv1d</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>in_channels</span><span class=p>,</span> <span class=n>out_channels</span><span class=p>,</span> <span class=n>kernel_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>padding</span><span class=o>=</span><span class=p>(</span><span class=n>kernel_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>dilation</span><span class=p>,</span> <span class=n>dilation</span><span class=o>=</span><span class=n>dilation</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>conv2</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>weight_norm</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Conv1d</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>out_channels</span><span class=p>,</span> <span class=n>out_channels</span><span class=p>,</span> <span class=n>kernel_size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>padding</span><span class=o>=</span><span class=p>(</span><span class=n>kernel_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>dilation</span><span class=p>,</span> <span class=n>dilation</span><span class=o>=</span><span class=n>dilation</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>padding</span> <span class=o>=</span> <span class=p>(</span><span class=n>kernel_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>dilation</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>conv1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>conv2</span> <span class=o>=</span> <span class=n>conv1</span><span class=p>,</span> <span class=n>conv2</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>relu</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>skip</span> <span class=o>=</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv1d</span><span class=p>(</span><span class=n>in_channels</span><span class=p>,</span> <span class=n>out_channels</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>in_channels</span> <span class=o>!=</span> <span class=n>out_channels</span> <span class=k>else</span> <span class=n>nn</span><span class=o>.</span><span class=n>Identity</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_init_weights</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_init_weights</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>layer</span> <span class=ow>in</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>conv1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>conv2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>normal_</span><span class=p>(</span><span class=n>layer</span><span class=o>.</span><span class=n>weight</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>,</span> <span class=mf>0.01</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_causal</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>conv</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=n>conv</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>y</span><span class=p>[:,</span> <span class=p>:,</span> <span class=p>:</span> <span class=o>-</span><span class=bp>self</span><span class=o>.</span><span class=n>padding</span><span class=p>]</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>padding</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>y</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_causal</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>conv1</span><span class=p>,</span> <span class=n>x</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_causal</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>conv2</span><span class=p>,</span> <span class=n>out</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=n>out</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>skip</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p>这个块简单到大家经常直接 inline，但拆成模块的好处是感受野算起来一目了然，必要时也能把 weight norm 换成 layer norm。</p><hr><h2 id=把网络搭起来>把网络搭起来</h2><p>完整的 TCN 就是按指数 dilation 叠的残差块，最后接一个 1x1 卷积投影到你想要的输出维度。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>TCN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>output_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>channels</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span> <span class=n>kernel_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.2</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>layers</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=n>prev</span> <span class=o>=</span> <span class=n>input_size</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>channels</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>layers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>TCNResidualBlock</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>prev</span><span class=p>,</span> <span class=n>c</span><span class=p>,</span> <span class=n>kernel_size</span><span class=p>,</span> <span class=n>dilation</span><span class=o>=</span><span class=mi>2</span> <span class=o>**</span> <span class=n>i</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=n>dropout</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>prev</span> <span class=o>=</span> <span class=n>c</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>network</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=o>*</span><span class=n>layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Conv1d</span><span class=p>(</span><span class=n>prev</span><span class=p>,</span> <span class=n>output_size</span><span class=p>,</span> <span class=n>kernel_size</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_channels</span> <span class=o>=</span> <span class=n>channels</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>_k</span> <span class=o>=</span> <span class=n>kernel_size</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>network</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@property</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>receptive_field</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mi>1</span> <span class=o>+</span> <span class=mi>2</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_k</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_channels</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>配置时几个建议：</p><ul><li><strong>通道数</strong>。多数论文用恒定宽度（比如 <code>[64] * 8</code>）。如果输出维度比输入大很多，可以让靠近 head 的几层加宽。</li><li><strong>核大小</strong>。$k = 3$ 是默认。$k = 5/7$ 把参数翻倍但精度提升很小；想要更大感受野，几乎永远是用 dilation 更划算。</li><li><strong>dropout</strong>。0.2 是安全默认；小数据集推到 0.3-0.5。</li></ul><hr><h2 id=tcn-vs-rnn架构层面的对比>TCN vs RNN：架构层面的对比</h2><p>下面这张信息流图比任何 benchmark 表都更直观地说明了速度差距：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig4_tcn_vs_rnn.png alt="RNN 顺序依赖 vs TCN 并行前向" loading=lazy decoding=async></figure></p><p>RNN 那一列里每条红色箭头都是硬性的顺序依赖。GPU 可以并行算一个 cell 内部的工作，但没法跳过 $t$ 直接开始 $t+1$。前向传播的墙钟时间因此随序列长度线性增长，硬件并行能力再强都救不了。</p><p>TCN 那一列里每个输出节点只是固定输入集合的函数。同一个卷积核滑遍全长，整层就是一次大矩阵乘法，GPU 一次 kernel launch 就完事。</p><p>具体到单卡的每 epoch 墙钟：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/time-series/06-%E6%97%B6%E5%BA%8F%E5%8D%B7%E7%A7%AF%E7%BD%91%E7%BB%9CTCN/fig5_parallel_training.png alt="训练时间和 TCN 相对 LSTM 的加速比" loading=lazy decoding=async></figure></p><p>两个要点：</p><ol><li><strong>训练时间的扩展性才是关键</strong>。$L = 128$ 时四种架构差别不大；到了 $L = 1024$，TCN 比 LSTM 快 3-4 倍，比朴素 Transformer（attention 是 $L^2$）快约 6 倍。这正是大多数实际预测问题所处的区间。</li><li><strong>推理基本持平</strong>。推理时 RNN 和 TCN 通常在 1.5 倍以内，差距只是训练时的事。如果你只关心单样本延迟，两者都可以。</li></ol><p>什么时候用什么？给一个朴素的决策表：</p><table><thead><tr><th>场景</th><th>推荐</th><th>理由</th></tr></thead><tbody><tr><td>固定窗口、有 GPU</td><td>TCN</td><td>训练并行，感受野可预测</td></tr><tr><td>序列长度变化大、padding 不可接受</td><td>LSTM/GRU</td><td>原生支持，没有 padding 浪费</td></tr><tr><td>流式 / 在线推理，逐步进数据</td><td>LSTM/GRU</td><td>隐状态就是天然的状态</td></tr><tr><td>多变量、跨特征交互值得用 attention</td><td>Transformer / Informer</td><td>attention 显式建模两两关系</td></tr><tr><td>不确定</td><td>先试 TCN</td><td>训练快、超参少</td></tr></tbody></table><hr><h2 id=pytorch-训练循环>PyTorch 训练循环</h2><p>上面那两个类是核心，训练循环很普通：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.optim</span> <span class=k>as</span> <span class=nn>optim</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.utils.data</span> <span class=kn>import</span> <span class=n>DataLoader</span><span class=p>,</span> <span class=n>TensorDataset</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_tcn</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>              <span class=n>num_epochs</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span> <span class=o>=</span> <span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>,</span> <span class=n>weight_decay</span><span class=o>=</span><span class=mf>1e-5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sched</span> <span class=o>=</span> <span class=n>optim</span><span class=o>.</span><span class=n>lr_scheduler</span><span class=o>.</span><span class=n>ReduceLROnPlateau</span><span class=p>(</span><span class=n>opt</span><span class=p>,</span> <span class=n>mode</span><span class=o>=</span><span class=s2>&#34;min&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                                 <span class=n>factor</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>patience</span><span class=o>=</span><span class=mi>5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>crit</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>MSELoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>num_epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>train_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>xb</span><span class=p>,</span> <span class=n>yb</span> <span class=ow>in</span> <span class=n>train_loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>xb</span><span class=p>,</span> <span class=n>yb</span> <span class=o>=</span> <span class=n>xb</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>yb</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>crit</span><span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>xb</span><span class=p>),</span> <span class=n>yb</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>train_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>*</span> <span class=n>xb</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>train_loss</span> <span class=o>/=</span> <span class=nb>len</span><span class=p>(</span><span class=n>train_loader</span><span class=o>.</span><span class=n>dataset</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>xb</span><span class=p>,</span> <span class=n>yb</span> <span class=ow>in</span> <span class=n>val_loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>xb</span><span class=p>,</span> <span class=n>yb</span> <span class=o>=</span> <span class=n>xb</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>yb</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>val_loss</span> <span class=o>+=</span> <span class=n>crit</span><span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>xb</span><span class=p>),</span> <span class=n>yb</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>*</span> <span class=n>xb</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>val_loss</span> <span class=o>/=</span> <span class=nb>len</span><span class=p>(</span><span class=n>val_loader</span><span class=o>.</span><span class=n>dataset</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>sched</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>val_loss</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>val_loss</span> <span class=o>&lt;</span> <span class=n>best</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>best</span> <span class=o>=</span> <span class=n>val_loss</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=s2>&#34;tcn_best.pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>10</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;epoch </span><span class=si>{</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>: train </span><span class=si>{</span><span class=n>train_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2> val </span><span class=si>{</span><span class=n>val_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>两个点：梯度裁剪对 TCN <strong>不是必须的</strong>（残差 + weight norm 已经把梯度管得很好），但加上不亏。<code>ReduceLROnPlateau</code> 比固定 schedule 鲁棒，因为合适的学习率取决于数据集和感受野。</p><p>构造单变量窗口的小帮手：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>make_windows</span><span class=p>(</span><span class=n>series</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>history</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>horizon</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;单变量序列 -&gt; (X, y) 张量，用于直接多步预测。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>series</span><span class=p>)</span> <span class=o>-</span> <span class=n>history</span> <span class=o>-</span> <span class=n>horizon</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>series</span><span class=p>[</span><span class=n>i</span> <span class=p>:</span> <span class=n>i</span> <span class=o>+</span> <span class=n>history</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>series</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=n>history</span> <span class=p>:</span> <span class=n>i</span> <span class=o>+</span> <span class=n>history</span> <span class=o>+</span> <span class=n>horizon</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>from_numpy</span><span class=p>(</span><span class=n>X</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># (N, 1, history)</span>
+</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>from_numpy</span><span class=p>(</span><span class=n>y</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># (N, 1, horizon)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=案例-1每小时交通流预测>案例 1：每小时交通流预测</h2><p><strong>任务</strong>：给定单个高速公路传感器过去一周（168 小时）的车流量，预测未来 24 小时。单变量、强日季节性 + 周季节性，偶尔有事件性尖峰。</p><p><strong>感受野预算</strong>：希望输出端能看到至少一周的历史。$k = 3$、$L = 7$ 时 $\text{RF} = 1 + 2 \cdot 2 \cdot 127 = 509$，宽裕。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>synthetic_traffic</span><span class=p>(</span><span class=n>n</span><span class=o>=</span><span class=mi>4000</span><span class=p>,</span> <span class=n>seed</span><span class=o>=</span><span class=mi>0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>rng</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>daily</span> <span class=o>=</span> <span class=mi>1000</span> <span class=o>+</span> <span class=mi>500</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t</span> <span class=o>/</span> <span class=mi>24</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>weekly</span> <span class=o>=</span> <span class=mi>200</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t</span> <span class=o>/</span> <span class=p>(</span><span class=mi>24</span> <span class=o>*</span> <span class=mi>7</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>trend</span> <span class=o>=</span> <span class=mf>0.05</span> <span class=o>*</span> <span class=n>t</span>
+</span></span><span class=line><span class=cl>    <span class=n>noise</span> <span class=o>=</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>50</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>daily</span> <span class=o>+</span> <span class=n>weekly</span> <span class=o>+</span> <span class=n>trend</span> <span class=o>+</span> <span class=n>noise</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.preprocessing</span> <span class=kn>import</span> <span class=n>StandardScaler</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>raw</span> <span class=o>=</span> <span class=n>synthetic_traffic</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>scaler</span> <span class=o>=</span> <span class=n>StandardScaler</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>series</span> <span class=o>=</span> <span class=n>scaler</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>raw</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span><span class=o>.</span><span class=n>flatten</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>X</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>make_windows</span><span class=p>(</span><span class=n>series</span><span class=p>,</span> <span class=n>history</span><span class=o>=</span><span class=mi>168</span><span class=p>,</span> <span class=n>horizon</span><span class=o>=</span><span class=mi>24</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>split</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.8</span> <span class=o>*</span> <span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>train_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>TensorDataset</span><span class=p>(</span><span class=n>X</span><span class=p>[:</span><span class=n>split</span><span class=p>],</span> <span class=n>y</span><span class=p>[:</span><span class=n>split</span><span class=p>]),</span>
+</span></span><span class=line><span class=cl>                          <span class=n>batch_size</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span> <span class=n>shuffle</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>val_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>TensorDataset</span><span class=p>(</span><span class=n>X</span><span class=p>[</span><span class=n>split</span><span class=p>:],</span> <span class=n>y</span><span class=p>[</span><span class=n>split</span><span class=p>:]),</span>
+</span></span><span class=line><span class=cl>                        <span class=n>batch_size</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>TCN</span><span class=p>(</span><span class=n>input_size</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>output_size</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>channels</span><span class=o>=</span><span class=p>[</span><span class=mi>64</span><span class=p>]</span> <span class=o>*</span> <span class=mi>7</span><span class=p>,</span> <span class=n>kernel_size</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;感受野：&#34;</span><span class=p>,</span> <span class=n>model</span><span class=o>.</span><span class=n>receptive_field</span><span class=p>)</span>  <span class=c1># 509</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>train_tcn</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span> <span class=n>num_epochs</span><span class=o>=</span><span class=mi>80</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>output_size=1</code> 意味着模型输出一通道的序列。直接多步预测里你通常想让网络一次把整个 horizon 输出来。两种做法：</p><ol><li><strong>序列到序列 head</strong>：保留 <code>output_size=1</code>，取输出序列的最后 $H$ 步。简单，但 horizon 和历史长度耦合。</li><li><strong>flatten + 线性 head</strong>：把最后的 <code>nn.Conv1d(C, 1, 1)</code> 换成 <code>nn.Linear(C * history, horizon)</code>，模型直接输出 $H$ 维向量。更灵活。</li></ol><p>两种都能用，做法 1 参数更少，本案例就用这个。</p><p><strong>预期表现</strong>：合成数据上模型训 30 epoch 之后能把日内峰值打到 ~10% MAPE 以内。真实 Caltrans 风格数据上没什么特别调参，MAPE 落在 8-15% 是合理区间，比朴素季节基线明显好。</p><hr><h2 id=案例-2多变量传感器预测>案例 2：多变量传感器预测</h2><p><strong>任务</strong>：四个相关 IoT 传感器（温度、湿度、气压、光照），5 分钟采样。给定过去 6 小时（72 步）预测未来 1 小时（12 步）的温度。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>synthetic_sensors</span><span class=p>(</span><span class=n>n</span><span class=o>=</span><span class=mi>5000</span><span class=p>,</span> <span class=n>seed</span><span class=o>=</span><span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>rng</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>t</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>temp</span> <span class=o>=</span> <span class=mi>20</span> <span class=o>+</span> <span class=mi>5</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t</span> <span class=o>/</span> <span class=mi>288</span><span class=p>)</span> <span class=o>+</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mf>0.5</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>hum</span> <span class=o>=</span> <span class=mi>60</span> <span class=o>-</span> <span class=mf>0.8</span> <span class=o>*</span> <span class=p>(</span><span class=n>temp</span> <span class=o>-</span> <span class=mi>20</span><span class=p>)</span> <span class=o>+</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>pres</span> <span class=o>=</span> <span class=mi>1013</span> <span class=o>+</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t</span> <span class=o>/</span> <span class=mi>1000</span><span class=p>)</span> <span class=o>+</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mf>0.3</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>light</span> <span class=o>=</span> <span class=mi>100</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>maximum</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=n>t</span> <span class=o>/</span> <span class=mi>288</span><span class=p>))</span> <span class=o>+</span> <span class=n>rng</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>column_stack</span><span class=p>([</span><span class=n>temp</span><span class=p>,</span> <span class=n>hum</span><span class=p>,</span> <span class=n>pres</span><span class=p>,</span> <span class=n>light</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>sensors</span> <span class=o>=</span> <span class=n>synthetic_sensors</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>scaler</span> <span class=o>=</span> <span class=n>StandardScaler</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>sensors_s</span> <span class=o>=</span> <span class=n>scaler</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>sensors</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>make_multivariate_windows</span><span class=p>(</span><span class=n>arr</span><span class=p>,</span> <span class=n>target_idx</span><span class=p>,</span> <span class=n>history</span><span class=p>,</span> <span class=n>horizon</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>n</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>arr</span><span class=p>)</span> <span class=o>-</span> <span class=n>history</span> <span class=o>-</span> <span class=n>horizon</span> <span class=o>+</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>arr</span><span class=p>[</span><span class=n>i</span> <span class=p>:</span> <span class=n>i</span> <span class=o>+</span> <span class=n>history</span><span class=p>]</span><span class=o>.</span><span class=n>T</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>  <span class=c1># (N, F, T)</span>
+</span></span><span class=line><span class=cl>    <span class=n>y</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>([</span><span class=n>arr</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=n>history</span> <span class=p>:</span> <span class=n>i</span> <span class=o>+</span> <span class=n>history</span> <span class=o>+</span> <span class=n>horizon</span><span class=p>,</span> <span class=n>target_idx</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                  <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>from_numpy</span><span class=p>(</span><span class=n>X</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>(),</span> <span class=n>torch</span><span class=o>.</span><span class=n>from_numpy</span><span class=p>(</span><span class=n>y</span><span class=p>)</span><span class=o>.</span><span class=n>float</span><span class=p>()</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Xm</span><span class=p>,</span> <span class=n>ym</span> <span class=o>=</span> <span class=n>make_multivariate_windows</span><span class=p>(</span><span class=n>sensors_s</span><span class=p>,</span> <span class=n>target_idx</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                                   <span class=n>history</span><span class=o>=</span><span class=mi>72</span><span class=p>,</span> <span class=n>horizon</span><span class=o>=</span><span class=mi>12</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># ... 构造 loader ...</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>TCN</span><span class=p>(</span><span class=n>input_size</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span> <span class=n>output_size</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>channels</span><span class=o>=</span><span class=p>[</span><span class=mi>64</span><span class=p>,</span> <span class=mi>64</span><span class=p>,</span> <span class=mi>128</span><span class=p>,</span> <span class=mi>128</span><span class=p>,</span> <span class=mi>128</span><span class=p>],</span> <span class=n>kernel_size</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;感受野：&#34;</span><span class=p>,</span> <span class=n>model</span><span class=o>.</span><span class=n>receptive_field</span><span class=p>)</span>  <span class=c1># 253</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>为什么多变量"自然就好用"</strong>：第一层卷积在每个时间步上就跨越所有 4 个输入通道做加权，跨特征交互天然内嵌。不需要额外的融合模块。</p><p><strong>简易特征重要性</strong>：把每个通道置零，看验证 MAE 上升多少：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>feature_ablation</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>X_val</span><span class=p>,</span> <span class=n>y_val</span><span class=p>,</span> <span class=n>names</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>base</span> <span class=o>=</span> <span class=p>((</span><span class=n>model</span><span class=p>(</span><span class=n>X_val</span><span class=p>)</span> <span class=o>-</span> <span class=n>y_val</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>out</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>name</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>names</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>Xz</span> <span class=o>=</span> <span class=n>X_val</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>Xz</span><span class=p>[:,</span> <span class=n>i</span><span class=p>,</span> <span class=p>:]</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>[</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=p>((</span><span class=n>model</span><span class=p>(</span><span class=n>Xz</span><span class=p>)</span> <span class=o>-</span> <span class=n>y_val</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>-</span> <span class=n>base</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>feature_ablation</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>Xm</span><span class=p>[:</span><span class=mi>200</span><span class=p>],</span> <span class=n>ym</span><span class=p>[:</span><span class=mi>200</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                       <span class=p>[</span><span class=s2>&#34;temp&#34;</span><span class=p>,</span> <span class=s2>&#34;hum&#34;</span><span class=p>,</span> <span class=s2>&#34;pres&#34;</span><span class=p>,</span> <span class=s2>&#34;light&#34;</span><span class=p>]))</span>
+</span></span></code></pre></td></tr></table></div></div><p>合成数据上湿度会主导（按构造它就和温度强相关）。真实传感器数据上图景更复杂，但作为 sanity check 还是有价值的。</p><hr><h2 id=超参与设计-cheat-sheet>超参与设计 cheat sheet</h2><p>按"问题特征 -> 默认值"列：</p><table><thead><tr><th>超参</th><th>默认</th><th>何时改</th></tr></thead><tbody><tr><td>核大小 $k$</td><td>3</td><td>几乎不动。要扩感受野就用 dilation。</td></tr><tr><td>dilation 序列</td><td>$2^i$</td><td>几乎不动。2 的幂就是答案。</td></tr><tr><td>通道数</td><td>恒定 32-128</td><td>欠拟合就加宽，过拟合就缩窄。</td></tr><tr><td>层数 $L$</td><td>满足 $\text{RF}(L) \geq$ 上下文的最小值</td><td>用公式算，别多叠。</td></tr><tr><td>dropout</td><td>0.2</td><td>小数据 0.3-0.5；大数据 0.1。</td></tr><tr><td>归一化</td><td>weight norm</td><td>batch 极小时 layer norm；避免 batch norm。</td></tr><tr><td>优化器</td><td>Adam，lr 1e-3</td><td>大数据上 SGD + momentum 偶尔更优。</td></tr><tr><td>LR 调度</td><td><code>ReduceLROnPlateau</code>，factor 0.5</td><td>长训练换 cosine annealing。</td></tr><tr><td>梯度裁剪</td><td>1.0</td><td>留着，便宜的保险。</td></tr></tbody></table><hr><h2 id=常见坑和排查>常见坑和排查</h2><ul><li><strong>输出整体右移</strong>：忘了切右侧 padding。检查 <code>y[:, :, : -self.padding]</code>。</li><li><strong>训练降但验证不降</strong>：感受野小于数据中的主导周期。重新算 <code>required_layers</code>。</li><li><strong>loss 很早就走平</strong>：通道太窄或学习率太低。试着把通道翻倍或把 lr 调到 <code>3e-3</code>。</li><li><strong>验证 loss 突然爆炸</strong>：八成是 batch norm + 小 batch，或者小数据没加 dropout。换 weight norm，dropout 调到 0.3。</li><li><strong>预测无视近期值</strong>：网络完全靠长程结构。少叠几层，或者从输入到输出加一条 1 步 skip。</li></ul><hr><h2 id=什么时候不用-tcn>什么时候<strong>不</strong>用 TCN</h2><p>TCN 不是万能：</p><ul><li><strong>序列长度差异大且不能 padding</strong> → 用 LSTM/GRU。</li><li><strong>需要真正流式推理</strong>（一次进一个新点，微秒级响应）→ 因果 CNN 也能做流式，但比直接跑一个 LSTM cell 麻烦。</li><li><strong>目标比窗口长得多</strong>（比如要 50k 上下文的 100k 步生理信号）→ 用 N-BEATS-X、Informer 这类层级化模型。</li><li><strong>需要 attention 风格的可解释性</strong> → TCN 的滤波器能可视化但意思偏局部，attention map 直观得多。</li></ul><p>除上面这些情况，TCN 几乎永远是值得先试的"无聊但快"的方案。</p><hr><h2 id=qa>Q&amp;A</h2><h3 id=tcn-和-wavenet-是什么关系>TCN 和 WaveNet 是什么关系？</h3><p>WaveNet（2016）本质上是一个 TCN，激活换成了门控的 $\tanh(W_f x) \odot \sigma(W_g x)$，并且为音频生成加了更复杂的条件机制。TCN 把这些去掉，留下 ReLU + 残差，作为通用序列模型。</p><h3 id=用-batchnorm-还是-weightnorm>用 BatchNorm 还是 WeightNorm？</h3><p>WeightNorm。BatchNorm 的 running statistics 在长序列上漂得厉害；WeightNorm 直接绕开这个问题。LayerNorm 也行，但 1D 卷积的张量布局要 transpose 一下。</p><h3 id=需要像-transformer-那样加位置编码吗>需要像 Transformer 那样加位置编码吗？</h3><p>不需要。卷积本身就是位置等变的，位置信息隐含在感受野结构里。</p><h3 id=直接多步预测还是递归多步>直接多步预测还是递归多步？</h3><p>直接预测（一次输出整个 horizon）更准，因为误差不会累积，但参数多一点而且训练时就锁定了 horizon。递归（预测一步、喂回去、再预测）更灵活但会累积误差。默认选直接。</p><h3 id=想要分位数预测怎么办>想要分位数预测怎么办？</h3><p>把 L2 损失换成多个分位的 pinball loss，head 输出每个分位一通道。TCN 主体不变。</p><hr><h2 id=小结>小结</h2><p>TCN 把序列建模的核心收敛到一句话：因果膨胀卷积加残差连接就能给你长记忆、并行训练、稳定梯度，整套递归机制都不需要。数学只有 $\text{RF}(L) = 1 + (k-1)(2^L - 1)$ 这一条值得记，PyTorch 实现 60 行能写完，在大多数固定窗口的 benchmark 上对调过参的 LSTM 至少打平。</p><p>把它当你做预测任务的第一基线。被更复杂的模型干掉，说明那些复杂度真的赚到了；它赢——经常会赢——你就送出了一个又快又简单的模型。</p><p>下一章我们离开卷积，进入 <strong>N-BEATS</strong>：连卷积和递归都不要，只用全连接块加基函数展开，就拿了 M4 预测竞赛冠军，而且保持可解释。</p><hr><h2 id=参考资料>参考资料</h2><ul><li>Bai, S., Kolter, J. Z., & Koltun, V. (2018). <em>An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling.</em> arXiv:1803.01271.</li><li>van den Oord, A. et al. (2016). <em>WaveNet: A Generative Model for Raw Audio.</em> arXiv:1609.03499.</li><li>Lea, C. et al. (2017). <em>Temporal Convolutional Networks for Action Segmentation and Detection.</em> CVPR.</li><li>Salimans, T., & Kingma, D. P. (2016). <em>Weight Normalization.</em> NeurIPS.</li></ul><hr><p><strong>系列导航</strong></p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#这一篇你会学到>这一篇你会学到</a></li><li><a href=#当年用-lstm-的疼点>当年用 LSTM 的疼点</a></li><li><a href=#一维卷积但要是因果的>一维卷积：但要是"因果的&rdquo;</a></li><li><a href=#膨胀用线性深度换指数感受野>膨胀：用线性深度换指数感受野</a></li><li><a href=#tcn-残差块>TCN 残差块</a></li><li><a href=#把网络搭起来>把网络搭起来</a></li><li><a href=#tcn-vs-rnn架构层面的对比>TCN vs RNN：架构层面的对比</a></li><li><a href=#pytorch-训练循环>PyTorch 训练循环</a></li><li><a href=#案例-1每小时交通流预测>案例 1：每小时交通流预测</a></li><li><a href=#案例-2多变量传感器预测>案例 2：多变量传感器预测</a></li><li><a href=#超参与设计-cheat-sheet>超参与设计 cheat sheet</a></li><li><a href=#常见坑和排查>常见坑和排查</a></li><li><a href=#什么时候不用-tcn>什么时候<strong>不</strong>用 TCN</a></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#tcn-和-wavenet-是什么关系>TCN 和 WaveNet 是什么关系？</a></li><li><a href=#用-batchnorm-还是-weightnorm>用 BatchNorm 还是 WeightNorm？</a></li><li><a href=#需要像-transformer-那样加位置编码吗>需要像 Transformer 那样加位置编码吗？</a></li><li><a href=#直接多步预测还是递归多步>直接多步预测还是递归多步？</a></li><li><a href=#想要分位数预测怎么办>想要分位数预测怎么办？</a></li></ul></li><li><a href=#小结>小结</a></li><li><a href=#参考资料>参考资料</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>12 min</strong></div><div class=row><span>Word count</span><strong>5862</strong></div><div class=row><span>Published</span><strong>Nov 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

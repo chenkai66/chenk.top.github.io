@@ -1,609 +1,98 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>迁移学习（十一）：跨语言迁移 · Chen Kai Blog</title>
-<meta name="description" content="从双语词向量对齐讲到 mBERT/XLM-R 多语言预训练，系统拆解零样本迁移、translate-train、translate-test 的取舍，分析迁移差距的来源（语系、文字、资源量），并给出 pivot 策略与可落地的工程建议。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="迁移学习（十一）：跨语言迁移">
-<meta property="og:description" content="从双语词向量对齐讲到 mBERT/XLM-R 多语言预训练，系统拆解零样本迁移、translate-train、translate-test 的取舍，分析迁移差距的来源（语系、文字、资源量），并给出 pivot 策略与可落地的工程建议。">
-<meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">迁移学习</a>
-         · Chapter 11
-      </div>
-      <h1>迁移学习（十一）：跨语言迁移</h1>
-      <p class="deck">从双语词向量对齐讲到 mBERT/XLM-R 多语言预训练，系统拆解零样本迁移、translate-train、translate-test 的取舍，分析迁移差距的来源（语系、文字、资源量），并给出 pivot 策略与可落地的工程建议。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-06-30">June 30, 2025</time> · 11 min read · 5200 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/xlm-r/" class="tag">#XLM-R</a><a href="/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/" class="tag">#迁移学习</a><a href="/zh/tags/mbert/" class="tag">#mBERT</a><a href="/zh/tags/%E5%A4%9A%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/" class="tag">#多语言模型</a><a href="/zh/tags/%E8%B7%A8%E8%AF%AD%E8%A8%80/" class="tag">#跨语言</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>英语有数据，但世界上有 7000 多种语言。<strong>跨语言迁移</strong>做的事情，就是让一个只在英文 IMDB 上训练过的情感分类器去看西班牙语推特，让一个在 SQuAD 上微调过的问答模型回答印地语问题，让一个从未见过任何斯瓦希里语标注的模型也能在斯瓦希里语命名实体识别上拿到能用的分数。</p>
-<p>这件事为什么可能？这一篇从最早期的双语词向量对齐讲起，推到让平行语料变成可选项的多语言预训练（mBERT、XLM-R），最后落到工程上最常见的三个问题：零样本、translate-train、translate-test 该怎么选？哪些语言对会出问题？低资源语言要怎么救？</p>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>共享语义空间假设的几何含义，以及把它落到代码里的 Procrustes 对齐</li>
-<li>mBERT 在没有平行语料的情况下为什么也能跨语言，子词词表在这里到底贡献了什么</li>
-<li>XLM-R 相比 mBERT 改了三件事（数据、采样、规模），每一件分别解决了什么</li>
-<li>translate-train / translate-test / 零样本三种策略的取舍，什么时候用哪一种</li>
-<li>没有直接标注的小语种对该怎么做 pivot</li>
-<li>迁移差距来自哪里——文字系统、语系、语料规模——以及对应的缓解手段</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>BERT 预训练（MLM、<code>[CLS]</code> 池化），见第 2 篇</li>
-<li>迁移学习基础，第 1-6 篇</li>
-<li>词向量：稠密向量、余弦相似度</li>
-</ul>
-<hr>
-<h2 id="问题定义">问题定义</h2>
-<p>设 $\ell_s$ 是有大量标注数据的<strong>源语言</strong>，对应数据集 $\mathcal{D}_s = \{(x_i^{(s)}, y_i)\}$；$\ell_t$ 是没有任何标注的<strong>目标语言</strong>。经典的零样本跨语言目标是：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>迁移学习（十一）：跨语言迁移 · Chen Kai Blog</title>
+<meta name=description content="从双语词向量对齐讲到 mBERT/XLM-R 多语言预训练，系统拆解零样本迁移、translate-train、translate-test 的取舍，分析迁移差距的来源（语系、文字、资源量），并给出 pivot 策略与可落地的工程建议。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/><meta property="og:type" content="article"><meta property="og:title" content="迁移学习（十一）：跨语言迁移"><meta property="og:description" content="从双语词向量对齐讲到 mBERT/XLM-R 多语言预训练，系统拆解零样本迁移、translate-train、translate-test 的取舍，分析迁移差距的来源（语系、文字、资源量），并给出 pivot 策略与可落地的工程建议。"><meta property="og:url" content="https://www.chenk.top/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>迁移学习</a>
+· Chapter 11</div><h1>迁移学习（十一）：跨语言迁移</h1><p class=deck>从双语词向量对齐讲到 mBERT/XLM-R 多语言预训练，系统拆解零样本迁移、translate-train、translate-test 的取舍，分析迁移差距的来源（语系、文字、资源量），并给出 pivot 策略与可落地的工程建议。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-06-30>June 30, 2025</time> · 11 min read · 5113 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/xlm-r/ class=tag>#XLM-R</a><a href=/zh/tags/%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0/ class=tag>#迁移学习</a><a href=/zh/tags/mbert/ class=tag>#mBERT</a><a href=/zh/tags/%E5%A4%9A%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/ class=tag>#多语言模型</a><a href=/zh/tags/%E8%B7%A8%E8%AF%AD%E8%A8%80/ class=tag>#跨语言</a></div></div></header><div class=prose><p>英语有数据，但世界上有 7000 多种语言。<strong>跨语言迁移</strong>做的事情，就是让一个只在英文 IMDB 上训练过的情感分类器去看西班牙语推特，让一个在 SQuAD 上微调过的问答模型回答印地语问题，让一个从未见过任何斯瓦希里语标注的模型也能在斯瓦希里语命名实体识别上拿到能用的分数。</p><p>这件事为什么可能？这一篇从最早期的双语词向量对齐讲起，推到让平行语料变成可选项的多语言预训练（mBERT、XLM-R），最后落到工程上最常见的三个问题：零样本、translate-train、translate-test 该怎么选？哪些语言对会出问题？低资源语言要怎么救？</p><h2 id=你将学到什么>你将学到什么</h2><ul><li>共享语义空间假设的几何含义，以及把它落到代码里的 Procrustes 对齐</li><li>mBERT 在没有平行语料的情况下为什么也能跨语言，子词词表在这里到底贡献了什么</li><li>XLM-R 相比 mBERT 改了三件事（数据、采样、规模），每一件分别解决了什么</li><li>translate-train / translate-test / 零样本三种策略的取舍，什么时候用哪一种</li><li>没有直接标注的小语种对该怎么做 pivot</li><li>迁移差距来自哪里——文字系统、语系、语料规模——以及对应的缓解手段</li></ul><h2 id=前置知识>前置知识</h2><ul><li>BERT 预训练（MLM、<code>[CLS]</code> 池化），见第 2 篇</li><li>迁移学习基础，第 1-6 篇</li><li>词向量：稠密向量、余弦相似度</li></ul><hr><h2 id=问题定义>问题定义</h2><p>设 $\ell_s$ 是有大量标注数据的<strong>源语言</strong>，对应数据集 $\mathcal{D}_s = \{(x_i^{(s)}, y_i)\}$；$\ell_t$ 是没有任何标注的<strong>目标语言</strong>。经典的零样本跨语言目标是：</p>$$
 \theta^* = \arg\min_\theta \mathbb{E}_{(x,y)\sim \mathcal{D}_s}\,\mathcal{L}\!\left(f_\theta(x), y\right),
 \qquad \text{然后在 } \mathcal{D}_t \text{ 上评估。}
-$$<p>报告时最关键的指标是<strong>迁移差距（transfer gap）</strong>：</p>
-$$
+$$<p>报告时最关键的指标是<strong>迁移差距（transfer gap）</strong>：</p>$$
 \Delta(\ell_s \to \ell_t) = \operatorname{Acc}(\ell_s) - \operatorname{Acc}(\ell_t).
-$$<p>如果表示真的语言无关，$\Delta = 0$。现实里 $\Delta$ 从英语到德语的几个点，到英语到斯瓦希里语的二十几个点不等——这一篇剩下的内容基本都在解释这个差距来自哪里、以及怎么办。</p>
-<hr>
-<h2 id="共享语义空间">共享语义空间</h2>
-<p>跨语言迁移的核心假设说起来简单，但当年并不容易证明：</p>
-<blockquote>
-<p>不同语言只是表层符号不同，背后的概念是相通的；用一个合适的编码器 $f_\theta$，语义等价的输入会落在 $\mathbb{R}^d$ 中相近的位置。</p>
-</blockquote>
-<p>形式化一点：对于语义等价的两句话 $s^{(\ell_1)}$ 和 $s^{(\ell_2)}$，</p>
-$$
+$$<p>如果表示真的语言无关，$\Delta = 0$。现实里 $\Delta$ 从英语到德语的几个点，到英语到斯瓦希里语的二十几个点不等——这一篇剩下的内容基本都在解释这个差距来自哪里、以及怎么办。</p><hr><h2 id=共享语义空间>共享语义空间</h2><p>跨语言迁移的核心假设说起来简单，但当年并不容易证明：</p><blockquote><p>不同语言只是表层符号不同，背后的概念是相通的；用一个合适的编码器 $f_\theta$，语义等价的输入会落在 $\mathbb{R}^d$ 中相近的位置。</p></blockquote><p>形式化一点：对于语义等价的两句话 $s^{(\ell_1)}$ 和 $s^{(\ell_2)}$，</p>$$
 \bigl\| f_\theta\!\left(s^{(\ell_1)}\right) - f_\theta\!\left(s^{(\ell_2)}\right) \bigr\| \approx 0.
-$$<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig1_embedding_space.png" alt="多语言表示空间" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图就是这件事的卡通版：每一个圆代表一个概念，圆里的三个点是同一个意思在三种语言下的向量。如果你的编码器真能做到这样，那么用英文点训练出来的分类头，自然也会在中文点和法文点上激活——你压根没翻译过。</p>
-<h3 id="双语词向量对齐">双语词向量对齐</h3>
-<p>在多语言 Transformer 出现之前，这个假设是在<strong>静态词向量</strong>上验证的。在英文上训一遍 word2vec，在法文上再训一遍，得到两个互不相干的嵌入矩阵 $\mathbf{X}_s, \mathbf{X}_t \in \mathbb{R}^{n \times d}$（行用一份小的双语词典对齐）。问题是：存不存在一个线性映射，把一边整个搬到另一边？</p>
-<p>答案是存在，并且这个映射应该是<strong>正交</strong>的——旋转和反射保持内积，正好保留 word2vec 学到的几何关系。这就是 <strong>Orthogonal Procrustes</strong>：</p>
-$$
+$$<p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig1_embedding_space.png alt=多语言表示空间 loading=lazy decoding=async></figure></p><p>上图就是这件事的卡通版：每一个圆代表一个概念，圆里的三个点是同一个意思在三种语言下的向量。如果你的编码器真能做到这样，那么用英文点训练出来的分类头，自然也会在中文点和法文点上激活——你压根没翻译过。</p><h3 id=双语词向量对齐>双语词向量对齐</h3><p>在多语言 Transformer 出现之前，这个假设是在<strong>静态词向量</strong>上验证的。在英文上训一遍 word2vec，在法文上再训一遍，得到两个互不相干的嵌入矩阵 $\mathbf{X}_s, \mathbf{X}_t \in \mathbb{R}^{n \times d}$（行用一份小的双语词典对齐）。问题是：存不存在一个线性映射，把一边整个搬到另一边？</p><p>答案是存在，并且这个映射应该是<strong>正交</strong>的——旋转和反射保持内积，正好保留 word2vec 学到的几何关系。这就是 <strong>Orthogonal Procrustes</strong>：</p>$$
 \mathbf{W}^* = \arg\min_{\mathbf{W}} \bigl\|\mathbf{X}_s\mathbf{W} - \mathbf{X}_t\bigr\|_F^2
 \quad\text{s.t.}\quad \mathbf{W}^\top \mathbf{W} = \mathbf{I}.
-$$<p>它有闭式解。对 $\mathbf{X}_t^\top \mathbf{X}_s$ 做 SVD 得到 $\mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top$，则 $\mathbf{W}^* = \mathbf{V}\mathbf{U}^\top$。Conneau 等人（2018）后来证明这一步连双语词典都可以扔掉，用对抗训练就能恢复出 $\mathbf{W}$，这才有了完全无监督的双语词典抽取。</p>
-<p>为什么先讲这个？因为<strong>多语言 Transformer 本质上是在更高维的空间里、端到端地、隐式地完成同样的对齐</strong>。</p>
-<hr>
-<h2 id="多语言预训练">多语言预训练</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig2_xlmr_architecture.png" alt="mBERT 与 XLM-R 对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="mbert先把它跑通的基线">mBERT：先把它跑通的基线</h3>
-<p>Devlin 团队的原始配方很朴素：拿 BERT-base，把 104 种语言的维基百科拼起来，用一份共享的 110K WordPiece 词表，只跑 MLM 目标，<strong>没有平行语料，没有语言 ID</strong>。</p>
-<p>让人意外的是，这样竟然就 work 了。Pires 等（2019）和 Wu &amp; Dredze（2020）把原因归结为三股力量：</p>
-<ol>
-<li><strong>锚点 token。</strong> 数字、标点、人名地名、英文借词（<code>COVID</code>、<code>OK</code>、<code>Internet</code>）在多种语言里长得一模一样。同一个 token 出现在很多种语言的上下文里，它的嵌入会被推向一个语言无关的中心。</li>
-<li><strong>子词重叠。</strong> WordPiece 会把同源词切成相同的片段。<code>international</code>（英）和 <code>internationale</code>（法）共享 <code>inter</code> + <code>national</code>。两种语言只要共享几千个子词，它们的嵌入就会被间接拉到同一个子空间里。</li>
-<li><strong>深层参数共享。</strong> 12 层 Transformer 在 104 种语言之间完全共享。从压缩的角度看，&ldquo;在多种语言里复用同一套电路&quot;是模型最省 bit 的策略，所以它就这么做了。</li>
-</ol>
-<p>最反直觉的实验：<strong>把锚点 token 全部去掉，跨语言 NER 只掉了大约 5 个点</strong>。真正起决定作用的反而是子词重叠。</p>
-<h3 id="xlm-r堆数据改采样加规模">XLM-R：堆数据、改采样、加规模</h3>
-<p>Conneau 等（2020）问了一个直接的问题：那些精巧设计扔掉，纯粹堆规模会怎样？XLM-R 相对 mBERT 改了三件事：</p>
-<table>
-  <thead>
-      <tr>
-          <th>维度</th>
-          <th>mBERT</th>
-          <th>XLM-R</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>语料</td>
-          <td>Wikipedia（约 13 GB）</td>
-          <td>CommonCrawl（2.5 TB，约 200 倍）</td>
-      </tr>
-      <tr>
-          <td>词表</td>
-          <td>WordPiece，110K</td>
-          <td>SentencePiece，250K</td>
-      </tr>
-      <tr>
-          <td>采样</td>
-          <td>经验性指数采样</td>
-          <td>$p_\ell \propto n_\ell^{0.7}$</td>
-      </tr>
-      <tr>
-          <td>参数量</td>
-          <td>110M</td>
-          <td>270M（base）/ 550M（large）</td>
-      </tr>
-  </tbody>
-</table>
-<p>采样的改动比看起来重要得多。如果不加干预，模型看到英文的次数会比斯瓦希里语高几个数量级，斯瓦希里语的表示就会<strong>退化</strong>。用 $\alpha = 0.7$ 之后，高资源语言依然占大头，但长尾语言至少能看到足够多的子词共现，把基础统计学会。最终 XLM-R-large 在 XNLI 上比 mBERT 平均高约 <strong>10 个点</strong>——而这个差距主要来自长尾语言。</p>
-<h3 id="子词被低估的真正主角">子词：被低估的真正主角</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig5_subword_tokenization.png" alt="子词分词" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>看一眼&quot;国际化&quot;这个概念在四种语言里的分词结果。<code>inter</code> 和 <code>national</code> 在英、法、德三种语言里都出现，共享的是同一行嵌入；只有中文因为字形完全不同，子词彼此独立。这解释了一个工程现象：<strong>共享文字与构词法的语言之间，跨语言迁移几乎是&quot;免费&quot;的；overlap 越少，迁移越难。</strong> 具体来说：</p>
-<ul>
-<li>en -&gt; de 简单：共享拉丁字母，维基百科子词重叠率约 30%。</li>
-<li>en -&gt; zh 难一些：模型只能从上下文里学对齐，差距明显。</li>
-<li>en -&gt; sw 的瓶颈不是对齐，<strong>是模型到底见过多少斯瓦希里语</strong>。</li>
-</ul>
-<hr>
-<h2 id="迁移差距究竟从哪儿来">迁移差距究竟从哪儿来</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig3_zero_shot_ner.png" alt="10 种语言的零样本 NER" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图是 WikiAnn 上的零样本 NER F1。三个规律每次都会出现：</p>
-<ol>
-<li><strong>同语系胜过跨语系。</strong> 德语、荷兰语、西班牙语、法语（印欧 + 拉丁字母）都在 80 F1 附近；阿拉伯语和中文比它们低十个点左右，尽管预训练语料其实比荷兰语还多。</li>
-<li><strong>资源量重要，但有上限。</strong> 把斯瓦希里语的预训练语料从 1 GB 加到 50 GB，提升明显；从 50 GB 加到 200 GB（德语量级），几乎听不到响。</li>
-<li><strong>与 in-language oracle 的差距是双峰的。</strong> 高资源印欧语种的 oracle 通常只比 XLM-R-large 零样本高 5-10 个点；低资源非拉丁文字的 oracle 可能高 15-25 个点。</li>
-</ol>
-<p>把语料规模和零样本性能放在一起，资源效应就更直观了：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig6_resource_curve.png" alt="语料规模与零样本准确率" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>紫色虚线是 log-linear 拟合，能看出&quot;高资源平台 + 低资源悬崖&quot;的形状。绿色方块是开了 $\alpha=0.7$ 平衡采样后的结果：英语几乎没动，<strong>斯瓦希里语和约鲁巴语提升 5-7 个点</strong>。</p>
-<hr>
-<h2 id="三种工程策略">三种工程策略</h2>
-<p>工业上常用的就三套打法，挑一种之前最好都见过。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig7_translate_vs_align.png" alt="translate-train / translate-test / 零样本对齐" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="1-零样本直接迁移">1. 零样本直接迁移</h3>
-<p>在英语标注上微调 XLM-R，部署的时候直接把目标语言喂进去。编码器本身已经是对齐的，分类头只看 <code>[CLS]</code>，自然能泛化。</p>
-<ul>
-<li>优点：最便宜，一个模型支持所有目标语言，不依赖 MT。</li>
-<li>缺点：当目标语言离源语言很远时，准确率会留出空间。</li>
-<li>适用：要支持的目标语言很多，或者 MT 系统本身不可靠。</li>
-</ul>
-<h3 id="2-translate-train">2. translate-train</h3>
-<p>把英文训练集机器翻译到目标语言，再在翻译数据上微调（通常和原始英文混合训练效果更好）。</p>
-<ul>
-<li>优点：相比零样本通常能再涨 <strong>2-5 个点</strong>，对低资源目标尤其明显。</li>
-<li>缺点：成本随目标语言数量线性增长；翻译质量差时反而掉点；除非联合训练，否则要给每个目标语言部署一个模型。</li>
-<li>适用：目标语言不多，且对应的 MT 还行。</li>
-</ul>
-<h3 id="3-translate-test">3. translate-test</h3>
-<p>仍然只维护一个英文微调模型。推理时把目标语言输入翻译回英文，再过英文模型。</p>
-<ul>
-<li>优点：只维护一个模型，加新语言无需重训。</li>
-<li>缺点：每次推理多一次 MT 调用，延迟变高；翻译错误会和模型错误叠加。</li>
-<li>适用：临时加一种新语言，没有再训练预算。</li>
-</ul>
-<p>图中下半部分的对比条总结了取舍。实践里大多数团队的做法是：<strong>先上一个零样本的 baseline 服务所有语言，再 translate-train 流量最大的几种语言，长尾留 translate-test 兜底。</strong></p>
-<h3 id="没有直接标注的语言对pivot-策略">没有直接标注的语言对：pivot 策略</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig4_pivot_strategies.png" alt="pivot 策略" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>对于双向 MT 都不靠谱的小语种对（比如约鲁巴 -&gt; 豪萨），通常通过一种高资源语言做中转。上图三种模式覆盖了工业里见到的绝大多数做法：</p>
-<ul>
-<li><strong>源端 pivot（translate-test 走英文）。</strong> 约鲁巴输入 -&gt; 英文 MT -&gt; 英文模型。只要约鲁巴 -&gt; 英文的 MT 勉强可用就行。</li>
-<li><strong>目标端 pivot（translate-train 走英文）。</strong> 拿英文标注，MT 到豪萨，训练。前提是英文 -&gt; 豪萨 MT 不要太差。</li>
-<li><strong>多源集成。</strong> 训多个分类器（英、西、德各一个），在目标语言上把预测平均。当多个源语言的归纳偏置互补时，这种做法常常最强。</li>
-</ul>
-<hr>
-<h2 id="跨语言提示与代码转换">跨语言提示与代码转换</h2>
-<p>两个在现代系统里出现频次较高的小工具。</p>
-<p><strong>语言无关的连续 prompt。</strong> 不再每种语言写一份模板，而是在每条输入前面拼上 $m$ 个可学习的前缀向量 $\mathbf{P} = [\mathbf{p}_1, \dots, \mathbf{p}_m]$，并在多种语言上联合训练：</p>
-$$
+$$<p>它有闭式解。对 $\mathbf{X}_t^\top \mathbf{X}_s$ 做 SVD 得到 $\mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top$，则 $\mathbf{W}^* = \mathbf{V}\mathbf{U}^\top$。Conneau 等人（2018）后来证明这一步连双语词典都可以扔掉，用对抗训练就能恢复出 $\mathbf{W}$，这才有了完全无监督的双语词典抽取。</p><p>为什么先讲这个？因为<strong>多语言 Transformer 本质上是在更高维的空间里、端到端地、隐式地完成同样的对齐</strong>。</p><hr><h2 id=多语言预训练>多语言预训练</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig2_xlmr_architecture.png alt="mBERT 与 XLM-R 对比" loading=lazy decoding=async></figure></p><h3 id=mbert先把它跑通的基线>mBERT：先把它跑通的基线</h3><p>Devlin 团队的原始配方很朴素：拿 BERT-base，把 104 种语言的维基百科拼起来，用一份共享的 110K WordPiece 词表，只跑 MLM 目标，<strong>没有平行语料，没有语言 ID</strong>。</p><p>让人意外的是，这样竟然就 work 了。Pires 等（2019）和 Wu & Dredze（2020）把原因归结为三股力量：</p><ol><li><strong>锚点 token。</strong> 数字、标点、人名地名、英文借词（<code>COVID</code>、<code>OK</code>、<code>Internet</code>）在多种语言里长得一模一样。同一个 token 出现在很多种语言的上下文里，它的嵌入会被推向一个语言无关的中心。</li><li><strong>子词重叠。</strong> WordPiece 会把同源词切成相同的片段。<code>international</code>（英）和 <code>internationale</code>（法）共享 <code>inter</code> + <code>national</code>。两种语言只要共享几千个子词，它们的嵌入就会被间接拉到同一个子空间里。</li><li><strong>深层参数共享。</strong> 12 层 Transformer 在 104 种语言之间完全共享。从压缩的角度看，&ldquo;在多种语言里复用同一套电路"是模型最省 bit 的策略，所以它就这么做了。</li></ol><p>最反直觉的实验：<strong>把锚点 token 全部去掉，跨语言 NER 只掉了大约 5 个点</strong>。真正起决定作用的反而是子词重叠。</p><h3 id=xlm-r堆数据改采样加规模>XLM-R：堆数据、改采样、加规模</h3><p>Conneau 等（2020）问了一个直接的问题：那些精巧设计扔掉，纯粹堆规模会怎样？XLM-R 相对 mBERT 改了三件事：</p><table><thead><tr><th>维度</th><th>mBERT</th><th>XLM-R</th></tr></thead><tbody><tr><td>语料</td><td>Wikipedia（约 13 GB）</td><td>CommonCrawl（2.5 TB，约 200 倍）</td></tr><tr><td>词表</td><td>WordPiece，110K</td><td>SentencePiece，250K</td></tr><tr><td>采样</td><td>经验性指数采样</td><td>$p_\ell \propto n_\ell^{0.7}$</td></tr><tr><td>参数量</td><td>110M</td><td>270M（base）/ 550M（large）</td></tr></tbody></table><p>采样的改动比看起来重要得多。如果不加干预，模型看到英文的次数会比斯瓦希里语高几个数量级，斯瓦希里语的表示就会<strong>退化</strong>。用 $\alpha = 0.7$ 之后，高资源语言依然占大头，但长尾语言至少能看到足够多的子词共现，把基础统计学会。最终 XLM-R-large 在 XNLI 上比 mBERT 平均高约 <strong>10 个点</strong>——而这个差距主要来自长尾语言。</p><h3 id=子词被低估的真正主角>子词：被低估的真正主角</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig5_subword_tokenization.png alt=子词分词 loading=lazy decoding=async></figure></p><p>看一眼"国际化"这个概念在四种语言里的分词结果。<code>inter</code> 和 <code>national</code> 在英、法、德三种语言里都出现，共享的是同一行嵌入；只有中文因为字形完全不同，子词彼此独立。这解释了一个工程现象：<strong>共享文字与构词法的语言之间，跨语言迁移几乎是"免费"的；overlap 越少，迁移越难。</strong> 具体来说：</p><ul><li>en -> de 简单：共享拉丁字母，维基百科子词重叠率约 30%。</li><li>en -> zh 难一些：模型只能从上下文里学对齐，差距明显。</li><li>en -> sw 的瓶颈不是对齐，<strong>是模型到底见过多少斯瓦希里语</strong>。</li></ul><hr><h2 id=迁移差距究竟从哪儿来>迁移差距究竟从哪儿来</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig3_zero_shot_ner.png alt="10 种语言的零样本 NER" loading=lazy decoding=async></figure></p><p>上图是 WikiAnn 上的零样本 NER F1。三个规律每次都会出现：</p><ol><li><strong>同语系胜过跨语系。</strong> 德语、荷兰语、西班牙语、法语（印欧 + 拉丁字母）都在 80 F1 附近；阿拉伯语和中文比它们低十个点左右，尽管预训练语料其实比荷兰语还多。</li><li><strong>资源量重要，但有上限。</strong> 把斯瓦希里语的预训练语料从 1 GB 加到 50 GB，提升明显；从 50 GB 加到 200 GB（德语量级），几乎听不到响。</li><li><strong>与 in-language oracle 的差距是双峰的。</strong> 高资源印欧语种的 oracle 通常只比 XLM-R-large 零样本高 5-10 个点；低资源非拉丁文字的 oracle 可能高 15-25 个点。</li></ol><p>把语料规模和零样本性能放在一起，资源效应就更直观了：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig6_resource_curve.png alt=语料规模与零样本准确率 loading=lazy decoding=async></figure></p><p>紫色虚线是 log-linear 拟合，能看出"高资源平台 + 低资源悬崖"的形状。绿色方块是开了 $\alpha=0.7$ 平衡采样后的结果：英语几乎没动，<strong>斯瓦希里语和约鲁巴语提升 5-7 个点</strong>。</p><hr><h2 id=三种工程策略>三种工程策略</h2><p>工业上常用的就三套打法，挑一种之前最好都见过。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig7_translate_vs_align.png alt="translate-train / translate-test / 零样本对齐" loading=lazy decoding=async></figure></p><h3 id=1-零样本直接迁移>1. 零样本直接迁移</h3><p>在英语标注上微调 XLM-R，部署的时候直接把目标语言喂进去。编码器本身已经是对齐的，分类头只看 <code>[CLS]</code>，自然能泛化。</p><ul><li>优点：最便宜，一个模型支持所有目标语言，不依赖 MT。</li><li>缺点：当目标语言离源语言很远时，准确率会留出空间。</li><li>适用：要支持的目标语言很多，或者 MT 系统本身不可靠。</li></ul><h3 id=2-translate-train>2. translate-train</h3><p>把英文训练集机器翻译到目标语言，再在翻译数据上微调（通常和原始英文混合训练效果更好）。</p><ul><li>优点：相比零样本通常能再涨 <strong>2-5 个点</strong>，对低资源目标尤其明显。</li><li>缺点：成本随目标语言数量线性增长；翻译质量差时反而掉点；除非联合训练，否则要给每个目标语言部署一个模型。</li><li>适用：目标语言不多，且对应的 MT 还行。</li></ul><h3 id=3-translate-test>3. translate-test</h3><p>仍然只维护一个英文微调模型。推理时把目标语言输入翻译回英文，再过英文模型。</p><ul><li>优点：只维护一个模型，加新语言无需重训。</li><li>缺点：每次推理多一次 MT 调用，延迟变高；翻译错误会和模型错误叠加。</li><li>适用：临时加一种新语言，没有再训练预算。</li></ul><p>图中下半部分的对比条总结了取舍。实践里大多数团队的做法是：<strong>先上一个零样本的 baseline 服务所有语言，再 translate-train 流量最大的几种语言，长尾留 translate-test 兜底。</strong></p><h3 id=没有直接标注的语言对pivot-策略>没有直接标注的语言对：pivot 策略</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/transfer-learning/11-%E8%B7%A8%E8%AF%AD%E8%A8%80%E8%BF%81%E7%A7%BB/fig4_pivot_strategies.png alt="pivot 策略" loading=lazy decoding=async></figure></p><p>对于双向 MT 都不靠谱的小语种对（比如约鲁巴 -> 豪萨），通常通过一种高资源语言做中转。上图三种模式覆盖了工业里见到的绝大多数做法：</p><ul><li><strong>源端 pivot（translate-test 走英文）。</strong> 约鲁巴输入 -> 英文 MT -> 英文模型。只要约鲁巴 -> 英文的 MT 勉强可用就行。</li><li><strong>目标端 pivot（translate-train 走英文）。</strong> 拿英文标注，MT 到豪萨，训练。前提是英文 -> 豪萨 MT 不要太差。</li><li><strong>多源集成。</strong> 训多个分类器（英、西、德各一个），在目标语言上把预测平均。当多个源语言的归纳偏置互补时，这种做法常常最强。</li></ul><hr><h2 id=跨语言提示与代码转换>跨语言提示与代码转换</h2><p>两个在现代系统里出现频次较高的小工具。</p><p><strong>语言无关的连续 prompt。</strong> 不再每种语言写一份模板，而是在每条输入前面拼上 $m$ 个可学习的前缀向量 $\mathbf{P} = [\mathbf{p}_1, \dots, \mathbf{p}_m]$，并在多种语言上联合训练：</p>$$
 \min_{\mathbf{P}} \; \sum_{\ell} \mathbb{E}_{(x,y)\sim \mathcal{D}_\ell}\,\mathcal{L}\!\left(f_\theta\!\left([\mathbf{P}; x^{(\ell)}]\right), y\right).
-$$<p>冻结的编码器保持跨语言；prompt 学到的是任务级别的锚点，不偏向任何一种语言。</p>
-<p><strong>代码转换数据增强。</strong> 训练时随机把源语言的部分词替换成目标语言的对应翻译，同时保留句法结构。这件事在教编码器：一个 token 的<strong>意思</strong>比它属于<strong>哪种语言</strong>更重要。在 GLUECoS、LinCE 这类代码混合基准上能稳定提升 5-10 个点。</p>
-<hr>
-<h2 id="实现示例">实现示例</h2>
-<p>零样本跨语言分类器最小可用版本，建在 mBERT/XLM-R 上：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModel</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CrossLingualClassifier</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;基于多语言编码器 [CLS] 池化的分类器。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;xlm-roberta-base&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">AutoModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hidden_size</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">input_ids</span><span class="o">=</span><span class="n">input_ids</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                           <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">cls</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">last_hidden_state</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>      <span class="c1"># [CLS] 向量</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 训练：英文 (input_ids, labels) 反传，编码器 + 分类头一起更新。</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># 评估：同一份模型、同一个 tokenizer，直接喂中文 / 法文输入。</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># 编码器共享的子词空间和对齐过的 [CLS] 表示在背后做完了所有工作。</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>比代码本身更值得记住的几条经验：</p>
-<ul>
-<li><strong>训练和推理用同一个 tokenizer</strong>。tokenizer 不一致是这个领域里最常见的&quot;安静 bug&rdquo;。</li>
-<li>零样本场景下<strong>不要冻结编码器</strong>——在源语言上做完整微调，比&quot;冻结 + 线性探针&quot;稳定高 3-5 个点。</li>
-<li>translate-train 时把英文和翻译数据按 1:1 在同一个 batch 里混合；只用翻译数据训练，会在不补回目标语言增益的同时掉源语言性能。</li>
-</ul>
-<hr>
-<h2 id="常见问题">常见问题</h2>
-<h3 id="mbert-没有平行语料为什么能跨语言">mBERT 没有平行语料，为什么能跨语言？</h3>
-<p>三股力量同时发力：跨语言共享的锚点 token（数字、标点、借词），把嵌入表&quot;焊&quot;到一起的子词重叠，以及强制语言无关特征成为最便宜表示的深层参数共享。去掉任何一项都会明显劣化迁移；三项全部去掉，跨语言能力就没了。</p>
-<h3 id="源语言怎么选">源语言怎么选？</h3>
-<p>默认选标注最多的那一个（基本上就是英语）。如果迁移差距特别难看，再考虑同语系的源：目标是西班牙语时，意大利语或葡萄牙语标注往往比英语标注效果更好。目标是斯瓦希里语时，英语依然是首选——因为别的语言根本就没有标注。</p>
-<h3 id="xlm-r-还是-mbert">XLM-R 还是 mBERT？</h3>
-<p>默认 XLM-R，除非你被设备推理资源卡死。XLM-R-base（270M）相对 mBERT（110M）推理慢约 1.5 倍，但每一种长尾语言上都高 5-10 个点；XLM-R-large 慢 3 倍，再高 2-4 个点。</p>
-<h3 id="理论上限是什么">理论上限是什么？</h3>
-<p>跨语言迁移的上界由编码器表示空间里两种语言分布之间的互信息决定。经验观测：印欧语系内部的同族语言对，差距能压到 3-5 个点；跨语系（英 -&gt; 中、英 -&gt; 阿）通常稳定在 8-12 个点；极低资源目标（约鲁巴、斯瓦希里）瓶颈不在对齐而在&quot;模型见过多少这种语言&quot;。</p>
-<h3 id="translate-train-在准确率上几乎总是赢为什么还要发布零样本">translate-train 在准确率上几乎总是赢，为什么还要发布零样本？</h3>
-<p>成本。translate-train 需要每种目标语言都跑 MT（训练侧的延迟，再加上要维护 MT 系统本身），而且通常会落地成&quot;每种语言一个模型&quot;。零样本是一个模型服务全部 100 种语言。所以工业里常见的不是二选一，而是&quot;先零样本兜底，再 translate-train 头部流量语种&quot;。</p>
-<h3 id="目标是低资源语言操作顺序是什么">目标是低资源语言，操作顺序是什么？</h3>
-<p>（a）先试 XLM-R-large 零样本。（b）如果还不够好，做<strong>适应性预训练</strong>：在目标语言的单语语料上继续跑几个 epoch 的 MLM，然后再微调。（c）能拿到对应语种的 MT 时，加一份 translate-train。（d）如果能收集到哪怕 100 条目标语言的标注，把它们混进去——少量目标语言数据在零样本之上的边际增益是非常高的。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Conneau, A., Lample, G., Ranzato, M.A., et al. (2018). Word translation without parallel data. <em>ICLR</em>.</li>
-<li>Devlin, J., Chang, M.W., Lee, K., Toutanova, K. (2019). BERT: Pre-training of deep bidirectional Transformers for language understanding. <em>NAACL</em>.</li>
-<li>Pires, T., Schlinger, E., Garrette, D. (2019). How multilingual is multilingual BERT? <em>ACL</em>.</li>
-<li>Wu, S., Dredze, M. (2020). Are all languages created equal in multilingual BERT? <em>RepL4NLP</em>.</li>
-<li>Conneau, A., Khandelwal, K., Goyal, N., et al. (2020). Unsupervised cross-lingual representation learning at scale (XLM-R). <em>ACL</em>.</li>
-<li>Hu, J., Ruder, S., Siddhant, A., et al. (2020). XTREME: A massively multilingual multi-task benchmark. <em>ICML</em>.</li>
-<li>Lauscher, A., Ravishankar, V., Vulic, I., Glavas, G. (2020). From zero to hero: On the limitations of zero-shot language transfer. <em>EMNLP</em>.</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>部分</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/">1</a>
-</td>
-          <td>基础与核心概念</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/">2</a>
-</td>
-          <td>预训练与微调</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/">3</a>
-</td>
-          <td>域适应</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/">4</a>
-</td>
-          <td>小样本学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/">5</a>
-</td>
-          <td>知识蒸馏</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/">6</a>
-</td>
-          <td>多任务学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/">7</a>
-</td>
-          <td>零样本学习</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/">8</a>
-</td>
-          <td>多模态迁移</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/">9</a>
-</td>
-          <td>参数高效微调</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/">10</a>
-</td>
-          <td>持续学习</td>
-      </tr>
-      <tr>
-          <td><strong>11</strong></td>
-          <td><strong>跨语言迁移（本文）</strong></td>
-      </tr>
-      <tr>
-          <td><a href="/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/">12</a>
-</td>
-          <td>工业应用与最佳实践</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#问题定义">问题定义</a></li>
-    <li><a href="#共享语义空间">共享语义空间</a>
-      <ul>
-        <li><a href="#双语词向量对齐">双语词向量对齐</a></li>
-      </ul>
-    </li>
-    <li><a href="#多语言预训练">多语言预训练</a>
-      <ul>
-        <li><a href="#mbert先把它跑通的基线">mBERT：先把它跑通的基线</a></li>
-        <li><a href="#xlm-r堆数据改采样加规模">XLM-R：堆数据、改采样、加规模</a></li>
-        <li><a href="#子词被低估的真正主角">子词：被低估的真正主角</a></li>
-      </ul>
-    </li>
-    <li><a href="#迁移差距究竟从哪儿来">迁移差距究竟从哪儿来</a></li>
-    <li><a href="#三种工程策略">三种工程策略</a>
-      <ul>
-        <li><a href="#1-零样本直接迁移">1. 零样本直接迁移</a></li>
-        <li><a href="#2-translate-train">2. translate-train</a></li>
-        <li><a href="#3-translate-test">3. translate-test</a></li>
-        <li><a href="#没有直接标注的语言对pivot-策略">没有直接标注的语言对：pivot 策略</a></li>
-      </ul>
-    </li>
-    <li><a href="#跨语言提示与代码转换">跨语言提示与代码转换</a></li>
-    <li><a href="#实现示例">实现示例</a></li>
-    <li><a href="#常见问题">常见问题</a>
-      <ul>
-        <li><a href="#mbert-没有平行语料为什么能跨语言">mBERT 没有平行语料，为什么能跨语言？</a></li>
-        <li><a href="#源语言怎么选">源语言怎么选？</a></li>
-        <li><a href="#xlm-r-还是-mbert">XLM-R 还是 mBERT？</a></li>
-        <li><a href="#理论上限是什么">理论上限是什么？</a></li>
-        <li><a href="#translate-train-在准确率上几乎总是赢为什么还要发布零样本">translate-train 在准确率上几乎总是赢，为什么还要发布零样本？</a></li>
-        <li><a href="#目标是低资源语言操作顺序是什么">目标是低资源语言，操作顺序是什么？</a></li>
-      </ul>
-    </li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">迁移学习</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>11 min</strong></div>
-      <div class="row"><span>Word count</span><strong>5200</strong></div>
-      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>冻结的编码器保持跨语言；prompt 学到的是任务级别的锚点，不偏向任何一种语言。</p><p><strong>代码转换数据增强。</strong> 训练时随机把源语言的部分词替换成目标语言的对应翻译，同时保留句法结构。这件事在教编码器：一个 token 的<strong>意思</strong>比它属于<strong>哪种语言</strong>更重要。在 GLUECoS、LinCE 这类代码混合基准上能稳定提升 5-10 个点。</p><hr><h2 id=实现示例>实现示例</h2><p>零样本跨语言分类器最小可用版本，建在 mBERT/XLM-R 上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>AutoModel</span><span class=p>,</span> <span class=n>AutoTokenizer</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CrossLingualClassifier</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;基于多语言编码器 [CLS] 池化的分类器。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>model_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;xlm-roberta-base&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>num_classes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span> <span class=n>dropout</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.1</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>AutoModel</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>model_name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=o>.</span><span class=n>config</span><span class=o>.</span><span class=n>hidden_size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>num_classes</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>input_ids</span><span class=o>=</span><span class=n>input_ids</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                           <span class=n>attention_mask</span><span class=o>=</span><span class=n>attention_mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>cls</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>last_hidden_state</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>]</span>      <span class=c1># [CLS] 向量</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=bp>cls</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 训练：英文 (input_ids, labels) 反传，编码器 + 分类头一起更新。</span>
+</span></span><span class=line><span class=cl><span class=c1># 评估：同一份模型、同一个 tokenizer，直接喂中文 / 法文输入。</span>
+</span></span><span class=line><span class=cl><span class=c1># 编码器共享的子词空间和对齐过的 [CLS] 表示在背后做完了所有工作。</span>
+</span></span></code></pre></td></tr></table></div></div><p>比代码本身更值得记住的几条经验：</p><ul><li><strong>训练和推理用同一个 tokenizer</strong>。tokenizer 不一致是这个领域里最常见的"安静 bug&rdquo;。</li><li>零样本场景下<strong>不要冻结编码器</strong>——在源语言上做完整微调，比"冻结 + 线性探针"稳定高 3-5 个点。</li><li>translate-train 时把英文和翻译数据按 1:1 在同一个 batch 里混合；只用翻译数据训练，会在不补回目标语言增益的同时掉源语言性能。</li></ul><hr><h2 id=常见问题>常见问题</h2><h3 id=mbert-没有平行语料为什么能跨语言>mBERT 没有平行语料，为什么能跨语言？</h3><p>三股力量同时发力：跨语言共享的锚点 token（数字、标点、借词），把嵌入表"焊"到一起的子词重叠，以及强制语言无关特征成为最便宜表示的深层参数共享。去掉任何一项都会明显劣化迁移；三项全部去掉，跨语言能力就没了。</p><h3 id=源语言怎么选>源语言怎么选？</h3><p>默认选标注最多的那一个（基本上就是英语）。如果迁移差距特别难看，再考虑同语系的源：目标是西班牙语时，意大利语或葡萄牙语标注往往比英语标注效果更好。目标是斯瓦希里语时，英语依然是首选——因为别的语言根本就没有标注。</p><h3 id=xlm-r-还是-mbert>XLM-R 还是 mBERT？</h3><p>默认 XLM-R，除非你被设备推理资源卡死。XLM-R-base（270M）相对 mBERT（110M）推理慢约 1.5 倍，但每一种长尾语言上都高 5-10 个点；XLM-R-large 慢 3 倍，再高 2-4 个点。</p><h3 id=理论上限是什么>理论上限是什么？</h3><p>跨语言迁移的上界由编码器表示空间里两种语言分布之间的互信息决定。经验观测：印欧语系内部的同族语言对，差距能压到 3-5 个点；跨语系（英 -> 中、英 -> 阿）通常稳定在 8-12 个点；极低资源目标（约鲁巴、斯瓦希里）瓶颈不在对齐而在"模型见过多少这种语言"。</p><h3 id=translate-train-在准确率上几乎总是赢为什么还要发布零样本>translate-train 在准确率上几乎总是赢，为什么还要发布零样本？</h3><p>成本。translate-train 需要每种目标语言都跑 MT（训练侧的延迟，再加上要维护 MT 系统本身），而且通常会落地成"每种语言一个模型"。零样本是一个模型服务全部 100 种语言。所以工业里常见的不是二选一，而是"先零样本兜底，再 translate-train 头部流量语种"。</p><h3 id=目标是低资源语言操作顺序是什么>目标是低资源语言，操作顺序是什么？</h3><p>（a）先试 XLM-R-large 零样本。（b）如果还不够好，做<strong>适应性预训练</strong>：在目标语言的单语语料上继续跑几个 epoch 的 MLM，然后再微调。（c）能拿到对应语种的 MT 时，加一份 translate-train。（d）如果能收集到哪怕 100 条目标语言的标注，把它们混进去——少量目标语言数据在零样本之上的边际增益是非常高的。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Conneau, A., Lample, G., Ranzato, M.A., et al. (2018). Word translation without parallel data. <em>ICLR</em>.</li><li>Devlin, J., Chang, M.W., Lee, K., Toutanova, K. (2019). BERT: Pre-training of deep bidirectional Transformers for language understanding. <em>NAACL</em>.</li><li>Pires, T., Schlinger, E., Garrette, D. (2019). How multilingual is multilingual BERT? <em>ACL</em>.</li><li>Wu, S., Dredze, M. (2020). Are all languages created equal in multilingual BERT? <em>RepL4NLP</em>.</li><li>Conneau, A., Khandelwal, K., Goyal, N., et al. (2020). Unsupervised cross-lingual representation learning at scale (XLM-R). <em>ACL</em>.</li><li>Hu, J., Ruder, S., Siddhant, A., et al. (2020). XTREME: A massively multilingual multi-task benchmark. <em>ICML</em>.</li><li>Lauscher, A., Ravishankar, V., Vulic, I., Glavas, G. (2020). From zero to hero: On the limitations of zero-shot language transfer. <em>EMNLP</em>.</li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>部分</th><th>主题</th></tr></thead><tbody><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e5%9f%ba%e7%a1%80%e4%b8%8e%e6%a0%b8%e5%bf%83%e6%a6%82%e5%bf%b5/>1</a></td><td>基础与核心概念</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e9%a2%84%e8%ae%ad%e7%bb%83%e4%b8%8e%e5%be%ae%e8%b0%83%e6%8a%80%e6%9c%af/>2</a></td><td>预训练与微调</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%9f%9f%e9%80%82%e5%ba%94%e6%96%b9%e6%b3%95/>3</a></td><td>域适应</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%9b%9b-Few-Shot-Learning/>4</a></td><td>小样本学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e7%9f%a5%e8%af%86%e8%92%b8%e9%a6%8f/>5</a></td><td>知识蒸馏</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e5%a4%9a%e4%bb%bb%e5%8a%a1%e5%ad%a6%e4%b9%a0/>6</a></td><td>多任务学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e9%9b%b6%e6%a0%b7%e6%9c%ac%e5%ad%a6%e4%b9%a0/>7</a></td><td>零样本学习</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%85%ab-%e5%a4%9a%e6%a8%a1%e6%80%81%e8%bf%81%e7%a7%bb/>8</a></td><td>多模态迁移</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e4%b9%9d-%e5%8f%82%e6%95%b0%e9%ab%98%e6%95%88%e5%be%ae%e8%b0%83/>9</a></td><td>参数高效微调</td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e6%8c%81%e7%bb%ad%e5%ad%a6%e4%b9%a0/>10</a></td><td>持续学习</td></tr><tr><td><strong>11</strong></td><td><strong>跨语言迁移（本文）</strong></td></tr><tr><td><a href=/zh/%e8%bf%81%e7%a7%bb%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-%e5%b7%a5%e4%b8%9a%e5%ba%94%e7%94%a8%e4%b8%8e%e6%9c%80%e4%bd%b3%e5%ae%9e%e8%b7%b5/>12</a></td><td>工业应用与最佳实践</td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#问题定义>问题定义</a></li><li><a href=#共享语义空间>共享语义空间</a><ul><li><a href=#双语词向量对齐>双语词向量对齐</a></li></ul></li><li><a href=#多语言预训练>多语言预训练</a><ul><li><a href=#mbert先把它跑通的基线>mBERT：先把它跑通的基线</a></li><li><a href=#xlm-r堆数据改采样加规模>XLM-R：堆数据、改采样、加规模</a></li><li><a href=#子词被低估的真正主角>子词：被低估的真正主角</a></li></ul></li><li><a href=#迁移差距究竟从哪儿来>迁移差距究竟从哪儿来</a></li><li><a href=#三种工程策略>三种工程策略</a><ul><li><a href=#1-零样本直接迁移>1. 零样本直接迁移</a></li><li><a href=#2-translate-train>2. translate-train</a></li><li><a href=#3-translate-test>3. translate-test</a></li><li><a href=#没有直接标注的语言对pivot-策略>没有直接标注的语言对：pivot 策略</a></li></ul></li><li><a href=#跨语言提示与代码转换>跨语言提示与代码转换</a></li><li><a href=#实现示例>实现示例</a></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#mbert-没有平行语料为什么能跨语言>mBERT 没有平行语料，为什么能跨语言？</a></li><li><a href=#源语言怎么选>源语言怎么选？</a></li><li><a href=#xlm-r-还是-mbert>XLM-R 还是 mBERT？</a></li><li><a href=#理论上限是什么>理论上限是什么？</a></li><li><a href=#translate-train-在准确率上几乎总是赢为什么还要发布零样本>translate-train 在准确率上几乎总是赢，为什么还要发布零样本？</a></li><li><a href=#目标是低资源语言操作顺序是什么>目标是低资源语言，操作顺序是什么？</a></li></ul></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>11 min</strong></div><div class=row><span>Word count</span><strong>5113</strong></div><div class=row><span>Published</span><strong>Jun 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

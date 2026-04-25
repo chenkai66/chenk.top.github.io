@@ -1,830 +1,271 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>机器学习数学推导（九）：朴素贝叶斯 · Chen Kai Blog</title>
-<meta name="description" content="从贝叶斯定理与条件独立假设出发，完整推导朴素贝叶斯分类器：参数估计、拉普拉斯平滑、三种模型变体，以及为什么这个看似过于简单的模型在实践中如此有效。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="机器学习数学推导（九）：朴素贝叶斯">
-<meta property="og:description" content="从贝叶斯定理与条件独立假设出发，完整推导朴素贝叶斯分类器：参数估计、拉普拉斯平滑、三种模型变体，以及为什么这个看似过于简单的模型在实践中如此有效。">
-<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
-         · Chapter 9
-      </div>
-      <h1>机器学习数学推导（九）：朴素贝叶斯</h1>
-      <p class="deck">从贝叶斯定理与条件独立假设出发，完整推导朴素贝叶斯分类器：参数估计、拉普拉斯平滑、三种模型变体，以及为什么这个看似过于简单的模型在实践中如此有效。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-01-28">January 28, 2026</time> · 15 min read · 7100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/" class="tag">#朴素贝叶斯</a><a href="/zh/tags/%E6%A6%82%E7%8E%87%E6%A8%A1%E5%9E%8B/" class="tag">#概率模型</a><a href="/zh/tags/%E6%96%87%E6%9C%AC%E5%88%86%E7%B1%BB/" class="tag">#文本分类</a><a href="/zh/tags/%E8%B4%9D%E5%8F%B6%E6%96%AF%E5%AE%9A%E7%90%86/" class="tag">#贝叶斯定理</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <blockquote>
-<p><strong>引子：</strong> 一个训练只需毫秒、特征量级可达百万、几乎没有超参数可调的垃圾邮件过滤器，却能在短文本任务上击败结构复杂得多的模型。朴素贝叶斯靠的就是一个看似离谱的假设——给定类别后所有特征都条件独立——并且毫不掩饰这一点。在几乎所有真实数据上这个假设都不成立，但分类器照样能用。要理解<strong>为什么</strong>，需要走一趟生成模型、MAP 估计、Dirichlet 先验和偏差-方差权衡的完整链路。本文就把这条路从头走一遍。</p>
-</blockquote>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>贝叶斯定理作为概率分类的基础，以及贝叶斯最优分类器为什么是其他所有分类器在暗中模仿的目标。</li>
-<li>条件独立假设——在几何上付出了什么代价，又在统计上换来了什么。</li>
-<li>先验与似然的极大似然估计，以及拉普拉斯平滑背后的 MAP / Dirichlet 视角。</li>
-<li>三种主力变体（多项式、伯努利、高斯）以及它们的取舍。</li>
-<li>为什么朴素贝叶斯在假设被破坏时仍然能用：Domingos–Pazzani 定理、误差抵消、偏差-方差权衡。</li>
-<li>仅依赖 NumPy 的简洁实现，并与 scikit-learn 对照验证。</li>
-</ul>
-<h2 id="预备知识">预备知识</h2>
-<ul>
-<li>概率论：贝叶斯定理、条件概率、联合分布与边缘分布、高斯密度。</li>
-<li>微积分：对数与偏导。</li>
-<li>熟悉 <a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ab-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/">第 8 篇：支持向量机</a>
-，特别是判别式建模的视角。</li>
-</ul>
-<hr>
-<h2 id="1-贝叶斯决策论">1. 贝叶斯决策论</h2>
-<p>在加上&quot;朴素&quot;这一刀之前，先要老老实实弄清楚最优概率分类器到底长什么样。朴素贝叶斯只是逼近它的一种具体做法。</p>
-<h3 id="11-贝叶斯定理把信念更新写出来">1.1 贝叶斯定理：把信念更新写出来</h3>
-<p>对于类别 $c_k \in \{c_1, \dots, c_K\}$ 和特征向量 $\mathbf{x} \in \mathbb{R}^d$：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>机器学习数学推导（九）：朴素贝叶斯 · Chen Kai Blog</title>
+<meta name=description content="从贝叶斯定理与条件独立假设出发，完整推导朴素贝叶斯分类器：参数估计、拉普拉斯平滑、三种模型变体，以及为什么这个看似过于简单的模型在实践中如此有效。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/><meta property="og:type" content="article"><meta property="og:title" content="机器学习数学推导（九）：朴素贝叶斯"><meta property="og:description" content="从贝叶斯定理与条件独立假设出发，完整推导朴素贝叶斯分类器：参数估计、拉普拉斯平滑、三种模型变体，以及为什么这个看似过于简单的模型在实践中如此有效。"><meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>机器学习数学推导</a>
+· Chapter 9</div><h1>机器学习数学推导（九）：朴素贝叶斯</h1><p class=deck>从贝叶斯定理与条件独立假设出发，完整推导朴素贝叶斯分类器：参数估计、拉普拉斯平滑、三种模型变体，以及为什么这个看似过于简单的模型在实践中如此有效。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-28>January 28, 2026</time> · 15 min read · 7034 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/ class=tag>#机器学习</a><a href=/zh/tags/%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/ class=tag>#朴素贝叶斯</a><a href=/zh/tags/%E6%A6%82%E7%8E%87%E6%A8%A1%E5%9E%8B/ class=tag>#概率模型</a><a href=/zh/tags/%E6%96%87%E6%9C%AC%E5%88%86%E7%B1%BB/ class=tag>#文本分类</a><a href=/zh/tags/%E8%B4%9D%E5%8F%B6%E6%96%AF%E5%AE%9A%E7%90%86/ class=tag>#贝叶斯定理</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/ class=tag>#数学推导</a></div></div></header><div class=prose><blockquote><p><strong>引子：</strong> 一个训练只需毫秒、特征量级可达百万、几乎没有超参数可调的垃圾邮件过滤器，却能在短文本任务上击败结构复杂得多的模型。朴素贝叶斯靠的就是一个看似离谱的假设——给定类别后所有特征都条件独立——并且毫不掩饰这一点。在几乎所有真实数据上这个假设都不成立，但分类器照样能用。要理解<strong>为什么</strong>，需要走一趟生成模型、MAP 估计、Dirichlet 先验和偏差-方差权衡的完整链路。本文就把这条路从头走一遍。</p></blockquote><h2 id=你将学到什么>你将学到什么</h2><ul><li>贝叶斯定理作为概率分类的基础，以及贝叶斯最优分类器为什么是其他所有分类器在暗中模仿的目标。</li><li>条件独立假设——在几何上付出了什么代价，又在统计上换来了什么。</li><li>先验与似然的极大似然估计，以及拉普拉斯平滑背后的 MAP / Dirichlet 视角。</li><li>三种主力变体（多项式、伯努利、高斯）以及它们的取舍。</li><li>为什么朴素贝叶斯在假设被破坏时仍然能用：Domingos–Pazzani 定理、误差抵消、偏差-方差权衡。</li><li>仅依赖 NumPy 的简洁实现，并与 scikit-learn 对照验证。</li></ul><h2 id=预备知识>预备知识</h2><ul><li>概率论：贝叶斯定理、条件概率、联合分布与边缘分布、高斯密度。</li><li>微积分：对数与偏导。</li><li>熟悉 <a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ab-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/>第 8 篇：支持向量机</a>
+，特别是判别式建模的视角。</li></ul><hr><h2 id=1-贝叶斯决策论>1. 贝叶斯决策论</h2><p>在加上"朴素"这一刀之前，先要老老实实弄清楚最优概率分类器到底长什么样。朴素贝叶斯只是逼近它的一种具体做法。</p><h3 id=11-贝叶斯定理把信念更新写出来>1.1 贝叶斯定理：把信念更新写出来</h3><p>对于类别 $c_k \in \{c_1, \dots, c_K\}$ 和特征向量 $\mathbf{x} \in \mathbb{R}^d$：</p>$$
 P(c_k \mid \mathbf{x}) \;=\; \frac{P(\mathbf{x} \mid c_k)\, P(c_k)}{P(\mathbf{x})}.
-$$<p>每一项各司其职：</p>
-<table>
-  <thead>
-      <tr>
-          <th>符号</th>
-          <th>名称</th>
-          <th>直观含义</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$P(c_k \mid \mathbf{x})$</td>
-          <td><strong>后验概率</strong></td>
-          <td>看到 $\mathbf{x}$ 之后，类别为 $c_k$ 的可能性</td>
-      </tr>
-      <tr>
-          <td>$P(\mathbf{x} \mid c_k)$</td>
-          <td><strong>似然</strong></td>
-          <td>假定类别是 $c_k$，观察到这个 $\mathbf{x}$ 有多合理</td>
-      </tr>
-      <tr>
-          <td>$P(c_k)$</td>
-          <td><strong>先验</strong></td>
-          <td>还没看到任何特征前，$c_k$ 出现的频率</td>
-      </tr>
-      <tr>
-          <td>$P(\mathbf{x})$</td>
-          <td><strong>证据</strong></td>
-          <td>$\mathbf{x}$ 的边缘概率，纯归一化项</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>先验为什么重要。</strong> 一项 99% 准确率的疾病检测，若实际患病率仅为 $0.1\%$，单次阳性结果只能把后验从 $0.001$ 抬升到约 $0.09$——仍然是十比一倾向于阴性。贝叶斯定理强迫我们把先验的代数运算大声念出来；忽略先验是统计学最经典的错误之一。</p>
-<h3 id="12-贝叶斯最优分类器">1.2 贝叶斯最优分类器</h3>
-<p>挑选后验概率最大的类别：</p>
-$$
+$$<p>每一项各司其职：</p><table><thead><tr><th>符号</th><th>名称</th><th>直观含义</th></tr></thead><tbody><tr><td>$P(c_k \mid \mathbf{x})$</td><td><strong>后验概率</strong></td><td>看到 $\mathbf{x}$ 之后，类别为 $c_k$ 的可能性</td></tr><tr><td>$P(\mathbf{x} \mid c_k)$</td><td><strong>似然</strong></td><td>假定类别是 $c_k$，观察到这个 $\mathbf{x}$ 有多合理</td></tr><tr><td>$P(c_k)$</td><td><strong>先验</strong></td><td>还没看到任何特征前，$c_k$ 出现的频率</td></tr><tr><td>$P(\mathbf{x})$</td><td><strong>证据</strong></td><td>$\mathbf{x}$ 的边缘概率，纯归一化项</td></tr></tbody></table><p><strong>先验为什么重要。</strong> 一项 99% 准确率的疾病检测，若实际患病率仅为 $0.1\%$，单次阳性结果只能把后验从 $0.001$ 抬升到约 $0.09$——仍然是十比一倾向于阴性。贝叶斯定理强迫我们把先验的代数运算大声念出来；忽略先验是统计学最经典的错误之一。</p><h3 id=12-贝叶斯最优分类器>1.2 贝叶斯最优分类器</h3><p>挑选后验概率最大的类别：</p>$$
 \hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k} P(c_k \mid \mathbf{x})
 \;=\; \arg\max_{c_k} P(\mathbf{x} \mid c_k)\, P(c_k),
-$$<p>其中 $P(\mathbf{x})$ 与 $c_k$ 无关，被约掉。这条规则<strong>最小化 0-1 损失</strong>：再深的网络、再大的集成模型，期望意义下也无法超过它。剩下的不可消除部分</p>
-$$
+$$<p>其中 $P(\mathbf{x})$ 与 $c_k$ 无关，被约掉。这条规则<strong>最小化 0-1 损失</strong>：再深的网络、再大的集成模型，期望意义下也无法超过它。剩下的不可消除部分</p>$$
 R^\star(\mathbf{x}) \;=\; 1 - \max_k P(c_k \mid \mathbf{x})
-$$<p>称为<strong>贝叶斯风险</strong>，其期望 $\mathbb{E}_{\mathbf{x}}[R^\star(\mathbf{x})]$ 是<strong>贝叶斯错误率</strong>——属于问题本身的不可约噪声。</p>
-<p>后续要讨论的所有概率分类器，本质上都是在有限样本下对这条规则的某种近似。</p>
-<h3 id="13-生成模型-vs-判别模型">1.3 生成模型 vs 判别模型</h3>
-<p>逼近 $P(c_k \mid \mathbf{x})$ 有两条路径：</p>
-<ul>
-<li><strong>判别模型</strong>（逻辑回归、SVM、神经网络）直接学习 $P(y \mid \mathbf{x})$，把全部统计能力压在决策面上，不去管特征如何分布。</li>
-<li><strong>生成模型</strong>（朴素贝叶斯、LDA、HMM）建模 $P(\mathbf{x}, y) = P(\mathbf{x} \mid y)P(y)$，再通过贝叶斯定理<strong>反推</strong>后验。</li>
-</ul>
-<table>
-  <thead>
-      <tr>
-          <th>维度</th>
-          <th>判别</th>
-          <th>生成</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>学习对象</td>
-          <td>$P(y \mid \mathbf{x})$</td>
-          <td>$P(\mathbf{x}, y)$</td>
-      </tr>
-      <tr>
-          <td>渐近精度</td>
-          <td>通常更高</td>
-          <td>通常较低</td>
-      </tr>
-      <tr>
-          <td>样本效率</td>
-          <td>较低</td>
-          <td>假设成立时更高</td>
-      </tr>
-      <tr>
-          <td>处理缺失值</td>
-          <td>困难</td>
-          <td>自然，对缺失维度边缘化即可</td>
-      </tr>
-      <tr>
-          <td>能否生成新样本</td>
-          <td>不能</td>
-          <td>能</td>
-      </tr>
-      <tr>
-          <td>利用无标签数据</td>
-          <td>难</td>
-          <td>容易</td>
-      </tr>
-  </tbody>
-</table>
-<p>Ng &amp; Jordan（2001）的经典结果把这种取舍说清楚了：数据无穷多时判别模型胜出，但生成模型收敛得更快。朴素贝叶斯把生成路线推到了极致。</p>
-<hr>
-<h2 id="2-朴素贝叶斯分类器">2. 朴素贝叶斯分类器</h2>
-<h3 id="21-为什么必须做一刀切式的简化">2.1 为什么必须做一刀切式的简化</h3>
-<p>要直接估计 $\mathbf{x} \in \{0,1\}^d$ 上的 $P(\mathbf{x} \mid c_k)$，每个类别需要 $2^d - 1$ 个自由参数。词汇表大小 $d = 10{,}000$ 时这彻底不可行。联合分布是真正的瓶颈。</p>
-<h3 id="22-条件独立假设">2.2 条件独立假设</h3>
-<p>朴素贝叶斯一刀斩断这个结：假设<strong>给定类别后</strong>所有特征条件独立。</p>
-$$
+$$<p>称为<strong>贝叶斯风险</strong>，其期望 $\mathbb{E}_{\mathbf{x}}[R^\star(\mathbf{x})]$ 是<strong>贝叶斯错误率</strong>——属于问题本身的不可约噪声。</p><p>后续要讨论的所有概率分类器，本质上都是在有限样本下对这条规则的某种近似。</p><h3 id=13-生成模型-vs-判别模型>1.3 生成模型 vs 判别模型</h3><p>逼近 $P(c_k \mid \mathbf{x})$ 有两条路径：</p><ul><li><strong>判别模型</strong>（逻辑回归、SVM、神经网络）直接学习 $P(y \mid \mathbf{x})$，把全部统计能力压在决策面上，不去管特征如何分布。</li><li><strong>生成模型</strong>（朴素贝叶斯、LDA、HMM）建模 $P(\mathbf{x}, y) = P(\mathbf{x} \mid y)P(y)$，再通过贝叶斯定理<strong>反推</strong>后验。</li></ul><table><thead><tr><th>维度</th><th>判别</th><th>生成</th></tr></thead><tbody><tr><td>学习对象</td><td>$P(y \mid \mathbf{x})$</td><td>$P(\mathbf{x}, y)$</td></tr><tr><td>渐近精度</td><td>通常更高</td><td>通常较低</td></tr><tr><td>样本效率</td><td>较低</td><td>假设成立时更高</td></tr><tr><td>处理缺失值</td><td>困难</td><td>自然，对缺失维度边缘化即可</td></tr><tr><td>能否生成新样本</td><td>不能</td><td>能</td></tr><tr><td>利用无标签数据</td><td>难</td><td>容易</td></tr></tbody></table><p>Ng & Jordan（2001）的经典结果把这种取舍说清楚了：数据无穷多时判别模型胜出，但生成模型收敛得更快。朴素贝叶斯把生成路线推到了极致。</p><hr><h2 id=2-朴素贝叶斯分类器>2. 朴素贝叶斯分类器</h2><h3 id=21-为什么必须做一刀切式的简化>2.1 为什么必须做一刀切式的简化</h3><p>要直接估计 $\mathbf{x} \in \{0,1\}^d$ 上的 $P(\mathbf{x} \mid c_k)$，每个类别需要 $2^d - 1$ 个自由参数。词汇表大小 $d = 10{,}000$ 时这彻底不可行。联合分布是真正的瓶颈。</p><h3 id=22-条件独立假设>2.2 条件独立假设</h3><p>朴素贝叶斯一刀斩断这个结：假设<strong>给定类别后</strong>所有特征条件独立。</p>$$
 P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} P\!\left(x^{(j)} \mid c_k\right).
-$$<p>可以从两个角度理解：</p>
-<ol>
-<li><strong>因果视角。</strong> 把类别看作隐藏的&quot;因&quot;，每个特征是独立产生的&quot;果&quot;。一旦确诊为流感，发烧和咳嗽彼此就不再带额外信息。</li>
-<li><strong>统计视角。</strong> 每个特征只贡献一个一维条件密度，联合密度就是乘积。参数量从随 $d$ <strong>指数增长</strong>降到<strong>线性增长</strong>。</li>
-</ol>
-<p>这一假设在几何上的代价如下图所示：左图是真实联合密度（相关、倾斜的等高线），右图是朴素贝叶斯的近似，二者<strong>边缘分布完全相同</strong>，但联合结构被强行因式分解成了与坐标轴对齐的椭圆。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig3_independence.png" alt="独立假设：边缘相同，联合不同" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>两份密度可以差得很远，但——正如 §5 将看到的——<strong>分类结果</strong>往往差不大。</p>
-<h3 id="23-分类规则">2.3 分类规则</h3>
-<p>把贝叶斯定理与条件独立合到一起，并去掉常数 $P(\mathbf{x})$：</p>
-$$
+$$<p>可以从两个角度理解：</p><ol><li><strong>因果视角。</strong> 把类别看作隐藏的"因"，每个特征是独立产生的"果"。一旦确诊为流感，发烧和咳嗽彼此就不再带额外信息。</li><li><strong>统计视角。</strong> 每个特征只贡献一个一维条件密度，联合密度就是乘积。参数量从随 $d$ <strong>指数增长</strong>降到<strong>线性增长</strong>。</li></ol><p>这一假设在几何上的代价如下图所示：左图是真实联合密度（相关、倾斜的等高线），右图是朴素贝叶斯的近似，二者<strong>边缘分布完全相同</strong>，但联合结构被强行因式分解成了与坐标轴对齐的椭圆。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig3_independence.png alt=独立假设：边缘相同，联合不同 loading=lazy decoding=async></figure></p><p>两份密度可以差得很远，但——正如 §5 将看到的——<strong>分类结果</strong>往往差不大。</p><h3 id=23-分类规则>2.3 分类规则</h3><p>把贝叶斯定理与条件独立合到一起，并去掉常数 $P(\mathbf{x})$：</p>$$
 \hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k}\; P(c_k) \prod_{j=1}^{d} P\!\left(x^{(j)} \mid c_k\right).
-$$<p>$d$ 个小概率连乘很快就会数值下溢。<strong>永远在对数空间里算：</strong></p>
-$$
+$$<p>$d$ 个小概率连乘很快就会数值下溢。<strong>永远在对数空间里算：</strong></p>$$
 \boxed{\;\hat{y}(\mathbf{x}) \;=\; \arg\max_{c_k} \left[\, \ln P(c_k) \;+\; \sum_{j=1}^{d} \ln P\!\left(x^{(j)} \mid c_k\right) \right].\;}
-$$<p>整个算法就是这一行。后面要讲的&quot;三种变体&quot;、平滑、概率校准，无非是在讨论如何估计单个 $P(x^{(j)} \mid c_k)$。</p>
-<p>下图给出 2D 上两个高斯类的具体形态：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig1_class_conditional.png" alt="高斯类条件分布与决策边界" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>每个类拥有一个对角协方差的高斯（即朴素贝叶斯在连续特征下的假设类），决策边界是两类后验相等的等位线——一般是二次曲线，方差相同时退化为直线。</p>
-<p>把同样的图换成<strong>概率视角</strong>，就是后验曲面：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig2_posterior.png" alt="后验热图与一维切片" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>右图把&quot;软过渡&quot;画了出来：沿一条切线，后验 $P(c_1 \mid \mathbf{x})$ 从 $0$ 平滑升到 $1$，恰好在两条缩放后的似然曲线相交处穿过 $0.5$。那个交点就是决策边界。</p>
-<h3 id="24-极大似然参数估计">2.4 极大似然参数估计</h3>
-<p>给定训练集 $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^{N}$，类 $c_k$ 含 $N_k$ 个样本：</p>
-<p><strong>类先验（MLE）。</strong> 各类样本所占比例：</p>
-$$
+$$<p>整个算法就是这一行。后面要讲的"三种变体"、平滑、概率校准，无非是在讨论如何估计单个 $P(x^{(j)} \mid c_k)$。</p><p>下图给出 2D 上两个高斯类的具体形态：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig1_class_conditional.png alt=高斯类条件分布与决策边界 loading=lazy decoding=async></figure></p><p>每个类拥有一个对角协方差的高斯（即朴素贝叶斯在连续特征下的假设类），决策边界是两类后验相等的等位线——一般是二次曲线，方差相同时退化为直线。</p><p>把同样的图换成<strong>概率视角</strong>，就是后验曲面：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig2_posterior.png alt=后验热图与一维切片 loading=lazy decoding=async></figure></p><p>右图把"软过渡"画了出来：沿一条切线，后验 $P(c_1 \mid \mathbf{x})$ 从 $0$ 平滑升到 $1$，恰好在两条缩放后的似然曲线相交处穿过 $0.5$。那个交点就是决策边界。</p><h3 id=24-极大似然参数估计>2.4 极大似然参数估计</h3><p>给定训练集 $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^{N}$，类 $c_k$ 含 $N_k$ 个样本：</p><p><strong>类先验（MLE）。</strong> 各类样本所占比例：</p>$$
 \hat{P}(c_k) \;=\; \frac{N_k}{N}.
-$$<p><strong>离散特征（MLE）。</strong> 取值集合 $\{v_1, \dots, v_{S_j}\}$ 上：</p>
-$$
+$$<p><strong>离散特征（MLE）。</strong> 取值集合 $\{v_1, \dots, v_{S_j}\}$ 上：</p>$$
 \hat{P}\!\left(x^{(j)} = v \mid c_k\right) \;=\;
 \frac{\#\{i : x_i^{(j)} = v \text{ 且 } y_i = c_k\}}{N_k}.
-$$<p><strong>连续特征（高斯假设）。</strong> 每个 (特征, 类别) 对单独拟合一个高斯：</p>
-$$
+$$<p><strong>连续特征（高斯假设）。</strong> 每个 (特征, 类别) 对单独拟合一个高斯：</p>$$
 P\!\left(x^{(j)} \mid c_k\right) \;=\; \frac{1}{\sqrt{2\pi}\,\sigma_{jk}} \exp\!\left(-\frac{(x^{(j)} - \mu_{jk})^2}{2\sigma_{jk}^2}\right),
-$$<p>参数为标准的样本均值与样本方差：</p>
-$$
+$$<p>参数为标准的样本均值与样本方差：</p>$$
 \hat{\mu}_{jk} \;=\; \frac{1}{N_k}\!\sum_{i:\, y_i=c_k}\! x_i^{(j)},
 \qquad
 \hat{\sigma}_{jk}^2 \;=\; \frac{1}{N_k}\!\sum_{i:\, y_i=c_k}\! \bigl(x_i^{(j)} - \hat{\mu}_{jk}\bigr)^2.
-$$<p><strong>全部训练就是这些。</strong> 没有迭代优化，没有学习率，没有收敛判据。</p>
-<h3 id="25-拉普拉斯平滑以及它的贝叶斯灵魂">2.5 拉普拉斯平滑——以及它的贝叶斯灵魂</h3>
-<p><strong>零计数的灾难。</strong> 假设词 <em>excellent</em> 在垃圾邮件训练集中一次都没出现，那么 $\hat{P}(\text{excellent} \mid \text{spam}) = 0$。一旦未来某封邮件中出现了 <em>excellent</em>，就会让 $P(\text{spam} \mid \mathbf{x}) = 0$，无论其他 199 个词有多么&quot;垃圾邮件&quot;。<strong>单个词就毁掉了整次分类。</strong></p>
-<p><strong>修复方法。</strong> 给每个计数加上伪计数 $\alpha > 0$：</p>
-$$
+$$<p><strong>全部训练就是这些。</strong> 没有迭代优化，没有学习率，没有收敛判据。</p><h3 id=25-拉普拉斯平滑以及它的贝叶斯灵魂>2.5 拉普拉斯平滑——以及它的贝叶斯灵魂</h3><p><strong>零计数的灾难。</strong> 假设词 <em>excellent</em> 在垃圾邮件训练集中一次都没出现，那么 $\hat{P}(\text{excellent} \mid \text{spam}) = 0$。一旦未来某封邮件中出现了 <em>excellent</em>，就会让 $P(\text{spam} \mid \mathbf{x}) = 0$，无论其他 199 个词有多么"垃圾邮件"。<strong>单个词就毁掉了整次分类。</strong></p><p><strong>修复方法。</strong> 给每个计数加上伪计数 $\alpha > 0$：</p>$$
 \hat{P}\!\left(x^{(j)} = v \mid c_k\right) \;=\; \frac{\#\{i : x_i^{(j)} = v,\, y_i=c_k\} + \alpha}{N_k + \alpha\, S_j},
 \qquad
 \hat{P}(c_k) \;=\; \frac{N_k + \alpha}{N + \alpha K}.
-$$<p>$\alpha = 1$ 时称为<strong>拉普拉斯（加一）平滑</strong>；更小的 $\alpha$ 有时叫 Lidstone 平滑。</p>
-<p><strong>为什么这样做有道理。</strong> 给多项分布 $P(\cdot \mid c_k)$ 套上对称 Dirichlet 先验 $\mathrm{Dir}(\alpha, \dots, \alpha)$。Dirichlet 是多项分布的共轭先验，所以后验仍是 Dirichlet，参数变成 $\alpha + \text{counts}$。该后验的众数（MAP 估计）正好就是上式。<strong>拉普拉斯平滑等价于在均匀 Dirichlet 先验下的 MAP 估计</strong>——相当于在看到任何数据之前，每一类已经被&quot;虚拟观察&quot;了 $\alpha$ 次。</p>
-<p>可视化如下：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig6_laplace_smoothing.png" alt="拉普拉斯平滑：消除零概率与向均匀先验收缩" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li>左图：$\alpha$ 增大时，常见词把概率质量让给罕见词和未见词。</li>
-<li>右图：每个词的估计被向 $1/V$ 拉拢。常见词被压低，未见词从 $0$ 抬起来。这种&quot;拉力&quot;的强度与 $\alpha / N_k$ 成正比。</li>
-</ul>
-<p>$\alpha$ 的选择是一根偏差-方差旋钮：$\alpha$ 小就更相信数据（偏差小、方差大），$\alpha$ 大就更相信均匀先验（偏差大、方差小）。<strong>用交叉验证选。</strong></p>
-<hr>
-<h2 id="3-三种变体同一个贝叶斯规则不同的似然">3. 三种变体——同一个贝叶斯规则，不同的似然</h2>
-<p>分类规则一字不变。变化的只有 $P(x^{(j)} \mid c_k)$ 的建模方式。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig5_three_variants.png" alt="三种朴素贝叶斯变体的对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="31-多项式朴素贝叶斯为词频设计">3.1 多项式朴素贝叶斯——为词频设计</h3>
-<p>适用于非负整数计数：词频、$n$-gram、哈希桶。</p>
-<p><strong>生成故事。</strong> 每篇 $c_k$ 类文档相当于从词表分布 $\boldsymbol{\theta}_k = (\theta_{1k}, \dots, \theta_{dk})$（满足 $\sum_j \theta_{jk} = 1$）中独立同分布采词组成的&quot;词袋&quot;。给定词频 $\mathbf{x}$ 的似然为：</p>
-$$
+$$<p>$\alpha = 1$ 时称为<strong>拉普拉斯（加一）平滑</strong>；更小的 $\alpha$ 有时叫 Lidstone 平滑。</p><p><strong>为什么这样做有道理。</strong> 给多项分布 $P(\cdot \mid c_k)$ 套上对称 Dirichlet 先验 $\mathrm{Dir}(\alpha, \dots, \alpha)$。Dirichlet 是多项分布的共轭先验，所以后验仍是 Dirichlet，参数变成 $\alpha + \text{counts}$。该后验的众数（MAP 估计）正好就是上式。<strong>拉普拉斯平滑等价于在均匀 Dirichlet 先验下的 MAP 估计</strong>——相当于在看到任何数据之前，每一类已经被"虚拟观察"了 $\alpha$ 次。</p><p>可视化如下：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig6_laplace_smoothing.png alt=拉普拉斯平滑：消除零概率与向均匀先验收缩 loading=lazy decoding=async></figure></p><ul><li>左图：$\alpha$ 增大时，常见词把概率质量让给罕见词和未见词。</li><li>右图：每个词的估计被向 $1/V$ 拉拢。常见词被压低，未见词从 $0$ 抬起来。这种"拉力"的强度与 $\alpha / N_k$ 成正比。</li></ul><p>$\alpha$ 的选择是一根偏差-方差旋钮：$\alpha$ 小就更相信数据（偏差小、方差大），$\alpha$ 大就更相信均匀先验（偏差大、方差小）。<strong>用交叉验证选。</strong></p><hr><h2 id=3-三种变体同一个贝叶斯规则不同的似然>3. 三种变体——同一个贝叶斯规则，不同的似然</h2><p>分类规则一字不变。变化的只有 $P(x^{(j)} \mid c_k)$ 的建模方式。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig5_three_variants.png alt=三种朴素贝叶斯变体的对比 loading=lazy decoding=async></figure></p><h3 id=31-多项式朴素贝叶斯为词频设计>3.1 多项式朴素贝叶斯——为词频设计</h3><p>适用于非负整数计数：词频、$n$-gram、哈希桶。</p><p><strong>生成故事。</strong> 每篇 $c_k$ 类文档相当于从词表分布 $\boldsymbol{\theta}_k = (\theta_{1k}, \dots, \theta_{dk})$（满足 $\sum_j \theta_{jk} = 1$）中独立同分布采词组成的"词袋"。给定词频 $\mathbf{x}$ 的似然为：</p>$$
 P(\mathbf{x} \mid c_k) \;\propto\; \prod_{j=1}^{d} \theta_{jk}^{x^{(j)}}.
-$$<p><strong>带平滑的估计量：</strong></p>
-$$
+$$<p><strong>带平滑的估计量：</strong></p>$$
 \hat{\theta}_{jk} \;=\; \frac{\sum_{i:\, y_i=c_k} x_i^{(j)} + \alpha}{\sum_{j'=1}^{d}\sum_{i:\, y_i=c_k} x_i^{(j')} + \alpha d}.
-$$<p>直觉：$c_k$ 类所有词 token 中，恰好是词 $j$ 的比例。</p>
-<h3 id="32-伯努利朴素贝叶斯为词的有无设计">3.2 伯努利朴素贝叶斯——为词的有无设计</h3>
-<p>适用于二值特征（出现 / 未出现），尤其适合短文本。</p>
-<p><strong>生成故事。</strong> 词表中每个词独立地抛一枚有偏硬币，正面概率 $p_{jk} = P(x^{(j)} = 1 \mid c_k)$：</p>
-$$
+$$<p>直觉：$c_k$ 类所有词 token 中，恰好是词 $j$ 的比例。</p><h3 id=32-伯努利朴素贝叶斯为词的有无设计>3.2 伯努利朴素贝叶斯——为词的有无设计</h3><p>适用于二值特征（出现 / 未出现），尤其适合短文本。</p><p><strong>生成故事。</strong> 词表中每个词独立地抛一枚有偏硬币，正面概率 $p_{jk} = P(x^{(j)} = 1 \mid c_k)$：</p>$$
 P(\mathbf{x} \mid c_k) \;=\; \prod_{j=1}^{d} p_{jk}^{x^{(j)}} (1 - p_{jk})^{1 - x^{(j)}}.
-$$<p><strong>与多项式 NB 最关键的差别：</strong> 伯努利<strong>显式</strong>地把每个未出现词的 $(1 - p_{jk})$ 乘进去，<strong>缺席本身也是证据</strong>。如果某封邮件里没有出现 &ldquo;free&rdquo;，而 &ldquo;free&rdquo; 通常在 85% 的垃圾邮件中出现，那么这次缺席就是反对垃圾邮件的有力证据。多项式 NB 则会直接忽略未出现的词。</p>
-<p><strong>经验法则。</strong> 短而稀疏的文档（推文、日志、短查询）通常用伯努利更好；长文档（新闻、评论）通常多项式更优，因为词频本身携带信息。</p>
-<h3 id="33-高斯朴素贝叶斯为连续特征设计">3.3 高斯朴素贝叶斯——为连续特征设计</h3>
-<p>适用于实数特征且每类大致单峰：物理量、嵌入向量、传感器数据。</p>
-<p><strong>生成故事。</strong> 每个类、每个特征都是高斯：</p>
-$$
+$$<p><strong>与多项式 NB 最关键的差别：</strong> 伯努利<strong>显式</strong>地把每个未出现词的 $(1 - p_{jk})$ 乘进去，<strong>缺席本身也是证据</strong>。如果某封邮件里没有出现 &ldquo;free&rdquo;，而 &ldquo;free&rdquo; 通常在 85% 的垃圾邮件中出现，那么这次缺席就是反对垃圾邮件的有力证据。多项式 NB 则会直接忽略未出现的词。</p><p><strong>经验法则。</strong> 短而稀疏的文档（推文、日志、短查询）通常用伯努利更好；长文档（新闻、评论）通常多项式更优，因为词频本身携带信息。</p><h3 id=33-高斯朴素贝叶斯为连续特征设计>3.3 高斯朴素贝叶斯——为连续特征设计</h3><p>适用于实数特征且每类大致单峰：物理量、嵌入向量、传感器数据。</p><p><strong>生成故事。</strong> 每个类、每个特征都是高斯：</p>$$
 P(x^{(j)} \mid c_k) \;=\; \mathcal{N}\!\left(x^{(j)};\, \mu_{jk},\, \sigma_{jk}^2\right).
-$$<p>类条件密度是 $d$ 个一元高斯之积，等价于一个<strong>对角协方差</strong>的多元高斯。这就是图 1 中那些与坐标轴对齐的椭圆。</p>
-<p>一个值得记住的事实：当两类的逐特征方差相同（$\sigma_{jk}^2 = \sigma_j^2$ 与 $k$ 无关）时，对数后验比是 $\mathbf{x}$ 的线性函数，<strong>高斯 NB 的决策边界与逻辑回归完全一致</strong>——只不过参数是用生成式 MLE 估出来的，而非判别式拟合。</p>
-<hr>
-<h2 id="4-实战垃圾邮件分类">4. 实战：垃圾邮件分类</h2>
-<p>贝叶斯定理、条件独立、拉普拉斯平滑——这三件事在朴素贝叶斯最经典的应用上交汇：垃圾邮件过滤。完整流水线如下：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig4_bag_of_words.png" alt="从词袋到逐类词概率" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ol>
-<li><strong>分词</strong>：把文档切成词。</li>
-<li><strong>构建词频矩阵</strong>：行是文档，列是词表，形状 $(N \times d)$。</li>
-<li><strong>估计</strong>：从类频率得到 $\hat{P}(c_k)$，从词计数 + 拉普拉斯平滑得到 $\hat{\theta}_{jk}$（多项式）或 $\hat{p}_{jk}$（伯努利）。</li>
-<li><strong>预测</strong>：对每个类计算对数得分，取 argmax。</li>
-</ol>
-<p>右图展示了估计出的逐类词分布：垃圾邮件把概率质量集中在 &ldquo;free&rdquo;、&ldquo;money&rdquo;、&ldquo;win&rdquo;，正常邮件则集中在 &ldquo;meeting&rdquo;、&ldquo;schedule&rdquo;、&ldquo;project&rdquo;。<strong>对一封测试邮件而言，分类就是把每个特征的证据相加：</strong></p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig7_spam_decision.png" alt="逐特征对数几率与瀑布图：得到最终决策" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>从左往右读这张瀑布图：从对数先验比 $\ln \frac{P(\mathrm{spam})}{P(\mathrm{ham})}$ 出发，逐个加入每个词的贡献（正条往上是支持垃圾邮件，负条往下是反对）。最终柱子的高度就是总对数几率，正则判为垃圾邮件。</p>
-<p>从这个角度看，<strong>朴素贝叶斯的每一次预测，本质上就是一连串&quot;逐特征对数似然比&quot;的求和。</strong></p>
-<hr>
-<h2 id="5-假设错的离谱为什么还能用">5. 假设错的离谱，为什么还能用？</h2>
-<p>独立假设几乎从不成立。词彼此共现、症状成簇出现、传感器读数相关。可朴素贝叶斯在文本分类基准上常常击败那些<strong>懂得相关性</strong>的模型。原因有四，互相加强：</p>
-<ol>
-<li><strong>分类只看排序，不看校准。</strong> argmax 只取决于哪个后验最大，与绝对值无关。一个模型可以概率严重失校，但排序仍然正确。</li>
-<li><strong>取对数后比值中的偏差互相抵消。</strong> 算后验之比时，重复的相关特征会把<strong>两类</strong>的对数似然抬高相近的量，差额中这部分基本对消。</li>
-<li><strong>偏差-方差权衡有利。</strong> 独立假设带来一定偏差，但参数量从 $\mathcal{O}(K \cdot d^2)$ 砍到 $\mathcal{O}(K \cdot d)$，方差骤降。在样本量有限时，这笔交易常常划算。</li>
-<li><strong>Domingos–Pazzani 定理（1997）。</strong> 一个形式化结论：只要朴素贝叶斯估计出的后验<strong>排序</strong>与真实后验一致，它就是 0-1 损失下最优的——这个条件<strong>远弱于</strong>独立假设本身的成立。换言之，朴素贝叶斯可以在概率大小上一塌糊涂，却在每一次决策上正确。</li>
-</ol>
-<p>这并不意味着不需要诊断。朴素贝叶斯输出的概率不可信任（详见 Q&amp;A）。但只要任务是排序或 argmax，它的实际战斗力远超体量。</p>
-<hr>
-<h2 id="6-参考实现">6. 参考实现</h2>
-<p>仅依赖 NumPy 的简洁实现，三种变体齐备。高斯版本在末尾与 scikit-learn 对照验证。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span><span class="lnt">71
-</span><span class="lnt">72
-</span><span class="lnt">73
-</span><span class="lnt">74
-</span><span class="lnt">75
-</span><span class="lnt">76
-</span><span class="lnt">77
-</span><span class="lnt">78
-</span><span class="lnt">79
-</span><span class="lnt">80
-</span><span class="lnt">81
-</span><span class="lnt">82
-</span><span class="lnt">83
-</span><span class="lnt">84
-</span><span class="lnt">85
-</span><span class="lnt">86
-</span><span class="lnt">87
-</span><span class="lnt">88
-</span><span class="lnt">89
-</span><span class="lnt">90
-</span><span class="lnt">91
-</span><span class="lnt">92
-</span><span class="lnt">93
-</span><span class="lnt">94
-</span><span class="lnt">95
-</span><span class="lnt">96
-</span><span class="lnt">97
-</span><span class="lnt">98
-</span><span class="lnt">99
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GaussianNB</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;连续特征：高斯朴素贝叶斯。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">prior_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># mu, var: 形状 (K, d)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mu_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">X</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">var_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">X</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">])</span> <span class="o">+</span> <span class="mf">1e-9</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_log_likelihood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 对每个类把各特征的 log N(x; mu, var) 求和 -&gt; (N, K)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">diff2</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ll</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">+</span> <span class="n">diff2</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">ll</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict_log_proba</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_post</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prior_</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_likelihood</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># log-sum-exp 归一化，数值稳定</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_post</span> <span class="o">-=</span> <span class="n">log_post</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_post</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_post</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">log_post</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predict_log_proba</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultinomialNB</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;词频特征：多项式朴素贝叶斯（带拉普拉斯平滑）。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">K</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">),</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">prior_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">log_theta_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">counts</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">log_theta_</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="n">counts</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">/</span>
-</span></span><span class="line"><span class="cl">                                        <span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">d</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_post</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prior_</span><span class="p">)</span> <span class="o">+</span> <span class="n">X</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_theta_</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">log_post</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BernoulliNB</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;二值特征：伯努利朴素贝叶斯。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">X</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">K</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">),</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">prior_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">p_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">K</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">Xc</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">c</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">p_</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">Xc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Xc</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">X</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># log P(x|c) = sum [ x log p + (1-x) log (1-p) ]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p_</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_1mp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_lik</span> <span class="o">=</span> <span class="n">X</span> <span class="o">@</span> <span class="n">log_p</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">X</span><span class="p">)</span> <span class="o">@</span> <span class="n">log_1mp</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_post</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prior_</span><span class="p">)</span> <span class="o">+</span> <span class="n">log_lik</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">log_post</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># --- 与 scikit-learn 对照 ---</span>
-</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="kn">import</span> <span class="n">load_iris</span>
-</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
-</span></span><span class="line"><span class="cl">    <span class="kn">from</span> <span class="nn">sklearn.naive_bayes</span> <span class="kn">import</span> <span class="n">GaussianNB</span> <span class="k">as</span> <span class="n">SkGNB</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_iris</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X_tr</span><span class="p">,</span> <span class="n">X_te</span><span class="p">,</span> <span class="n">y_tr</span><span class="p">,</span> <span class="n">y_te</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">ours</span> <span class="o">=</span> <span class="n">GaussianNB</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_tr</span><span class="p">,</span> <span class="n">y_tr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">sk</span> <span class="o">=</span> <span class="n">SkGNB</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_tr</span><span class="p">,</span> <span class="n">y_tr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;自实现:  </span><span class="si">{</span><span class="p">(</span><span class="n">ours</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_te</span><span class="p">)</span> <span class="o">==</span> <span class="n">y_te</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;sklearn: </span><span class="si">{</span><span class="n">sk</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_te</span><span class="p">,</span> <span class="n">y_te</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 该随机种子下两者均为 0.9778。</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="7-习题">7. 习题</h2>
-<h3 id="习题-1--条件独立的定义">习题 1 —— 条件独立的定义</h3>
-<p><strong>题目。</strong> 已知 $P(c_1) = 0.6$，$P(x_1=1 \mid c_1) = 0.8$，$P(x_2=1 \mid c_1) = 0.5$。在朴素贝叶斯假设下计算 $P(x_1=1, x_2=1 \mid c_1)$。</p>
-<p><strong>解答。</strong> 给定 $c_1$ 后联合分布因式分解：</p>
-$$
+$$<p>类条件密度是 $d$ 个一元高斯之积，等价于一个<strong>对角协方差</strong>的多元高斯。这就是图 1 中那些与坐标轴对齐的椭圆。</p><p>一个值得记住的事实：当两类的逐特征方差相同（$\sigma_{jk}^2 = \sigma_j^2$ 与 $k$ 无关）时，对数后验比是 $\mathbf{x}$ 的线性函数，<strong>高斯 NB 的决策边界与逻辑回归完全一致</strong>——只不过参数是用生成式 MLE 估出来的，而非判别式拟合。</p><hr><h2 id=4-实战垃圾邮件分类>4. 实战：垃圾邮件分类</h2><p>贝叶斯定理、条件独立、拉普拉斯平滑——这三件事在朴素贝叶斯最经典的应用上交汇：垃圾邮件过滤。完整流水线如下：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig4_bag_of_words.png alt=从词袋到逐类词概率 loading=lazy decoding=async></figure></p><ol><li><strong>分词</strong>：把文档切成词。</li><li><strong>构建词频矩阵</strong>：行是文档，列是词表，形状 $(N \times d)$。</li><li><strong>估计</strong>：从类频率得到 $\hat{P}(c_k)$，从词计数 + 拉普拉斯平滑得到 $\hat{\theta}_{jk}$（多项式）或 $\hat{p}_{jk}$（伯努利）。</li><li><strong>预测</strong>：对每个类计算对数得分，取 argmax。</li></ol><p>右图展示了估计出的逐类词分布：垃圾邮件把概率质量集中在 &ldquo;free&rdquo;、&ldquo;money&rdquo;、&ldquo;win&rdquo;，正常邮件则集中在 &ldquo;meeting&rdquo;、&ldquo;schedule&rdquo;、&ldquo;project&rdquo;。<strong>对一封测试邮件而言，分类就是把每个特征的证据相加：</strong></p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/09-%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF/fig7_spam_decision.png alt=逐特征对数几率与瀑布图：得到最终决策 loading=lazy decoding=async></figure></p><p>从左往右读这张瀑布图：从对数先验比 $\ln \frac{P(\mathrm{spam})}{P(\mathrm{ham})}$ 出发，逐个加入每个词的贡献（正条往上是支持垃圾邮件，负条往下是反对）。最终柱子的高度就是总对数几率，正则判为垃圾邮件。</p><p>从这个角度看，<strong>朴素贝叶斯的每一次预测，本质上就是一连串"逐特征对数似然比"的求和。</strong></p><hr><h2 id=5-假设错的离谱为什么还能用>5. 假设错的离谱，为什么还能用？</h2><p>独立假设几乎从不成立。词彼此共现、症状成簇出现、传感器读数相关。可朴素贝叶斯在文本分类基准上常常击败那些<strong>懂得相关性</strong>的模型。原因有四，互相加强：</p><ol><li><strong>分类只看排序，不看校准。</strong> argmax 只取决于哪个后验最大，与绝对值无关。一个模型可以概率严重失校，但排序仍然正确。</li><li><strong>取对数后比值中的偏差互相抵消。</strong> 算后验之比时，重复的相关特征会把<strong>两类</strong>的对数似然抬高相近的量，差额中这部分基本对消。</li><li><strong>偏差-方差权衡有利。</strong> 独立假设带来一定偏差，但参数量从 $\mathcal{O}(K \cdot d^2)$ 砍到 $\mathcal{O}(K \cdot d)$，方差骤降。在样本量有限时，这笔交易常常划算。</li><li><strong>Domingos–Pazzani 定理（1997）。</strong> 一个形式化结论：只要朴素贝叶斯估计出的后验<strong>排序</strong>与真实后验一致，它就是 0-1 损失下最优的——这个条件<strong>远弱于</strong>独立假设本身的成立。换言之，朴素贝叶斯可以在概率大小上一塌糊涂，却在每一次决策上正确。</li></ol><p>这并不意味着不需要诊断。朴素贝叶斯输出的概率不可信任（详见 Q&amp;A）。但只要任务是排序或 argmax，它的实际战斗力远超体量。</p><hr><h2 id=6-参考实现>6. 参考实现</h2><p>仅依赖 NumPy 的简洁实现，三种变体齐备。高斯版本在末尾与 scikit-learn 对照验证。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span><span class=lnt>88
+</span><span class=lnt>89
+</span><span class=lnt>90
+</span><span class=lnt>91
+</span><span class=lnt>92
+</span><span class=lnt>93
+</span><span class=lnt>94
+</span><span class=lnt>95
+</span><span class=lnt>96
+</span><span class=lnt>97
+</span><span class=lnt>98
+</span><span class=lnt>99
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>defaultdict</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>GaussianNB</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;连续特征：高斯朴素贝叶斯。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>fit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>prior_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([(</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=c1># mu, var: 形状 (K, d)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mu_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>X</span><span class=p>[</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>]</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>var_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>X</span><span class=p>[</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>]</span><span class=o>.</span><span class=n>var</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>])</span> <span class=o>+</span> <span class=mf>1e-9</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_log_likelihood</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 对每个类把各特征的 log N(x; mu, var) 求和 -&gt; (N, K)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>((</span><span class=n>X</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>            <span class=n>diff2</span> <span class=o>=</span> <span class=p>(</span><span class=n>X</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>mu_</span><span class=p>[</span><span class=n>k</span><span class=p>])</span> <span class=o>**</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>            <span class=n>ll</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>pi</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>var_</span><span class=p>[</span><span class=n>k</span><span class=p>])</span> <span class=o>+</span> <span class=n>diff2</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>var_</span><span class=p>[</span><span class=n>k</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span><span class=p>[:,</span> <span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=n>ll</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict_log_proba</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_post</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>prior_</span><span class=p>)</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_likelihood</span><span class=p>(</span><span class=n>X</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># log-sum-exp 归一化，数值稳定</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_post</span> <span class=o>-=</span> <span class=n>log_post</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_post</span> <span class=o>-=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_post</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>log_post</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>predict_log_proba</span><span class=p>(</span><span class=n>X</span><span class=p>),</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MultinomialNB</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;词频特征：多项式朴素贝叶斯（带拉普拉斯平滑）。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>alpha</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>fit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>K</span><span class=p>,</span> <span class=n>d</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>),</span> <span class=n>X</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>prior_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([(</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>log_theta_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>((</span><span class=n>K</span><span class=p>,</span> <span class=n>d</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>counts</span> <span class=o>=</span> <span class=n>X</span><span class=p>[</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>]</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>log_theta_</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>((</span><span class=n>counts</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>)</span> <span class=o>/</span>
+</span></span><span class=line><span class=cl>                                        <span class=p>(</span><span class=n>counts</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=n>d</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_post</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>prior_</span><span class=p>)</span> <span class=o>+</span> <span class=n>X</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_theta_</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>log_post</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BernoulliNB</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;二值特征：伯努利朴素贝叶斯。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>alpha</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>fit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>X</span> <span class=o>=</span> <span class=p>(</span><span class=n>X</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=nb>float</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>K</span><span class=p>,</span> <span class=n>d</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>),</span> <span class=n>X</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>prior_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([(</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>p_</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>((</span><span class=n>K</span><span class=p>,</span> <span class=n>d</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>Xc</span> <span class=o>=</span> <span class=n>X</span><span class=p>[</span><span class=n>y</span> <span class=o>==</span> <span class=n>c</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>p_</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>Xc</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>Xc</span><span class=p>)</span> <span class=o>+</span> <span class=mi>2</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>X</span> <span class=o>=</span> <span class=p>(</span><span class=n>X</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=nb>float</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># log P(x|c) = sum [ x log p + (1-x) log (1-p) ]</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_p</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>p_</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_1mp</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>p_</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_lik</span> <span class=o>=</span> <span class=n>X</span> <span class=o>@</span> <span class=n>log_p</span><span class=o>.</span><span class=n>T</span> <span class=o>+</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>X</span><span class=p>)</span> <span class=o>@</span> <span class=n>log_1mp</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_post</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>prior_</span><span class=p>)</span> <span class=o>+</span> <span class=n>log_lik</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>classes_</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>log_post</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># --- 与 scikit-learn 对照 ---</span>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=kn>from</span> <span class=nn>sklearn.datasets</span> <span class=kn>import</span> <span class=n>load_iris</span>
+</span></span><span class=line><span class=cl>    <span class=kn>from</span> <span class=nn>sklearn.model_selection</span> <span class=kn>import</span> <span class=n>train_test_split</span>
+</span></span><span class=line><span class=cl>    <span class=kn>from</span> <span class=nn>sklearn.naive_bayes</span> <span class=kn>import</span> <span class=n>GaussianNB</span> <span class=k>as</span> <span class=n>SkGNB</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>X</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>load_iris</span><span class=p>(</span><span class=n>return_X_y</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>X_tr</span><span class=p>,</span> <span class=n>X_te</span><span class=p>,</span> <span class=n>y_tr</span><span class=p>,</span> <span class=n>y_te</span> <span class=o>=</span> <span class=n>train_test_split</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>test_size</span><span class=o>=</span><span class=mf>0.3</span><span class=p>,</span> <span class=n>random_state</span><span class=o>=</span><span class=mi>42</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>ours</span> <span class=o>=</span> <span class=n>GaussianNB</span><span class=p>()</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X_tr</span><span class=p>,</span> <span class=n>y_tr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>sk</span> <span class=o>=</span> <span class=n>SkGNB</span><span class=p>()</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X_tr</span><span class=p>,</span> <span class=n>y_tr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;自实现:  </span><span class=si>{</span><span class=p>(</span><span class=n>ours</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>X_te</span><span class=p>)</span> <span class=o>==</span> <span class=n>y_te</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;sklearn: </span><span class=si>{</span><span class=n>sk</span><span class=o>.</span><span class=n>score</span><span class=p>(</span><span class=n>X_te</span><span class=p>,</span> <span class=n>y_te</span><span class=p>)</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 该随机种子下两者均为 0.9778。</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=7-习题>7. 习题</h2><h3 id=习题-1--条件独立的定义>习题 1 —— 条件独立的定义</h3><p><strong>题目。</strong> 已知 $P(c_1) = 0.6$，$P(x_1=1 \mid c_1) = 0.8$，$P(x_2=1 \mid c_1) = 0.5$。在朴素贝叶斯假设下计算 $P(x_1=1, x_2=1 \mid c_1)$。</p><p><strong>解答。</strong> 给定 $c_1$ 后联合分布因式分解：</p>$$
 P(x_1=1, x_2=1 \mid c_1) = P(x_1=1 \mid c_1)\, P(x_2=1 \mid c_1) = 0.8 \times 0.5 = 0.4.
-$$<p>$P(c_1)$ 在条件分布<strong>内部</strong>没有用武之地——只有在求无条件 $P(x_1, x_2)$ 时才会进入计算。</p>
-<h3 id="习题-2--数字版的拉普拉斯平滑">习题 2 —— 数字版的拉普拉斯平滑</h3>
-<p><strong>题目。</strong> 词表大小 $V = 1000$。正类语料共 200 个词 token，其中 <em>excellent</em> 出现 5 次。计算 (a) MLE 估计、(b) 拉普拉斯平滑（$\alpha = 1$）估计、(c) 未见词的平滑估计。</p>
-<p><strong>解答。</strong></p>
-<p>(a) MLE：$\hat{P}(\text{excellent} \mid +) = 5 / 200 = 0.025$。</p>
-<p>(b) 平滑：$\hat{P}(\text{excellent} \mid +) = (5+1) / (200 + 1000) = 6 / 1200 = 0.005$。</p>
-<p>(c) 未见词：$\hat{P}(w \mid +) = (0+1) / (200 + 1000) = 1/1200 \approx 8.3 \times 10^{-4}$。</p>
-<p>注意：当 $\alpha V \gg N_k$（这里 $1000 \gg 200$）时，平滑会把分布压得很平。这正是那根旋钮：类条件数据稀少时，先验占主导。</p>
-<h3 id="习题-3--同一封邮件多项式-vs-伯努利">习题 3 —— 同一封邮件，多项式 vs 伯努利</h3>
-<p><strong>题目。</strong> 一封 100 词邮件中 <em>win</em> 出现 5 次、<em>free</em> 出现 3 次。已知垃圾类下 $P(\text{win} \mid \text{spam}) = 0.05$、$P(\text{free} \mid \text{spam}) = 0.03$（多项式参数）；$P(\text{win 出现} \mid \text{spam}) = 0.7$、$P(\text{free 出现} \mid \text{spam}) = 0.6$（伯努利参数）。比较两者的对数似然贡献。</p>
-<p><strong>解答。</strong></p>
-<p>多项式（依赖词频）：</p>
-$$
+$$<p>$P(c_1)$ 在条件分布<strong>内部</strong>没有用武之地——只有在求无条件 $P(x_1, x_2)$ 时才会进入计算。</p><h3 id=习题-2--数字版的拉普拉斯平滑>习题 2 —— 数字版的拉普拉斯平滑</h3><p><strong>题目。</strong> 词表大小 $V = 1000$。正类语料共 200 个词 token，其中 <em>excellent</em> 出现 5 次。计算 (a) MLE 估计、(b) 拉普拉斯平滑（$\alpha = 1$）估计、(c) 未见词的平滑估计。</p><p><strong>解答。</strong></p><p>(a) MLE：$\hat{P}(\text{excellent} \mid +) = 5 / 200 = 0.025$。</p><p>(b) 平滑：$\hat{P}(\text{excellent} \mid +) = (5+1) / (200 + 1000) = 6 / 1200 = 0.005$。</p><p>(c) 未见词：$\hat{P}(w \mid +) = (0+1) / (200 + 1000) = 1/1200 \approx 8.3 \times 10^{-4}$。</p><p>注意：当 $\alpha V \gg N_k$（这里 $1000 \gg 200$）时，平滑会把分布压得很平。这正是那根旋钮：类条件数据稀少时，先验占主导。</p><h3 id=习题-3--同一封邮件多项式-vs-伯努利>习题 3 —— 同一封邮件，多项式 vs 伯努利</h3><p><strong>题目。</strong> 一封 100 词邮件中 <em>win</em> 出现 5 次、<em>free</em> 出现 3 次。已知垃圾类下 $P(\text{win} \mid \text{spam}) = 0.05$、$P(\text{free} \mid \text{spam}) = 0.03$（多项式参数）；$P(\text{win 出现} \mid \text{spam}) = 0.7$、$P(\text{free 出现} \mid \text{spam}) = 0.6$（伯努利参数）。比较两者的对数似然贡献。</p><p><strong>解答。</strong></p><p>多项式（依赖词频）：</p>$$
 \ln L_{\mathrm{mult}} = 5\ln(0.05) + 3\ln(0.03) = 5(-2.996) + 3(-3.507) = -25.5.
-$$<p>伯努利（只看有无）：</p>
-$$
+$$<p>伯努利（只看有无）：</p>$$
 \ln L_{\mathrm{bern}} = \ln(0.7) + \ln(0.6) = -0.357 + (-0.511) = -0.87.
-$$<p>两个数值不能直接对比（背后是不同的概率对象），但形态上很说明问题：多项式让 5 次出现的信号被线性放大，而伯努利把&quot;出现 1 次&quot;和&quot;出现 5 次&quot;压成同一份证据。长文档里这个动态范围是真信息，短文档里通常不是。</p>
-<h3 id="习题-4--手算高斯-nb-参数">习题 4 —— 手算高斯 NB 参数</h3>
-<p><strong>题目。</strong> $+1$ 类含三个 2D 点：$(1, 2), (2, 3), (3, 1)$。求高斯 NB 参数。</p>
-<p><strong>解答。</strong> 逐特征 MLE 均值与方差：</p>
-$$
+$$<p>两个数值不能直接对比（背后是不同的概率对象），但形态上很说明问题：多项式让 5 次出现的信号被线性放大，而伯努利把"出现 1 次"和"出现 5 次"压成同一份证据。长文档里这个动态范围是真信息，短文档里通常不是。</p><h3 id=习题-4--手算高斯-nb-参数>习题 4 —— 手算高斯 NB 参数</h3><p><strong>题目。</strong> $+1$ 类含三个 2D 点：$(1, 2), (2, 3), (3, 1)$。求高斯 NB 参数。</p><p><strong>解答。</strong> 逐特征 MLE 均值与方差：</p>$$
 \hat\mu_1 = \tfrac{1+2+3}{3} = 2, \quad
 \hat\sigma_1^2 = \tfrac{(1{-}2)^2 + (2{-}2)^2 + (3{-}2)^2}{3} = \tfrac{2}{3},
 $$$$
 \hat\mu_2 = \tfrac{2+3+1}{3} = 2, \quad
 \hat\sigma_2^2 = \tfrac{(2{-}2)^2 + (3{-}2)^2 + (1{-}2)^2}{3} = \tfrac{2}{3}.
-$$<p>故 $\hat\sigma_1 = \hat\sigma_2 = \sqrt{2/3} \approx 0.816$。<strong>高斯 NB 没有协方差的非对角项</strong>——样本 $(1,3)$ 落在&quot;错的对角线&quot;上这件事，根本进不了模型。</p>
-<h3 id="习题-5--假设错了为什么还能用">习题 5 —— 假设错了为什么还能用</h3>
-<p><strong>题目。</strong> 给出朴素贝叶斯在独立假设被破坏时仍然有效的四条独立理由。</p>
-<p><strong>解答。</strong> 即 §5 中展开的论证：</p>
-<ol>
-<li><strong>决策只看 argmax</strong>：分类需要正确的<strong>排序</strong>，而非正确的概率绝对值。</li>
-<li><strong>对数比中的偏差抵消</strong>：相关特征会把两类的对数似然同时抬高相近的量，在比值中相互抵消。</li>
-<li><strong>偏差-方差权衡有利</strong>：用一点偏差换一大块方差降低，在样本量相对 $d$ 偏小时净获利。</li>
-<li><strong>Domingos–Pazzani 定理</strong>：朴素贝叶斯只要 argmax 与真实后验一致就达到 0-1 损失最优——这个条件远弱于联合分布真的可以分解。</li>
-</ol>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="为什么叫朴素">为什么叫&quot;朴素&quot;？</h3>
-<p>&ldquo;朴素&quot;指的是条件独立这一过于简单的假设——词与词共现、症状成簇出现，但模型偏偏假装它们彼此独立。这个标签强调的就是这种近乎张扬的简化态度。</p>
-<h3 id="朴素贝叶斯和逻辑回归的关系">朴素贝叶斯和逻辑回归的关系？</h3>
-<p>当各类共享逐特征方差时，高斯 NB 的决策边界是线性的 $\mathbf{w}^\top\mathbf{x} + b = 0$，与逻辑回归形式相同。系数不一样，因为 NB 通过对 $P(\mathbf{x}, y)$ 做生成式 MLE 得到 $\mathbf{w}$，逻辑回归则直接对 $P(y \mid \mathbf{x})$ 做判别式拟合。渐近上逻辑回归不会更差，但 NB 收敛所需样本更少。</p>
-<h3 id="朴素贝叶斯输出的概率值可信吗">朴素贝叶斯输出的概率值可信吗？</h3>
-<p><strong>不可信。</strong> 相关特征的对数似然会被反复累计，所以后验通常过于极端（贴近 0 或 1）。排序任务（argmax、Top-$K$、ROC）不受影响，但若决策依赖概率大小（成本敏感阈值、风险计算），需要在留出集上做 <strong>Platt scaling</strong> 或<strong>等距回归</strong>校准。</p>
-<h3 id="时间复杂度">时间复杂度？</h3>
-<p>训练 $\mathcal{O}(Nd)$——对训练集扫一遍。预测 $\mathcal{O}(Kd)$——每个样本一次。没有迭代，没有需要昂贵调参的超参数（顶多 CV 扫一下 $\alpha$）。</p>
-<h3 id="缺失特征怎么处理">缺失特征怎么处理？</h3>
-<p><strong>天然友好。</strong> 当样本 $i$ 的特征 $j$ 缺失，从对数和中省略 $\ln P(x_i^{(j)} \mid c_k)$ 这一项即可。这数学上等价于对缺失维度做边缘化，是生成式建模的真实优势之一。</p>
-<h3 id="什么时候不应该用朴素贝叶斯">什么时候<strong>不</strong>应该用朴素贝叶斯？</h3>
-<p>当 (i) 特征强相关<strong>且</strong>相关结构在不同类之间差异很大（误差抵消失效）；(ii) 任务需要校准良好的概率；(iii) 数据充足且判别式模型可行——逻辑回归、梯度提升或 Transformer 通常会胜出。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Domingos, P., &amp; Pazzani, M. (1997). On the optimality of the simple Bayesian classifier under zero-one loss. <em>Machine Learning</em>, 29(2-3), 103-130.</li>
-<li>Ng, A. Y., &amp; Jordan, M. I. (2001). On discriminative vs. generative classifiers: A comparison of logistic regression and naive Bayes. <em>NeurIPS</em>.</li>
-<li>McCallum, A., &amp; Nigam, K. (1998). A comparison of event models for naive Bayes text classification. <em>AAAI Workshop on Learning for Text Categorization</em>.</li>
-<li>Manning, C. D., Raghavan, P., &amp; Schütze, H. (2008). <em>Introduction to Information Retrieval</em>. Cambridge University Press. Chapter 13.</li>
-<li>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>. Springer. Section 8.2.</li>
-<li>Murphy, K. P. (2012). <em>Machine Learning: A Probabilistic Perspective</em>. MIT Press. Chapter 3.</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>篇</th>
-          <th>主题</th>
-          <th>链接</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>8</td>
-          <td>支持向量机</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ab-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/">&lt;&ndash; 上一篇</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>9</strong></td>
-          <td><strong>朴素贝叶斯</strong></td>
-          <td><em>当前位置</em></td>
-      </tr>
-      <tr>
-          <td>10</td>
-          <td>半朴素贝叶斯与贝叶斯网络</td>
-          <td><a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/">下一篇 &ndash;&gt;</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#预备知识">预备知识</a></li>
-    <li><a href="#1-贝叶斯决策论">1. 贝叶斯决策论</a>
-      <ul>
-        <li><a href="#11-贝叶斯定理把信念更新写出来">1.1 贝叶斯定理：把信念更新写出来</a></li>
-        <li><a href="#12-贝叶斯最优分类器">1.2 贝叶斯最优分类器</a></li>
-        <li><a href="#13-生成模型-vs-判别模型">1.3 生成模型 vs 判别模型</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-朴素贝叶斯分类器">2. 朴素贝叶斯分类器</a>
-      <ul>
-        <li><a href="#21-为什么必须做一刀切式的简化">2.1 为什么必须做一刀切式的简化</a></li>
-        <li><a href="#22-条件独立假设">2.2 条件独立假设</a></li>
-        <li><a href="#23-分类规则">2.3 分类规则</a></li>
-        <li><a href="#24-极大似然参数估计">2.4 极大似然参数估计</a></li>
-        <li><a href="#25-拉普拉斯平滑以及它的贝叶斯灵魂">2.5 拉普拉斯平滑——以及它的贝叶斯灵魂</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-三种变体同一个贝叶斯规则不同的似然">3. 三种变体——同一个贝叶斯规则，不同的似然</a>
-      <ul>
-        <li><a href="#31-多项式朴素贝叶斯为词频设计">3.1 多项式朴素贝叶斯——为词频设计</a></li>
-        <li><a href="#32-伯努利朴素贝叶斯为词的有无设计">3.2 伯努利朴素贝叶斯——为词的有无设计</a></li>
-        <li><a href="#33-高斯朴素贝叶斯为连续特征设计">3.3 高斯朴素贝叶斯——为连续特征设计</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-实战垃圾邮件分类">4. 实战：垃圾邮件分类</a></li>
-    <li><a href="#5-假设错的离谱为什么还能用">5. 假设错的离谱，为什么还能用？</a></li>
-    <li><a href="#6-参考实现">6. 参考实现</a></li>
-    <li><a href="#7-习题">7. 习题</a>
-      <ul>
-        <li><a href="#习题-1--条件独立的定义">习题 1 —— 条件独立的定义</a></li>
-        <li><a href="#习题-2--数字版的拉普拉斯平滑">习题 2 —— 数字版的拉普拉斯平滑</a></li>
-        <li><a href="#习题-3--同一封邮件多项式-vs-伯努利">习题 3 —— 同一封邮件，多项式 vs 伯努利</a></li>
-        <li><a href="#习题-4--手算高斯-nb-参数">习题 4 —— 手算高斯 NB 参数</a></li>
-        <li><a href="#习题-5--假设错了为什么还能用">习题 5 —— 假设错了为什么还能用</a></li>
-      </ul>
-    </li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#为什么叫朴素">为什么叫&quot;朴素&quot;？</a></li>
-        <li><a href="#朴素贝叶斯和逻辑回归的关系">朴素贝叶斯和逻辑回归的关系？</a></li>
-        <li><a href="#朴素贝叶斯输出的概率值可信吗">朴素贝叶斯输出的概率值可信吗？</a></li>
-        <li><a href="#时间复杂度">时间复杂度？</a></li>
-        <li><a href="#缺失特征怎么处理">缺失特征怎么处理？</a></li>
-        <li><a href="#什么时候不应该用朴素贝叶斯">什么时候<strong>不</strong>应该用朴素贝叶斯？</a></li>
-      </ul>
-    </li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
-      <div class="row"><span>Word count</span><strong>7100</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>故 $\hat\sigma_1 = \hat\sigma_2 = \sqrt{2/3} \approx 0.816$。<strong>高斯 NB 没有协方差的非对角项</strong>——样本 $(1,3)$ 落在"错的对角线"上这件事，根本进不了模型。</p><h3 id=习题-5--假设错了为什么还能用>习题 5 —— 假设错了为什么还能用</h3><p><strong>题目。</strong> 给出朴素贝叶斯在独立假设被破坏时仍然有效的四条独立理由。</p><p><strong>解答。</strong> 即 §5 中展开的论证：</p><ol><li><strong>决策只看 argmax</strong>：分类需要正确的<strong>排序</strong>，而非正确的概率绝对值。</li><li><strong>对数比中的偏差抵消</strong>：相关特征会把两类的对数似然同时抬高相近的量，在比值中相互抵消。</li><li><strong>偏差-方差权衡有利</strong>：用一点偏差换一大块方差降低，在样本量相对 $d$ 偏小时净获利。</li><li><strong>Domingos–Pazzani 定理</strong>：朴素贝叶斯只要 argmax 与真实后验一致就达到 0-1 损失最优——这个条件远弱于联合分布真的可以分解。</li></ol><hr><h2 id=qa>Q&amp;A</h2><h3 id=为什么叫朴素>为什么叫"朴素"？</h3><p>&ldquo;朴素"指的是条件独立这一过于简单的假设——词与词共现、症状成簇出现，但模型偏偏假装它们彼此独立。这个标签强调的就是这种近乎张扬的简化态度。</p><h3 id=朴素贝叶斯和逻辑回归的关系>朴素贝叶斯和逻辑回归的关系？</h3><p>当各类共享逐特征方差时，高斯 NB 的决策边界是线性的 $\mathbf{w}^\top\mathbf{x} + b = 0$，与逻辑回归形式相同。系数不一样，因为 NB 通过对 $P(\mathbf{x}, y)$ 做生成式 MLE 得到 $\mathbf{w}$，逻辑回归则直接对 $P(y \mid \mathbf{x})$ 做判别式拟合。渐近上逻辑回归不会更差，但 NB 收敛所需样本更少。</p><h3 id=朴素贝叶斯输出的概率值可信吗>朴素贝叶斯输出的概率值可信吗？</h3><p><strong>不可信。</strong> 相关特征的对数似然会被反复累计，所以后验通常过于极端（贴近 0 或 1）。排序任务（argmax、Top-$K$、ROC）不受影响，但若决策依赖概率大小（成本敏感阈值、风险计算），需要在留出集上做 <strong>Platt scaling</strong> 或<strong>等距回归</strong>校准。</p><h3 id=时间复杂度>时间复杂度？</h3><p>训练 $\mathcal{O}(Nd)$——对训练集扫一遍。预测 $\mathcal{O}(Kd)$——每个样本一次。没有迭代，没有需要昂贵调参的超参数（顶多 CV 扫一下 $\alpha$）。</p><h3 id=缺失特征怎么处理>缺失特征怎么处理？</h3><p><strong>天然友好。</strong> 当样本 $i$ 的特征 $j$ 缺失，从对数和中省略 $\ln P(x_i^{(j)} \mid c_k)$ 这一项即可。这数学上等价于对缺失维度做边缘化，是生成式建模的真实优势之一。</p><h3 id=什么时候不应该用朴素贝叶斯>什么时候<strong>不</strong>应该用朴素贝叶斯？</h3><p>当 (i) 特征强相关<strong>且</strong>相关结构在不同类之间差异很大（误差抵消失效）；(ii) 任务需要校准良好的概率；(iii) 数据充足且判别式模型可行——逻辑回归、梯度提升或 Transformer 通常会胜出。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Domingos, P., & Pazzani, M. (1997). On the optimality of the simple Bayesian classifier under zero-one loss. <em>Machine Learning</em>, 29(2-3), 103-130.</li><li>Ng, A. Y., & Jordan, M. I. (2001). On discriminative vs. generative classifiers: A comparison of logistic regression and naive Bayes. <em>NeurIPS</em>.</li><li>McCallum, A., & Nigam, K. (1998). A comparison of event models for naive Bayes text classification. <em>AAAI Workshop on Learning for Text Categorization</em>.</li><li>Manning, C. D., Raghavan, P., & Schütze, H. (2008). <em>Introduction to Information Retrieval</em>. Cambridge University Press. Chapter 13.</li><li>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>. Springer. Section 8.2.</li><li>Murphy, K. P. (2012). <em>Machine Learning: A Probabilistic Perspective</em>. MIT Press. Chapter 3.</li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>篇</th><th>主题</th><th>链接</th></tr></thead><tbody><tr><td>8</td><td>支持向量机</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%85%ab-%e6%94%af%e6%8c%81%e5%90%91%e9%87%8f%e6%9c%ba/>&lt;&ndash; 上一篇</a></td></tr><tr><td><strong>9</strong></td><td><strong>朴素贝叶斯</strong></td><td><em>当前位置</em></td></tr><tr><td>10</td><td>半朴素贝叶斯与贝叶斯网络</td><td><a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81-%e5%8d%8a%e6%9c%b4%e7%b4%a0%e8%b4%9d%e5%8f%b6%e6%96%af%e4%b8%8e%e8%b4%9d%e5%8f%b6%e6%96%af%e7%bd%91%e7%bb%9c/>下一篇 &ndash;></a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#预备知识>预备知识</a></li><li><a href=#1-贝叶斯决策论>1. 贝叶斯决策论</a><ul><li><a href=#11-贝叶斯定理把信念更新写出来>1.1 贝叶斯定理：把信念更新写出来</a></li><li><a href=#12-贝叶斯最优分类器>1.2 贝叶斯最优分类器</a></li><li><a href=#13-生成模型-vs-判别模型>1.3 生成模型 vs 判别模型</a></li></ul></li><li><a href=#2-朴素贝叶斯分类器>2. 朴素贝叶斯分类器</a><ul><li><a href=#21-为什么必须做一刀切式的简化>2.1 为什么必须做一刀切式的简化</a></li><li><a href=#22-条件独立假设>2.2 条件独立假设</a></li><li><a href=#23-分类规则>2.3 分类规则</a></li><li><a href=#24-极大似然参数估计>2.4 极大似然参数估计</a></li><li><a href=#25-拉普拉斯平滑以及它的贝叶斯灵魂>2.5 拉普拉斯平滑——以及它的贝叶斯灵魂</a></li></ul></li><li><a href=#3-三种变体同一个贝叶斯规则不同的似然>3. 三种变体——同一个贝叶斯规则，不同的似然</a><ul><li><a href=#31-多项式朴素贝叶斯为词频设计>3.1 多项式朴素贝叶斯——为词频设计</a></li><li><a href=#32-伯努利朴素贝叶斯为词的有无设计>3.2 伯努利朴素贝叶斯——为词的有无设计</a></li><li><a href=#33-高斯朴素贝叶斯为连续特征设计>3.3 高斯朴素贝叶斯——为连续特征设计</a></li></ul></li><li><a href=#4-实战垃圾邮件分类>4. 实战：垃圾邮件分类</a></li><li><a href=#5-假设错的离谱为什么还能用>5. 假设错的离谱，为什么还能用？</a></li><li><a href=#6-参考实现>6. 参考实现</a></li><li><a href=#7-习题>7. 习题</a><ul><li><a href=#习题-1--条件独立的定义>习题 1 —— 条件独立的定义</a></li><li><a href=#习题-2--数字版的拉普拉斯平滑>习题 2 —— 数字版的拉普拉斯平滑</a></li><li><a href=#习题-3--同一封邮件多项式-vs-伯努利>习题 3 —— 同一封邮件，多项式 vs 伯努利</a></li><li><a href=#习题-4--手算高斯-nb-参数>习题 4 —— 手算高斯 NB 参数</a></li><li><a href=#习题-5--假设错了为什么还能用>习题 5 —— 假设错了为什么还能用</a></li></ul></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#为什么叫朴素>为什么叫"朴素"？</a></li><li><a href=#朴素贝叶斯和逻辑回归的关系>朴素贝叶斯和逻辑回归的关系？</a></li><li><a href=#朴素贝叶斯输出的概率值可信吗>朴素贝叶斯输出的概率值可信吗？</a></li><li><a href=#时间复杂度>时间复杂度？</a></li><li><a href=#缺失特征怎么处理>缺失特征怎么处理？</a></li><li><a href=#什么时候不应该用朴素贝叶斯>什么时候<strong>不</strong>应该用朴素贝叶斯？</a></li></ul></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>15 min</strong></div><div class=row><span>Word count</span><strong>7034</strong></div><div class=row><span>Published</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

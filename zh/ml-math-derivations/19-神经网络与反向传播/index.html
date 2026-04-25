@@ -1,633 +1,104 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>机器学习数学推导（十九）：神经网络与反向传播 · Chen Kai Blog</title>
-<meta name="description" content="神经网络如何学习？本文推导前向传播的矩阵形式、反向传播的链式法则逐层推导、梯度消失/爆炸的数学分析、以及 Xavier 和 He 初始化的方差保持策略。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="机器学习数学推导（十九）：神经网络与反向传播">
-<meta property="og:description" content="神经网络如何学习？本文推导前向传播的矩阵形式、反向传播的链式法则逐层推导、梯度消失/爆炸的数学分析、以及 Xavier 和 He 初始化的方差保持策略。">
-<meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">机器学习数学推导</a>
-         · Chapter 19
-      </div>
-      <h1>机器学习数学推导（十九）：神经网络与反向传播</h1>
-      <p class="deck">神经网络如何学习？本文推导前向传播的矩阵形式、反向传播的链式法则逐层推导、梯度消失/爆炸的数学分析、以及 Xavier 和 He 初始化的方差保持策略。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-07">February 7, 2026</time> · 10 min read · 4800 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="tag">#机器学习</a><a href="/zh/tags/%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/" class="tag">#神经网络</a><a href="/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/" class="tag">#深度学习</a><a href="/zh/tags/%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/" class="tag">#反向传播</a><a href="/zh/tags/%E6%A2%AF%E5%BA%A6%E6%B6%88%E5%A4%B1/" class="tag">#梯度消失</a><a href="/zh/tags/%E6%9D%83%E9%87%8D%E5%88%9D%E5%A7%8B%E5%8C%96/" class="tag">#权重初始化</a><a href="/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/" class="tag">#数学推导</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="本文概览">本文概览</h2>
-<p>单个感知机连 XOR 都解决不了；把足够多的感知机用非线性激活叠起来，却能成为<strong>通用函数逼近器</strong>。剩下的问题只有一个：这样的网络如何从数据中学习？答案是<strong>反向传播</strong>——一次链式法则的精巧应用，借由一次&quot;反向遍历&quot;把所有中间结果重复利用。这套机制是过去四十年所有深度学习库的核心引擎。把它的数学讲清楚，会顺带回答两件事：<strong>为什么深层网络会出现梯度消失/爆炸</strong>，以及<strong>为什么权重初始化远比看上去讲究</strong>。</p>
-<p><strong>你会学到：</strong></p>
-<ol>
-<li>感知机：模型、学习规则、收敛定理；</li>
-<li>多层网络的前向传播矩阵形式；</li>
-<li>反向传播：逐层推导链式法则，并搞清楚要缓存哪些量；</li>
-<li>梯度消失与梯度爆炸的根源——一串雅可比矩阵相乘；</li>
-<li>Xavier 与 He 初始化：方差保持的推导，以及各自适用的激活函数。</li>
-</ol>
-<p><strong>预备知识：</strong> 微积分（链式法则、偏导数）、线性代数（矩阵乘法）、基础概率。</p>
-<hr>
-<h2 id="1-感知机一切的起点">1. 感知机：一切的起点</h2>
-<h3 id="11-模型">1.1 模型</h3>
-<p>输入 $\mathbf{x}\in\mathbb{R}^d$、权重 $\mathbf{w}\in\mathbb{R}^d$、偏置 $b\in\mathbb{R}$，感知机计算</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>机器学习数学推导（十九）：神经网络与反向传播 · Chen Kai Blog</title>
+<meta name=description content="神经网络如何学习？本文推导前向传播的矩阵形式、反向传播的链式法则逐层推导、梯度消失/爆炸的数学分析、以及 Xavier 和 He 初始化的方差保持策略。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/><meta property="og:type" content="article"><meta property="og:title" content="机器学习数学推导（十九）：神经网络与反向传播"><meta property="og:description" content="神经网络如何学习？本文推导前向传播的矩阵形式、反向传播的链式法则逐层推导、梯度消失/爆炸的数学分析、以及 Xavier 和 He 初始化的方差保持策略。"><meta property="og:url" content="https://www.chenk.top/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>机器学习数学推导</a>
+· Chapter 19</div><h1>机器学习数学推导（十九）：神经网络与反向传播</h1><p class=deck>神经网络如何学习？本文推导前向传播的矩阵形式、反向传播的链式法则逐层推导、梯度消失/爆炸的数学分析、以及 Xavier 和 He 初始化的方差保持策略。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-07>February 7, 2026</time> · 10 min read · 4732 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/ class=tag>#机器学习</a><a href=/zh/tags/%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/ class=tag>#神经网络</a><a href=/zh/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0/ class=tag>#深度学习</a><a href=/zh/tags/%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/ class=tag>#反向传播</a><a href=/zh/tags/%E6%A2%AF%E5%BA%A6%E6%B6%88%E5%A4%B1/ class=tag>#梯度消失</a><a href=/zh/tags/%E6%9D%83%E9%87%8D%E5%88%9D%E5%A7%8B%E5%8C%96/ class=tag>#权重初始化</a><a href=/zh/tags/%E6%95%B0%E5%AD%A6%E6%8E%A8%E5%AF%BC/ class=tag>#数学推导</a></div></div></header><div class=prose><h2 id=本文概览>本文概览</h2><p>单个感知机连 XOR 都解决不了；把足够多的感知机用非线性激活叠起来，却能成为<strong>通用函数逼近器</strong>。剩下的问题只有一个：这样的网络如何从数据中学习？答案是<strong>反向传播</strong>——一次链式法则的精巧应用，借由一次"反向遍历"把所有中间结果重复利用。这套机制是过去四十年所有深度学习库的核心引擎。把它的数学讲清楚，会顺带回答两件事：<strong>为什么深层网络会出现梯度消失/爆炸</strong>，以及<strong>为什么权重初始化远比看上去讲究</strong>。</p><p><strong>你会学到：</strong></p><ol><li>感知机：模型、学习规则、收敛定理；</li><li>多层网络的前向传播矩阵形式；</li><li>反向传播：逐层推导链式法则，并搞清楚要缓存哪些量；</li><li>梯度消失与梯度爆炸的根源——一串雅可比矩阵相乘；</li><li>Xavier 与 He 初始化：方差保持的推导，以及各自适用的激活函数。</li></ol><p><strong>预备知识：</strong> 微积分（链式法则、偏导数）、线性代数（矩阵乘法）、基础概率。</p><hr><h2 id=1-感知机一切的起点>1. 感知机：一切的起点</h2><h3 id=11-模型>1.1 模型</h3><p>输入 $\mathbf{x}\in\mathbb{R}^d$、权重 $\mathbf{w}\in\mathbb{R}^d$、偏置 $b\in\mathbb{R}$，感知机计算</p>$$
 z = \mathbf{w}^{T}\mathbf{x} + b, \qquad \hat{y} = \operatorname{sign}(z) = \begin{cases} +1 & z \geq 0,\\ -1 & z < 0.\end{cases}
-$$<p>几何上，方程 $\mathbf{w}^{T}\mathbf{x} + b = 0$ 是一个超平面，把输入空间一分为二，$\hat y$ 记录的是样本落在哪一侧。</p>
-<h3 id="12-学习规则">1.2 学习规则</h3>
-<p>对一个被错分的样本 $(\mathbf{x}_i, y_i)$（即 $y_i(\mathbf{w}^{T}\mathbf{x}_i + b) \leq 0$），Rosenblatt 的更新公式是</p>
-$$
+$$<p>几何上，方程 $\mathbf{w}^{T}\mathbf{x} + b = 0$ 是一个超平面，把输入空间一分为二，$\hat y$ 记录的是样本落在哪一侧。</p><h3 id=12-学习规则>1.2 学习规则</h3><p>对一个被错分的样本 $(\mathbf{x}_i, y_i)$（即 $y_i(\mathbf{w}^{T}\mathbf{x}_i + b) \leq 0$），Rosenblatt 的更新公式是</p>$$
 \mathbf{w} \leftarrow \mathbf{w} + \eta\, y_i\, \mathbf{x}_i, \qquad b \leftarrow b + \eta\, y_i.
-$$<p>这本质上是在<strong>感知机损失</strong> $\sum_{i\in M} -y_i(\mathbf{w}^{T}\mathbf{x}_i + b)$ 上做随机次梯度下降，$M$ 是当前被错分的样本集合。</p>
-<h3 id="13-收敛定理">1.3 收敛定理</h3>
-<p><strong>定理（Novikoff, 1962）。</strong> 若数据线性可分，即存在 $\mathbf{w}^{*}$ 与 $\gamma > 0$ 使得 $y_i\,\mathbf{w}^{*\,T}\mathbf{x}_i \geq \gamma$ 对所有 $i$ 成立，则感知机算法的更新次数不会超过</p>
-$$
+$$<p>这本质上是在<strong>感知机损失</strong> $\sum_{i\in M} -y_i(\mathbf{w}^{T}\mathbf{x}_i + b)$ 上做随机次梯度下降，$M$ 是当前被错分的样本集合。</p><h3 id=13-收敛定理>1.3 收敛定理</h3><p><strong>定理（Novikoff, 1962）。</strong> 若数据线性可分，即存在 $\mathbf{w}^{*}$ 与 $\gamma > 0$ 使得 $y_i\,\mathbf{w}^{*\,T}\mathbf{x}_i \geq \gamma$ 对所有 $i$ 成立，则感知机算法的更新次数不会超过</p>$$
 \frac{\|\mathbf{w}^{*}\|^{2}\, R^{2}}{\gamma^{2}}, \qquad R = \max_i \|\mathbf{x}_i\|.
-$$<p>证明的思路是同时给 $\mathbf{w}_k^{T}\mathbf{w}^{*}$ 一个<strong>线性下界</strong>，给 $\|\mathbf{w}_k\|$ 一个 $\sqrt{k}$ 量级的<strong>上界</strong>，两者结合就把更新步数 $k$ 卡死了。</p>
-<h3 id="14-xor-的尴尬">1.4 XOR 的尴尬</h3>
-<p>$(0,0)\!\to\!0$、$(0,1)\!\to\!1$、$(1,0)\!\to\!1$、$(1,1)\!\to\!0$ 这四个点<strong>不是线性可分的</strong>——没有任何一条直线能把对角的两对分开。Minsky 与 Papert 在 1969 年指出这一点后，连接主义的研究停滞了整整十年。直到多层网络出现，问题才变得平凡：画两条超平面，再做一次组合就行了。</p>
-<hr>
-<h2 id="2-多层网络与前向传播">2. 多层网络与前向传播</h2>
-<h3 id="21-网络结构">2.1 网络结构</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig1_mlp_architecture.png" alt="多层感知机结构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>前馈神经网络就是若干<strong>仿射变换</strong>与<strong>逐元素非线性</strong>的交替：</p>
-<ul>
-<li><strong>输入层：</strong> $\mathbf{h}^{(0)} = \mathbf{x}\in\mathbb{R}^{d_0}$；</li>
-<li><strong>隐藏层：</strong> $\mathbf{h}^{(l)}\in\mathbb{R}^{d_l}$，$l = 1, \ldots, L-1$；</li>
-<li><strong>输出层：</strong> $\mathbf{h}^{(L)} = \hat{\mathbf{y}}\in\mathbb{R}^{d_L}$。</li>
-</ul>
-<h3 id="22-前向传播矩阵形式">2.2 前向传播（矩阵形式）</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig2_forward_propagation.png" alt="前向传播流程" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>第 $l$ 层做两件事：</p>
-$$
+$$<p>证明的思路是同时给 $\mathbf{w}_k^{T}\mathbf{w}^{*}$ 一个<strong>线性下界</strong>，给 $\|\mathbf{w}_k\|$ 一个 $\sqrt{k}$ 量级的<strong>上界</strong>，两者结合就把更新步数 $k$ 卡死了。</p><h3 id=14-xor-的尴尬>1.4 XOR 的尴尬</h3><p>$(0,0)\!\to\!0$、$(0,1)\!\to\!1$、$(1,0)\!\to\!1$、$(1,1)\!\to\!0$ 这四个点<strong>不是线性可分的</strong>——没有任何一条直线能把对角的两对分开。Minsky 与 Papert 在 1969 年指出这一点后，连接主义的研究停滞了整整十年。直到多层网络出现，问题才变得平凡：画两条超平面，再做一次组合就行了。</p><hr><h2 id=2-多层网络与前向传播>2. 多层网络与前向传播</h2><h3 id=21-网络结构>2.1 网络结构</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig1_mlp_architecture.png alt=多层感知机结构 loading=lazy decoding=async></figure></p><p>前馈神经网络就是若干<strong>仿射变换</strong>与<strong>逐元素非线性</strong>的交替：</p><ul><li><strong>输入层：</strong> $\mathbf{h}^{(0)} = \mathbf{x}\in\mathbb{R}^{d_0}$；</li><li><strong>隐藏层：</strong> $\mathbf{h}^{(l)}\in\mathbb{R}^{d_l}$，$l = 1, \ldots, L-1$；</li><li><strong>输出层：</strong> $\mathbf{h}^{(L)} = \hat{\mathbf{y}}\in\mathbb{R}^{d_L}$。</li></ul><h3 id=22-前向传播矩阵形式>2.2 前向传播（矩阵形式）</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig2_forward_propagation.png alt=前向传播流程 loading=lazy decoding=async></figure></p><p>第 $l$ 层做两件事：</p>$$
 \mathbf{z}^{(l)} = \mathbf{W}^{(l)}\,\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)}, \tag{1}
 $$$$
 \mathbf{h}^{(l)} = \sigma\!\left(\mathbf{z}^{(l)}\right), \tag{2}
-$$<p>其中 $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$，$\mathbf{b}^{(l)}\in\mathbb{R}^{d_l}$。前向过程中要把 $\mathbf{h}^{(l-1)}$ 与 $\mathbf{z}^{(l)}$ <strong>缓存下来</strong>，反向传播时正要用它们。</p>
-<h3 id="23-激活函数全家福">2.3 激活函数全家福</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig4_activations.png" alt="激活函数及其导数" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<table>
-  <thead>
-      <tr>
-          <th>函数</th>
-          <th>公式</th>
-          <th>导数</th>
-          <th>备注</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Sigmoid</td>
-          <td>$\sigma(z) = \dfrac{1}{1+e^{-z}}$</td>
-          <td>$\sigma(z)\bigl(1-\sigma(z)\bigr)$</td>
-          <td>输出在 $(0,1)$；两端饱和导致梯度消失</td>
-      </tr>
-      <tr>
-          <td>Tanh</td>
-          <td>$\tanh(z)$</td>
-          <td>$1 - \tanh^{2}(z)$</td>
-          <td>零中心化，比 sigmoid 强，但仍会饱和</td>
-      </tr>
-      <tr>
-          <td>ReLU</td>
-          <td>$\max(0, z)$</td>
-          <td>$\mathbb{1}[z > 0]$</td>
-          <td>正区间梯度恒为 1；可能产生<strong>死神经元</strong></td>
-      </tr>
-      <tr>
-          <td>Leaky ReLU</td>
-          <td>$\max(\alpha z, z)$，$\alpha\!\approx\!0.01$</td>
-          <td>$1$ 或 $\alpha$</td>
-          <td>缓解死 ReLU</td>
-      </tr>
-      <tr>
-          <td>GELU</td>
-          <td>$z\,\Phi(z)$</td>
-          <td>平滑、近 $0$ 处呈钟形</td>
-          <td>Transformer 的默认选择</td>
-      </tr>
-      <tr>
-          <td>Swish</td>
-          <td>$z\,\sigma(z)$</td>
-          <td>$\sigma(z) + z\,\sigma(z)(1-\sigma(z))$</td>
-          <td>自门控、平滑</td>
-      </tr>
-  </tbody>
-</table>
-<p>图右侧把一个事实摆在了眼前：sigmoid 的导数最大也只有 $0.25$，而 ReLU 在激活区间内的导数恒等于 $1$。这一点点差距，决定了下面整章的故事走向。</p>
-<h3 id="24-通用逼近定理">2.4 通用逼近定理</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig5_universal_approx.png" alt="通用逼近：单隐层 ReLU MLP 拟合不同目标函数" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>定理（Cybenko 1989；Hornik 1991）。</strong> 对紧集上任意连续函数 $f$ 和任意 $\varepsilon > 0$，都存在某个单隐层网络</p>
-$$
+$$<p>其中 $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$，$\mathbf{b}^{(l)}\in\mathbb{R}^{d_l}$。前向过程中要把 $\mathbf{h}^{(l-1)}$ 与 $\mathbf{z}^{(l)}$ <strong>缓存下来</strong>，反向传播时正要用它们。</p><h3 id=23-激活函数全家福>2.3 激活函数全家福</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig4_activations.png alt=激活函数及其导数 loading=lazy decoding=async></figure></p><table><thead><tr><th>函数</th><th>公式</th><th>导数</th><th>备注</th></tr></thead><tbody><tr><td>Sigmoid</td><td>$\sigma(z) = \dfrac{1}{1+e^{-z}}$</td><td>$\sigma(z)\bigl(1-\sigma(z)\bigr)$</td><td>输出在 $(0,1)$；两端饱和导致梯度消失</td></tr><tr><td>Tanh</td><td>$\tanh(z)$</td><td>$1 - \tanh^{2}(z)$</td><td>零中心化，比 sigmoid 强，但仍会饱和</td></tr><tr><td>ReLU</td><td>$\max(0, z)$</td><td>$\mathbb{1}[z > 0]$</td><td>正区间梯度恒为 1；可能产生<strong>死神经元</strong></td></tr><tr><td>Leaky ReLU</td><td>$\max(\alpha z, z)$，$\alpha\!\approx\!0.01$</td><td>$1$ 或 $\alpha$</td><td>缓解死 ReLU</td></tr><tr><td>GELU</td><td>$z\,\Phi(z)$</td><td>平滑、近 $0$ 处呈钟形</td><td>Transformer 的默认选择</td></tr><tr><td>Swish</td><td>$z\,\sigma(z)$</td><td>$\sigma(z) + z\,\sigma(z)(1-\sigma(z))$</td><td>自门控、平滑</td></tr></tbody></table><p>图右侧把一个事实摆在了眼前：sigmoid 的导数最大也只有 $0.25$，而 ReLU 在激活区间内的导数恒等于 $1$。这一点点差距，决定了下面整章的故事走向。</p><h3 id=24-通用逼近定理>2.4 通用逼近定理</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig5_universal_approx.png alt="通用逼近：单隐层 ReLU MLP 拟合不同目标函数" loading=lazy decoding=async></figure></p><p><strong>定理（Cybenko 1989；Hornik 1991）。</strong> 对紧集上任意连续函数 $f$ 和任意 $\varepsilon > 0$，都存在某个单隐层网络</p>$$
 g(\mathbf{x}) = \sum_{j=1}^{M} v_j\, \sigma\!\left(\mathbf{w}_j^{T}\mathbf{x} + b_j\right)
-$$<p>满足 $\|f - g\|_\infty < \varepsilon$。上图正是这个定理的可视化：一个 64 单元的 ReLU 单隐层网络，能够同时逼近一段平滑的正弦、一条绝对值折线、甚至一个不连续的阶跃。</p>
-<p><strong>注意。</strong> 这只是<strong>存在性结果</strong>：它没说 $M$ 要多大，更没说梯度下降一定能找到好的 $g$。实践中<strong>深度比宽度更高效</strong>——一个深度为 $L$ 的网络可以表达需要宽度 $\Omega(2^{L})$ 的函数（Telgarsky, 2016）。</p>
-<hr>
-<h2 id="3-反向传播把链式法则用到极致">3. 反向传播：把链式法则用到极致</h2>
-<h3 id="31-损失函数">3.1 损失函数</h3>
-<p>回归任务通常用均方误差：</p>
-$$
+$$<p>满足 $\|f - g\|_\infty < \varepsilon$。上图正是这个定理的可视化：一个 64 单元的 ReLU 单隐层网络，能够同时逼近一段平滑的正弦、一条绝对值折线、甚至一个不连续的阶跃。</p><p><strong>注意。</strong> 这只是<strong>存在性结果</strong>：它没说 $M$ 要多大，更没说梯度下降一定能找到好的 $g$。实践中<strong>深度比宽度更高效</strong>——一个深度为 $L$ 的网络可以表达需要宽度 $\Omega(2^{L})$ 的函数（Telgarsky, 2016）。</p><hr><h2 id=3-反向传播把链式法则用到极致>3. 反向传播：把链式法则用到极致</h2><h3 id=31-损失函数>3.1 损失函数</h3><p>回归任务通常用均方误差：</p>$$
 \mathcal{L} = \tfrac{1}{2}\,\bigl\|\hat{\mathbf{y}} - \mathbf{y}\bigr\|^{2}.
-$$<p>分类任务通常用 softmax + 交叉熵：</p>
-$$
+$$<p>分类任务通常用 softmax + 交叉熵：</p>$$
 \mathcal{L} = -\sum_{c} y_c \log \hat{y}_c, \qquad \hat{\mathbf{y}} = \operatorname{softmax}(\mathbf{z}^{(L)}).
-$$<h3 id="32-核心思想">3.2 核心思想</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig3_backprop_chain.png" alt="反向传播梯度流" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>我们要算的是每一层的 $\partial\mathcal{L}/\partial\mathbf{W}^{(l)}$ 与 $\partial\mathcal{L}/\partial\mathbf{b}^{(l)}$。如果对每个参数都从输出回算一遍，复杂度是 $\mathcal{O}(P^2)$（$P$ 是参数总数）。反向传播的关键洞察是：<strong>所有梯度共享同一段从输出到该层的&quot;后缀路径&quot;</strong>。只要每层算一个<strong>误差信号</strong> $\boldsymbol{\delta}^{(l)}$，所有参数梯度就能用一个外积一次性补齐。复杂度直接降到 $\mathcal{O}(P)$。</p>
-<h3 id="33-误差信号的递推">3.3 误差信号的递推</h3>
-<p>定义第 $l$ 层的误差信号：</p>
-$$
+$$<h3 id=32-核心思想>3.2 核心思想</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig3_backprop_chain.png alt=反向传播梯度流 loading=lazy decoding=async></figure></p><p>我们要算的是每一层的 $\partial\mathcal{L}/\partial\mathbf{W}^{(l)}$ 与 $\partial\mathcal{L}/\partial\mathbf{b}^{(l)}$。如果对每个参数都从输出回算一遍，复杂度是 $\mathcal{O}(P^2)$（$P$ 是参数总数）。反向传播的关键洞察是：<strong>所有梯度共享同一段从输出到该层的"后缀路径"</strong>。只要每层算一个<strong>误差信号</strong> $\boldsymbol{\delta}^{(l)}$，所有参数梯度就能用一个外积一次性补齐。复杂度直接降到 $\mathcal{O}(P)$。</p><h3 id=33-误差信号的递推>3.3 误差信号的递推</h3><p>定义第 $l$ 层的误差信号：</p>$$
 \boldsymbol{\delta}^{(l)} \;=\; \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}. \tag{3}
-$$<p><strong>输出层（$l = L$，softmax + 交叉熵）。</strong> 把 $\partial\hat{\mathbf{y}}/\partial \mathbf{z}^{(L)}$ 算开，再用 $\sum_c y_c = 1$ 化简，会出现一个漂亮的结果：</p>
-$$
+$$<p><strong>输出层（$l = L$，softmax + 交叉熵）。</strong> 把 $\partial\hat{\mathbf{y}}/\partial \mathbf{z}^{(L)}$ 算开，再用 $\sum_c y_c = 1$ 化简，会出现一个漂亮的结果：</p>$$
 \boldsymbol{\delta}^{(L)} \;=\; \hat{\mathbf{y}} - \mathbf{y}. \tag{4}
-$$<p><strong>预测减真值</strong>——这就是 softmax + 交叉熵被定为分类标配的核心原因之一。</p>
-<p><strong>隐藏层的反向递推。</strong> 对 $l < L$，把 $\mathbf{z}^{(l+1)} = \mathbf{W}^{(l+1)}\sigma(\mathbf{z}^{(l)}) + \mathbf{b}^{(l+1)}$ 代入链式法则：</p>
-$$
+$$<p><strong>预测减真值</strong>——这就是 softmax + 交叉熵被定为分类标配的核心原因之一。</p><p><strong>隐藏层的反向递推。</strong> 对 $l < L$，把 $\mathbf{z}^{(l+1)} = \mathbf{W}^{(l+1)}\sigma(\mathbf{z}^{(l)}) + \mathbf{b}^{(l+1)}$ 代入链式法则：</p>$$
 \boldsymbol{\delta}^{(l)} \;=\; \bigl(\mathbf{W}^{(l+1)\,T}\boldsymbol{\delta}^{(l+1)}\bigr) \,\odot\, \sigma'\!\left(\mathbf{z}^{(l)}\right). \tag{5}
-$$<p>直观理解：把上一层的误差<strong>用转置权重矩阵推回来</strong>，再用本层的激活导数<strong>逐元素门控</strong>。</p>
-<h3 id="34-参数梯度">3.4 参数梯度</h3>
-<p>拿到所有 $\boldsymbol{\delta}^{(l)}$ 之后，参数梯度就是顺手一步外积：</p>
-$$
+$$<p>直观理解：把上一层的误差<strong>用转置权重矩阵推回来</strong>，再用本层的激活导数<strong>逐元素门控</strong>。</p><h3 id=34-参数梯度>3.4 参数梯度</h3><p>拿到所有 $\boldsymbol{\delta}^{(l)}$ 之后，参数梯度就是顺手一步外积：</p>$$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}\, \mathbf{h}^{(l-1)\,T}, \tag{6}
 $$$$
 \frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}. \tag{7}
-$$<p>每一层的权重梯度，都是<strong>输出端的误差信号</strong>与<strong>输入端的激活值</strong>之外积。后者正是前向时缓存下来的。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">backprop</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span><span class="p">,</span> <span class="n">activations</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;前馈网络的一次前向 + 一次反向。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 前向传播 —— 缓存激活值与预激活</span>
-</span></span><span class="line"><span class="cl">    <span class="n">h</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">z</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z_l</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">@</span> <span class="n">h</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">biases</span><span class="p">[</span><span class="n">l</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z_l</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">activations</span><span class="p">[</span><span class="n">l</span><span class="p">](</span><span class="n">z_l</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 反向传播 —— 假设输出端是 softmax + 交叉熵</span>
-</span></span><span class="line"><span class="cl">    <span class="n">delta</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span>
-</span></span><span class="line"><span class="cl">    <span class="n">grad_W</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="n">grad_b</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">grad_W</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">@</span> <span class="n">h</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="n">grad_b</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">delta</span><span class="p">)</span> <span class="o">*</span> <span class="n">activations</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">deriv</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">grad_W</span><span class="p">,</span> <span class="n">grad_b</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>整套算法本质上只有三行：一次外积、一次求和、一次&quot;转置矩阵-向量乘 + 激活导数门控&quot;。现代 autograd 框架替我们打理记账，但内部跑的就是这套递推。</p>
-<hr>
-<h2 id="4-梯度消失与梯度爆炸">4. 梯度消失与梯度爆炸</h2>
-<h3 id="41-梯度消失">4.1 梯度消失</h3>
-<p>把 (5) 式从第 $L$ 层一路展开到第 $1$ 层，可以看出：第 $1$ 层的梯度是 $L-1$ 个雅可比类因子的<strong>连乘</strong>：</p>
-$$
+$$<p>每一层的权重梯度，都是<strong>输出端的误差信号</strong>与<strong>输入端的激活值</strong>之外积。后者正是前向时缓存下来的。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>backprop</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>weights</span><span class=p>,</span> <span class=n>biases</span><span class=p>,</span> <span class=n>activations</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;前馈网络的一次前向 + 一次反向。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>weights</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 前向传播 —— 缓存激活值与预激活</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=p>[</span><span class=n>X</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>l</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>L</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>z_l</span> <span class=o>=</span> <span class=n>weights</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>@</span> <span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>+</span> <span class=n>biases</span><span class=p>[</span><span class=n>l</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>z_l</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>activations</span><span class=p>[</span><span class=n>l</span><span class=p>](</span><span class=n>z_l</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 反向传播 —— 假设输出端是 softmax + 交叉熵</span>
+</span></span><span class=line><span class=cl>    <span class=n>delta</span> <span class=o>=</span> <span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>y</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_W</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_b</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>l</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>L</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad_W</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>=</span> <span class=n>delta</span> <span class=o>@</span> <span class=n>h</span><span class=p>[</span><span class=n>l</span><span class=p>]</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad_b</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>=</span> <span class=n>delta</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>l</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>delta</span> <span class=o>=</span> <span class=p>(</span><span class=n>weights</span><span class=p>[</span><span class=n>l</span><span class=p>]</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>delta</span><span class=p>)</span> <span class=o>*</span> <span class=n>activations</span><span class=p>[</span><span class=n>l</span><span class=p>]</span><span class=o>.</span><span class=n>deriv</span><span class=p>(</span><span class=n>z</span><span class=p>[</span><span class=n>l</span> <span class=o>-</span> <span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>grad_W</span><span class=p>,</span> <span class=n>grad_b</span>
+</span></span></code></pre></td></tr></table></div></div><p>整套算法本质上只有三行：一次外积、一次求和、一次"转置矩阵-向量乘 + 激活导数门控"。现代 autograd 框架替我们打理记账，但内部跑的就是这套递推。</p><hr><h2 id=4-梯度消失与梯度爆炸>4. 梯度消失与梯度爆炸</h2><h3 id=41-梯度消失>4.1 梯度消失</h3><p>把 (5) 式从第 $L$ 层一路展开到第 $1$ 层，可以看出：第 $1$ 层的梯度是 $L-1$ 个雅可比类因子的<strong>连乘</strong>：</p>$$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(1)}} \;\propto\; \prod_{l=2}^{L} \Bigl[\mathbf{W}^{(l)\,T}\, \operatorname{diag}\bigl(\sigma'(\mathbf{z}^{(l-1)})\bigr)\Bigr].
-$$<p>对 sigmoid，$\sigma'(z)\leq 0.25$。如果每个权重矩阵的谱范数在 $1$ 附近，第 $1$ 层梯度的量级大约就是 $0.25^{L-1}$。$L=20$ 时约为 $3.6\times 10^{-12}$——梯度更新在数值上就是零，浅层永远学不动。</p>
-<h3 id="42-梯度爆炸">4.2 梯度爆炸</h3>
-<p>把不等号反过来：如果权重谱范数大于 $1$ 而激活导数没有强收缩，同一连乘就会<strong>指数增长</strong>。几百步就溢出了。RNN 之所以特别容易爆炸，是因为同一个权重矩阵会被乘上 $T$ 次（按时间展开）。</p>
-<h3 id="43-把曲线读出来">4.3 把曲线读出来</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig6_vanishing_exploding.png" alt="梯度范数随深度的变化" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上图把这件事用数值跑了一遍：把一个单位误差信号从输出端反传到第 $1$ 层，比较不同设置下的梯度范数随深度的变化。Sigmoid（即使用 Xavier 初始化）每加一层就跌一个数量级；ReLU + He 初始化几乎稳定在 $1$ 附近；ReLU + 不缩放则反向爆炸。<strong>注意 y 轴是对数坐标</strong>——每条网格线就是十倍。</p>
-<h3 id="44-解决方案一览">4.4 解决方案一览</h3>
-<table>
-  <thead>
-      <tr>
-          <th>问题</th>
-          <th>方案</th>
-          <th>起作用的原理</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>消失</td>
-          <td>ReLU 激活</td>
-          <td>正区间 $\sigma'(z) = 1$，没有指数衰减</td>
-      </tr>
-      <tr>
-          <td>消失</td>
-          <td>残差连接</td>
-          <td>$\mathbf{h}^{(l)} = \mathbf{h}^{(l-1)} + F(\mathbf{h}^{(l-1)})$，梯度有一条<strong>恒等通路</strong>绕过非线性</td>
-      </tr>
-      <tr>
-          <td>消失</td>
-          <td>批归一化</td>
-          <td>稳定每层激活的分布</td>
-      </tr>
-      <tr>
-          <td>爆炸</td>
-          <td>梯度裁剪</td>
-          <td>当 $\|\mathbf{g}\| > c$ 时按 $\mathbf{g}\!\leftarrow\!(c/\|\mathbf{g}\|)\,\mathbf{g}$ 重新缩放</td>
-      </tr>
-      <tr>
-          <td>两者</td>
-          <td>合理初始化</td>
-          <td>让激活与梯度的方差跨层保持稳定（见下一节）</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="5-权重初始化策略">5. 权重初始化策略</h2>
-<h3 id="51-为什么初始化要那么讲究">5.1 为什么初始化要那么讲究</h3>
-<ul>
-<li><strong>全零初始化。</strong> 同层的所有神经元在做同一件事，收到的梯度也一模一样，对称性根本破不开。</li>
-<li><strong>太大。</strong> 预激活掉进激活函数的饱和尾巴，梯度归零。</li>
-<li><strong>太小。</strong> 激活值往 $0$ 收缩，信号在前向过程中就消失了。</li>
-</ul>
-<p>我们想做的事很明确：<strong>让激活与梯度的方差跨层保持稳定</strong>。具体的尺度，由该层的 fan-in 与所选激活共同决定。</p>
-<h3 id="52-xavierglorot初始化">5.2 Xavier（Glorot）初始化</h3>
-<p>考察第 $l$ 层中的一个神经元，fan-in 为 $n_{\text{in}}$，fan-out 为 $n_{\text{out}}$：</p>
-$$
+$$<p>对 sigmoid，$\sigma'(z)\leq 0.25$。如果每个权重矩阵的谱范数在 $1$ 附近，第 $1$ 层梯度的量级大约就是 $0.25^{L-1}$。$L=20$ 时约为 $3.6\times 10^{-12}$——梯度更新在数值上就是零，浅层永远学不动。</p><h3 id=42-梯度爆炸>4.2 梯度爆炸</h3><p>把不等号反过来：如果权重谱范数大于 $1$ 而激活导数没有强收缩，同一连乘就会<strong>指数增长</strong>。几百步就溢出了。RNN 之所以特别容易爆炸，是因为同一个权重矩阵会被乘上 $T$ 次（按时间展开）。</p><h3 id=43-把曲线读出来>4.3 把曲线读出来</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig6_vanishing_exploding.png alt=梯度范数随深度的变化 loading=lazy decoding=async></figure></p><p>上图把这件事用数值跑了一遍：把一个单位误差信号从输出端反传到第 $1$ 层，比较不同设置下的梯度范数随深度的变化。Sigmoid（即使用 Xavier 初始化）每加一层就跌一个数量级；ReLU + He 初始化几乎稳定在 $1$ 附近；ReLU + 不缩放则反向爆炸。<strong>注意 y 轴是对数坐标</strong>——每条网格线就是十倍。</p><h3 id=44-解决方案一览>4.4 解决方案一览</h3><table><thead><tr><th>问题</th><th>方案</th><th>起作用的原理</th></tr></thead><tbody><tr><td>消失</td><td>ReLU 激活</td><td>正区间 $\sigma'(z) = 1$，没有指数衰减</td></tr><tr><td>消失</td><td>残差连接</td><td>$\mathbf{h}^{(l)} = \mathbf{h}^{(l-1)} + F(\mathbf{h}^{(l-1)})$，梯度有一条<strong>恒等通路</strong>绕过非线性</td></tr><tr><td>消失</td><td>批归一化</td><td>稳定每层激活的分布</td></tr><tr><td>爆炸</td><td>梯度裁剪</td><td>当 $\|\mathbf{g}\| > c$ 时按 $\mathbf{g}\!\leftarrow\!(c/\|\mathbf{g}\|)\,\mathbf{g}$ 重新缩放</td></tr><tr><td>两者</td><td>合理初始化</td><td>让激活与梯度的方差跨层保持稳定（见下一节）</td></tr></tbody></table><hr><h2 id=5-权重初始化策略>5. 权重初始化策略</h2><h3 id=51-为什么初始化要那么讲究>5.1 为什么初始化要那么讲究</h3><ul><li><strong>全零初始化。</strong> 同层的所有神经元在做同一件事，收到的梯度也一模一样，对称性根本破不开。</li><li><strong>太大。</strong> 预激活掉进激活函数的饱和尾巴，梯度归零。</li><li><strong>太小。</strong> 激活值往 $0$ 收缩，信号在前向过程中就消失了。</li></ul><p>我们想做的事很明确：<strong>让激活与梯度的方差跨层保持稳定</strong>。具体的尺度，由该层的 fan-in 与所选激活共同决定。</p><h3 id=52-xavierglorot初始化>5.2 Xavier（Glorot）初始化</h3><p>考察第 $l$ 层中的一个神经元，fan-in 为 $n_{\text{in}}$，fan-out 为 $n_{\text{out}}$：</p>$$
 z_j = \sum_{i=1}^{n_{\text{in}}} w_{ji}\, h_i.
-$$<p>若 $w_{ji}$ 与 $h_i$ 独立、零均值，则</p>
-$$
+$$<p>若 $w_{ji}$ 与 $h_i$ 独立、零均值，则</p>$$
 \operatorname{Var}(z_j) = n_{\text{in}}\cdot \operatorname{Var}(w)\cdot \operatorname{Var}(h).
-$$<p>要求<strong>前向</strong>时 $\operatorname{Var}(z) = \operatorname{Var}(h)$，得到 $\operatorname{Var}(w) = 1/n_{\text{in}}$；同样的分析在<strong>反向</strong>上要求 $\operatorname{Var}(w) = 1/n_{\text{out}}$。Glorot 与 Bengio（2010）取了一个折中：</p>
-$$
+$$<p>要求<strong>前向</strong>时 $\operatorname{Var}(z) = \operatorname{Var}(h)$，得到 $\operatorname{Var}(w) = 1/n_{\text{in}}$；同样的分析在<strong>反向</strong>上要求 $\operatorname{Var}(w) = 1/n_{\text{out}}$。Glorot 与 Bengio（2010）取了一个折中：</p>$$
 \operatorname{Var}(w) = \frac{2}{n_{\text{in}} + n_{\text{out}}}, \qquad w \sim \mathcal{U}\!\left(-\sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}},\; \sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}}\right). \tag{8}
-$$<p>适用于 <strong>Sigmoid、Tanh</strong> 这类对称激活。</p>
-<h3 id="53-he-初始化">5.3 He 初始化</h3>
-<p>ReLU 的特殊之处在于：期望意义上有一半的单元被置零，$h$ 的方差贡献就被砍掉一半。He 等人（2015）因此把方差再放大两倍：</p>
-$$
+$$<p>适用于 <strong>Sigmoid、Tanh</strong> 这类对称激活。</p><h3 id=53-he-初始化>5.3 He 初始化</h3><p>ReLU 的特殊之处在于：期望意义上有一半的单元被置零，$h$ 的方差贡献就被砍掉一半。He 等人（2015）因此把方差再放大两倍：</p>$$
 \operatorname{Var}(w) = \frac{2}{n_{\text{in}}}, \qquad w \sim \mathcal{N}\!\left(0,\, \tfrac{2}{n_{\text{in}}}\right). \tag{9}
-$$<p>适用于 <strong>ReLU 及其变体</strong>。</p>
-<h3 id="54-总结表">5.4 总结表</h3>
-<table>
-  <thead>
-      <tr>
-          <th>激活函数</th>
-          <th>初始化</th>
-          <th>$\operatorname{Var}(w)$</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Sigmoid / Tanh</td>
-          <td>Xavier</td>
-          <td>$\dfrac{2}{n_{\text{in}} + n_{\text{out}}}$</td>
-      </tr>
-      <tr>
-          <td>ReLU</td>
-          <td>He</td>
-          <td>$\dfrac{2}{n_{\text{in}}}$</td>
-      </tr>
-      <tr>
-          <td>Leaky ReLU（$\alpha$）</td>
-          <td>He（修正版）</td>
-          <td>$\dfrac{2}{(1 + \alpha^{2})\, n_{\text{in}}}$</td>
-      </tr>
-  </tbody>
-</table>
-<p>上一节梯度图里的绿色曲线（ReLU + He）就是这套理论的实验佐证：它是唯一一条不论深度多深都接近 $1$ 的曲线。</p>
-<hr>
-<h2 id="6-损失曲面长什么样">6. 损失曲面长什么样</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig7_loss_landscape.png" alt="非凸损失曲面与 SGD 轨迹" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>哪怕是一个微型网络，损失曲面也是高度非凸的：两个深盆地、一个鞍点、一道小脊。上图把 SGD 从一个不太好的初始位置出发的轨迹画了出来。两个定性事实值得记住：</p>
-<ol>
-<li><strong>大多数局部最优都&quot;够好&quot;。</strong> 网络越宽，经验损失的极小值点往往集中在一组深度相近的平坦盆地里（Choromanska et al., 2015）。&ldquo;必须找全局最优&quot;的执念是凸优化时代的遗产，在深度学习里并不成立。</li>
-<li><strong>高维空间里鞍点远多于局部最优。</strong> 在 $\mathbb{R}^d$ 中，一个随机临界点的 Hessian 所有 $d$ 个特征值同号的概率指数级地小。SGD 自带的噪声，恰好帮我们逃出这些鞍点（Dauphin et al., 2014）。</li>
-</ol>
-<p>这两点也解释了：尽管缺乏凸性保证，<strong>简单的一阶方法</strong>至今仍主导着深度学习。</p>
-<hr>
-<h2 id="7-练习题">7. 练习题</h2>
-<p><strong>练习 1（链式法则）。</strong> 设 $y = \sigma(wx + b)$，$\sigma(z) = 1/(1+e^{-z})$，求 $\partial y/\partial w$。</p>
-<blockquote>
-<p><strong>解答。</strong> $\partial y/\partial w = \sigma'(z)\,x = \sigma(z)\bigl(1 - \sigma(z)\bigr)\,x$。</p>
-</blockquote>
-<p><strong>练习 2（梯度消失）。</strong> 为何 sigmoid 容易造成梯度消失，而 ReLU 不会？</p>
-<blockquote>
-<p><strong>解答。</strong> $\sigma'(z)\leq 0.25$ 恒成立，$L$ 层连乘最多就是 $0.25^{L}$，指数衰减。ReLU 在激活区间内导数恒为 $1$，没有指数衰减。</p>
-</blockquote>
-<p><strong>练习 3（批归一化）。</strong> BatchNorm 为何能加速训练？</p>
-<blockquote>
-<p><strong>解答。</strong> 把每层的预激活拉回到大致零均值、单位方差，稳定了梯度量级，从而允许更大学习率；mini-batch 自带的噪声还附带一点正则化效果。</p>
-</blockquote>
-<p><strong>练习 4（Dropout 在测试时）。</strong> 训练时使用 $p = 0.5$ 的 dropout，测试时如何处理？</p>
-<blockquote>
-<p><strong>解答。</strong> 测试时保留所有神经元，但把权重乘以 $(1 - p) = 0.5$ 以保持期望输出不变。多数现代库用<strong>反向 dropout</strong>：训练时除以 $(1-p)$，测试时不做任何调整。</p>
-</blockquote>
-<p><strong>练习 5（Xavier）。</strong> 为什么 Xavier 取 $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$？</p>
-<blockquote>
-<p><strong>解答。</strong> 前向方差守恒要求 $n_{\text{in}}\operatorname{Var}(w) = 1$；反向方差守恒要求 $n_{\text{out}}\operatorname{Var}(w) = 1$。一种调和式折中 $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$ 同时近似满足两者。</p>
-</blockquote>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<p>[1] Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. <em>Psychological Review</em>, 65(6), 386–408.</p>
-<p>[2] Rumelhart, D. E., Hinton, G. E., &amp; Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature</em>, 323(6088), 533–536.</p>
-<p>[3] Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems</em>, 2(4), 303–314.</p>
-<p>[4] Hornik, K. (1991). Approximation capabilities of multilayer feedforward networks. <em>Neural Networks</em>, 4(2), 251–257.</p>
-<p>[5] Glorot, X., &amp; Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. <em>AISTATS</em>, 249–256.</p>
-<p>[6] He, K., Zhang, X., Ren, S., &amp; Sun, J. (2015). Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification. <em>ICCV</em>, 1026–1034.</p>
-<p>[7] Ioffe, S., &amp; Szegedy, C. (2015). Batch normalization: Accelerating deep network training by reducing internal covariate shift. <em>ICML</em>, 448–456.</p>
-<p>[8] Dauphin, Y., Pascanu, R., Gulcehre, C., Cho, K., Ganguli, S., &amp; Bengio, Y. (2014). Identifying and attacking the saddle point problem in high-dimensional non-convex optimization. <em>NeurIPS</em>.</p>
-<p>[9] Choromanska, A., Henaff, M., Mathieu, M., Ben Arous, G., &amp; LeCun, Y. (2015). The loss surfaces of multilayer networks. <em>AISTATS</em>.</p>
-<p>[10] Telgarsky, M. (2016). Benefits of depth in neural networks. <em>COLT</em>.</p>
-<p>[11] Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>. MIT Press. （第 6 章：深度前馈网络）</p>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<ul>
-<li>上一篇：<a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81%e5%85%ab-%e8%81%9a%e7%b1%bb%e7%ae%97%e6%b3%95/">第十八篇 —— 聚类算法</a>
-</li>
-<li>下一篇：<a href="/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%ba%8c%e5%8d%81-%e6%ad%a3%e5%88%99%e5%8c%96%e4%b8%8e%e6%a8%a1%e5%9e%8b%e9%80%89%e6%8b%a9/">第二十篇 —— 正则化与模型选择</a>
-</li>
-<li><a href="/tags/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0/">查看本系列全部 20 篇文章</a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#本文概览">本文概览</a></li>
-    <li><a href="#1-感知机一切的起点">1. 感知机：一切的起点</a>
-      <ul>
-        <li><a href="#11-模型">1.1 模型</a></li>
-        <li><a href="#12-学习规则">1.2 学习规则</a></li>
-        <li><a href="#13-收敛定理">1.3 收敛定理</a></li>
-        <li><a href="#14-xor-的尴尬">1.4 XOR 的尴尬</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-多层网络与前向传播">2. 多层网络与前向传播</a>
-      <ul>
-        <li><a href="#21-网络结构">2.1 网络结构</a></li>
-        <li><a href="#22-前向传播矩阵形式">2.2 前向传播（矩阵形式）</a></li>
-        <li><a href="#23-激活函数全家福">2.3 激活函数全家福</a></li>
-        <li><a href="#24-通用逼近定理">2.4 通用逼近定理</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-反向传播把链式法则用到极致">3. 反向传播：把链式法则用到极致</a>
-      <ul>
-        <li><a href="#31-损失函数">3.1 损失函数</a></li>
-        <li><a href="#32-核心思想">3.2 核心思想</a></li>
-        <li><a href="#33-误差信号的递推">3.3 误差信号的递推</a></li>
-        <li><a href="#34-参数梯度">3.4 参数梯度</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-梯度消失与梯度爆炸">4. 梯度消失与梯度爆炸</a>
-      <ul>
-        <li><a href="#41-梯度消失">4.1 梯度消失</a></li>
-        <li><a href="#42-梯度爆炸">4.2 梯度爆炸</a></li>
-        <li><a href="#43-把曲线读出来">4.3 把曲线读出来</a></li>
-        <li><a href="#44-解决方案一览">4.4 解决方案一览</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-权重初始化策略">5. 权重初始化策略</a>
-      <ul>
-        <li><a href="#51-为什么初始化要那么讲究">5.1 为什么初始化要那么讲究</a></li>
-        <li><a href="#52-xavierglorot初始化">5.2 Xavier（Glorot）初始化</a></li>
-        <li><a href="#53-he-初始化">5.3 He 初始化</a></li>
-        <li><a href="#54-总结表">5.4 总结表</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-损失曲面长什么样">6. 损失曲面长什么样</a></li>
-    <li><a href="#7-练习题">7. 练习题</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">机器学习数学推导</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
-      <div class="row"><span>Word count</span><strong>4800</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>适用于 <strong>ReLU 及其变体</strong>。</p><h3 id=54-总结表>5.4 总结表</h3><table><thead><tr><th>激活函数</th><th>初始化</th><th>$\operatorname{Var}(w)$</th></tr></thead><tbody><tr><td>Sigmoid / Tanh</td><td>Xavier</td><td>$\dfrac{2}{n_{\text{in}} + n_{\text{out}}}$</td></tr><tr><td>ReLU</td><td>He</td><td>$\dfrac{2}{n_{\text{in}}}$</td></tr><tr><td>Leaky ReLU（$\alpha$）</td><td>He（修正版）</td><td>$\dfrac{2}{(1 + \alpha^{2})\, n_{\text{in}}}$</td></tr></tbody></table><p>上一节梯度图里的绿色曲线（ReLU + He）就是这套理论的实验佐证：它是唯一一条不论深度多深都接近 $1$ 的曲线。</p><hr><h2 id=6-损失曲面长什么样>6. 损失曲面长什么样</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ml-math-derivations/19-%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD/fig7_loss_landscape.png alt="非凸损失曲面与 SGD 轨迹" loading=lazy decoding=async></figure></p><p>哪怕是一个微型网络，损失曲面也是高度非凸的：两个深盆地、一个鞍点、一道小脊。上图把 SGD 从一个不太好的初始位置出发的轨迹画了出来。两个定性事实值得记住：</p><ol><li><strong>大多数局部最优都"够好"。</strong> 网络越宽，经验损失的极小值点往往集中在一组深度相近的平坦盆地里（Choromanska et al., 2015）。&ldquo;必须找全局最优"的执念是凸优化时代的遗产，在深度学习里并不成立。</li><li><strong>高维空间里鞍点远多于局部最优。</strong> 在 $\mathbb{R}^d$ 中，一个随机临界点的 Hessian 所有 $d$ 个特征值同号的概率指数级地小。SGD 自带的噪声，恰好帮我们逃出这些鞍点（Dauphin et al., 2014）。</li></ol><p>这两点也解释了：尽管缺乏凸性保证，<strong>简单的一阶方法</strong>至今仍主导着深度学习。</p><hr><h2 id=7-练习题>7. 练习题</h2><p><strong>练习 1（链式法则）。</strong> 设 $y = \sigma(wx + b)$，$\sigma(z) = 1/(1+e^{-z})$，求 $\partial y/\partial w$。</p><blockquote><p><strong>解答。</strong> $\partial y/\partial w = \sigma'(z)\,x = \sigma(z)\bigl(1 - \sigma(z)\bigr)\,x$。</p></blockquote><p><strong>练习 2（梯度消失）。</strong> 为何 sigmoid 容易造成梯度消失，而 ReLU 不会？</p><blockquote><p><strong>解答。</strong> $\sigma'(z)\leq 0.25$ 恒成立，$L$ 层连乘最多就是 $0.25^{L}$，指数衰减。ReLU 在激活区间内导数恒为 $1$，没有指数衰减。</p></blockquote><p><strong>练习 3（批归一化）。</strong> BatchNorm 为何能加速训练？</p><blockquote><p><strong>解答。</strong> 把每层的预激活拉回到大致零均值、单位方差，稳定了梯度量级，从而允许更大学习率；mini-batch 自带的噪声还附带一点正则化效果。</p></blockquote><p><strong>练习 4（Dropout 在测试时）。</strong> 训练时使用 $p = 0.5$ 的 dropout，测试时如何处理？</p><blockquote><p><strong>解答。</strong> 测试时保留所有神经元，但把权重乘以 $(1 - p) = 0.5$ 以保持期望输出不变。多数现代库用<strong>反向 dropout</strong>：训练时除以 $(1-p)$，测试时不做任何调整。</p></blockquote><p><strong>练习 5（Xavier）。</strong> 为什么 Xavier 取 $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$？</p><blockquote><p><strong>解答。</strong> 前向方差守恒要求 $n_{\text{in}}\operatorname{Var}(w) = 1$；反向方差守恒要求 $n_{\text{out}}\operatorname{Var}(w) = 1$。一种调和式折中 $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$ 同时近似满足两者。</p></blockquote><hr><h2 id=参考文献>参考文献</h2><p>[1] Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. <em>Psychological Review</em>, 65(6), 386–408.</p><p>[2] Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature</em>, 323(6088), 533–536.</p><p>[3] Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems</em>, 2(4), 303–314.</p><p>[4] Hornik, K. (1991). Approximation capabilities of multilayer feedforward networks. <em>Neural Networks</em>, 4(2), 251–257.</p><p>[5] Glorot, X., & Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. <em>AISTATS</em>, 249–256.</p><p>[6] He, K., Zhang, X., Ren, S., & Sun, J. (2015). Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification. <em>ICCV</em>, 1026–1034.</p><p>[7] Ioffe, S., & Szegedy, C. (2015). Batch normalization: Accelerating deep network training by reducing internal covariate shift. <em>ICML</em>, 448–456.</p><p>[8] Dauphin, Y., Pascanu, R., Gulcehre, C., Cho, K., Ganguli, S., & Bengio, Y. (2014). Identifying and attacking the saddle point problem in high-dimensional non-convex optimization. <em>NeurIPS</em>.</p><p>[9] Choromanska, A., Henaff, M., Mathieu, M., Ben Arous, G., & LeCun, Y. (2015). The loss surfaces of multilayer networks. <em>AISTATS</em>.</p><p>[10] Telgarsky, M. (2016). Benefits of depth in neural networks. <em>COLT</em>.</p><p>[11] Goodfellow, I., Bengio, Y., & Courville, A. (2016). <em>Deep Learning</em>. MIT Press. （第 6 章：深度前馈网络）</p><hr><h2 id=系列导航>系列导航</h2><ul><li>上一篇：<a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e5%8d%81%e5%85%ab-%e8%81%9a%e7%b1%bb%e7%ae%97%e6%b3%95/>第十八篇 —— 聚类算法</a></li><li>下一篇：<a href=/zh/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0%e6%95%b0%e5%ad%a6%e6%8e%a8%e5%af%bc-%e4%ba%8c%e5%8d%81-%e6%ad%a3%e5%88%99%e5%8c%96%e4%b8%8e%e6%a8%a1%e5%9e%8b%e9%80%89%e6%8b%a9/>第二十篇 —— 正则化与模型选择</a></li><li><a href=/tags/%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0/>查看本系列全部 20 篇文章</a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#本文概览>本文概览</a></li><li><a href=#1-感知机一切的起点>1. 感知机：一切的起点</a><ul><li><a href=#11-模型>1.1 模型</a></li><li><a href=#12-学习规则>1.2 学习规则</a></li><li><a href=#13-收敛定理>1.3 收敛定理</a></li><li><a href=#14-xor-的尴尬>1.4 XOR 的尴尬</a></li></ul></li><li><a href=#2-多层网络与前向传播>2. 多层网络与前向传播</a><ul><li><a href=#21-网络结构>2.1 网络结构</a></li><li><a href=#22-前向传播矩阵形式>2.2 前向传播（矩阵形式）</a></li><li><a href=#23-激活函数全家福>2.3 激活函数全家福</a></li><li><a href=#24-通用逼近定理>2.4 通用逼近定理</a></li></ul></li><li><a href=#3-反向传播把链式法则用到极致>3. 反向传播：把链式法则用到极致</a><ul><li><a href=#31-损失函数>3.1 损失函数</a></li><li><a href=#32-核心思想>3.2 核心思想</a></li><li><a href=#33-误差信号的递推>3.3 误差信号的递推</a></li><li><a href=#34-参数梯度>3.4 参数梯度</a></li></ul></li><li><a href=#4-梯度消失与梯度爆炸>4. 梯度消失与梯度爆炸</a><ul><li><a href=#41-梯度消失>4.1 梯度消失</a></li><li><a href=#42-梯度爆炸>4.2 梯度爆炸</a></li><li><a href=#43-把曲线读出来>4.3 把曲线读出来</a></li><li><a href=#44-解决方案一览>4.4 解决方案一览</a></li></ul></li><li><a href=#5-权重初始化策略>5. 权重初始化策略</a><ul><li><a href=#51-为什么初始化要那么讲究>5.1 为什么初始化要那么讲究</a></li><li><a href=#52-xavierglorot初始化>5.2 Xavier（Glorot）初始化</a></li><li><a href=#53-he-初始化>5.3 He 初始化</a></li><li><a href=#54-总结表>5.4 总结表</a></li></ul></li><li><a href=#6-损失曲面长什么样>6. 损失曲面长什么样</a></li><li><a href=#7-练习题>7. 练习题</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>4732</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

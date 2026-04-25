@@ -1,729 +1,195 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies · Chen Kai Blog</title>
-<meta name="description" content="Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/time-series/attention-mechanism/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/time-series/attention-mechanism/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies">
-<meta property="og:description" content="Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting.">
-<meta property="og:url" content="https://www.chenk.top/en/time-series/attention-mechanism/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Time series forecasting</a>
-         · Chapter 4
-      </div>
-      <h1>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</h1>
-      <p class="deck">Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-10-16">October 16, 2024</time> · 12 min read · 2500 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/time-series/" class="tag">#Time Series</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/attention/" class="tag">#Attention</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>Why recurrent models hit a wall on long-range dependencies, and how attention removes it.</li>
-<li>The Query / Key / Value mechanism, scaled dot-product attention, and the role of $1/\sqrt{d_k}$.</li>
-<li>Two classic scoring functions &ndash; <strong>Bahdanau</strong> (additive) and <strong>Luong</strong> (multiplicative).</li>
-<li>How to wire <strong>attention into an LSTM encoder/decoder</strong> for time series.</li>
-<li><strong>Multi-head attention</strong> specialised for time &ndash; different heads for recency, period, anomaly.</li>
-<li>The $O(n^2)$ memory wall and how sparse / linear attention bypass it.</li>
-<li>A worked <strong>stock-prediction case</strong> with attention-weight overlays.</li>
-</ul>
-<p><strong>Prerequisites</strong>: RNN/LSTM/GRU intuition (Parts 2-3), basic linear algebra, PyTorch.</p>
-<hr>
-<h2 id="1-why-attention-the-bottleneck-of-recurrence">1. Why attention? The bottleneck of recurrence</h2>
-<p>In a length-$n$ recurrent model, the path between two time steps that are $k$ apart is <strong>$O(k)$ steps long</strong>. Every step squeezes information through a single hidden vector, and every step risks attenuating the gradient.</p>
-<p>Real time series rarely cooperate with that geometry:</p>
-<ul>
-<li>An ECG anomaly minutes ago matters more than the last 200 samples of baseline.</li>
-<li>Today&rsquo;s electricity load looks most like <em>the same hour, last Wednesday</em>.</li>
-<li>A stock price reacts to an <strong>earnings event</strong> that happened weeks ago.</li>
-</ul>
-<p>Attention proposes a radically different geometry: every step has a <strong>direct, learned link to every other step</strong>. The path length between any two positions becomes $O(1)$, and the link strength &ndash; the <em>attention weight</em> &ndash; is itself interpretable.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig1_attention_heatmap.png" alt="Attention weights over a 24-step window. The bright diagonal is recency, the off-diagonal is a 12-step periodicity, and the vertical band is persistent memory of an anomaly at t=5." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 1. A causal attention map already encodes three useful priors &ndash; recency, periodicity, and persistent memory of anomalies &ndash; without any handcrafted features.</em></p>
-<hr>
-<h2 id="2-scaled-dot-product-attention-from-first-principles">2. Scaled dot-product attention from first principles</h2>
-<p>Stack the input sequence as a matrix $X \in \mathbb{R}^{n \times d}$, one row per time step. Three learned linear maps produce three &ldquo;views&rdquo; of the same data:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies · Chen Kai Blog</title>
+<meta name=description content="Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/time-series/attention-mechanism/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/time-series/attention-mechanism/><meta property="og:type" content="article"><meta property="og:title" content="Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies"><meta property="og:description" content="Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting."><meta property="og:url" content="https://www.chenk.top/en/time-series/attention-mechanism/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Time series forecasting</a>
+· Chapter 4</div><h1>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</h1><p class=deck>Self-attention, multi-head attention, and positional encoding for time series. Step-by-step math, PyTorch implementations, and visualization techniques for interpretable forecasting.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-10-16>October 16, 2024</time> · 12 min read · 2454 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/time-series/ class=tag>#Time Series</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/attention/ class=tag>#Attention</a></div></div></header><div class=prose><h2 id=what-you-will-learn>What you will learn</h2><ul><li>Why recurrent models hit a wall on long-range dependencies, and how attention removes it.</li><li>The Query / Key / Value mechanism, scaled dot-product attention, and the role of $1/\sqrt{d_k}$.</li><li>Two classic scoring functions &ndash; <strong>Bahdanau</strong> (additive) and <strong>Luong</strong> (multiplicative).</li><li>How to wire <strong>attention into an LSTM encoder/decoder</strong> for time series.</li><li><strong>Multi-head attention</strong> specialised for time &ndash; different heads for recency, period, anomaly.</li><li>The $O(n^2)$ memory wall and how sparse / linear attention bypass it.</li><li>A worked <strong>stock-prediction case</strong> with attention-weight overlays.</li></ul><p><strong>Prerequisites</strong>: RNN/LSTM/GRU intuition (Parts 2-3), basic linear algebra, PyTorch.</p><hr><h2 id=1-why-attention-the-bottleneck-of-recurrence>1. Why attention? The bottleneck of recurrence</h2><p>In a length-$n$ recurrent model, the path between two time steps that are $k$ apart is <strong>$O(k)$ steps long</strong>. Every step squeezes information through a single hidden vector, and every step risks attenuating the gradient.</p><p>Real time series rarely cooperate with that geometry:</p><ul><li>An ECG anomaly minutes ago matters more than the last 200 samples of baseline.</li><li>Today&rsquo;s electricity load looks most like <em>the same hour, last Wednesday</em>.</li><li>A stock price reacts to an <strong>earnings event</strong> that happened weeks ago.</li></ul><p>Attention proposes a radically different geometry: every step has a <strong>direct, learned link to every other step</strong>. The path length between any two positions becomes $O(1)$, and the link strength &ndash; the <em>attention weight</em> &ndash; is itself interpretable.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig1_attention_heatmap.png alt="Attention weights over a 24-step window. The bright diagonal is recency, the off-diagonal is a 12-step periodicity, and the vertical band is persistent memory of an anomaly at t=5." loading=lazy decoding=async></figure><em>Figure 1. A causal attention map already encodes three useful priors &ndash; recency, periodicity, and persistent memory of anomalies &ndash; without any handcrafted features.</em></p><hr><h2 id=2-scaled-dot-product-attention-from-first-principles>2. Scaled dot-product attention from first principles</h2><p>Stack the input sequence as a matrix $X \in \mathbb{R}^{n \times d}$, one row per time step. Three learned linear maps produce three &ldquo;views&rdquo; of the same data:</p>$$
 Q = X W^Q, \qquad K = X W^K, \qquad V = X W^V,
-$$<p>with $W^Q, W^K \in \mathbb{R}^{d \times d_k}$ and $W^V \in \mathbb{R}^{d \times d_v}$.</p>
-<ul>
-<li><strong>Query</strong> $Q$ &ndash; &ldquo;what is this step looking for?&rdquo;</li>
-<li><strong>Key</strong> $K$ &ndash; &ldquo;what does this step advertise?&rdquo;</li>
-<li><strong>Value</strong> $V$ &ndash; &ldquo;what does this step actually carry?&rdquo;</li>
-</ul>
-<p>The compatibility between query $i$ and key $j$ is a dot product. Stacking:</p>
-$$
+$$<p>with $W^Q, W^K \in \mathbb{R}^{d \times d_k}$ and $W^V \in \mathbb{R}^{d \times d_v}$.</p><ul><li><strong>Query</strong> $Q$ &ndash; &ldquo;what is this step looking for?&rdquo;</li><li><strong>Key</strong> $K$ &ndash; &ldquo;what does this step advertise?&rdquo;</li><li><strong>Value</strong> $V$ &ndash; &ldquo;what does this step actually carry?&rdquo;</li></ul><p>The compatibility between query $i$ and key $j$ is a dot product. Stacking:</p>$$
 \text{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V.
-$$<h3 id="why-divide-by-sqrtd_k">Why divide by $\sqrt{d_k}$?</h3>
-<p>If the entries of $Q$ and $K$ are i.i.d. with variance $1$, then each dot product $q_i^\top k_j$ has variance $d_k$. As $d_k$ grows, the softmax inputs become large in magnitude and the softmax saturates &ndash; gradients collapse to near zero on all but one position. Dividing by $\sqrt{d_k}$ rescales the variance back to $1$ and keeps gradients healthy.</p>
-<h3 id="a-minimal-implementation">A minimal implementation</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">math</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">scaled_dot_product_attention</span><span class="p">(</span><span class="n">Q</span><span class="p">,</span> <span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Q, K, V: (batch, seq_len, d). mask: (batch, seq_len, seq_len) or broadcastable.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">d_k</span> <span class="o">=</span> <span class="n">Q</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">scores</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">@</span> <span class="n">K</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_k</span><span class="p">)</span>            <span class="c1"># (B, n, n)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;-inf&#34;</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">weights</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>                          <span class="c1"># row-stochastic</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">weights</span> <span class="o">@</span> <span class="n">V</span><span class="p">,</span> <span class="n">weights</span>                                  <span class="c1"># (B, n, d_v), (B, n, n)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The whole mechanism is two matrix multiplications surrounding a softmax. The expressive power lives in the learned projections $W^Q, W^K, W^V$.</p>
-<hr>
-<h2 id="3-bahdanau-vs-luong-two-classic-scoring-functions">3. Bahdanau vs Luong: two classic scoring functions</h2>
-<p>Before the Transformer, Bahdanau et al. (2015) introduced <strong>additive attention</strong> for sequence-to-sequence translation, and Luong et al. (2015) followed with <strong>multiplicative (dot-product)</strong> variants. Both are still useful when you wire attention into an RNN.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig2_bahdanau_vs_luong.png" alt="Bahdanau (additive) vs Luong (multiplicative) attention scoring functions." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 2. Two ways to score query-key compatibility. Additive uses a small MLP, multiplicative uses a dot product. Transformers use multiplicative with the $1/\sqrt{d_k}$ scaling factor.</em></p>
-<table>
-  <thead>
-      <tr>
-          <th>Property</th>
-          <th>Bahdanau (additive)</th>
-          <th>Luong (multiplicative)</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Score</td>
-          <td>$v^\top \tanh(W_1 h_i + W_2 s_{t-1})$</td>
-          <td>$s_t^\top W h_i$</td>
-      </tr>
-      <tr>
-          <td>Cost per pair</td>
-          <td>One MLP forward</td>
-          <td>One dot product</td>
-      </tr>
-      <tr>
-          <td>Parametrisation</td>
-          <td>$v, W_1, W_2$</td>
-          <td>$W$ (often identity)</td>
-      </tr>
-      <tr>
-          <td>Best when</td>
-          <td>Query and key live in different spaces</td>
-          <td>$Q$ and $K$ share a space</td>
-      </tr>
-      <tr>
-          <td>Modern usage</td>
-          <td>Rare in pure Transformers</td>
-          <td>Standard (with $1/\sqrt{d_k}$)</td>
-      </tr>
-  </tbody>
-</table>
-<p>Both produce a vector of pre-softmax scores, both finish with softmax + weighted sum. The Transformer simply chose the <em>cheaper</em> one and added the scale factor.</p>
-<hr>
-<h2 id="4-self-attention-applied-to-a-time-series">4. Self-attention applied to a time series</h2>
-<p>In the seq2seq world, queries come from the decoder and keys/values come from the encoder &ndash; two different sequences. <strong>Self-attention</strong> drops that distinction: the same sequence acts as $Q$, $K$, and $V$. Each step looks at every other step in the <em>same</em> window.</p>
-<p>For time series this is exactly what we want. Suppose we want to forecast the next value given a 12-step window. The attention weights from &ldquo;now&rdquo; back into the past tell us which historical step the model is leaning on.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig3_self_attention_ts.png" alt="Self-attention from the most recent step into a 12-step window. Arc thickness is proportional to the attention weight; the bottom bar chart shows the same weights." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 3. The forecast query at $t = 11$ does not just look at $t = 10$; it also strongly attends to $t = 5$, six steps back, because the underlying signal has period $\approx 6$. Attention has discovered the seasonality without being told.</em></p>
-<h3 id="causal-masking">Causal masking</h3>
-<p>For forecasting we must prevent step $i$ from looking at the future. The standard fix is a <strong>causal mask</strong> &ndash; a lower-triangular matrix added to the scores, with $-\infty$ in the upper triangle so the softmax kills those entries:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">causal_mask</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span>  <span class="c1"># 1 below diag</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="o">~</span><span class="n">causal_mask</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">scores</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;-inf&#34;</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>This is the only line that distinguishes a forecasting Transformer from a sequence-classification Transformer.</p>
-<hr>
-<h2 id="5-multi-head-attention-specialised-for-time">5. Multi-head attention, specialised for time</h2>
-<p>A single attention map averages whatever patterns it finds. Multi-head attention runs $h$ independent attentions in parallel, each on a slice of the embedding, then concatenates and projects:</p>
-$$
+$$<h3 id=why-divide-by-sqrtd_k>Why divide by $\sqrt{d_k}$?</h3><p>If the entries of $Q$ and $K$ are i.i.d. with variance $1$, then each dot product $q_i^\top k_j$ has variance $d_k$. As $d_k$ grows, the softmax inputs become large in magnitude and the softmax saturates &ndash; gradients collapse to near zero on all but one position. Dividing by $\sqrt{d_k}$ rescales the variance back to $1$ and keeps gradients healthy.</p><h3 id=a-minimal-implementation>A minimal implementation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>math</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>scaled_dot_product_attention</span><span class=p>(</span><span class=n>Q</span><span class=p>,</span> <span class=n>K</span><span class=p>,</span> <span class=n>V</span><span class=p>,</span> <span class=n>mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Q, K, V: (batch, seq_len, d). mask: (batch, seq_len, seq_len) or broadcastable.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>d_k</span> <span class=o>=</span> <span class=n>Q</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>scores</span> <span class=o>=</span> <span class=n>Q</span> <span class=o>@</span> <span class=n>K</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=o>-</span><span class=mi>2</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>math</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>d_k</span><span class=p>)</span>            <span class=c1># (B, n, n)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>mask</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>scores</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>masked_fill</span><span class=p>(</span><span class=n>mask</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;-inf&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>weights</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>scores</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>                          <span class=c1># row-stochastic</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>weights</span> <span class=o>@</span> <span class=n>V</span><span class=p>,</span> <span class=n>weights</span>                                  <span class=c1># (B, n, d_v), (B, n, n)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The whole mechanism is two matrix multiplications surrounding a softmax. The expressive power lives in the learned projections $W^Q, W^K, W^V$.</p><hr><h2 id=3-bahdanau-vs-luong-two-classic-scoring-functions>3. Bahdanau vs Luong: two classic scoring functions</h2><p>Before the Transformer, Bahdanau et al. (2015) introduced <strong>additive attention</strong> for sequence-to-sequence translation, and Luong et al. (2015) followed with <strong>multiplicative (dot-product)</strong> variants. Both are still useful when you wire attention into an RNN.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig2_bahdanau_vs_luong.png alt="Bahdanau (additive) vs Luong (multiplicative) attention scoring functions." loading=lazy decoding=async></figure><em>Figure 2. Two ways to score query-key compatibility. Additive uses a small MLP, multiplicative uses a dot product. Transformers use multiplicative with the $1/\sqrt{d_k}$ scaling factor.</em></p><table><thead><tr><th>Property</th><th>Bahdanau (additive)</th><th>Luong (multiplicative)</th></tr></thead><tbody><tr><td>Score</td><td>$v^\top \tanh(W_1 h_i + W_2 s_{t-1})$</td><td>$s_t^\top W h_i$</td></tr><tr><td>Cost per pair</td><td>One MLP forward</td><td>One dot product</td></tr><tr><td>Parametrisation</td><td>$v, W_1, W_2$</td><td>$W$ (often identity)</td></tr><tr><td>Best when</td><td>Query and key live in different spaces</td><td>$Q$ and $K$ share a space</td></tr><tr><td>Modern usage</td><td>Rare in pure Transformers</td><td>Standard (with $1/\sqrt{d_k}$)</td></tr></tbody></table><p>Both produce a vector of pre-softmax scores, both finish with softmax + weighted sum. The Transformer simply chose the <em>cheaper</em> one and added the scale factor.</p><hr><h2 id=4-self-attention-applied-to-a-time-series>4. Self-attention applied to a time series</h2><p>In the seq2seq world, queries come from the decoder and keys/values come from the encoder &ndash; two different sequences. <strong>Self-attention</strong> drops that distinction: the same sequence acts as $Q$, $K$, and $V$. Each step looks at every other step in the <em>same</em> window.</p><p>For time series this is exactly what we want. Suppose we want to forecast the next value given a 12-step window. The attention weights from &ldquo;now&rdquo; back into the past tell us which historical step the model is leaning on.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig3_self_attention_ts.png alt="Self-attention from the most recent step into a 12-step window. Arc thickness is proportional to the attention weight; the bottom bar chart shows the same weights." loading=lazy decoding=async></figure><em>Figure 3. The forecast query at $t = 11$ does not just look at $t = 10$; it also strongly attends to $t = 5$, six steps back, because the underlying signal has period $\approx 6$. Attention has discovered the seasonality without being told.</em></p><h3 id=causal-masking>Causal masking</h3><p>For forecasting we must prevent step $i$ from looking at the future. The standard fix is a <strong>causal mask</strong> &ndash; a lower-triangular matrix added to the scores, with $-\infty$ in the upper triangle so the softmax kills those entries:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>causal_mask</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>device</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>tril</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>ones</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>device</span><span class=p>))</span><span class=o>.</span><span class=n>bool</span><span class=p>()</span>  <span class=c1># 1 below diag</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>scores</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>masked_fill</span><span class=p>(</span><span class=o>~</span><span class=n>causal_mask</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>scores</span><span class=o>.</span><span class=n>device</span><span class=p>),</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;-inf&#34;</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p>This is the only line that distinguishes a forecasting Transformer from a sequence-classification Transformer.</p><hr><h2 id=5-multi-head-attention-specialised-for-time>5. Multi-head attention, specialised for time</h2><p>A single attention map averages whatever patterns it finds. Multi-head attention runs $h$ independent attentions in parallel, each on a slice of the embedding, then concatenates and projects:</p>$$
 \text{MultiHead}(X) = [\text{head}_1; \dots; \text{head}_h] \, W^O,
 \qquad
 \text{head}_j = \text{Attention}(X W^{Q}_j, X W^{K}_j, X W^{V}_j).
-$$<p>Each head has its own $W^Q_j, W^K_j, W^V_j \in \mathbb{R}^{d \times (d/h)}$ and is free to specialise. In time series we typically observe four families of heads after training:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig6_multihead_for_time.png" alt="Four attention heads, each specialising in a different temporal pattern: local recency, long-range trend, lag-7 periodicity, and persistent memory of an anomaly at t=4." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 4. The same 18-step window seen through four heads. Multi-head attention is essentially a learned ensemble of temporal kernels.</em></p>
-<table>
-  <thead>
-      <tr>
-          <th>Head</th>
-          <th>What it learns</th>
-          <th>Why it matters</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Local</td>
-          <td>Sharp diagonal</td>
-          <td>Short-term momentum</td>
-      </tr>
-      <tr>
-          <td>Long-range</td>
-          <td>Diffuse triangle</td>
-          <td>Slow drift, regime</td>
-      </tr>
-      <tr>
-          <td>Periodic</td>
-          <td>Off-diagonal stripes</td>
-          <td>Daily / weekly cycles</td>
-      </tr>
-      <tr>
-          <td>Anomaly</td>
-          <td>Vertical column</td>
-          <td>&ldquo;Remember the spike at $t=k$&rdquo;</td>
-      </tr>
-  </tbody>
-</table>
-<p>PyTorch implementation:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiHeadAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">n_heads</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">assert</span> <span class="n">d_model</span> <span class="o">%</span> <span class="n">n_heads</span> <span class="o">==</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">n_heads</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span> <span class="o">=</span> <span class="n">d_model</span> <span class="o">//</span> <span class="n">n_heads</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_q</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_k</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_o</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">d_model</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Project, reshape to (B, h, n, d_k)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_q</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_k</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_v</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">scores</span> <span class="o">=</span> <span class="n">q</span> <span class="o">@</span> <span class="n">k</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_k</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">mask</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;-inf&#34;</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">@</span> <span class="n">v</span>                                <span class="c1"># (B, h, n, d_k)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>      <span class="c1"># (B, n, d_model)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">W_o</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">weights</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>How many heads?</strong> For $d_\text{model} = 64\!-\!128$, four heads is a sensible starting point. If you visualise heads after training and several are near-identical, <em>reduce</em>. If a single head is trying to encode multiple distinct patterns, <em>increase</em>.</p>
-<hr>
-<h2 id="6-positional-encoding-putting-time-back-in">6. Positional encoding: putting time back in</h2>
-<p>Self-attention is <strong>permutation-invariant</strong> &ndash; shuffling the input shuffles the output identically. For time series, that throws away the most important variable in the dataset. We must inject position explicitly.</p>
-<h3 id="sinusoidal-encoding">Sinusoidal encoding</h3>
-<p>The original Transformer adds fixed sinusoids of geometrically spaced frequencies:</p>
-$$
+$$<p>Each head has its own $W^Q_j, W^K_j, W^V_j \in \mathbb{R}^{d \times (d/h)}$ and is free to specialise. In time series we typically observe four families of heads after training:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig6_multihead_for_time.png alt="Four attention heads, each specialising in a different temporal pattern: local recency, long-range trend, lag-7 periodicity, and persistent memory of an anomaly at t=4." loading=lazy decoding=async></figure><em>Figure 4. The same 18-step window seen through four heads. Multi-head attention is essentially a learned ensemble of temporal kernels.</em></p><table><thead><tr><th>Head</th><th>What it learns</th><th>Why it matters</th></tr></thead><tbody><tr><td>Local</td><td>Sharp diagonal</td><td>Short-term momentum</td></tr><tr><td>Long-range</td><td>Diffuse triangle</td><td>Slow drift, regime</td></tr><tr><td>Periodic</td><td>Off-diagonal stripes</td><td>Daily / weekly cycles</td></tr><tr><td>Anomaly</td><td>Vertical column</td><td>&ldquo;Remember the spike at $t=k$&rdquo;</td></tr></tbody></table><p>PyTorch implementation:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MultiHeadAttention</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>d_model</span><span class=p>,</span> <span class=n>n_heads</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>assert</span> <span class=n>d_model</span> <span class=o>%</span> <span class=n>n_heads</span> <span class=o>==</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>h</span> <span class=o>=</span> <span class=n>n_heads</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>d_k</span> <span class=o>=</span> <span class=n>d_model</span> <span class=o>//</span> <span class=n>n_heads</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_q</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_k</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_v</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_o</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>d_model</span><span class=p>,</span> <span class=n>d_model</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>mask</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>B</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Project, reshape to (B, h, n, d_k)</span>
+</span></span><span class=line><span class=cl>        <span class=n>q</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_q</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>h</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>d_k</span><span class=p>)</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>k</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_k</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>h</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>d_k</span><span class=p>)</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>v</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_v</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>h</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>d_k</span><span class=p>)</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>scores</span> <span class=o>=</span> <span class=n>q</span> <span class=o>@</span> <span class=n>k</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=o>-</span><span class=mi>2</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>math</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>d_k</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>mask</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>scores</span> <span class=o>=</span> <span class=n>scores</span><span class=o>.</span><span class=n>masked_fill</span><span class=p>(</span><span class=n>mask</span> <span class=o>==</span> <span class=mi>0</span><span class=p>,</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;-inf&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>weights</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>scores</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=n>weights</span> <span class=o>@</span> <span class=n>v</span>                                <span class=c1># (B, h, n, d_k)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>transpose</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>      <span class=c1># (B, n, d_model)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>W_o</span><span class=p>(</span><span class=n>out</span><span class=p>),</span> <span class=n>weights</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>How many heads?</strong> For $d_\text{model} = 64\!-\!128$, four heads is a sensible starting point. If you visualise heads after training and several are near-identical, <em>reduce</em>. If a single head is trying to encode multiple distinct patterns, <em>increase</em>.</p><hr><h2 id=6-positional-encoding-putting-time-back-in>6. Positional encoding: putting time back in</h2><p>Self-attention is <strong>permutation-invariant</strong> &ndash; shuffling the input shuffles the output identically. For time series, that throws away the most important variable in the dataset. We must inject position explicitly.</p><h3 id=sinusoidal-encoding>Sinusoidal encoding</h3><p>The original Transformer adds fixed sinusoids of geometrically spaced frequencies:</p>$$
 PE_{(p, 2i)} = \sin\!\left(\frac{p}{10000^{2i/d}}\right),
 \qquad
 PE_{(p, 2i+1)} = \cos\!\left(\frac{p}{10000^{2i/d}}\right).
-$$<p>Why this exact form?</p>
-<ul>
-<li><strong>Boundedness</strong>: every entry sits in $[-1, 1]$, regardless of $p$.</li>
-<li><strong>Linear shift-equivariance</strong>: $PE_{p+\Delta}$ is a fixed linear function of $PE_p$, so the model can learn relative offsets like &ldquo;look 7 steps back&rdquo; with a single linear projection.</li>
-<li><strong>Multi-scale</strong>: low-index dimensions move slowly (long-term position), high-index dimensions move quickly (fine-grained position).</li>
-</ul>
-<h3 id="time-aware-encoding-for-irregular-sampling">Time-aware encoding for irregular sampling</h3>
-<p>When samples are not equally spaced (sensor data, trades), feed the <strong>actual timestamp difference</strong> rather than the index. A common pattern:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">time_features</span><span class="p">(</span><span class="n">timestamps</span><span class="p">,</span> <span class="n">d_model</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;timestamps: (B, n) in seconds. Returns (B, n, d_model).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">deltas</span> <span class="o">=</span> <span class="n">timestamps</span> <span class="o">-</span> <span class="n">timestamps</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>              <span class="c1"># seconds since window start</span>
-</span></span><span class="line"><span class="cl">    <span class="n">freqs</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">10000</span> <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">d_model</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">args</span> <span class="o">=</span> <span class="n">deltas</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">freqs</span>                  <span class="c1"># (B, n, d_model/2)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">args</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>This generalises sinusoidal PE to arbitrary time intervals &ndash; the same code handles 1 Hz IoT data, irregular trade ticks, and missing samples uniformly.</p>
-<hr>
-<h2 id="7-attention--lstm-the-practical-hybrid">7. Attention + LSTM: the practical hybrid</h2>
-<p>Pure Transformers shine on long sequences but require a lot of data. For windows in the <strong>50-500 step</strong> range, a hybrid is often the strongest baseline: an LSTM extracts local temporal features cheaply, and attention then chooses which encoder state matters at each forecast step.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig5_attention_lstm_hybrid.png" alt="LSTM encoder &#43; attention &#43; LSTM decoder. The encoder produces hidden states h1&hellip;h5; attention scores them against the decoder state and forms a context vector that conditions the prediction." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 5. The hybrid keeps the LSTM&rsquo;s strong inductive bias for local sequential structure and uses attention as a learned, content-based pointer back into history.</em></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">LSTMAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_features</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">horizon</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">n_features</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">n_features</span> <span class="o">+</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Luong-style multiplicative attention</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W_a</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">horizon</span> <span class="o">=</span> <span class="n">horizon</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">last_obs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">H</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>                     <span class="c1"># H: (B, n, hidden)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">outs</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y_prev</span> <span class="o">=</span> <span class="n">last_obs</span>                                <span class="c1"># (B, 1, n_features)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">horizon</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">s</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>                                    <span class="c1"># (B, hidden)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">scores</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W_a</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">H</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>         <span class="c1"># (B, n)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">alpha</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ctx</span> <span class="o">=</span> <span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">H</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>                  <span class="c1"># (B, hidden)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dec_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">y_prev</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">o</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">dec_in</span><span class="p">,</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">o</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">ctx</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">y_prev</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>       <span class="c1"># naive feedback</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">outs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">alpha</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Empirically this architecture (or variants &ndash; DA-RNN, dual-stage attention, etc.) wins many M-competition style benchmarks, especially when the horizon is short and data is limited.</p>
-<hr>
-<h2 id="8-the-on2-wall-and-how-to-escape-it">8. The $O(n^2)$ wall and how to escape it</h2>
-<p>The attention matrix has $n^2$ entries. Every entry is computed and stored. For a 4096-step window with float32, that is 64 MB <em>per head</em>, <em>per layer</em>, <em>per example</em>. The wall is real.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig4_complexity_vs_length.png" alt="Compute and memory scaling: RNN is O(n) memory, full attention is O(n^2). Sparse attention is O(n log n) and linear attention is O(n)." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 6. RNNs win on memory; attention wins on parallelism. The crossover in compute lies near $n \approx d$. For $n \gg d$ you need a sub-quadratic variant.</em></p>
-<table>
-  <thead>
-      <tr>
-          <th>Variant</th>
-          <th>Time</th>
-          <th>Memory</th>
-          <th>Idea</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Full attention</td>
-          <td>$O(n^2 d)$</td>
-          <td>$O(n^2)$</td>
-          <td>Compute every pair</td>
-      </tr>
-      <tr>
-          <td>Sparse / strided</td>
-          <td>$O(n \log n \cdot d)$</td>
-          <td>$O(n \log n)$</td>
-          <td>Local windows + dilated jumps (Longformer, BigBird)</td>
-      </tr>
-      <tr>
-          <td>Linear attention</td>
-          <td>$O(n d^2)$</td>
-          <td>$O(n d)$</td>
-          <td>Replace softmax with a kernel feature map (Linformer, Performer)</td>
-      </tr>
-      <tr>
-          <td>Informer ProbSparse</td>
-          <td>$O(n \log n \cdot d)$</td>
-          <td>$O(n \log n)$</td>
-          <td>Score only the top-$\log n$ queries (covered in Part 8)</td>
-      </tr>
-  </tbody>
-</table>
-<p>For most time-series problems, $n$ is in the hundreds, $d$ is in the tens to a few hundred, and the crossover with RNNs sits in your favour. Reach for sub-quadratic variants only when the standard implementation runs out of memory.</p>
-<hr>
-<h2 id="9-case-study-forecasting-a-stock-price">9. Case study: forecasting a stock price</h2>
-<p>To make the whole pipeline concrete, here is a synthetic stock series with three regimes &ndash; a slow trend, a 30-day cycle, and an earnings event at day 60 &ndash; forecast 10 days ahead by an LSTM+attention model and a no-attention baseline.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig7_stock_attention_app.png" alt="Stock price forecast with attention overlay. The LSTM&#43;attention forecast (orange) tracks the post-earnings regime; the no-attention baseline (grey dashed) under-shoots. The bottom panel shows the attention weights from the forecast query into the past 30 days, with the earnings day spiking in red." loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Figure 7. The attention weights are not a black box. We can see the model leaning hard on the earnings event and on the most recent week.</em></p>
-<p>Three things to notice:</p>
-<ol>
-<li><strong>The earnings-day weight is large</strong> &ndash; attention has discovered an <em>event</em> memory without being told what an earnings release is.</li>
-<li><strong>The cycle peak is preserved</strong> &ndash; the orange forecast follows the 30-day oscillation, while the baseline collapses to a near-linear extrapolation.</li>
-<li><strong>Interpretability comes for free</strong> &ndash; the same matrix that drives the prediction also explains it. With LSTMs you would need post-hoc tools (integrated gradients, SHAP); with attention the explanation is a softmax row.</li>
-</ol>
-<p>A note of caution: attention weights are <strong>correlated with importance, not identical to it</strong>. For high-stakes deployments, validate explanations with perturbation tests (zero-out a key step, see the prediction shift) rather than reading the heatmap as ground truth.</p>
-<hr>
-<h2 id="10-practical-recipe-for-time-series-attention">10. Practical recipe for time-series attention</h2>
-<ol>
-<li><strong>Standardise inputs</strong>. Attention scores are dot products; without normalisation, large-scale features dominate.</li>
-<li><strong>Add positional encoding</strong>. Sinusoidal for regular sampling, time-aware for irregular.</li>
-<li><strong>Use causal masks</strong> during training and inference for forecasting.</li>
-<li><strong>Start with 4 heads, $d_\text{model} \in [64, 128]$</strong>. Scale only if validation loss demands it.</li>
-<li><strong>Layer-norm before attention</strong>, dropout on attention weights and on the feed-forward block.</li>
-<li><strong>Lower learning rate than RNNs</strong> &ndash; $10^{-4}$ to $5 \cdot 10^{-4}$ with a warm-up of a few hundred steps.</li>
-<li><strong>Visualise heads early</strong>. If they collapse to identical patterns, reduce $h$ or add diversity regularisation.</li>
-<li><strong>Beware the $O(n^2)$ wall</strong>. If you need $n > 1024$, go straight to a sub-quadratic variant or to Informer (Part 8).</li>
-</ol>
-<hr>
-<h2 id="11-common-pitfalls">11. Common pitfalls</h2>
-<ul>
-<li><strong>Forgetting to scale by $\sqrt{d_k}$</strong> &ndash; training stalls within a few steps.</li>
-<li><strong>Wrong masking</strong> &ndash; subtle data leakage that inflates training metrics and crashes at deployment.</li>
-<li><strong>Attention to padding</strong> &ndash; forgetting the padding mask leaks the special token&rsquo;s signal into every position.</li>
-<li><strong>Treating weights as causal explanations</strong> &ndash; they are evidence, not proof.</li>
-<li><strong>Training on too-short windows</strong> &ndash; if all useful history fits in 10 steps, an LSTM will probably outrun a Transformer.</li>
-</ul>
-<hr>
-<h2 id="12-summary">12. Summary</h2>
-<p>Attention replaces the <strong>sequential, lossy information channel of an RNN</strong> with a <strong>direct, content-addressable lookup</strong>. The math is two matrix multiplications and a softmax; the consequences are profound:</p>
-<ul>
-<li>$O(1)$ path length between any two time steps.</li>
-<li>Fully parallel training &ndash; every position is computed at once.</li>
-<li>Built-in interpretability via the attention matrix.</li>
-<li>A clean abstraction for multi-scale temporal patterns through multi-head attention.</li>
-</ul>
-<p>The price is $O(n^2)$ memory and the need to inject position explicitly. For most time-series problems those costs are well worth paying &ndash; and Parts 5, 6, and 8 of this series will show how the Transformer, TCN, and Informer push the idea further.</p>
-<blockquote>
-<p><strong>Mnemonic</strong> &ndash; <em>Q asks, K answers, V carries; scale by $\sqrt{d_k}$, softmax to weights, multiply V to read; many heads, many views.</em></p>
-</blockquote>
-<hr>
-<h2 id="references">References</h2>
-<ol>
-<li>Vaswani et al., <em>Attention Is All You Need</em>, NeurIPS 2017.</li>
-<li>Bahdanau, Cho, Bengio, <em>Neural Machine Translation by Jointly Learning to Align and Translate</em>, ICLR 2015.</li>
-<li>Luong, Pham, Manning, <em>Effective Approaches to Attention-based Neural Machine Translation</em>, EMNLP 2015.</li>
-<li>Qin et al., <em>A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction</em>, IJCAI 2017.</li>
-<li>Kitaev, Kaiser, Levskaya, <em>Reformer: The Efficient Transformer</em>, ICLR 2020.</li>
-<li>Beltagy, Peters, Cohan, <em>Longformer: The Long-Document Transformer</em>, 2020.</li>
-<li>Zhou et al., <em>Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting</em>, AAAI 2021. &ndash; covered in Part 8.</li>
-</ol>
-<hr>
-<p><strong>Series navigation</strong></p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/time-series/gru/"><span class="title">Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/time-series/transformer/"><span class="title">Time Series Forecasting (5): Transformer Architecture for Time Series</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#1-why-attention-the-bottleneck-of-recurrence">1. Why attention? The bottleneck of recurrence</a></li>
-    <li><a href="#2-scaled-dot-product-attention-from-first-principles">2. Scaled dot-product attention from first principles</a>
-      <ul>
-        <li><a href="#why-divide-by-sqrtd_k">Why divide by ?</a></li>
-        <li><a href="#a-minimal-implementation">A minimal implementation</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-bahdanau-vs-luong-two-classic-scoring-functions">3. Bahdanau vs Luong: two classic scoring functions</a></li>
-    <li><a href="#4-self-attention-applied-to-a-time-series">4. Self-attention applied to a time series</a>
-      <ul>
-        <li><a href="#causal-masking">Causal masking</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-multi-head-attention-specialised-for-time">5. Multi-head attention, specialised for time</a></li>
-    <li><a href="#6-positional-encoding-putting-time-back-in">6. Positional encoding: putting time back in</a>
-      <ul>
-        <li><a href="#sinusoidal-encoding">Sinusoidal encoding</a></li>
-        <li><a href="#time-aware-encoding-for-irregular-sampling">Time-aware encoding for irregular sampling</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-attention--lstm-the-practical-hybrid">7. Attention + LSTM: the practical hybrid</a></li>
-    <li><a href="#8-the-on2-wall-and-how-to-escape-it">8. The  wall and how to escape it</a></li>
-    <li><a href="#9-case-study-forecasting-a-stock-price">9. Case study: forecasting a stock price</a></li>
-    <li><a href="#10-practical-recipe-for-time-series-attention">10. Practical recipe for time-series attention</a></li>
-    <li><a href="#11-common-pitfalls">11. Common pitfalls</a></li>
-    <li><a href="#12-summary">12. Summary</a></li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Time series forecasting</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2500</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>Why this exact form?</p><ul><li><strong>Boundedness</strong>: every entry sits in $[-1, 1]$, regardless of $p$.</li><li><strong>Linear shift-equivariance</strong>: $PE_{p+\Delta}$ is a fixed linear function of $PE_p$, so the model can learn relative offsets like &ldquo;look 7 steps back&rdquo; with a single linear projection.</li><li><strong>Multi-scale</strong>: low-index dimensions move slowly (long-term position), high-index dimensions move quickly (fine-grained position).</li></ul><h3 id=time-aware-encoding-for-irregular-sampling>Time-aware encoding for irregular sampling</h3><p>When samples are not equally spaced (sensor data, trades), feed the <strong>actual timestamp difference</strong> rather than the index. A common pattern:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>time_features</span><span class=p>(</span><span class=n>timestamps</span><span class=p>,</span> <span class=n>d_model</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;timestamps: (B, n) in seconds. Returns (B, n, d_model).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>deltas</span> <span class=o>=</span> <span class=n>timestamps</span> <span class=o>-</span> <span class=n>timestamps</span><span class=p>[:,</span> <span class=p>:</span><span class=mi>1</span><span class=p>]</span>              <span class=c1># seconds since window start</span>
+</span></span><span class=line><span class=cl>    <span class=n>freqs</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=p>(</span><span class=mi>10000</span> <span class=o>**</span> <span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>d_model</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span> <span class=o>/</span> <span class=n>d_model</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>args</span> <span class=o>=</span> <span class=n>deltas</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>freqs</span>                  <span class=c1># (B, n, d_model/2)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>torch</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>args</span><span class=p>),</span> <span class=n>torch</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>args</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>This generalises sinusoidal PE to arbitrary time intervals &ndash; the same code handles 1 Hz IoT data, irregular trade ticks, and missing samples uniformly.</p><hr><h2 id=7-attention--lstm-the-practical-hybrid>7. Attention + LSTM: the practical hybrid</h2><p>Pure Transformers shine on long sequences but require a lot of data. For windows in the <strong>50-500 step</strong> range, a hybrid is often the strongest baseline: an LSTM extracts local temporal features cheaply, and attention then chooses which encoder state matters at each forecast step.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig5_attention_lstm_hybrid.png alt="LSTM encoder + attention + LSTM decoder. The encoder produces hidden states h1&mldr;h5; attention scores them against the decoder state and forms a context vector that conditions the prediction." loading=lazy decoding=async></figure><em>Figure 5. The hybrid keeps the LSTM&rsquo;s strong inductive bias for local sequential structure and uses attention as a learned, content-based pointer back into history.</em></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>LSTMAttention</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_features</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>horizon</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>n_features</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>n_features</span> <span class=o>+</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Luong-style multiplicative attention</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W_a</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>bias</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span> <span class=o>*</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>horizon</span> <span class=o>=</span> <span class=n>horizon</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>last_obs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>H</span><span class=p>,</span> <span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>c</span><span class=p>)</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>                     <span class=c1># H: (B, n, hidden)</span>
+</span></span><span class=line><span class=cl>        <span class=n>outs</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=n>y_prev</span> <span class=o>=</span> <span class=n>last_obs</span>                                <span class=c1># (B, 1, n_features)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>horizon</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>s</span> <span class=o>=</span> <span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>                                    <span class=c1># (B, hidden)</span>
+</span></span><span class=line><span class=cl>            <span class=n>scores</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W_a</span><span class=p>(</span><span class=n>s</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>H</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>         <span class=c1># (B, n)</span>
+</span></span><span class=line><span class=cl>            <span class=n>alpha</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>scores</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>ctx</span> <span class=o>=</span> <span class=p>(</span><span class=n>alpha</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>H</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span>                  <span class=c1># (B, hidden)</span>
+</span></span><span class=line><span class=cl>            <span class=n>dec_in</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>y_prev</span><span class=p>,</span> <span class=n>ctx</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>o</span><span class=p>,</span> <span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>c</span><span class=p>)</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span><span class=p>(</span><span class=n>dec_in</span><span class=p>,</span> <span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>c</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>y</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>o</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span> <span class=n>ctx</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>outs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>y_prev</span> <span class=o>=</span> <span class=n>y</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>expand</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>x</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>))</span>       <span class=c1># naive feedback</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>(</span><span class=n>outs</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>alpha</span>
+</span></span></code></pre></td></tr></table></div></div><p>Empirically this architecture (or variants &ndash; DA-RNN, dual-stage attention, etc.) wins many M-competition style benchmarks, especially when the horizon is short and data is limited.</p><hr><h2 id=8-the-on2-wall-and-how-to-escape-it>8. The $O(n^2)$ wall and how to escape it</h2><p>The attention matrix has $n^2$ entries. Every entry is computed and stored. For a 4096-step window with float32, that is 64 MB <em>per head</em>, <em>per layer</em>, <em>per example</em>. The wall is real.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig4_complexity_vs_length.png alt="Compute and memory scaling: RNN is O(n) memory, full attention is O(n^2). Sparse attention is O(n log n) and linear attention is O(n)." loading=lazy decoding=async></figure><em>Figure 6. RNNs win on memory; attention wins on parallelism. The crossover in compute lies near $n \approx d$. For $n \gg d$ you need a sub-quadratic variant.</em></p><table><thead><tr><th>Variant</th><th>Time</th><th>Memory</th><th>Idea</th></tr></thead><tbody><tr><td>Full attention</td><td>$O(n^2 d)$</td><td>$O(n^2)$</td><td>Compute every pair</td></tr><tr><td>Sparse / strided</td><td>$O(n \log n \cdot d)$</td><td>$O(n \log n)$</td><td>Local windows + dilated jumps (Longformer, BigBird)</td></tr><tr><td>Linear attention</td><td>$O(n d^2)$</td><td>$O(n d)$</td><td>Replace softmax with a kernel feature map (Linformer, Performer)</td></tr><tr><td>Informer ProbSparse</td><td>$O(n \log n \cdot d)$</td><td>$O(n \log n)$</td><td>Score only the top-$\log n$ queries (covered in Part 8)</td></tr></tbody></table><p>For most time-series problems, $n$ is in the hundreds, $d$ is in the tens to a few hundred, and the crossover with RNNs sits in your favour. Reach for sub-quadratic variants only when the standard implementation runs out of memory.</p><hr><h2 id=9-case-study-forecasting-a-stock-price>9. Case study: forecasting a stock price</h2><p>To make the whole pipeline concrete, here is a synthetic stock series with three regimes &ndash; a slow trend, a 30-day cycle, and an earnings event at day 60 &ndash; forecast 10 days ahead by an LSTM+attention model and a no-attention baseline.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/time-series/attention-mechanism/fig7_stock_attention_app.png alt="Stock price forecast with attention overlay. The LSTM+attention forecast (orange) tracks the post-earnings regime; the no-attention baseline (grey dashed) under-shoots. The bottom panel shows the attention weights from the forecast query into the past 30 days, with the earnings day spiking in red." loading=lazy decoding=async></figure><em>Figure 7. The attention weights are not a black box. We can see the model leaning hard on the earnings event and on the most recent week.</em></p><p>Three things to notice:</p><ol><li><strong>The earnings-day weight is large</strong> &ndash; attention has discovered an <em>event</em> memory without being told what an earnings release is.</li><li><strong>The cycle peak is preserved</strong> &ndash; the orange forecast follows the 30-day oscillation, while the baseline collapses to a near-linear extrapolation.</li><li><strong>Interpretability comes for free</strong> &ndash; the same matrix that drives the prediction also explains it. With LSTMs you would need post-hoc tools (integrated gradients, SHAP); with attention the explanation is a softmax row.</li></ol><p>A note of caution: attention weights are <strong>correlated with importance, not identical to it</strong>. For high-stakes deployments, validate explanations with perturbation tests (zero-out a key step, see the prediction shift) rather than reading the heatmap as ground truth.</p><hr><h2 id=10-practical-recipe-for-time-series-attention>10. Practical recipe for time-series attention</h2><ol><li><strong>Standardise inputs</strong>. Attention scores are dot products; without normalisation, large-scale features dominate.</li><li><strong>Add positional encoding</strong>. Sinusoidal for regular sampling, time-aware for irregular.</li><li><strong>Use causal masks</strong> during training and inference for forecasting.</li><li><strong>Start with 4 heads, $d_\text{model} \in [64, 128]$</strong>. Scale only if validation loss demands it.</li><li><strong>Layer-norm before attention</strong>, dropout on attention weights and on the feed-forward block.</li><li><strong>Lower learning rate than RNNs</strong> &ndash; $10^{-4}$ to $5 \cdot 10^{-4}$ with a warm-up of a few hundred steps.</li><li><strong>Visualise heads early</strong>. If they collapse to identical patterns, reduce $h$ or add diversity regularisation.</li><li><strong>Beware the $O(n^2)$ wall</strong>. If you need $n > 1024$, go straight to a sub-quadratic variant or to Informer (Part 8).</li></ol><hr><h2 id=11-common-pitfalls>11. Common pitfalls</h2><ul><li><strong>Forgetting to scale by $\sqrt{d_k}$</strong> &ndash; training stalls within a few steps.</li><li><strong>Wrong masking</strong> &ndash; subtle data leakage that inflates training metrics and crashes at deployment.</li><li><strong>Attention to padding</strong> &ndash; forgetting the padding mask leaks the special token&rsquo;s signal into every position.</li><li><strong>Treating weights as causal explanations</strong> &ndash; they are evidence, not proof.</li><li><strong>Training on too-short windows</strong> &ndash; if all useful history fits in 10 steps, an LSTM will probably outrun a Transformer.</li></ul><hr><h2 id=12-summary>12. Summary</h2><p>Attention replaces the <strong>sequential, lossy information channel of an RNN</strong> with a <strong>direct, content-addressable lookup</strong>. The math is two matrix multiplications and a softmax; the consequences are profound:</p><ul><li>$O(1)$ path length between any two time steps.</li><li>Fully parallel training &ndash; every position is computed at once.</li><li>Built-in interpretability via the attention matrix.</li><li>A clean abstraction for multi-scale temporal patterns through multi-head attention.</li></ul><p>The price is $O(n^2)$ memory and the need to inject position explicitly. For most time-series problems those costs are well worth paying &ndash; and Parts 5, 6, and 8 of this series will show how the Transformer, TCN, and Informer push the idea further.</p><blockquote><p><strong>Mnemonic</strong> &ndash; <em>Q asks, K answers, V carries; scale by $\sqrt{d_k}$, softmax to weights, multiply V to read; many heads, many views.</em></p></blockquote><hr><h2 id=references>References</h2><ol><li>Vaswani et al., <em>Attention Is All You Need</em>, NeurIPS 2017.</li><li>Bahdanau, Cho, Bengio, <em>Neural Machine Translation by Jointly Learning to Align and Translate</em>, ICLR 2015.</li><li>Luong, Pham, Manning, <em>Effective Approaches to Attention-based Neural Machine Translation</em>, EMNLP 2015.</li><li>Qin et al., <em>A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction</em>, IJCAI 2017.</li><li>Kitaev, Kaiser, Levskaya, <em>Reformer: The Efficient Transformer</em>, ICLR 2020.</li><li>Beltagy, Peters, Cohan, <em>Longformer: The Long-Document Transformer</em>, 2020.</li><li>Zhou et al., <em>Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting</em>, AAAI 2021. &ndash; covered in Part 8.</li></ol><hr><p><strong>Series navigation</strong></p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/time-series/gru/><span class=title>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/time-series/transformer/><span class=title>Time Series Forecasting (5): Transformer Architecture for Time Series</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#1-why-attention-the-bottleneck-of-recurrence>1. Why attention? The bottleneck of recurrence</a></li><li><a href=#2-scaled-dot-product-attention-from-first-principles>2. Scaled dot-product attention from first principles</a><ul><li><a href=#why-divide-by-sqrtd_k>Why divide by ?</a></li><li><a href=#a-minimal-implementation>A minimal implementation</a></li></ul></li><li><a href=#3-bahdanau-vs-luong-two-classic-scoring-functions>3. Bahdanau vs Luong: two classic scoring functions</a></li><li><a href=#4-self-attention-applied-to-a-time-series>4. Self-attention applied to a time series</a><ul><li><a href=#causal-masking>Causal masking</a></li></ul></li><li><a href=#5-multi-head-attention-specialised-for-time>5. Multi-head attention, specialised for time</a></li><li><a href=#6-positional-encoding-putting-time-back-in>6. Positional encoding: putting time back in</a><ul><li><a href=#sinusoidal-encoding>Sinusoidal encoding</a></li><li><a href=#time-aware-encoding-for-irregular-sampling>Time-aware encoding for irregular sampling</a></li></ul></li><li><a href=#7-attention--lstm-the-practical-hybrid>7. Attention + LSTM: the practical hybrid</a></li><li><a href=#8-the-on2-wall-and-how-to-escape-it>8. The wall and how to escape it</a></li><li><a href=#9-case-study-forecasting-a-stock-price>9. Case study: forecasting a stock price</a></li><li><a href=#10-practical-recipe-for-time-series-attention>10. Practical recipe for time-series attention</a></li><li><a href=#11-common-pitfalls>11. Common pitfalls</a></li><li><a href=#12-summary>12. Summary</a></li><li><a href=#references>References</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Time series forecasting</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/01-traditional-models/><span class=chapter-num>01</span>
+<span class=chapter-title>Time Series Forecasting (1): Traditional Statistical Models</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/lstm/><span class=chapter-num>02</span>
+<span class=chapter-title>Time Series Forecasting (2): LSTM -- Gate Mechanisms and Long-Term Dependencies</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/gru/><span class=chapter-num>03</span>
+<span class=chapter-title>Time Series Forecasting (3): GRU -- Lightweight Gates and Efficiency Trade-offs</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>Time Series Forecasting (4): Attention Mechanisms -- Direct Long-Range Dependencies</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/transformer/><span class=chapter-num>05</span>
+<span class=chapter-title>Time Series Forecasting (5): Transformer Architecture for Time Series</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/temporal-convolutional-networks/><span class=chapter-num>06</span>
+<span class=chapter-title>Time Series Forecasting (6): Temporal Convolutional Networks (TCN)</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/n-beats/><span class=chapter-num>07</span>
+<span class=chapter-title>Time Series Forecasting (7): N-BEATS -- Interpretable Deep Architecture</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/time-series/informer-long-sequence/><span class=chapter-num>08</span>
+<span class=chapter-title>Time Series Forecasting (8): Informer -- Efficient Long-Sequence Forecasting</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>12 min</strong></div><div class=row><span>Word count</span><strong>2454</strong></div><div class=row><span>Published</span><strong>Oct 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

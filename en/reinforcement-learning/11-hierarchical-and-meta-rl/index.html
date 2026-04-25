@@ -1,739 +1,363 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Reinforcement Learning (11): Hierarchical RL and Meta-Learning · Chen Kai Blog</title>
-<meta name="description" content="A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Reinforcement Learning (11): Hierarchical RL and Meta-Learning">
-<meta property="og:description" content="A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations.">
-<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
-         · Chapter 11
-      </div>
-      <h1>Reinforcement Learning (11): Hierarchical RL and Meta-Learning</h1>
-      <p class="deck">A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-09-20">September 20, 2025</time> · 14 min read · 2900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/hierarchical-rl/" class="tag">#Hierarchical RL</a><a href="/en/tags/meta-learning/" class="tag">#Meta-Learning</a><a href="/en/tags/maml/" class="tag">#MAML</a><a href="/en/tags/options-framework/" class="tag">#Options Framework</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Standard RL treats every problem as a flat sequence of atomic decisions: observe state, pick an action, receive a reward, repeat. That works when the horizon is short and rewards are dense, but it breaks down on the kind of tasks humans solve effortlessly. &ldquo;Make breakfast&rdquo; is not one decision; it is a tree of subtasks &mdash; <em>brew coffee</em>, <em>fry eggs</em>, <em>toast bread</em>, <em>plate it up</em> &mdash; each of which is itself a small policy. <strong>Hierarchical RL (HRL)</strong> lets agents reason and act at multiple timescales by treating macro-actions as first-class citizens.</p>
-<p>A second weakness of standard RL is that every new task is learned from scratch. A bicycle rider becomes a motorcycle rider in an afternoon, not in 10 million environment steps. <strong>Meta-RL</strong> attacks this by training across a <em>distribution</em> of tasks so that adaptation to a held-out task takes a handful of episodes &mdash; or even a single forward pass through a recurrent network.</p>
-<p>This post unifies the two ideas: hierarchy buys temporal abstraction, meta-learning buys task abstraction. Both reduce the effective dimensionality of the learning problem, and the modern frontier (FuN, HIRO, MAML, RL$^2$) combines them aggressively.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li><strong>Options framework</strong> &mdash; semi-Markov decision processes and intra-option Q-learning</li>
-<li><strong>MAXQ</strong> &mdash; value-function decomposition along a task hierarchy</li>
-<li><strong>Feudal RL</strong> (FuN, HIRO) &mdash; continuous subgoals with manager-worker architectures</li>
-<li><strong>Goal-conditioned RL</strong> &mdash; universal value functions and HER</li>
-<li><strong>MAML / FOMAML</strong> &mdash; learning an initialisation that adapts in a few gradient steps</li>
-<li><strong>RL$^2$</strong> &mdash; folding the inner RL algorithm into an RNN&rsquo;s hidden state</li>
-<li><strong>Working code</strong> &mdash; intra-option Q-learning in Four Rooms and a MAML policy gradient on 2-D navigation</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Q-learning, policy gradients and value functions (<a href="/en/reinforcement-learning-01-fundamentals-and-core-concepts/">Parts 1&ndash;6</a>
-)</li>
-<li>Comfort with RNN unrolling and second-order autodiff</li>
-<li>PyTorch</li>
-</ul>
-<hr>
-<h2 id="1-hierarchy-the-options-framework">1. Hierarchy: the Options framework</h2>
-<h3 id="why-temporal-abstraction-matters">Why temporal abstraction matters</h3>
-<p>A flat policy makes one decision per environment step, so its credit-assignment path on a horizon-$T$ task has length $T$ and its exploration tree has $|\mathcal{A}|^T$ leaves. Both grow exponentially. A hierarchy with average macro-action length $\bar k$ shrinks the decision count to $T/\bar k$ and the exploration tree to $|\mathcal{O}|^{T/\bar k}$, where $\mathcal{O}$ is a (typically small) set of options. The figure below contrasts the two views.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig1_options_framework.png" alt="Options Framework: timeline view and the (I, π, β) triple" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Beyond the asymptotic argument, hierarchies offer three practical wins:</p>
-<ol>
-<li><strong>Modularity</strong> &mdash; options trained on one task transfer to others (e.g. <em>go-to-door</em> generalises across navigation problems).</li>
-<li><strong>Interpretability</strong> &mdash; the high-level policy is small enough to inspect, and decisions are taken at semantically meaningful checkpoints.</li>
-<li><strong>Reward shaping</strong> &mdash; subgoals provide dense intrinsic rewards even when extrinsic reward is sparse.</li>
-</ol>
-<h3 id="the-option-triple">The option triple</h3>
-<p>Following Sutton, Precup &amp; Singh (1999), an <strong>option</strong> is a temporally extended action</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Reinforcement Learning (11): Hierarchical RL and Meta-Learning · Chen Kai Blog</title>
+<meta name=description content="A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/><meta property="og:type" content="article"><meta property="og:title" content="Reinforcement Learning (11): Hierarchical RL and Meta-Learning"><meta property="og:description" content="A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations."><meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Reinforcement Learning</a>
+· Chapter 11</div><h1>Reinforcement Learning (11): Hierarchical RL and Meta-Learning</h1><p class=deck>A deep dive into hierarchical RL (Options, MAXQ, Feudal Networks, goal-conditioned policies) and meta-RL (MAML, FOMAML, RL^2). Covers temporal abstraction, semi-MDPs, manager-worker architectures, second-order meta-gradients and recurrent meta-learners, with annotated PyTorch implementations.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-09-20>September 20, 2025</time> · 14 min read · 2805 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/reinforcement-learning/ class=tag>#Reinforcement Learning</a><a href=/en/tags/hierarchical-rl/ class=tag>#Hierarchical RL</a><a href=/en/tags/meta-learning/ class=tag>#Meta-Learning</a><a href=/en/tags/maml/ class=tag>#MAML</a><a href=/en/tags/options-framework/ class=tag>#Options Framework</a></div></div></header><div class=prose><p>Standard RL treats every problem as a flat sequence of atomic decisions: observe state, pick an action, receive a reward, repeat. That works when the horizon is short and rewards are dense, but it breaks down on the kind of tasks humans solve effortlessly. &ldquo;Make breakfast&rdquo; is not one decision; it is a tree of subtasks &mdash; <em>brew coffee</em>, <em>fry eggs</em>, <em>toast bread</em>, <em>plate it up</em> &mdash; each of which is itself a small policy. <strong>Hierarchical RL (HRL)</strong> lets agents reason and act at multiple timescales by treating macro-actions as first-class citizens.</p><p>A second weakness of standard RL is that every new task is learned from scratch. A bicycle rider becomes a motorcycle rider in an afternoon, not in 10 million environment steps. <strong>Meta-RL</strong> attacks this by training across a <em>distribution</em> of tasks so that adaptation to a held-out task takes a handful of episodes &mdash; or even a single forward pass through a recurrent network.</p><p>This post unifies the two ideas: hierarchy buys temporal abstraction, meta-learning buys task abstraction. Both reduce the effective dimensionality of the learning problem, and the modern frontier (FuN, HIRO, MAML, RL$^2$) combines them aggressively.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li><strong>Options framework</strong> &mdash; semi-Markov decision processes and intra-option Q-learning</li><li><strong>MAXQ</strong> &mdash; value-function decomposition along a task hierarchy</li><li><strong>Feudal RL</strong> (FuN, HIRO) &mdash; continuous subgoals with manager-worker architectures</li><li><strong>Goal-conditioned RL</strong> &mdash; universal value functions and HER</li><li><strong>MAML / FOMAML</strong> &mdash; learning an initialisation that adapts in a few gradient steps</li><li><strong>RL$^2$</strong> &mdash; folding the inner RL algorithm into an RNN&rsquo;s hidden state</li><li><strong>Working code</strong> &mdash; intra-option Q-learning in Four Rooms and a MAML policy gradient on 2-D navigation</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Q-learning, policy gradients and value functions (<a href=/en/reinforcement-learning-01-fundamentals-and-core-concepts/>Parts 1&ndash;6</a>
+)</li><li>Comfort with RNN unrolling and second-order autodiff</li><li>PyTorch</li></ul><hr><h2 id=1-hierarchy-the-options-framework>1. Hierarchy: the Options framework</h2><h3 id=why-temporal-abstraction-matters>Why temporal abstraction matters</h3><p>A flat policy makes one decision per environment step, so its credit-assignment path on a horizon-$T$ task has length $T$ and its exploration tree has $|\mathcal{A}|^T$ leaves. Both grow exponentially. A hierarchy with average macro-action length $\bar k$ shrinks the decision count to $T/\bar k$ and the exploration tree to $|\mathcal{O}|^{T/\bar k}$, where $\mathcal{O}$ is a (typically small) set of options. The figure below contrasts the two views.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig1_options_framework.png alt="Options Framework: timeline view and the (I, π, β) triple" loading=lazy decoding=async></figure></p><p>Beyond the asymptotic argument, hierarchies offer three practical wins:</p><ol><li><strong>Modularity</strong> &mdash; options trained on one task transfer to others (e.g. <em>go-to-door</em> generalises across navigation problems).</li><li><strong>Interpretability</strong> &mdash; the high-level policy is small enough to inspect, and decisions are taken at semantically meaningful checkpoints.</li><li><strong>Reward shaping</strong> &mdash; subgoals provide dense intrinsic rewards even when extrinsic reward is sparse.</li></ol><h3 id=the-option-triple>The option triple</h3><p>Following Sutton, Precup & Singh (1999), an <strong>option</strong> is a temporally extended action</p>$$
 o = \langle \mathcal{I}, \pi_o, \beta \rangle,
-$$<p>where $\mathcal{I} \subseteq \mathcal{S}$ is the set of states from which the option may be initiated, $\pi_o(a \mid s)$ is the option&rsquo;s internal policy and $\beta(s) \in [0, 1]$ is its termination probability. Once options are introduced, the underlying MDP becomes a <strong>semi-MDP</strong>: the high-level policy $\mu(o \mid s)$ chooses an option, the option runs until $\beta$ fires, and only then does the next high-level decision happen.</p>
-<h3 id="intra-option-q-learning">Intra-option Q-learning</h3>
-<p>The naive way to learn $Q(s, o)$ is to wait until the option terminates, observe the cumulative reward and bootstrap. This is wasteful: an option may run for dozens of steps and we throw away the intermediate transitions. <strong>Intra-option Q-learning</strong> (Sutton et al., 1999) updates $Q(s, o)$ at <em>every</em> step, exploiting the fact that the same transition $(s, a, r, s')$ is consistent with every option that would have taken action $a$ in state $s$:</p>
-$$
+$$<p>where $\mathcal{I} \subseteq \mathcal{S}$ is the set of states from which the option may be initiated, $\pi_o(a \mid s)$ is the option&rsquo;s internal policy and $\beta(s) \in [0, 1]$ is its termination probability. Once options are introduced, the underlying MDP becomes a <strong>semi-MDP</strong>: the high-level policy $\mu(o \mid s)$ chooses an option, the option runs until $\beta$ fires, and only then does the next high-level decision happen.</p><h3 id=intra-option-q-learning>Intra-option Q-learning</h3><p>The naive way to learn $Q(s, o)$ is to wait until the option terminates, observe the cumulative reward and bootstrap. This is wasteful: an option may run for dozens of steps and we throw away the intermediate transitions. <strong>Intra-option Q-learning</strong> (Sutton et al., 1999) updates $Q(s, o)$ at <em>every</em> step, exploiting the fact that the same transition $(s, a, r, s')$ is consistent with every option that would have taken action $a$ in state $s$:</p>$$
 Q(s, o) \leftarrow Q(s, o) + \alpha \big[r + \gamma U(s', o) - Q(s, o)\big],
-$$<p>with the <strong>continuation value</strong></p>
-$$
+$$<p>with the <strong>continuation value</strong></p>$$
 U(s', o) = (1 - \beta(s'))\, Q(s', o) + \beta(s')\, \max_{o'} Q(s', o').
-$$<p>The continuation value is the elegant piece: if the option keeps going we keep its Q-value, otherwise we hand control back to the high-level policy and take the best alternative.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">IntraOptionQLearning</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Intra-option Q-learning over a discrete option set.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Every primitive transition updates Q(s, o) for the option currently
-</span></span></span><span class="line"><span class="cl"><span class="s2">    in control, plus the option&#39;s flat Q-table that defines its
-</span></span></span><span class="line"><span class="cl"><span class="s2">    internal policy.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">env</span><span class="p">,</span> <span class="n">options</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">epsilon</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">options</span><span class="p">)))</span>     <span class="c1"># Q(s, o)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">n_actions</span><span class="p">))</span>  <span class="c1"># primitive</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_select_option</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">available</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                     <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">can_initiate</span><span class="p">(</span><span class="n">state</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">available</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">available</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">available</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">q</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_episode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">total_reward</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">oid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_option</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">oid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span>
-</span></span><span class="line"><span class="cl">            <span class="n">option</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="n">oid</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="ow">not</span> <span class="n">option</span><span class="o">.</span><span class="n">should_terminate</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">action</span> <span class="o">=</span> <span class="n">option</span><span class="o">.</span><span class="n">act</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">next_state</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">total_reward</span> <span class="o">+=</span> <span class="n">reward</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">                <span class="c1"># Continuation value U(s&#39;, o)</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">option</span><span class="o">.</span><span class="n">should_terminate</span><span class="p">(</span><span class="n">next_state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">                <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">next_state</span><span class="p">][</span><span class="n">oid</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">                <span class="c1"># High-level update</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">oid</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">reward</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="n">U</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">oid</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">                <span class="c1"># Internal policy update (flat Q over primitives)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">td</span> <span class="o">=</span> <span class="p">(</span><span class="n">reward</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
-</span></span><span class="line"><span class="cl">                      <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">next_state</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">                      <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">action</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">action</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">td</span>
-</span></span><span class="line"><span class="cl">                <span class="n">option</span><span class="o">.</span><span class="n">policy</span><span class="p">[</span><span class="n">state</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_prim</span><span class="p">[</span><span class="n">state</span><span class="p">]))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">                <span class="n">state</span> <span class="o">=</span> <span class="n">next_state</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="k">return</span> <span class="n">total_reward</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total_reward</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>In the canonical Four Rooms benchmark, intra-option Q-learning with four hand-crafted &ldquo;go through doorway&rdquo; options converges 3&ndash;5$\times$ faster than flat Q-learning, and the learned options transfer cleanly to new goal locations.</p>
-<h3 id="maxq-value-decomposition-along-a-task-tree">MAXQ: value decomposition along a task tree</h3>
-<p>Where Options leaves the hierarchy <em>implicit</em> in the option set, <strong>MAXQ</strong> (Dietterich, 2000) makes it explicit. The agent is given a directed acyclic graph of subtasks; for each composite task $i$ and each child $a$ the value decomposes as</p>
-$$
+$$<p>The continuation value is the elegant piece: if the option keeps going we keep its Q-value, otherwise we hand control back to the high-level policy and take the best alternative.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>defaultdict</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>IntraOptionQLearning</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Intra-option Q-learning over a discrete option set.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Every primitive transition updates Q(s, o) for the option currently
+</span></span></span><span class=line><span class=cl><span class=s2>    in control, plus the option&#39;s flat Q-table that defines its
+</span></span></span><span class=line><span class=cl><span class=s2>    internal policy.
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>,</span> <span class=n>options</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.99</span><span class=p>,</span> <span class=n>epsilon</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>env</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>options</span> <span class=o>=</span> <span class=n>env</span><span class=p>,</span> <span class=n>options</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span> <span class=o>=</span> <span class=n>alpha</span><span class=p>,</span> <span class=n>gamma</span><span class=p>,</span> <span class=n>epsilon</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>Q</span> <span class=o>=</span> <span class=n>defaultdict</span><span class=p>(</span><span class=k>lambda</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>options</span><span class=p>)))</span>     <span class=c1># Q(s, o)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>Q_prim</span> <span class=o>=</span> <span class=n>defaultdict</span><span class=p>(</span><span class=k>lambda</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>env</span><span class=o>.</span><span class=n>n_actions</span><span class=p>))</span>  <span class=c1># primitive</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_select_option</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>available</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>o</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>options</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                     <span class=k>if</span> <span class=n>o</span><span class=o>.</span><span class=n>can_initiate</span><span class=p>(</span><span class=n>state</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=n>available</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>rand</span><span class=p>()</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=n>available</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>q</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>state</span><span class=p>][</span><span class=n>available</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>available</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>q</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>train_episode</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>max_steps</span><span class=o>=</span><span class=mi>1000</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>env</span><span class=o>.</span><span class=n>reset</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_reward</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>oid</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_select_option</span><span class=p>(</span><span class=n>state</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>oid</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>            <span class=n>option</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>options</span><span class=p>[</span><span class=n>oid</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=ow>not</span> <span class=n>option</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>(</span><span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>action</span> <span class=o>=</span> <span class=n>option</span><span class=o>.</span><span class=n>act</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>next_state</span><span class=p>,</span> <span class=n>reward</span><span class=p>,</span> <span class=n>done</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>env</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>action</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>total_reward</span> <span class=o>+=</span> <span class=n>reward</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>                <span class=c1># Continuation value U(s&#39;, o)</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>option</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>(</span><span class=n>next_state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                    <span class=n>U</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>next_state</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>U</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>next_state</span><span class=p>][</span><span class=n>oid</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>                <span class=c1># High-level update</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>state</span><span class=p>][</span><span class=n>oid</span><span class=p>]</span> <span class=o>+=</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>reward</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span> <span class=o>*</span> <span class=n>U</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>Q</span><span class=p>[</span><span class=n>state</span><span class=p>][</span><span class=n>oid</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>                <span class=c1># Internal policy update (flat Q over primitives)</span>
+</span></span><span class=line><span class=cl>                <span class=n>td</span> <span class=o>=</span> <span class=p>(</span><span class=n>reward</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span>
+</span></span><span class=line><span class=cl>                      <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>Q_prim</span><span class=p>[</span><span class=n>next_state</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                      <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>Q_prim</span><span class=p>[</span><span class=n>state</span><span class=p>][</span><span class=n>action</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>Q_prim</span><span class=p>[</span><span class=n>state</span><span class=p>][</span><span class=n>action</span><span class=p>]</span> <span class=o>+=</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=n>td</span>
+</span></span><span class=line><span class=cl>                <span class=n>option</span><span class=o>.</span><span class=n>policy</span><span class=p>[</span><span class=n>state</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>Q_prim</span><span class=p>[</span><span class=n>state</span><span class=p>]))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>                <span class=n>state</span> <span class=o>=</span> <span class=n>next_state</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>done</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=k>return</span> <span class=n>total_reward</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>total_reward</span>
+</span></span></code></pre></td></tr></table></div></div><p>In the canonical Four Rooms benchmark, intra-option Q-learning with four hand-crafted &ldquo;go through doorway&rdquo; options converges 3&ndash;5$\times$ faster than flat Q-learning, and the learned options transfer cleanly to new goal locations.</p><h3 id=maxq-value-decomposition-along-a-task-tree>MAXQ: value decomposition along a task tree</h3><p>Where Options leaves the hierarchy <em>implicit</em> in the option set, <strong>MAXQ</strong> (Dietterich, 2000) makes it explicit. The agent is given a directed acyclic graph of subtasks; for each composite task $i$ and each child $a$ the value decomposes as</p>$$
 Q_i(s, a) = V_a(s) + C_i(s, a),
-$$<p>where $V_a(s)$ is the value of completing the <em>child</em> subtask and $C_i(s, a)$ is the <strong>completion function</strong> &mdash; the value of finishing the parent task once the child returns. Because $V_a$ depends only on $a$, it can be reused across every parent that invokes $a$, which is where the sample-efficiency win comes from.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig6_task_decomposition.png" alt="MAXQ-style hierarchy with shared primitives" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>MAXQ pays for that win with <strong>recursive optimality</strong> rather than global optimality: the policy is optimal <em>given the decomposition</em>. If your task graph cannot express the truly optimal solution, MAXQ will not find it.</p>
-<hr>
-<h2 id="2-feudal-rl-continuous-subgoals-with-manager-worker">2. Feudal RL: continuous subgoals with manager-worker</h2>
-<p>Discrete options scale poorly: in continuous-control or pixel-input domains we cannot enumerate a useful option set by hand. <strong>Feudal Networks</strong> (FuN, Vezhnevets et al., 2017) and <strong>HIRO</strong> (Nachum et al., 2018) replace the discrete option set with a <em>continuous goal vector</em> produced by a high-level Manager.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig2_feudal_architecture.png" alt="Feudal RL: Manager sets goals every c steps, Worker executes" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The Manager sees state $s_t$ and emits a goal $g_t \in \mathbb{R}^d$ every $c$ steps (FuN uses $c = 10$). The Worker is a goal-conditioned policy $\pi_\phi(a \mid s, g)$ that earns an <strong>intrinsic reward</strong> for moving in the direction of the goal:</p>
-$$
+$$<p>where $V_a(s)$ is the value of completing the <em>child</em> subtask and $C_i(s, a)$ is the <strong>completion function</strong> &mdash; the value of finishing the parent task once the child returns. Because $V_a$ depends only on $a$, it can be reused across every parent that invokes $a$, which is where the sample-efficiency win comes from.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig6_task_decomposition.png alt="MAXQ-style hierarchy with shared primitives" loading=lazy decoding=async></figure></p><p>MAXQ pays for that win with <strong>recursive optimality</strong> rather than global optimality: the policy is optimal <em>given the decomposition</em>. If your task graph cannot express the truly optimal solution, MAXQ will not find it.</p><hr><h2 id=2-feudal-rl-continuous-subgoals-with-manager-worker>2. Feudal RL: continuous subgoals with manager-worker</h2><p>Discrete options scale poorly: in continuous-control or pixel-input domains we cannot enumerate a useful option set by hand. <strong>Feudal Networks</strong> (FuN, Vezhnevets et al., 2017) and <strong>HIRO</strong> (Nachum et al., 2018) replace the discrete option set with a <em>continuous goal vector</em> produced by a high-level Manager.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig2_feudal_architecture.png alt="Feudal RL: Manager sets goals every c steps, Worker executes" loading=lazy decoding=async></figure></p><p>The Manager sees state $s_t$ and emits a goal $g_t \in \mathbb{R}^d$ every $c$ steps (FuN uses $c = 10$). The Worker is a goal-conditioned policy $\pi_\phi(a \mid s, g)$ that earns an <strong>intrinsic reward</strong> for moving in the direction of the goal:</p>$$
 r^{\text{int}}_t = \cos\!\big(s_{t+c} - s_t,\, g_t\big),
-$$<p>while the Manager is trained on the <em>extrinsic</em> environment reward. This decoupling is what makes Feudal architectures so attractive: the Worker learns motor control on a dense, geometric reward, and the Manager focuses on long-horizon credit assignment with a much smaller effective horizon ($T/c$).</p>
-<h3 id="hiros-relabelling-trick">HIRO&rsquo;s relabelling trick</h3>
-<p>Feudal training has a chicken-and-egg problem: the Worker is non-stationary (because it is still learning), so old goals stored in the replay buffer no longer correspond to what the Worker actually achieves. HIRO fixes this with <strong>subgoal relabelling</strong>: when sampling a transition $(s_t, g_t, a_{t:t+c}, s_{t+c})$, replace $g_t$ with the goal that maximises the Worker&rsquo;s likelihood of producing the action sequence we actually saw,</p>
-$$
+$$<p>while the Manager is trained on the <em>extrinsic</em> environment reward. This decoupling is what makes Feudal architectures so attractive: the Worker learns motor control on a dense, geometric reward, and the Manager focuses on long-horizon credit assignment with a much smaller effective horizon ($T/c$).</p><h3 id=hiros-relabelling-trick>HIRO&rsquo;s relabelling trick</h3><p>Feudal training has a chicken-and-egg problem: the Worker is non-stationary (because it is still learning), so old goals stored in the replay buffer no longer correspond to what the Worker actually achieves. HIRO fixes this with <strong>subgoal relabelling</strong>: when sampling a transition $(s_t, g_t, a_{t:t+c}, s_{t+c})$, replace $g_t$ with the goal that maximises the Worker&rsquo;s likelihood of producing the action sequence we actually saw,</p>$$
 \tilde g_t = \arg\max_{g} \log \pi_\phi(a_{t:t+c} \mid s_{t:t+c},\, g).
-$$<p>This keeps the Worker&rsquo;s training data on-policy with respect to its current parameters and dramatically stabilises off-policy learning of the Manager.</p>
-<hr>
-<h2 id="3-goal-conditioned-rl-and-her">3. Goal-conditioned RL and HER</h2>
-<p>Goal-conditioned policies $\pi(a \mid s, g)$ deserve a section of their own, because they are the bridge between hierarchy and meta-learning. The same network can pursue many goals; the goal $g$ is just an additional input.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig3_goal_conditioned.png" alt="Goal-conditioned policy and 4 trajectories from one network" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The classical formalisation is <strong>Universal Value Function Approximators</strong> (UVFA, Schaul et al., 2015): learn $V(s, g)$ or $Q(s, a, g)$ instead of $V(s), Q(s, a)$. Without further tricks UVFAs suffer badly from sparse rewards: most goals are never reached during exploration, so the reward signal is essentially zero.</p>
-<p><strong>Hindsight Experience Replay</strong> (HER, Andrychowicz et al., 2017) is the standard fix. After running an episode that <em>failed</em> to reach goal $g$, we relabel the trajectory with a goal it <em>did</em> reach (typically the final state), turning a failure into a successful demonstration for a different task:</p>
-$$
+$$<p>This keeps the Worker&rsquo;s training data on-policy with respect to its current parameters and dramatically stabilises off-policy learning of the Manager.</p><hr><h2 id=3-goal-conditioned-rl-and-her>3. Goal-conditioned RL and HER</h2><p>Goal-conditioned policies $\pi(a \mid s, g)$ deserve a section of their own, because they are the bridge between hierarchy and meta-learning. The same network can pursue many goals; the goal $g$ is just an additional input.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig3_goal_conditioned.png alt="Goal-conditioned policy and 4 trajectories from one network" loading=lazy decoding=async></figure></p><p>The classical formalisation is <strong>Universal Value Function Approximators</strong> (UVFA, Schaul et al., 2015): learn $V(s, g)$ or $Q(s, a, g)$ instead of $V(s), Q(s, a)$. Without further tricks UVFAs suffer badly from sparse rewards: most goals are never reached during exploration, so the reward signal is essentially zero.</p><p><strong>Hindsight Experience Replay</strong> (HER, Andrychowicz et al., 2017) is the standard fix. After running an episode that <em>failed</em> to reach goal $g$, we relabel the trajectory with a goal it <em>did</em> reach (typically the final state), turning a failure into a successful demonstration for a different task:</p>$$
 (s_t, a_t, r, s_{t+1}, g) \;\longrightarrow\; (s_t, a_t, r', s_{t+1},\, g' = s_T).
-$$<p>Combined with off-policy methods (DDPG, SAC), HER turns sparse-reward goal reaching from &ldquo;essentially impossible&rdquo; into &ldquo;routine&rdquo;.</p>
-<hr>
-<h2 id="4-meta-rl-learning-to-learn">4. Meta-RL: learning to learn</h2>
-<p>Meta-RL assumes a <em>task distribution</em> $p(\mathcal{T})$ rather than a single MDP. At meta-train time the agent sees many tasks $\mathcal{T}_i \sim p(\mathcal{T})$; at meta-test time it sees a fresh task and must adapt with as few interactions as possible.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig5_meta_rl_distribution.png" alt="Task distribution and adaptation curves on a held-out task" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The two dominant families are:</p>
-<ul>
-<li><strong>Optimisation-based</strong> (MAML, Reptile, ANIL): adaptation = a few gradient steps on the test task.</li>
-<li><strong>Recurrent / context-based</strong> (RL$^2$, PEARL): adaptation = updating the hidden state of an RNN as data arrives, no gradients needed at test time.</li>
-</ul>
-<h3 id="maml-----learning-a-good-initialisation">MAML &mdash; learning a good initialisation</h3>
-<p>The meta-objective of <strong>Model-Agnostic Meta-Learning</strong> (MAML, Finn et al., 2017) is to find parameters $\theta$ such that one (or a few) inner-loop SGD steps on any task $\mathcal{T}_i$ produce strong performance:</p>
-$$
+$$<p>Combined with off-policy methods (DDPG, SAC), HER turns sparse-reward goal reaching from &ldquo;essentially impossible&rdquo; into &ldquo;routine&rdquo;.</p><hr><h2 id=4-meta-rl-learning-to-learn>4. Meta-RL: learning to learn</h2><p>Meta-RL assumes a <em>task distribution</em> $p(\mathcal{T})$ rather than a single MDP. At meta-train time the agent sees many tasks $\mathcal{T}_i \sim p(\mathcal{T})$; at meta-test time it sees a fresh task and must adapt with as few interactions as possible.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig5_meta_rl_distribution.png alt="Task distribution and adaptation curves on a held-out task" loading=lazy decoding=async></figure></p><p>The two dominant families are:</p><ul><li><strong>Optimisation-based</strong> (MAML, Reptile, ANIL): adaptation = a few gradient steps on the test task.</li><li><strong>Recurrent / context-based</strong> (RL$^2$, PEARL): adaptation = updating the hidden state of an RNN as data arrives, no gradients needed at test time.</li></ul><h3 id=maml-----learning-a-good-initialisation>MAML &mdash; learning a good initialisation</h3><p>The meta-objective of <strong>Model-Agnostic Meta-Learning</strong> (MAML, Finn et al., 2017) is to find parameters $\theta$ such that one (or a few) inner-loop SGD steps on any task $\mathcal{T}_i$ produce strong performance:</p>$$
 \theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta),
 \qquad
 \theta \leftarrow \theta - \beta \nabla_\theta \sum_{i} \mathcal{L}_{\mathcal{T}_i}(\theta_i').
-$$<p>The outer gradient differentiates <em>through</em> the inner update, so it contains a Hessian term $\nabla^2 \mathcal{L}$. That is what makes MAML expensive &mdash; and what motivates <strong>FOMAML</strong>, which simply ignores the second-order term. Empirically FOMAML is roughly $10\times$ faster per outer step and loses less than 5% of the final return.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig4_maml_inner_outer_loop.png" alt="MAML in parameter space and as a two-loop algorithm" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The picture on the left is the most useful intuition: meta-training does <em>not</em> try to find an initialisation that is good on any single task. It finds an initialisation that sits in a &ldquo;sweet spot&rdquo; from which one gradient step lands close to each task-specific optimum.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span><span class="lnt">71
-</span><span class="lnt">72
-</span><span class="lnt">73
-</span><span class="lnt">74
-</span><span class="lnt">75
-</span><span class="lnt">76
-</span><span class="lnt">77
-</span><span class="lnt">78
-</span><span class="lnt">79
-</span><span class="lnt">80
-</span><span class="lnt">81
-</span><span class="lnt">82
-</span><span class="lnt">83
-</span><span class="lnt">84
-</span><span class="lnt">85
-</span><span class="lnt">86
-</span><span class="lnt">87
-</span><span class="lnt">88
-</span><span class="lnt">89
-</span><span class="lnt">90
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GaussianPolicy</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Diagonal-Gaussian policy for continuous control.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">action_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">action_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">action_dim</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunk</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">a</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">rsample</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">a</span><span class="p">,</span> <span class="n">dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MAML</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;First- or second-order MAML for REINFORCE-style policy gradient.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">inner_lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">outer_lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">first_order</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="n">policy</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">inner_lr</span> <span class="o">=</span> <span class="n">inner_lr</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">first_order</span> <span class="o">=</span> <span class="n">first_order</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">outer_lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_rollout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_steps</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">a</span><span class="p">,</span> <span class="n">lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">state</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">            <span class="n">rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">log_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lp</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_returns</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.99</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">G</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">rewards</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">G</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">*</span> <span class="n">G</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">out</span> <span class="o">-</span> <span class="n">out</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">returns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_returns</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="o">-</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span> <span class="o">*</span> <span class="n">returns</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">adapt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;One inner step on `env` returning the adapted parameter list.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rollout</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">create_graph</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_order</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="n">p</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">inner_lr</span> <span class="o">*</span> <span class="n">g</span>
-</span></span><span class="line"><span class="cl">                <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">grads</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">meta_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_envs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">meta_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">env</span> <span class="ow">in</span> <span class="n">task_envs</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">adapted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># Functional forward pass with adapted parameters</span>
-</span></span><span class="line"><span class="cl">            <span class="n">backup</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">()]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">adapted</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">data</span>
-</span></span><span class="line"><span class="cl">            <span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rollout</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">meta_loss</span> <span class="o">=</span> <span class="n">meta_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">backup</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">p</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">b</span>
-</span></span><span class="line"><span class="cl">        <span class="n">meta_loss</span> <span class="o">=</span> <span class="n">meta_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">task_envs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">meta_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">meta_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The implementation above swaps adapted weights into the network for the meta-evaluation rollout rather than relying on a functional forward pass &mdash; it is the simplest readable version, and good enough for small networks. For research-scale MAML you want a proper functional API such as <code>higher</code> or <code>torch.func.functional_call</code>.</p>
-<h3 id="rl2-----folding-the-algorithm-into-an-rnn">RL$^2$ &mdash; folding the algorithm into an RNN</h3>
-<p><strong>RL$^2$</strong> (Duan et al., 2016; Wang et al., 2016) takes a different route: keep the agent&rsquo;s parameters fixed at meta-test time and let the RNN&rsquo;s hidden state do the adaptation. The recurrent policy receives the augmented input</p>
-$$
+$$<p>The outer gradient differentiates <em>through</em> the inner update, so it contains a Hessian term $\nabla^2 \mathcal{L}$. That is what makes MAML expensive &mdash; and what motivates <strong>FOMAML</strong>, which simply ignores the second-order term. Empirically FOMAML is roughly $10\times$ faster per outer step and loses less than 5% of the final return.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig4_maml_inner_outer_loop.png alt="MAML in parameter space and as a two-loop algorithm" loading=lazy decoding=async></figure></p><p>The picture on the left is the most useful intuition: meta-training does <em>not</em> try to find an initialisation that is good on any single task. It finds an initialisation that sits in a &ldquo;sweet spot&rdquo; from which one gradient step lands close to each task-specific optimum.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span><span class=lnt>88
+</span><span class=lnt>89
+</span><span class=lnt>90
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>GaussianPolicy</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Diagonal-Gaussian policy for continuous control.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state_dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>action_dim</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>hidden</span><span class=o>=</span><span class=mi>64</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>trunk</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>mean</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>action_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>log_std</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>action_dim</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>sample</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>state</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>trunk</span><span class=p>(</span><span class=n>state</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>mean</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>tanh</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>h</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>std</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_std</span><span class=o>.</span><span class=n>exp</span><span class=p>()</span><span class=o>.</span><span class=n>clamp</span><span class=p>(</span><span class=mf>1e-3</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>dist</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>distributions</span><span class=o>.</span><span class=n>Normal</span><span class=p>(</span><span class=n>mean</span><span class=p>,</span> <span class=n>std</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>a</span> <span class=o>=</span> <span class=n>dist</span><span class=o>.</span><span class=n>rsample</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>a</span><span class=p>,</span> <span class=n>dist</span><span class=o>.</span><span class=n>log_prob</span><span class=p>(</span><span class=n>a</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MAML</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;First- or second-order MAML for REINFORCE-style policy gradient.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>policy</span><span class=p>,</span> <span class=n>inner_lr</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>outer_lr</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>first_order</span><span class=o>=</span><span class=kc>False</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>policy</span> <span class=o>=</span> <span class=n>policy</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>inner_lr</span> <span class=o>=</span> <span class=n>inner_lr</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>first_order</span> <span class=o>=</span> <span class=n>first_order</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>outer_lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_rollout</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>,</span> <span class=n>max_steps</span><span class=o>=</span><span class=mi>50</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>reset</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>s</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>state</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>a</span><span class=p>,</span> <span class=n>lp</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>sample</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>state</span><span class=p>,</span> <span class=n>r</span><span class=p>,</span> <span class=n>done</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()[</span><span class=mi>0</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>rewards</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>r</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>log_probs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>lp</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>done</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@staticmethod</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_returns</span><span class=p>(</span><span class=n>rewards</span><span class=p>,</span> <span class=n>gamma</span><span class=o>=</span><span class=mf>0.99</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>G</span><span class=p>,</span> <span class=n>out</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=nb>reversed</span><span class=p>(</span><span class=n>rewards</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>G</span> <span class=o>=</span> <span class=n>r</span> <span class=o>+</span> <span class=n>gamma</span> <span class=o>*</span> <span class=n>G</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>G</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>as_tensor</span><span class=p>(</span><span class=n>out</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>out</span> <span class=o>-</span> <span class=n>out</span><span class=o>.</span><span class=n>mean</span><span class=p>())</span> <span class=o>/</span> <span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>std</span><span class=p>()</span> <span class=o>+</span> <span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_loss</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>returns</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_returns</span><span class=p>(</span><span class=n>rewards</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=o>-</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>stack</span><span class=p>(</span><span class=n>log_probs</span><span class=p>)</span> <span class=o>*</span> <span class=n>returns</span><span class=p>)</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>adapt</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;One inner step on `env` returning the adapted parameter list.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_rollout</span><span class=p>(</span><span class=n>env</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_loss</span><span class=p>(</span><span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>grads</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>autograd</span><span class=o>.</span><span class=n>grad</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>create_graph</span><span class=o>=</span><span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>first_order</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>[</span><span class=n>p</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>inner_lr</span> <span class=o>*</span> <span class=n>g</span>
+</span></span><span class=line><span class=cl>                <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>g</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>grads</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>meta_step</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>task_envs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>meta_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>env</span> <span class=ow>in</span> <span class=n>task_envs</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>adapted</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>adapt</span><span class=p>(</span><span class=n>env</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Functional forward pass with adapted parameters</span>
+</span></span><span class=line><span class=cl>            <span class=n>backup</span> <span class=o>=</span> <span class=p>[</span><span class=n>p</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span> <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>()]</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>a</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>adapted</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>p</span><span class=o>.</span><span class=n>data</span> <span class=o>=</span> <span class=n>a</span><span class=o>.</span><span class=n>data</span>
+</span></span><span class=line><span class=cl>            <span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_rollout</span><span class=p>(</span><span class=n>env</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>meta_loss</span> <span class=o>=</span> <span class=n>meta_loss</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>_loss</span><span class=p>(</span><span class=n>rewards</span><span class=p>,</span> <span class=n>log_probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>b</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>backup</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>p</span><span class=o>.</span><span class=n>data</span> <span class=o>=</span> <span class=n>b</span>
+</span></span><span class=line><span class=cl>        <span class=n>meta_loss</span> <span class=o>=</span> <span class=n>meta_loss</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=n>task_envs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>meta_loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>meta_loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>The implementation above swaps adapted weights into the network for the meta-evaluation rollout rather than relying on a functional forward pass &mdash; it is the simplest readable version, and good enough for small networks. For research-scale MAML you want a proper functional API such as <code>higher</code> or <code>torch.func.functional_call</code>.</p><h3 id=rl2-----folding-the-algorithm-into-an-rnn>RL$^2$ &mdash; folding the algorithm into an RNN</h3><p><strong>RL$^2$</strong> (Duan et al., 2016; Wang et al., 2016) takes a different route: keep the agent&rsquo;s parameters fixed at meta-test time and let the RNN&rsquo;s hidden state do the adaptation. The recurrent policy receives the augmented input</p>$$
 x_t = (s_t,\, a_{t-1},\, r_{t-1},\, d_{t-1}),
-$$<p>i.e. state plus <em>the previous action, reward and done-flag</em>. Across episodes within a meta-trial the hidden state $h_t$ accumulates information about the current task &mdash; effectively performing Bayesian belief updates implicitly. At meta-train time the outer optimiser (PPO or A2C) shapes the RNN weights so that this implicit &ldquo;inner algorithm&rdquo; is sample-efficient on $p(\mathcal{T})$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig7_rl_squared.png" alt="RL² unrolled across a meta-trial spanning multiple episodes" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>RL$^2$ has two attractive properties: (i) zero gradient computation at test time, so adaptation is one forward pass per step; (ii) the adaptation procedure is <em>learned</em>, so it can in principle exceed any hand-designed optimiser on the training distribution. The price is a hard credit-assignment problem during meta-training &mdash; the gradient must flow through hundreds of recurrent steps spanning multiple episodes.</p>
-<hr>
-<h2 id="5-frequently-asked-questions">5. Frequently asked questions</h2>
-<p><strong>Why does the Options framework actually accelerate learning?</strong>
-Three compounding effects: (i) the effective horizon shrinks from $T$ to roughly $T/\bar k$; (ii) the high-level branching factor $|\mathcal{O}|$ is usually much smaller than $|\mathcal{A}|$; (iii) intra-option learning means every primitive transition contributes to the value of <em>every</em> compatible option, not just the one in control.</p>
-<p><strong>Hierarchically optimal vs globally optimal &mdash; what&rsquo;s the difference?</strong>
-A hierarchically optimal policy is the best policy that respects the given decomposition (option set or task graph). A globally optimal policy is the best policy on the underlying flat MDP. They diverge whenever the decomposition cannot express the optimum &mdash; e.g. an option that always runs for at least 10 steps cannot implement a policy that needs to switch behaviour every 3 steps.</p>
-<p><strong>Why does MAML need second-order gradients, and how much does FOMAML lose?</strong>
-The meta-loss is $\mathcal{L}_{\mathcal{T}_i}(\theta_i')$ where $\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta)$. Differentiating with respect to $\theta$ yields $(I - \alpha \nabla^2_\theta \mathcal{L}_{\mathcal{T}_i})\, \nabla_{\theta_i'} \mathcal{L}_{\mathcal{T}_i}(\theta_i')$, which contains the Hessian. FOMAML drops the $-\alpha \nabla^2 \mathcal{L}$ factor, treating $\theta_i'$ as a stop-gradient. The original MAML paper reports &lt;5% performance loss on the standard few-shot benchmarks.</p>
-<p><strong>When should I use MAML vs RL$^2$?</strong>
-Use MAML when you can afford gradient computation at adaptation time and your task distribution is broad enough that a fixed policy cannot do well on all of it. Use RL$^2$ when the task family is narrow and exploitative (e.g. multi-armed bandits with shifting arms), or when test-time gradients are infeasible. PEARL &mdash; which infers a task embedding with a separate encoder &mdash; is often a happy medium.</p>
-<p><strong>Why is HER specific to off-policy algorithms?</strong>
-HER changes the goal that a transition was collected for, which violates on-policy assumptions: the action distribution that produced the data was conditioned on the original goal, not the relabelled one. Off-policy algorithms (DQN, DDPG, SAC) only require that we know $\pi(a \mid s, g')$ at update time, which we do, so the relabelling is harmless.</p>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<ul>
-<li><strong>Previous</strong>: <a href="/en/reinforcement-learning-10-offline-reinforcement-learning/">Part 10 &ndash; Offline RL</a>
-</li>
-<li><strong>Next</strong>: <a href="/en/reinforcement-learning-12-rlhf-and-llm-applications/">Part 12 &ndash; RLHF and LLM Applications</a>
-</li>
-<li><a href="/tags/Reinforcement-Learning/">View all 12 parts in the RL series</a>
-</li>
-</ul>
-<h2 id="references">References</h2>
-<ol>
-<li>Sutton, Precup &amp; Singh. <em>Between MDPs and semi-MDPs: A framework for temporal abstraction in reinforcement learning.</em> Artificial Intelligence, 1999.</li>
-<li>Dietterich. <em>Hierarchical Reinforcement Learning with the MAXQ Value Function Decomposition.</em> JAIR, 2000.</li>
-<li>Vezhnevets et al. <em>FeUdal Networks for Hierarchical Reinforcement Learning.</em> ICML 2017. arXiv:1703.01161.</li>
-<li>Nachum et al. <em>Data-Efficient Hierarchical Reinforcement Learning (HIRO).</em> NeurIPS 2018. arXiv:1805.08296.</li>
-<li>Schaul et al. <em>Universal Value Function Approximators.</em> ICML 2015.</li>
-<li>Andrychowicz et al. <em>Hindsight Experience Replay.</em> NeurIPS 2017. arXiv:1707.01495.</li>
-<li>Finn, Abbeel &amp; Levine. <em>Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks.</em> ICML 2017. arXiv:1703.03400.</li>
-<li>Duan et al. <em>RL$^2$: Fast Reinforcement Learning via Slow Reinforcement Learning.</em> 2016. arXiv:1611.02779.</li>
-<li>Wang et al. <em>Learning to reinforcement learn.</em> 2016. arXiv:1611.05763.</li>
-<li>Rakelly et al. <em>Efficient Off-Policy Meta-RL via Probabilistic Context Variables (PEARL).</em> ICML 2019.</li>
-</ol>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/reinforcement-learning/10-offline-reinforcement-learning/"><span class="title">Reinforcement Learning (10): Offline Reinforcement Learning</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/reinforcement-learning/12-rlhf-and-llm-applications/"><span class="title">Reinforcement Learning (12): RLHF and LLM Applications</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-hierarchy-the-options-framework">1. Hierarchy: the Options framework</a>
-      <ul>
-        <li><a href="#why-temporal-abstraction-matters">Why temporal abstraction matters</a></li>
-        <li><a href="#the-option-triple">The option triple</a></li>
-        <li><a href="#intra-option-q-learning">Intra-option Q-learning</a></li>
-        <li><a href="#maxq-value-decomposition-along-a-task-tree">MAXQ: value decomposition along a task tree</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-feudal-rl-continuous-subgoals-with-manager-worker">2. Feudal RL: continuous subgoals with manager-worker</a>
-      <ul>
-        <li><a href="#hiros-relabelling-trick">HIRO&rsquo;s relabelling trick</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-goal-conditioned-rl-and-her">3. Goal-conditioned RL and HER</a></li>
-    <li><a href="#4-meta-rl-learning-to-learn">4. Meta-RL: learning to learn</a>
-      <ul>
-        <li><a href="#maml-----learning-a-good-initialisation">MAML &mdash; learning a good initialisation</a></li>
-        <li><a href="#rl2-----folding-the-algorithm-into-an-rnn">RL &mdash; folding the algorithm into an RNN</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-frequently-asked-questions">5. Frequently asked questions</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2900</strong></div>
-      <div class="row"><span>Published</span><strong>Sep 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>i.e. state plus <em>the previous action, reward and done-flag</em>. Across episodes within a meta-trial the hidden state $h_t$ accumulates information about the current task &mdash; effectively performing Bayesian belief updates implicitly. At meta-train time the outer optimiser (PPO or A2C) shapes the RNN weights so that this implicit &ldquo;inner algorithm&rdquo; is sample-efficient on $p(\mathcal{T})$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/11-hierarchical-and-meta-rl/fig7_rl_squared.png alt="RL² unrolled across a meta-trial spanning multiple episodes" loading=lazy decoding=async></figure></p><p>RL$^2$ has two attractive properties: (i) zero gradient computation at test time, so adaptation is one forward pass per step; (ii) the adaptation procedure is <em>learned</em>, so it can in principle exceed any hand-designed optimiser on the training distribution. The price is a hard credit-assignment problem during meta-training &mdash; the gradient must flow through hundreds of recurrent steps spanning multiple episodes.</p><hr><h2 id=5-frequently-asked-questions>5. Frequently asked questions</h2><p><strong>Why does the Options framework actually accelerate learning?</strong>
+Three compounding effects: (i) the effective horizon shrinks from $T$ to roughly $T/\bar k$; (ii) the high-level branching factor $|\mathcal{O}|$ is usually much smaller than $|\mathcal{A}|$; (iii) intra-option learning means every primitive transition contributes to the value of <em>every</em> compatible option, not just the one in control.</p><p><strong>Hierarchically optimal vs globally optimal &mdash; what&rsquo;s the difference?</strong>
+A hierarchically optimal policy is the best policy that respects the given decomposition (option set or task graph). A globally optimal policy is the best policy on the underlying flat MDP. They diverge whenever the decomposition cannot express the optimum &mdash; e.g. an option that always runs for at least 10 steps cannot implement a policy that needs to switch behaviour every 3 steps.</p><p><strong>Why does MAML need second-order gradients, and how much does FOMAML lose?</strong>
+The meta-loss is $\mathcal{L}_{\mathcal{T}_i}(\theta_i')$ where $\theta_i' = \theta - \alpha \nabla_\theta \mathcal{L}_{\mathcal{T}_i}(\theta)$. Differentiating with respect to $\theta$ yields $(I - \alpha \nabla^2_\theta \mathcal{L}_{\mathcal{T}_i})\, \nabla_{\theta_i'} \mathcal{L}_{\mathcal{T}_i}(\theta_i')$, which contains the Hessian. FOMAML drops the $-\alpha \nabla^2 \mathcal{L}$ factor, treating $\theta_i'$ as a stop-gradient. The original MAML paper reports &lt;5% performance loss on the standard few-shot benchmarks.</p><p><strong>When should I use MAML vs RL$^2$?</strong>
+Use MAML when you can afford gradient computation at adaptation time and your task distribution is broad enough that a fixed policy cannot do well on all of it. Use RL$^2$ when the task family is narrow and exploitative (e.g. multi-armed bandits with shifting arms), or when test-time gradients are infeasible. PEARL &mdash; which infers a task embedding with a separate encoder &mdash; is often a happy medium.</p><p><strong>Why is HER specific to off-policy algorithms?</strong>
+HER changes the goal that a transition was collected for, which violates on-policy assumptions: the action distribution that produced the data was conditioned on the original goal, not the relabelled one. Off-policy algorithms (DQN, DDPG, SAC) only require that we know $\pi(a \mid s, g')$ at update time, which we do, so the relabelling is harmless.</p><hr><h2 id=series-navigation>Series Navigation</h2><ul><li><strong>Previous</strong>: <a href=/en/reinforcement-learning-10-offline-reinforcement-learning/>Part 10 &ndash; Offline RL</a></li><li><strong>Next</strong>: <a href=/en/reinforcement-learning-12-rlhf-and-llm-applications/>Part 12 &ndash; RLHF and LLM Applications</a></li><li><a href=/tags/Reinforcement-Learning/>View all 12 parts in the RL series</a></li></ul><h2 id=references>References</h2><ol><li>Sutton, Precup & Singh. <em>Between MDPs and semi-MDPs: A framework for temporal abstraction in reinforcement learning.</em> Artificial Intelligence, 1999.</li><li>Dietterich. <em>Hierarchical Reinforcement Learning with the MAXQ Value Function Decomposition.</em> JAIR, 2000.</li><li>Vezhnevets et al. <em>FeUdal Networks for Hierarchical Reinforcement Learning.</em> ICML 2017. arXiv:1703.01161.</li><li>Nachum et al. <em>Data-Efficient Hierarchical Reinforcement Learning (HIRO).</em> NeurIPS 2018. arXiv:1805.08296.</li><li>Schaul et al. <em>Universal Value Function Approximators.</em> ICML 2015.</li><li>Andrychowicz et al. <em>Hindsight Experience Replay.</em> NeurIPS 2017. arXiv:1707.01495.</li><li>Finn, Abbeel & Levine. <em>Model-Agnostic Meta-Learning for Fast Adaptation of Deep Networks.</em> ICML 2017. arXiv:1703.03400.</li><li>Duan et al. <em>RL$^2$: Fast Reinforcement Learning via Slow Reinforcement Learning.</em> 2016. arXiv:1611.02779.</li><li>Wang et al. <em>Learning to reinforcement learn.</em> 2016. arXiv:1611.05763.</li><li>Rakelly et al. <em>Efficient Off-Policy Meta-RL via Probabilistic Context Variables (PEARL).</em> ICML 2019.</li></ol></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/reinforcement-learning/10-offline-reinforcement-learning/><span class=title>Reinforcement Learning (10): Offline Reinforcement Learning</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/reinforcement-learning/12-rlhf-and-llm-applications/><span class=title>Reinforcement Learning (12): RLHF and LLM Applications</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-hierarchy-the-options-framework>1. Hierarchy: the Options framework</a><ul><li><a href=#why-temporal-abstraction-matters>Why temporal abstraction matters</a></li><li><a href=#the-option-triple>The option triple</a></li><li><a href=#intra-option-q-learning>Intra-option Q-learning</a></li><li><a href=#maxq-value-decomposition-along-a-task-tree>MAXQ: value decomposition along a task tree</a></li></ul></li><li><a href=#2-feudal-rl-continuous-subgoals-with-manager-worker>2. Feudal RL: continuous subgoals with manager-worker</a><ul><li><a href=#hiros-relabelling-trick>HIRO&rsquo;s relabelling trick</a></li></ul></li><li><a href=#3-goal-conditioned-rl-and-her>3. Goal-conditioned RL and HER</a></li><li><a href=#4-meta-rl-learning-to-learn>4. Meta-RL: learning to learn</a><ul><li><a href=#maml-----learning-a-good-initialisation>MAML &mdash; learning a good initialisation</a></li><li><a href=#rl2-----folding-the-algorithm-into-an-rnn>RL &mdash; folding the algorithm into an RNN</a></li></ul></li><li><a href=#5-frequently-asked-questions>5. Frequently asked questions</a></li><li><a href=#series-navigation>Series Navigation</a></li><li><a href=#references>References</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Reinforcement Learning</a>
+<span class=count>6</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/><span class=chapter-num>07</span>
+<span class=chapter-title>Reinforcement Learning (7): Imitation Learning and Inverse RL</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/><span class=chapter-num>08</span>
+<span class=chapter-title>Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/><span class=chapter-num>09</span>
+<span class=chapter-title>Reinforcement Learning (9): Multi-Agent Reinforcement Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/10-offline-reinforcement-learning/><span class=chapter-num>10</span>
+<span class=chapter-title>Reinforcement Learning (10): Offline Reinforcement Learning</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>11</span>
+<span class=chapter-title>Reinforcement Learning (11): Hierarchical RL and Meta-Learning</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/12-rlhf-and-llm-applications/><span class=chapter-num>12</span>
+<span class=chapter-title>Reinforcement Learning (12): RLHF and LLM Applications</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>2805</strong></div><div class=row><span>Published</span><strong>Sep 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

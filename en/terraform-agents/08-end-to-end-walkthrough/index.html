@@ -1,160 +1,26 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/terraform-agents/08-end-to-end-walkthrough/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply · Chen Kai Blog</title>
-<meta name="description" content="Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply">
-<meta property="og:description" content="Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork.">
-<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-3);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
-         · Chapter 8
-      </div>
-      <h1>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</h1>
-      <p class="deck">Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-26">March 26, 2026</time> · 9 min read · 1900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/end-to-end/" class="tag">#End-to-End</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/terraform-agents/08-end-to-end-walkthrough/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>This is the article where everything from articles 2 through 7 lands in one place. By the end you&rsquo;ll have run <code>terraform apply</code> once and produced a complete, observable, budgeted agent runtime stack on Alibaba Cloud. About 31 resources, ~7 minutes of wall clock.</p>
-<p>The stack we&rsquo;re building:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png" alt="research-agent-stack: every box, one terraform apply" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Five layers — edge, compute, memory, platform, ops — composed from the modules we built across this series.</p>
-<h2 id="project-structure">Project structure</h2>
-<pre tabindex="0"><code>research-agent-stack/
+<!doctype html><html lang=en data-translation=/zh/terraform-agents/08-end-to-end-walkthrough/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply · Chen Kai Blog</title>
+<meta name=description content="Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/terraform-agents/08-end-to-end-walkthrough/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><meta property="og:type" content="article"><meta property="og:title" content="Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply"><meta property="og:description" content="Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork."><meta property="og:url" content="https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Terraform Agents</a>
+· Chapter 8</div><h1>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</h1><p class=deck>Stitching the seven modules into one repo, running terraform apply once, and watching a complete agent runtime — VPC, ECS, RDS, OpenSearch, OSS, LLM gateway, SLS observability, cost alarms — come up in seven minutes. Real apply output, the module DAG, and the starter repo to fork.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-26>March 26, 2026</time> · 9 min read · 1823 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/end-to-end/ class=tag>#End-to-End</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/08-end-to-end-walkthrough/>Read in English →</a></div></header><div class=prose><p>This is the article where everything from articles 2 through 7 lands in one place. By the end you&rsquo;ll have run <code>terraform apply</code> once and produced a complete, observable, budgeted agent runtime stack on Alibaba Cloud. About 31 resources, ~7 minutes of wall clock.</p><p>The stack we&rsquo;re building:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig1_full_stack.png alt="research-agent-stack: every box, one terraform apply" loading=lazy decoding=async></figure></p><p>Five layers — edge, compute, memory, platform, ops — composed from the modules we built across this series.</p><h2 id=project-structure>Project structure</h2><pre tabindex=0><code>research-agent-stack/
 ├── README.md
 ├── versions.tf                  # Terraform + provider pinning
 ├── backend.tf                   # OSS + Tablestore remote state
@@ -180,326 +46,267 @@
     │   ├── agent.sh
     │   └── gateway.sh
     └── restore-drill.sh
-</code></pre><p>Eight <code>*.tf</code> files at the top, five modules in <code>modules/</code>, environment-specific values in <code>env/*.tfvars</code>, secrets out of git in <code>secrets/secrets.auto.tfvars</code>. This is the layout I use on every project — boring is good.</p>
-<h2 id="maintf--the-composition">main.tf — the composition</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span><span class="lnt">71
-</span><span class="lnt">72
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">locals</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  is_prod</span>   <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>      <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  zones</span>     <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;cn-shanghai-l&#34;, &#34;cn-shanghai-m&#34;, &#34;cn-shanghai-n&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  common_tags</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    Project</span>     <span class="o">=</span> <span class="s2">&#34;research-agent-stack&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    Environment</span> <span class="o">=</span> <span class="k">terraform</span><span class="p">.</span><span class="k">workspace</span>
-</span></span><span class="line"><span class="cl"><span class="n">    ManagedBy</span>   <span class="o">=</span> <span class="s2">&#34;terraform&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    Owner</span>       <span class="o">=</span> <span class="s2">&#34;ai-platform&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;vpc&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/vpc-baseline&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>       <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  cidr_block</span> <span class="o">=</span> <span class="s2">&#34;10.20.0.0/16&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  zones</span>      <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">zones</span>
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span>       <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">common_tags</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;storage&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/storage&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>              <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  vpc</span>               <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span>
-</span></span><span class="line"><span class="cl"><span class="n">  is_prod</span>           <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span>
-</span></span><span class="line"><span class="cl"><span class="n">  enable_dr</span>         <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span><span class="c1">   # cross-region OSS replication only in prod
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  tags</span>              <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">common_tags</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  providers</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    alicloud</span>         <span class="o">=</span> <span class="k">alicloud</span>
-</span></span><span class="line"><span class="cl"><span class="n">    alicloud.beijing</span> <span class="o">=</span> <span class="k">alicloud</span><span class="p">.</span><span class="k">beijing</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;observability&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/observability&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>             <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  vpc</span>              <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span>
-</span></span><span class="line"><span class="cl"><span class="n">  dingtalk_webhook</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">dingtalk_webhook</span>
-</span></span><span class="line"><span class="cl"><span class="n">  cost_ceiling_cny</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="m">800</span> <span class="err">:</span> <span class="m">100</span>
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span>             <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">common_tags</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;gateway&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/llm-gateway&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>           <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  vpc</span>            <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span>
-</span></span><span class="line"><span class="cl"><span class="n">  observability</span>  <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">observability</span>
-</span></span><span class="line"><span class="cl"><span class="n">  llm_keys</span>       <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">llm_keys</span>
-</span></span><span class="line"><span class="cl"><span class="n">  agent_quotas</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">agent_quotas</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_count</span> <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="m">2</span> <span class="err">:</span> <span class="m">1</span>
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span>           <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">common_tags</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">module</span> <span class="s2">&#34;compute&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  source</span> <span class="o">=</span> <span class="s2">&#34;./modules/compute&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>           <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  vpc</span>            <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span>
-</span></span><span class="line"><span class="cl"><span class="n">  storage</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">storage</span>
-</span></span><span class="line"><span class="cl"><span class="n">  gateway</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">gateway</span>
-</span></span><span class="line"><span class="cl"><span class="n">  observability</span>  <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">observability</span>
-</span></span><span class="line"><span class="cl"><span class="n">  agent_repo_url</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">agent_repo_url</span>
-</span></span><span class="line"><span class="cl"><span class="n">  agent_branch</span>   <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">agent_branch</span>
-</span></span><span class="line"><span class="cl"><span class="n">  ecs_count</span>      <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">is_prod</span> <span class="err">?</span> <span class="m">3</span> <span class="err">:</span> <span class="m">1</span>
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span>           <span class="o">=</span> <span class="k">local</span><span class="p">.</span><span class="k">common_tags</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Five module calls. Notice how each module takes the <em>previous</em> module&rsquo;s output as input — <code>module.compute</code> reads <code>module.vpc</code>, <code>module.storage</code>, <code>module.gateway</code>, <code>module.observability</code>. That dependency wiring is what Terraform uses to build the apply DAG:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png" alt="Terraform module dependency DAG" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Network and KMS sit at the top — they have no dependencies. Storage, compute, and gateway depend on network + KMS but are independent of each other, so Terraform builds them in parallel. Compute also depends on storage and gateway because the cloud-init template needs their endpoints. Observability and alarms depend on compute because they reference the SG IDs.</p>
-<h2 id="variablestf">variables.tf</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;agent_repo_url&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Git URL of the agent runtime to deploy&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">string</span>
-</span></span><span class="line"><span class="cl"><span class="n">  default</span>     <span class="o">=</span> <span class="s2">&#34;https://github.com/example/research-agent.git&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;agent_branch&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Git branch / tag to deploy&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">string</span>
-</span></span><span class="line"><span class="cl"><span class="n">  default</span>     <span class="o">=</span> <span class="s2">&#34;main&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;dingtalk_webhook&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;DingTalk webhook URL for alarms&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">string</span>
-</span></span><span class="line"><span class="cl"><span class="n">  sensitive</span>   <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;llm_keys&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Map of provider name to API key — set via secrets.auto.tfvars&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span>        <span class="o">=</span> <span class="k">map</span><span class="p">(</span><span class="k">string</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">  sensitive</span>   <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">variable</span> <span class="s2">&#34;agent_quotas&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Per-agent QPM and budget caps&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span> <span class="o">=</span> <span class="k">map</span><span class="p">(</span><span class="k">object</span><span class="p">(</span>{
-</span></span><span class="line"><span class="cl"><span class="n">    qpm</span>          <span class="o">=</span> <span class="k">number</span>
-</span></span><span class="line"><span class="cl"><span class="n">    daily_tokens</span> <span class="o">=</span> <span class="k">number</span>
-</span></span><span class="line"><span class="cl"><span class="n">    max_budget</span>   <span class="o">=</span> <span class="k">number</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">  default</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    &#34;research-agent&#34;</span> <span class="o">=</span><span class="n"> { qpm</span> <span class="o">=</span><span class="n"> 120, daily_tokens</span> <span class="o">=</span><span class="n"> 2000000, max_budget</span> <span class="o">=</span> <span class="m">800</span> }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>sensitive = true</code> keeps Terraform from printing the value in plan/apply output. The values still land in tfstate (which is why we encrypted the OSS bucket back in article 2).</p>
-<h2 id="envdevtfvars">env/dev.tfvars</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="n">agent_repo_url</span>   <span class="o">=</span> <span class="s2">&#34;https://github.com/example/research-agent.git&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">agent_branch</span>     <span class="o">=</span> <span class="s2">&#34;develop&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">dingtalk_webhook</span> <span class="o">=</span><span class="n"> &#34;https://oapi.dingtalk.com/robot/send?access_token</span><span class="o">=</span><span class="k">DEV_TOKEN</span><span class="err">&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">agent_quotas</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  &#34;research-agent&#34;</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    qpm</span>          <span class="o">=</span> <span class="m">30</span>
-</span></span><span class="line"><span class="cl"><span class="n">    daily_tokens</span> <span class="o">=</span> <span class="m">200000</span>
-</span></span><span class="line"><span class="cl"><span class="n">    max_budget</span>   <span class="o">=</span> <span class="m">50</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="secretssecretsautotfvars-gitignored">secrets/secrets.auto.tfvars (gitignored)</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="n">llm_keys</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  &#34;dashscope-prod&#34;</span> <span class="o">=</span> <span class="s2">&#34;sk-DS-XXXXXXXXXXXXXXXXX&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  &#34;openai-prod&#34;</span>    <span class="o">=</span> <span class="s2">&#34;sk-XX-XXXXXXXXXXXXXXXXX&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  &#34;anthropic-prod&#34;</span> <span class="o">=</span> <span class="s2">&#34;sk-ant-XXXXXXXXXXXXXXXXX&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  &#34;deepseek-prod&#34;</span>  <span class="o">=</span> <span class="s2">&#34;sk-DEEPSEEK-XXXXXXXXX&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>*.auto.tfvars</code> files are auto-loaded without <code>-var-file</code>. Make sure <code>secrets/</code> is in <code>.gitignore</code> from the very first commit.</p>
-<h2 id="the-apply">The apply</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> research-agent-stack
-</span></span><span class="line"><span class="cl">terraform workspace <span class="k">select</span> dev
-</span></span><span class="line"><span class="cl">terraform init
-</span></span><span class="line"><span class="cl">terraform plan -var-file<span class="o">=</span>env/dev.tfvars -out<span class="o">=</span>tfplan
-</span></span><span class="line"><span class="cl"><span class="c1"># review plan output: ~31 resources to add</span>
-</span></span><span class="line"><span class="cl">terraform apply tfplan
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Real timing on a fresh apply:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig3_apply_timeline.png" alt="Real apply timeline — RDS/OpenSearch dominate, the rest is parallel" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The wall-clock breakdown:</p>
-<ul>
-<li><strong>0-60s:</strong> VPC, vSwitch, NAT, EIP, KMS keys — fast resources</li>
-<li><strong>60-380s:</strong> RDS (5 minutes), OpenSearch (5.5 minutes), ECS (~2 minutes), gateway (~1.5 minutes) — all parallel, gated by the slowest</li>
-<li><strong>380-460s:</strong> agent app deploy, observability resources, alarms</li>
-</ul>
-<p>About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs settle in under 30 seconds because Terraform only diffs.</p>
-<p>A trimmed apply transcript:</p>
-<pre tabindex="0"><code>Terraform will perform the following actions:
+</code></pre><p>Eight <code>*.tf</code> files at the top, five modules in <code>modules/</code>, environment-specific values in <code>env/*.tfvars</code>, secrets out of git in <code>secrets/secrets.auto.tfvars</code>. This is the layout I use on every project — boring is good.</p><h2 id=maintf--the-composition>main.tf — the composition</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>locals</span> {
+</span></span><span class=line><span class=cl><span class=n>  is_prod</span>   <span class=o>=</span><span class=n> terraform.workspace</span> <span class=o>==</span> <span class=s2>&#34;prod&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>      <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  zones</span>     <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;cn-shanghai-l&#34;, &#34;cn-shanghai-m&#34;, &#34;cn-shanghai-n&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  common_tags</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    Project</span>     <span class=o>=</span> <span class=s2>&#34;research-agent-stack&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    Environment</span> <span class=o>=</span> <span class=k>terraform</span><span class=p>.</span><span class=k>workspace</span>
+</span></span><span class=line><span class=cl><span class=n>    ManagedBy</span>   <span class=o>=</span> <span class=s2>&#34;terraform&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    Owner</span>       <span class=o>=</span> <span class=s2>&#34;ai-platform&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>module</span> <span class=s2>&#34;vpc&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/vpc-baseline&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  name</span>       <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  cidr_block</span> <span class=o>=</span> <span class=s2>&#34;10.20.0.0/16&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  zones</span>      <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>zones</span>
+</span></span><span class=line><span class=cl><span class=n>  tags</span>       <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>common_tags</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>module</span> <span class=s2>&#34;storage&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/storage&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  name</span>              <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  vpc</span>               <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span>
+</span></span><span class=line><span class=cl><span class=n>  is_prod</span>           <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>is_prod</span>
+</span></span><span class=line><span class=cl><span class=n>  enable_dr</span>         <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>is_prod</span><span class=c1>   # cross-region OSS replication only in prod
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  tags</span>              <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>common_tags</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  providers</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    alicloud</span>         <span class=o>=</span> <span class=k>alicloud</span>
+</span></span><span class=line><span class=cl><span class=n>    alicloud.beijing</span> <span class=o>=</span> <span class=k>alicloud</span><span class=p>.</span><span class=k>beijing</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>module</span> <span class=s2>&#34;observability&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/observability&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  name</span>             <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  vpc</span>              <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span>
+</span></span><span class=line><span class=cl><span class=n>  dingtalk_webhook</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>dingtalk_webhook</span>
+</span></span><span class=line><span class=cl><span class=n>  cost_ceiling_cny</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>is_prod</span> <span class=err>?</span> <span class=m>800</span> <span class=err>:</span> <span class=m>100</span>
+</span></span><span class=line><span class=cl><span class=n>  tags</span>             <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>common_tags</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>module</span> <span class=s2>&#34;gateway&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/llm-gateway&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  name</span>           <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  vpc</span>            <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span>
+</span></span><span class=line><span class=cl><span class=n>  observability</span>  <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>observability</span>
+</span></span><span class=line><span class=cl><span class=n>  llm_keys</span>       <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>llm_keys</span>
+</span></span><span class=line><span class=cl><span class=n>  agent_quotas</span>   <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>agent_quotas</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_count</span> <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>is_prod</span> <span class=err>?</span> <span class=m>2</span> <span class=err>:</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=n>  tags</span>           <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>common_tags</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>module</span> <span class=s2>&#34;compute&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  source</span> <span class=o>=</span> <span class=s2>&#34;./modules/compute&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  name</span>           <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  vpc</span>            <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span>
+</span></span><span class=line><span class=cl><span class=n>  storage</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>storage</span>
+</span></span><span class=line><span class=cl><span class=n>  gateway</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>gateway</span>
+</span></span><span class=line><span class=cl><span class=n>  observability</span>  <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>observability</span>
+</span></span><span class=line><span class=cl><span class=n>  agent_repo_url</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>agent_repo_url</span>
+</span></span><span class=line><span class=cl><span class=n>  agent_branch</span>   <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>agent_branch</span>
+</span></span><span class=line><span class=cl><span class=n>  ecs_count</span>      <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>is_prod</span> <span class=err>?</span> <span class=m>3</span> <span class=err>:</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=n>  tags</span>           <span class=o>=</span> <span class=k>local</span><span class=p>.</span><span class=k>common_tags</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Five module calls. Notice how each module takes the <em>previous</em> module&rsquo;s output as input — <code>module.compute</code> reads <code>module.vpc</code>, <code>module.storage</code>, <code>module.gateway</code>, <code>module.observability</code>. That dependency wiring is what Terraform uses to build the apply DAG:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig2_module_dag.png alt="Terraform module dependency DAG" loading=lazy decoding=async></figure></p><p>Network and KMS sit at the top — they have no dependencies. Storage, compute, and gateway depend on network + KMS but are independent of each other, so Terraform builds them in parallel. Compute also depends on storage and gateway because the cloud-init template needs their endpoints. Observability and alarms depend on compute because they reference the SG IDs.</p><h2 id=variablestf>variables.tf</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>variable</span> <span class=s2>&#34;agent_repo_url&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Git URL of the agent runtime to deploy&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span>        <span class=o>=</span> <span class=k>string</span>
+</span></span><span class=line><span class=cl><span class=n>  default</span>     <span class=o>=</span> <span class=s2>&#34;https://github.com/example/research-agent.git&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>variable</span> <span class=s2>&#34;agent_branch&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Git branch / tag to deploy&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span>        <span class=o>=</span> <span class=k>string</span>
+</span></span><span class=line><span class=cl><span class=n>  default</span>     <span class=o>=</span> <span class=s2>&#34;main&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>variable</span> <span class=s2>&#34;dingtalk_webhook&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;DingTalk webhook URL for alarms&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span>        <span class=o>=</span> <span class=k>string</span>
+</span></span><span class=line><span class=cl><span class=n>  sensitive</span>   <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>variable</span> <span class=s2>&#34;llm_keys&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Map of provider name to API key — set via secrets.auto.tfvars&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span>        <span class=o>=</span> <span class=k>map</span><span class=p>(</span><span class=k>string</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>  sensitive</span>   <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>variable</span> <span class=s2>&#34;agent_quotas&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Per-agent QPM and budget caps&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span> <span class=o>=</span> <span class=k>map</span><span class=p>(</span><span class=k>object</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    qpm</span>          <span class=o>=</span> <span class=k>number</span>
+</span></span><span class=line><span class=cl><span class=n>    daily_tokens</span> <span class=o>=</span> <span class=k>number</span>
+</span></span><span class=line><span class=cl><span class=n>    max_budget</span>   <span class=o>=</span> <span class=k>number</span>
+</span></span><span class=line><span class=cl>  }<span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>  default</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    &#34;research-agent&#34;</span> <span class=o>=</span><span class=n> { qpm</span> <span class=o>=</span><span class=n> 120, daily_tokens</span> <span class=o>=</span><span class=n> 2000000, max_budget</span> <span class=o>=</span> <span class=m>800</span> }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>sensitive = true</code> keeps Terraform from printing the value in plan/apply output. The values still land in tfstate (which is why we encrypted the OSS bucket back in article 2).</p><h2 id=envdevtfvars>env/dev.tfvars</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=n>agent_repo_url</span>   <span class=o>=</span> <span class=s2>&#34;https://github.com/example/research-agent.git&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>agent_branch</span>     <span class=o>=</span> <span class=s2>&#34;develop&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>dingtalk_webhook</span> <span class=o>=</span><span class=n> &#34;https://oapi.dingtalk.com/robot/send?access_token</span><span class=o>=</span><span class=k>DEV_TOKEN</span><span class=err>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>agent_quotas</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>  &#34;research-agent&#34;</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    qpm</span>          <span class=o>=</span> <span class=m>30</span>
+</span></span><span class=line><span class=cl><span class=n>    daily_tokens</span> <span class=o>=</span> <span class=m>200000</span>
+</span></span><span class=line><span class=cl><span class=n>    max_budget</span>   <span class=o>=</span> <span class=m>50</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><h2 id=secretssecretsautotfvars-gitignored>secrets/secrets.auto.tfvars (gitignored)</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=n>llm_keys</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>  &#34;dashscope-prod&#34;</span> <span class=o>=</span> <span class=s2>&#34;sk-DS-XXXXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  &#34;openai-prod&#34;</span>    <span class=o>=</span> <span class=s2>&#34;sk-XX-XXXXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  &#34;anthropic-prod&#34;</span> <span class=o>=</span> <span class=s2>&#34;sk-ant-XXXXXXXXXXXXXXXXX&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  &#34;deepseek-prod&#34;</span>  <span class=o>=</span> <span class=s2>&#34;sk-DEEPSEEK-XXXXXXXXX&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p><code>*.auto.tfvars</code> files are auto-loaded without <code>-var-file</code>. Make sure <code>secrets/</code> is in <code>.gitignore</code> from the very first commit.</p><h2 id=the-apply>The apply</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>cd</span> research-agent-stack
+</span></span><span class=line><span class=cl>terraform workspace <span class=k>select</span> dev
+</span></span><span class=line><span class=cl>terraform init
+</span></span><span class=line><span class=cl>terraform plan -var-file<span class=o>=</span>env/dev.tfvars -out<span class=o>=</span>tfplan
+</span></span><span class=line><span class=cl><span class=c1># review plan output: ~31 resources to add</span>
+</span></span><span class=line><span class=cl>terraform apply tfplan
+</span></span></code></pre></td></tr></table></div></div><p>Real timing on a fresh apply:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/08-end-to-end-walkthrough/fig3_apply_timeline.png alt="Real apply timeline — RDS/OpenSearch dominate, the rest is parallel" loading=lazy decoding=async></figure></p><p>The wall-clock breakdown:</p><ul><li><strong>0-60s:</strong> VPC, vSwitch, NAT, EIP, KMS keys — fast resources</li><li><strong>60-380s:</strong> RDS (5 minutes), OpenSearch (5.5 minutes), ECS (~2 minutes), gateway (~1.5 minutes) — all parallel, gated by the slowest</li><li><strong>380-460s:</strong> agent app deploy, observability resources, alarms</li></ul><p>About 7 minutes total, dominated by RDS and OpenSearch provisioning. Re-applies on no-change runs settle in under 30 seconds because Terraform only diffs.</p><p>A trimmed apply transcript:</p><pre tabindex=0><code>Terraform will perform the following actions:
 
   # module.vpc.alicloud_vpc.this will be created
   + resource &#34;alicloud_vpc&#34; &#34;this&#34; {
@@ -554,253 +361,40 @@ agent_endpoints      = [
 gateway_url          = &#34;http://alb-uf7.cn-shanghai.alb.aliyuncs.com/v1&#34;
 sls_dashboard_url    = &#34;https://sls.console.aliyun.com/lognext/project/agents-dev/dashboard/agent-cost-overview&#34;
 total_estimated_cost = &#34;~¥1450/month at dev sizing&#34;
-</code></pre><p>That&rsquo;s a complete agent stack. ALB endpoint, gateway URL, the SLS dashboard URL — paste any of them into a browser and they work.</p>
-<h2 id="day-2-operations">Day-2 operations</h2>
-<p>The stack is up. Now what?</p>
-<h3 id="adding-a-new-agent">Adding a new agent</h3>
-<ol>
-<li>Add an entry to <code>var.agent_quotas</code> in <code>dev.tfvars</code></li>
-<li><code>terraform apply -var-file=env/dev.tfvars</code></li>
-<li>The <code>null_resource</code> provisions a new LiteLLM key</li>
-<li>Deploy your new agent code with the new <code>LITELLM_API_KEY</code> env var</li>
-</ol>
-<p>About 30 seconds end-to-end.</p>
-<h3 id="scaling-up">Scaling up</h3>
-<p>Change <code>ecs_count</code> in the module call (or set it via <code>tfvars</code>). <code>terraform apply</code> brings up new instances, attaches them to the ALB, and old instances stay healthy throughout (<code>create_before_destroy</code>). Zero downtime.</p>
-<h3 id="promoting-dev--prod">Promoting dev → prod</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform workspace <span class="k">select</span> prod
-</span></span><span class="line"><span class="cl">terraform apply -var-file<span class="o">=</span>env/prod.tfvars
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Same modules, different sizes (HA RDS, larger OpenSearch quota, more ECS, real DingTalk webhook, real LLM keys, cost ceiling at ¥800 instead of ¥100). The first prod apply takes 7-10 minutes; subsequent applies are seconds.</p>
-<h3 id="destroying-dev">Destroying dev</h3>
-<p>When you&rsquo;re done experimenting:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">terraform workspace <span class="k">select</span> dev
-</span></span><span class="line"><span class="cl">terraform destroy -var-file<span class="o">=</span>env/dev.tfvars
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>This will fail because of <code>deletion_protection = true</code> on prod-like resources and <code>prevent_destroy = true</code> on the bootstrap state bucket. That&rsquo;s intentional. For dev, you set <code>deletion_protection = local.is_prod</code> so it&rsquo;s only on in prod — <code>terraform destroy</code> works.</p>
-<blockquote>
-<p><strong>Real-world tip:</strong> Always <code>terraform plan -destroy</code> before <code>terraform destroy</code>. Read the plan output. The number of resources being destroyed should match what you intend. I have seen one engineer accidentally destroy <code>staging</code> because they forgot to switch workspaces.</p>
-</blockquote>
-<h2 id="connecting-your-actual-agent-code">Connecting your actual agent code</h2>
-<p>The stack is the <em>platform</em>. The agent itself comes from your repo (<code>var.agent_repo_url</code>) and is deployed by cloud-init at ECS launch. The minimal contract your agent code needs to honor:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># These come from environment variables set by cloud-init</span>
-</span></span><span class="line"><span class="cl"><span class="n">LLM_GATEWAY_URL</span>    <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;LLM_GATEWAY_URL&#34;</span><span class="p">]</span>    <span class="c1"># http://alb.../v1</span>
-</span></span><span class="line"><span class="cl"><span class="n">LITELLM_API_KEY</span>    <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;LITELLM_API_KEY&#34;</span><span class="p">]</span>    <span class="c1"># the per-agent key</span>
-</span></span><span class="line"><span class="cl"><span class="n">DATABASE_URL</span>       <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;DATABASE_URL&#34;</span><span class="p">]</span>       <span class="c1"># postgres://...</span>
-</span></span><span class="line"><span class="cl"><span class="n">VECTOR_ENDPOINT</span>    <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;VECTOR_ENDPOINT&#34;</span><span class="p">]</span>    <span class="c1"># OpenSearch HTTP</span>
-</span></span><span class="line"><span class="cl"><span class="n">ARTIFACTS_BUCKET</span>   <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;ARTIFACTS_BUCKET&#34;</span><span class="p">]</span>   <span class="c1"># OSS bucket name</span>
-</span></span><span class="line"><span class="cl"><span class="n">SLS_PROJECT</span>        <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;SLS_PROJECT&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">SLS_LOGSTORE</span>       <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;SLS_LOGSTORE&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">ARMS_OTLP_ENDPOINT</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class="p">]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>All of these get values from Terraform outputs. The agent code stays cloud-agnostic in shape — it just reads env vars — but is fully wired into the Aliyun stack at runtime.</p>
-<h2 id="cost-summary">Cost summary</h2>
-<p>A real bill for <code>dev</code> workspace, low traffic:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Component</th>
-          <th style="text-align: right">Monthly</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>VPC + NAT + EIP</td>
-          <td style="text-align: right">~¥150</td>
-      </tr>
-      <tr>
-          <td>ECS x1 (c7.large)</td>
-          <td style="text-align: right">~¥250</td>
-      </tr>
-      <tr>
-          <td>RDS Postgres (small)</td>
-          <td style="text-align: right">~¥350</td>
-      </tr>
-      <tr>
-          <td>OpenSearch vector</td>
-          <td style="text-align: right">~¥800</td>
-      </tr>
-      <tr>
-          <td>OSS (10 GB Standard)</td>
-          <td style="text-align: right">~¥2</td>
-      </tr>
-      <tr>
-          <td>LLM Gateway ECS x1</td>
-          <td style="text-align: right">~¥150</td>
-      </tr>
-      <tr>
-          <td>ALB (small)</td>
-          <td style="text-align: right">~¥50</td>
-      </tr>
-      <tr>
-          <td>SLS + ARMS</td>
-          <td style="text-align: right">~¥300</td>
-      </tr>
-      <tr>
-          <td>KMS</td>
-          <td style="text-align: right">~¥10</td>
-      </tr>
-      <tr>
-          <td><strong>Total dev</strong></td>
-          <td style="text-align: right"><strong>~¥2060/mo</strong></td>
-      </tr>
-  </tbody>
-</table>
-<p>Prod with HA, larger sizes, cross-region DR: roughly ¥6000-9000/mo before LLM API cost. The LLM bill is usually the biggest line item — which is why article 6&rsquo;s gateway and article 7&rsquo;s cost alarms exist.</p>
-<h2 id="what-i-skipped">What I skipped</h2>
-<ul>
-<li><strong>CDN</strong> for serving artifact URLs publicly — alicloud_cdn_domain works, but most agents serve artifacts through their own gateway</li>
-<li><strong>WAF</strong> in front of the ALB — required for public-facing prod, but the dev stack uses an Intranet ALB</li>
-<li><strong>PrivateLink</strong> to DashScope — saves NAT egress cost at scale, configurable via alicloud_privatelink_*</li>
-<li><strong>Custom domain + SSL</strong> — alicloud_alb_listener supports SSL certs but you have to bring the cert (or use ACM)</li>
-</ul>
-<p>All four are worth adding once the basics work. Don&rsquo;t add them on day 1.</p>
-<h2 id="where-to-go-from-here">Where to go from here</h2>
-<p>You now have a production-shaped agent runtime on Alibaba Cloud, fully expressed in Terraform, with observability, secret management, and cost guards built in. The next steps depend on your project:</p>
-<ul>
-<li><strong>More agents:</strong> add to <code>var.agent_quotas</code> and <code>terraform apply</code></li>
-<li><strong>Different LLM providers:</strong> add to <code>local.litellm_config</code> in the gateway module</li>
-<li><strong>Multiple regions:</strong> add provider aliases and replicate the stack</li>
-<li><strong>GitOps:</strong> wrap <code>terraform apply</code> in a CI pipeline gated by PR review</li>
-<li><strong>Pulumi or Crossplane migration:</strong> the resource graph translates directly</li>
-</ul>
-<p>The single most important thing is that your infrastructure is now in git. Every change is reviewable. Every environment is reproducible. Every cost is attributable. That&rsquo;s what IaC buys you, and it&rsquo;s what makes shipping agents on Aliyun a sustainable practice instead of a perpetual scramble.</p>
-<p>Thanks for reading the series. If you ship a stack based on this, I&rsquo;d love to hear what you changed and why — that&rsquo;s how the patterns evolve.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/"><span class="title">Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next</div>
-      <span class="title" style="color: var(--ink-faint)">—</span>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#project-structure">Project structure</a></li>
-    <li><a href="#maintf--the-composition">main.tf — the composition</a></li>
-    <li><a href="#variablestf">variables.tf</a></li>
-    <li><a href="#envdevtfvars">env/dev.tfvars</a></li>
-    <li><a href="#secretssecretsautotfvars-gitignored">secrets/secrets.auto.tfvars (gitignored)</a></li>
-    <li><a href="#the-apply">The apply</a></li>
-    <li><a href="#day-2-operations">Day-2 operations</a>
-      <ul>
-        <li><a href="#adding-a-new-agent">Adding a new agent</a></li>
-        <li><a href="#scaling-up">Scaling up</a></li>
-        <li><a href="#promoting-dev--prod">Promoting dev → prod</a></li>
-        <li><a href="#destroying-dev">Destroying dev</a></li>
-      </ul>
-    </li>
-    <li><a href="#connecting-your-actual-agent-code">Connecting your actual agent code</a></li>
-    <li><a href="#cost-summary">Cost summary</a></li>
-    <li><a href="#what-i-skipped">What I skipped</a></li>
-    <li><a href="#where-to-go-from-here">Where to go from here</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1900</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>That&rsquo;s a complete agent stack. ALB endpoint, gateway URL, the SLS dashboard URL — paste any of them into a browser and they work.</p><h2 id=day-2-operations>Day-2 operations</h2><p>The stack is up. Now what?</p><h3 id=adding-a-new-agent>Adding a new agent</h3><ol><li>Add an entry to <code>var.agent_quotas</code> in <code>dev.tfvars</code></li><li><code>terraform apply -var-file=env/dev.tfvars</code></li><li>The <code>null_resource</code> provisions a new LiteLLM key</li><li>Deploy your new agent code with the new <code>LITELLM_API_KEY</code> env var</li></ol><p>About 30 seconds end-to-end.</p><h3 id=scaling-up>Scaling up</h3><p>Change <code>ecs_count</code> in the module call (or set it via <code>tfvars</code>). <code>terraform apply</code> brings up new instances, attaches them to the ALB, and old instances stay healthy throughout (<code>create_before_destroy</code>). Zero downtime.</p><h3 id=promoting-dev--prod>Promoting dev → prod</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>terraform workspace <span class=k>select</span> prod
+</span></span><span class=line><span class=cl>terraform apply -var-file<span class=o>=</span>env/prod.tfvars
+</span></span></code></pre></td></tr></table></div></div><p>Same modules, different sizes (HA RDS, larger OpenSearch quota, more ECS, real DingTalk webhook, real LLM keys, cost ceiling at ¥800 instead of ¥100). The first prod apply takes 7-10 minutes; subsequent applies are seconds.</p><h3 id=destroying-dev>Destroying dev</h3><p>When you&rsquo;re done experimenting:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>terraform workspace <span class=k>select</span> dev
+</span></span><span class=line><span class=cl>terraform destroy -var-file<span class=o>=</span>env/dev.tfvars
+</span></span></code></pre></td></tr></table></div></div><p>This will fail because of <code>deletion_protection = true</code> on prod-like resources and <code>prevent_destroy = true</code> on the bootstrap state bucket. That&rsquo;s intentional. For dev, you set <code>deletion_protection = local.is_prod</code> so it&rsquo;s only on in prod — <code>terraform destroy</code> works.</p><blockquote><p><strong>Real-world tip:</strong> Always <code>terraform plan -destroy</code> before <code>terraform destroy</code>. Read the plan output. The number of resources being destroyed should match what you intend. I have seen one engineer accidentally destroy <code>staging</code> because they forgot to switch workspaces.</p></blockquote><h2 id=connecting-your-actual-agent-code>Connecting your actual agent code</h2><p>The stack is the <em>platform</em>. The agent itself comes from your repo (<code>var.agent_repo_url</code>) and is deployed by cloud-init at ECS launch. The minimal contract your agent code needs to honor:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># These come from environment variables set by cloud-init</span>
+</span></span><span class=line><span class=cl><span class=n>LLM_GATEWAY_URL</span>    <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;LLM_GATEWAY_URL&#34;</span><span class=p>]</span>    <span class=c1># http://alb.../v1</span>
+</span></span><span class=line><span class=cl><span class=n>LITELLM_API_KEY</span>    <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;LITELLM_API_KEY&#34;</span><span class=p>]</span>    <span class=c1># the per-agent key</span>
+</span></span><span class=line><span class=cl><span class=n>DATABASE_URL</span>       <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DATABASE_URL&#34;</span><span class=p>]</span>       <span class=c1># postgres://...</span>
+</span></span><span class=line><span class=cl><span class=n>VECTOR_ENDPOINT</span>    <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;VECTOR_ENDPOINT&#34;</span><span class=p>]</span>    <span class=c1># OpenSearch HTTP</span>
+</span></span><span class=line><span class=cl><span class=n>ARTIFACTS_BUCKET</span>   <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARTIFACTS_BUCKET&#34;</span><span class=p>]</span>   <span class=c1># OSS bucket name</span>
+</span></span><span class=line><span class=cl><span class=n>SLS_PROJECT</span>        <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;SLS_PROJECT&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>SLS_LOGSTORE</span>       <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;SLS_LOGSTORE&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>ARMS_OTLP_ENDPOINT</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;ARMS_OTLP_ENDPOINT&#34;</span><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>All of these get values from Terraform outputs. The agent code stays cloud-agnostic in shape — it just reads env vars — but is fully wired into the Aliyun stack at runtime.</p><h2 id=cost-summary>Cost summary</h2><p>A real bill for <code>dev</code> workspace, low traffic:</p><table><thead><tr><th>Component</th><th style=text-align:right>Monthly</th></tr></thead><tbody><tr><td>VPC + NAT + EIP</td><td style=text-align:right>~¥150</td></tr><tr><td>ECS x1 (c7.large)</td><td style=text-align:right>~¥250</td></tr><tr><td>RDS Postgres (small)</td><td style=text-align:right>~¥350</td></tr><tr><td>OpenSearch vector</td><td style=text-align:right>~¥800</td></tr><tr><td>OSS (10 GB Standard)</td><td style=text-align:right>~¥2</td></tr><tr><td>LLM Gateway ECS x1</td><td style=text-align:right>~¥150</td></tr><tr><td>ALB (small)</td><td style=text-align:right>~¥50</td></tr><tr><td>SLS + ARMS</td><td style=text-align:right>~¥300</td></tr><tr><td>KMS</td><td style=text-align:right>~¥10</td></tr><tr><td><strong>Total dev</strong></td><td style=text-align:right><strong>~¥2060/mo</strong></td></tr></tbody></table><p>Prod with HA, larger sizes, cross-region DR: roughly ¥6000-9000/mo before LLM API cost. The LLM bill is usually the biggest line item — which is why article 6&rsquo;s gateway and article 7&rsquo;s cost alarms exist.</p><h2 id=what-i-skipped>What I skipped</h2><ul><li><strong>CDN</strong> for serving artifact URLs publicly — alicloud_cdn_domain works, but most agents serve artifacts through their own gateway</li><li><strong>WAF</strong> in front of the ALB — required for public-facing prod, but the dev stack uses an Intranet ALB</li><li><strong>PrivateLink</strong> to DashScope — saves NAT egress cost at scale, configurable via alicloud_privatelink_*</li><li><strong>Custom domain + SSL</strong> — alicloud_alb_listener supports SSL certs but you have to bring the cert (or use ACM)</li></ul><p>All four are worth adding once the basics work. Don&rsquo;t add them on day 1.</p><h2 id=where-to-go-from-here>Where to go from here</h2><p>You now have a production-shaped agent runtime on Alibaba Cloud, fully expressed in Terraform, with observability, secret management, and cost guards built in. The next steps depend on your project:</p><ul><li><strong>More agents:</strong> add to <code>var.agent_quotas</code> and <code>terraform apply</code></li><li><strong>Different LLM providers:</strong> add to <code>local.litellm_config</code> in the gateway module</li><li><strong>Multiple regions:</strong> add provider aliases and replicate the stack</li><li><strong>GitOps:</strong> wrap <code>terraform apply</code> in a CI pipeline gated by PR review</li><li><strong>Pulumi or Crossplane migration:</strong> the resource graph translates directly</li></ul><p>The single most important thing is that your infrastructure is now in git. Every change is reviewable. Every environment is reproducible. Every cost is attributable. That&rsquo;s what IaC buys you, and it&rsquo;s what makes shipping agents on Aliyun a sustainable practice instead of a perpetual scramble.</p><p>Thanks for reading the series. If you ship a stack based on this, I&rsquo;d love to hear what you changed and why — that&rsquo;s how the patterns evolve.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></div><div class="nav-item next-item"><div class=label>Next</div><span class=title style=color:var(--ink-faint)>—</span></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#project-structure>Project structure</a></li><li><a href=#maintf--the-composition>main.tf — the composition</a></li><li><a href=#variablestf>variables.tf</a></li><li><a href=#envdevtfvars>env/dev.tfvars</a></li><li><a href=#secretssecretsautotfvars-gitignored>secrets/secrets.auto.tfvars (gitignored)</a></li><li><a href=#the-apply>The apply</a></li><li><a href=#day-2-operations>Day-2 operations</a><ul><li><a href=#adding-a-new-agent>Adding a new agent</a></li><li><a href=#scaling-up>Scaling up</a></li><li><a href=#promoting-dev--prod>Promoting dev → prod</a></li><li><a href=#destroying-dev>Destroying dev</a></li></ul></li><li><a href=#connecting-your-actual-agent-code>Connecting your actual agent code</a></li><li><a href=#cost-summary>Cost summary</a></li><li><a href=#what-i-skipped>What I skipped</a></li><li><a href=#where-to-go-from-here>Where to go from here</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Terraform Agents</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
+<span class=chapter-title>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
+<span class=chapter-title>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
+<span class=chapter-title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><span class=chapter-num>04</span>
+<span class=chapter-title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><span class=chapter-num>05</span>
+<span class=chapter-title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
+<span class=chapter-title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
+<span class=chapter-title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
+<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></span></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>9 min</strong></div><div class=row><span>Word count</span><strong>1823</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

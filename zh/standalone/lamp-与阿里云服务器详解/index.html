@@ -1,1402 +1,533 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>LAMP 与阿里云服务器详解 · Chen Kai Blog</title>
-<meta name="description" content="刚买的一台阿里云 ECS，从「能 SSH 登录」到「公网能稳定访问、跑得动一个站点」之间，最容易卡的其实就三件事：
-网络通不通——包可能在云厂商的安全组、操作系统防火墙、监听端口三个地方被悄悄丢掉，你看到的现象只有一个：浏览器一直转圈。 服务串不起来——Apache、PHP、MySQL 是三个独立的进程，靠文件后缀、Unix socket、TCP 端口互相找 …">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="LAMP 与阿里云服务器详解">
-<meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>LAMP 与阿里云服务器详解</h1>
-      
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-04-27">April 27, 2024</time> · 19 min read · 9200 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8/" class="tag">#云服务器</a><a href="/zh/tags/web-%E9%83%A8%E7%BD%B2/" class="tag">#Web 部署</a><a href="/zh/tags/lamp/" class="tag">#LAMP</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>刚买的一台阿里云 ECS，从「能 SSH 登录」到「公网能稳定访问、跑得动一个站点」之间，最容易卡的其实就三件事：</p>
-<ol>
-<li><strong>网络通不通</strong>——包可能在云厂商的安全组、操作系统防火墙、监听端口三个地方被悄悄丢掉，你看到的现象只有一个：浏览器一直转圈。</li>
-<li><strong>服务串不起来</strong>——Apache、PHP、MySQL 是三个独立的进程，靠文件后缀、Unix socket、TCP 端口互相找到对方，每个接口都有自己的坑。</li>
-<li><strong>身份和权限不匹配</strong>——Apache 跑在 <code>www-data</code> 用户下，MySQL 跑在 <code>mysql</code> 用户下，<code>wget</code> 下来的文件却归 <code>root</code> 所有。组合错了就是 403、Access denied，最后被逼到 <code>chmod 777</code>。</li>
-</ol>
-<p>这篇文章就按你第一天会撞到的顺序把上面三件事讲透，再继续把第三十天才会遇到的问题——HTTPS、虚拟主机、备份、源码编译、什么时候该把单机拆成多机——一起讲完。目标是你照着做能跑起来，并且过半年回头看不会觉得自己当时埋了一堆雷。</p>
-<h2 id="读完这篇你能做到">读完这篇你能做到</h2>
-<ul>
-<li>在脑子里画出一个 HTTP 请求穿过 Linux、Apache、PHP、MySQL 的完整路径，知道每一跳可能在哪儿挂掉。</li>
-<li>配置阿里云网络时不再用 <code>0.0.0.0/0</code> 一把梭，而是有真正的纵深防御。</li>
-<li>在 Ubuntu 上装好、验通、加固 LAMP 的每一个组件（CentOS / Alibaba Cloud Linux 的差异点也会顺带说清）。</li>
-<li>把一个真实的应用（Discuz!）从下载到上线全跑一遍，包括官方文档跳过的权限和数据库账号细节。</li>
-<li>排查掉 90% 的 LAMP 故障所对应的那 5 个最常见错误。</li>
-<li>判断什么时候应该一直留在单机，什么时候该拆成 SLB + ECS + RDS。</li>
-</ul>
-<h2 id="前提">前提</h2>
-<ul>
-<li>一台阿里云 ECS，操作系统 Ubuntu 22.04 LTS 或 Alibaba Cloud Linux 3 / CentOS 7+。</li>
-<li>能用密钥（不是密码）SSH 进去。</li>
-<li>常用的 Linux 命令熟练：<code>ls</code>、<code>cd</code>、<code>cat</code>、<code>systemctl</code>、<code>sudo</code>。</li>
-<li>一个域名是可选的，但讲到 HTTPS 那段会方便很多。</li>
-</ul>
-<hr>
-<h1 id="1-为什么-2025-年还要学-lamp">1. 为什么 2025 年还要学 LAMP</h1>
-<p>LAMP（<strong>L</strong>inux + <strong>A</strong>pache + <strong>M</strong>ySQL + <strong>P</strong>HP）从 2010 年开始就被各种新框架轮番宣告过死亡，但它每次都活了下来。原因不是怀旧，是「合适」。对内容站点、CMS（WordPress、Discuz、Drupal、MediaWiki）、客户门户、内部工具，以及一长串小型 SaaS 后端来说，LAMP 仍然是把动态网页放到用户面前<strong>性价比最高、文档最全、维护成本最低</strong>的方案。</p>
-<p>LAMP 自带、新栈要自己拼起来的东西：</p>
-<ul>
-<li><strong>极成熟的生态。</strong> Apache 二十八岁、MySQL 二十八岁、PHP 三十岁。你能遇到的几乎所有问题都被人踩过、写下过、被搜索引擎收录过。</li>
-<li><strong>共享主机的兼容性。</strong> 一个 LAMP 应用从 5 块钱一个月的虚拟主机搬到 ECS，代码一行不用改。</li>
-<li><strong>可预测的请求路径。</strong> 没有 service mesh、没有 sidecar、没有编排器，一棵进程树一台机器。延迟一上去，<code>top</code> 一下大概率能直接看到原因。</li>
-<li><strong>极低的运维门槛。</strong> 一台机器，三个服务。需要装在脑子里的东西比 Kubernetes 少一个数量级。</li>
-</ul>
-<p>下面几种场景<strong>别</strong>用 LAMP：高扇出 API（用 Nginx + Go/Node/Rust）、长连接事件驱动（大规模 WebSocket 更适合 event loop 而不是 Apache prefork）、团队已经在容器和控制平面上有积累。把 LAMP 放在它擅长的地方用，别把它当默认选项。</p>
-<h1 id="2-四层架构">2. 四层架构</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig1_lamp_architecture.png" alt="LAMP 的四层架构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>上面这张图是整篇文章里最重要的一张。把它内化下来，遇到问题时你会自动从「服务器挂了」切到「哪一层挂了」。</p>
-<p>每一层都<strong>owns</strong>一些具体的东西：</p>
-<ul>
-<li><strong>Linux</strong> 管进程、文件、socket。如果 <code>systemctl status apache2</code> 显示 <code>inactive</code>，上面的事情都不用谈。</li>
-<li><strong>Apache</strong> 管 HTTP 协议本身，以及把 URL 映射到处理器的那一步。Apache 没起来，80 端口就只是个关着的 socket；起来了但没有 <code>VirtualHost</code> 匹配你的 <code>Host:</code> 头，请求就会落到默认页。</li>
-<li><strong>PHP</strong> 管代码执行。Apache 把一个 <code>.php</code> 文件交给它，PHP 解析、运行、返回文本。如果 PHP 缺失或者它的模块没启用，Apache 会高高兴兴地把你的源代码当纯文本送出去——这是个穿着「配置错误」外衣的安全事故。</li>
-<li><strong>MySQL</strong> 管持久化。MySQL 挂了，需要数据的 PHP 脚本会抛异常；MySQL 在但凭据不对，同样的脚本会输出空白页。</li>
-</ul>
-<p>层与层之间的接口，才是真正会出问题的地方：</p>
-<table>
-  <thead>
-      <tr>
-          <th>接口</th>
-          <th>容易出什么问题</th>
-          <th>一行命令就能查</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Linux -&gt; Apache</td>
-          <td>服务没启动、80 端口被占</td>
-          <td><code>ss -tlnp | grep ':80'</code></td>
-      </tr>
-      <tr>
-          <td>Apache -&gt; PHP</td>
-          <td><code>php</code> 模块没启用</td>
-          <td><code>apache2ctl -M | grep php</code></td>
-      </tr>
-      <tr>
-          <td>PHP -&gt; MySQL</td>
-          <td>扩展没装、host 或 socket 错</td>
-          <td><code>php -r &quot;var_dump(extension_loaded('mysqli'));&quot;</code></td>
-      </tr>
-      <tr>
-          <td>MySQL -&gt; 磁盘</td>
-          <td>数据目录权限、磁盘满</td>
-          <td><code>journalctl -u mysql -n 50</code></td>
-      </tr>
-  </tbody>
-</table>
-<p>把这四条命令背下来，你之后基本不需要再去 Stack Overflow 翻 LAMP 的问题。</p>
-<h1 id="3-阿里云-ecs-实例长什么样">3. 阿里云 ECS 实例长什么样</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig2_aliyun_ecs_overview.png" alt="阿里云 ECS 实例的解剖图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>装东西之前先把机器选对。控制台上密密麻麻几百个选项，但要跑一个起步级的 LAMP 站，真正需要决定的只有四件事：</p>
-<p><strong>地域和可用区。</strong> 地域是城市（杭州、北京、新加坡），可用区是这个城市里的某个机房。用户访问的延迟由地域决定，扛不扛得住一个机房挂掉由可用区决定。单机 LAMP 只能选一个可用区——别在一台机器上假装做多 AZ 高可用，没有意义。</p>
-<p><strong>实例规格族。</strong> 命名是 <code>&lt;族&gt;&lt;代&gt;.&lt;规格&gt;</code>。对一个公网 LAMP 站来说：</p>
-<ul>
-<li><code>g7.large</code>（2 vCPU / 8 GiB）是稳妥的默认值——CPU 和内存均衡。</li>
-<li><code>c7.large</code> 适合工作负载主要是 PHP（CPU bound）、数据库不大的场景。</li>
-<li><code>r7.large</code> 适合读多、靠 MySQL 缓冲池命中率取胜的场景。</li>
-<li><code>t6</code> 突发型实例价格只有 <code>g7</code> 的一小半，跑一个低流量博客绰绰有余——前提是你理解 CPU 积分会用完。</li>
-</ul>
-<p><strong>磁盘。</strong> ESSD PL1 比基础的云盘强太多。IOPS 从 ~1000 跳到 5000，对应到管理后台的体验就是「卡」和「不卡」的差别，而小容量上的价格差很小。系统盘 40 GiB 够用，数据库会长大就单挂一块数据盘。</p>
-<p><strong>公网 IP。</strong> 直接用实例自带的公网 IP（便宜，但绑死在实例上，释放就没了）或者绑一个弹性公网 IP（EIP，可在实例间漂移）。任何你日后可能重建的环境，都付那点 EIP 的费用。</p>
-<p>就这四件事。剩下那一长串高级特性，新手阶段可以无视。</p>
-<h1 id="4-网络配置最容易把人坑住的地方">4. 网络配置：最容易把人坑住的地方</h1>
-<p>阿里云论坛上每一条「我的服务器访问不了」，根因都落在这条链路的某一跳：</p>
-<pre tabindex="0"><code>你的笔记本 ---公网---&gt; [安全组] ---&gt; [系统防火墙] ---&gt; [监听 socket] ---&gt; Apache
-</code></pre><p>这四道关你必须每一道都开通，否则就会去诊断错的那一层。</p>
-<h2 id="41-公网-ip">4.1 公网 IP</h2>
-<p>控制台 <strong>实例 -&gt; 你的实例 -&gt; 网络与安全 -&gt; 绑定弹性公网 IP</strong>（或者创建实例时直接分配公网 IP）。把这个 IP 记下来，下面用 <code>8.134.207.88</code> 当例子。</p>
-<h2 id="42-安全组规则">4.2 安全组规则</h2>
-<p>安全组是一个<strong>有状态的包过滤器</strong>，它跑在云上，不在你的操作系统里。它的判定<strong>早于</strong>任何到达实例的包，所以系统防火墙说什么都没用，安全组说不行就是不行。控制台 <strong>安全组 -&gt; 配置规则 -&gt; 入方向</strong>。</p>
-<p>一个公网 LAMP 服务器的安全起步规则集：</p>
-<table>
-  <thead>
-      <tr>
-          <th>协议</th>
-          <th>端口范围</th>
-          <th>源地址</th>
-          <th>用途</th>
-          <th>备注</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>TCP</td>
-          <td>22/22</td>
-          <td>你家的公网 IP/32</td>
-          <td>SSH</td>
-          <td>永远别填 <code>0.0.0.0/0</code>。<code>curl ifconfig.me</code> 拿自己的 IP。</td>
-      </tr>
-      <tr>
-          <td>TCP</td>
-          <td>80/80</td>
-          <td>0.0.0.0/0</td>
-          <td>HTTP</td>
-          <td>只用来 301 跳到 HTTPS。</td>
-      </tr>
-      <tr>
-          <td>TCP</td>
-          <td>443/443</td>
-          <td>0.0.0.0/0</td>
-          <td>HTTPS</td>
-          <td>真正面向公网的端口。</td>
-      </tr>
-      <tr>
-          <td>TCP</td>
-          <td>3306/3306</td>
-          <td>（关闭）</td>
-          <td>MySQL</td>
-          <td><strong>永远别开。</strong> 走 SSH 隧道。</td>
-      </tr>
-      <tr>
-          <td>ICMP</td>
-          <td>-1/-1</td>
-          <td>0.0.0.0/0</td>
-          <td>Ping</td>
-          <td>可选，方便监控。</td>
-      </tr>
-  </tbody>
-</table>
-<p>如果你确实要给某个开发同学远程连 MySQL，加他单独那个 IP，别加全网。更优雅的办法是直接走 SSH 隧道：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 在自己的笔记本上建隧道，而不是去开 3306</span>
-</span></span><span class="line"><span class="cl">ssh -L 33306:127.0.0.1:3306 user@8.134.207.88
-</span></span><span class="line"><span class="cl"><span class="c1"># 然后本地连 127.0.0.1:33306</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>跟在安全组里开 3306 比，隧道的好处是：</p>
-<ul>
-<li>复用你已有的 SSH key，不用多管理一套凭据；</li>
-<li>只在隧道开着的时候才暴露 DB；</li>
-<li>永远不会出现在 shodan 的扫描结果里。</li>
-</ul>
-<h2 id="43-操作系统防火墙">4.3 操作系统防火墙</h2>
-<p>云安全组是必要不充分的——未来某个运维同学可能为了「调试方便」把安全组放开，你的第二道防线就是操作系统防火墙。</p>
-<p>Ubuntu / Debian：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ufw default deny incoming
-</span></span><span class="line"><span class="cl">sudo ufw default allow outgoing
-</span></span><span class="line"><span class="cl">sudo ufw allow 22/tcp
-</span></span><span class="line"><span class="cl">sudo ufw allow 80/tcp
-</span></span><span class="line"><span class="cl">sudo ufw allow 443/tcp
-</span></span><span class="line"><span class="cl">sudo ufw <span class="nb">enable</span>
-</span></span><span class="line"><span class="cl">sudo ufw status numbered
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>CentOS / Alibaba Cloud Linux（firewalld）：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>ssh
-</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>http
-</span></span><span class="line"><span class="cl">sudo firewall-cmd --permanent --add-service<span class="o">=</span>https
-</span></span><span class="line"><span class="cl">sudo firewall-cmd --reload
-</span></span><span class="line"><span class="cl">sudo firewall-cmd --list-all
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="44-一跳一跳验">4.4 一跳一跳验</h2>
-<p>访问不了的时候，按下面这个<strong>严格顺序</strong>排查。乱了顺序，你会浪费两个小时去查错的那一层。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 第 1 步：公网 IP 通不通</span>
-</span></span><span class="line"><span class="cl">ping 8.134.207.88
-</span></span><span class="line"><span class="cl"><span class="c1"># 不通 -&gt; 安全组 ICMP 没开，或实例已经停掉</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 第 2 步：操作系统上有进程在监听吗</span>
-</span></span><span class="line"><span class="cl">ss -tlnp <span class="p">|</span> grep -E <span class="s1">&#39;:80|:443|:22&#39;</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># 没看到 -&gt; 服务没起</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 第 3 步：操作系统防火墙放行了吗</span>
-</span></span><span class="line"><span class="cl">sudo ufw status            <span class="c1"># 或者 sudo firewall-cmd --list-all</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 第 4 步：本机能 curl 通 Apache 吗</span>
-</span></span><span class="line"><span class="cl">curl -I http://127.0.0.1
-</span></span><span class="line"><span class="cl"><span class="c1"># 200 OK -&gt; 问题在 Apache 上游（防火墙 / 安全组）</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h1 id="5-一个请求从头到尾走过的路">5. 一个请求从头到尾走过的路</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig3_request_flow.png" alt="一个 HTTP 请求穿过整个栈的过程" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>请求最终送到 Apache 时发生的事：</p>
-<ol>
-<li>浏览器对 <code>8.134.207.88:80</code> 发起 TCP 连接。</li>
-<li>阿里云安全组放行 SYN（80 端口对 0.0.0.0/0 的规则）。</li>
-<li>内核把这个连接交给监听者——<code>apache2</code>。</li>
-<li>Apache 解析请求行 <code>GET /index.php HTTP/1.1</code>，遍历 <code>VirtualHost</code> 配置找到 <code>ServerName</code> 匹配 <code>Host:</code> 头的那一条，再用这条 vhost 的 <code>DocumentRoot</code> 去解析 <code>/index.php</code>。</li>
-<li><code>mod_php</code> 处理器命中 <code>.php</code>，Apache 调用内嵌的 PHP 解释器（如果用 FPM，则是打开 unix socket 把请求转过去）。</li>
-<li>PHP 脚本开始跑，第一句多半是 <code>new mysqli('localhost', ...)</code> 或者 <code>new PDO('mysql:host=localhost;...')</code>。PHP 对 <code>127.0.0.1:3306</code> 发起 TCP 连接（在 Debian/Ubuntu 上更可能是走 unix socket <code>/var/run/mysqld/mysqld.sock</code>）。</li>
-<li>MySQL 验证用户、解析 SQL，命中 InnoDB 缓冲池（没命中就读盘），返回结果集。</li>
-<li>PHP 把结果渲染成 HTML，交回 Apache，由 Apache 写回 socket。</li>
-</ol>
-<p>图里在每一跳下面标了最常见的故障模式。最高频的三种：</p>
-<ul>
-<li><strong>PHP 源码直接显示在浏览器里。</strong> Apache 把文件送出去了但没调用 PHP，模块没加载。</li>
-<li><strong>装完之后空白页。</strong> PHP 错误被静默掉了，脚本崩了——去 <code>/var/log/apache2/error.log</code> 找，不要在浏览器里找。</li>
-<li><strong>偶发的「Connection refused」。</strong> MySQL 连接数打满了，或者 OOM killer 把 <code>mysqld</code> 杀了。看 <code>dmesg</code> 和 <code>mysql.err</code>。</li>
-</ul>
-<h1 id="6-在-ubuntu-上装">6. 在 Ubuntu 上装</h1>
-<p>第一步，先确认机器上没有别的 web 服务器或数据库在跑：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status apache2 nginx mysql mariadb 2&gt;/dev/null <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  <span class="p">|</span> grep -E <span class="s1">&#39;Active|service&#39;</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># 不要的就停掉、屏蔽掉</span>
-</span></span><span class="line"><span class="cl">sudo systemctl disable --now nginx
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>安装顺序很重要：先 Apache，再 MySQL，最后 PHP。PHP 的包会顺手把 Apache 模块拉进来并启用——前提是 Apache 已经在那儿。</p>
-<h2 id="61-apache">6.1 Apache</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt update
-</span></span><span class="line"><span class="cl">sudo apt install -y apache2
-</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now apache2
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>浏览器访问 <code>http://你的公网IP/</code>，应该看到 Apache2 Ubuntu Default Page。如果看不到，按 4.4 节的四步<strong>严格顺序</strong>排查。</p>
-<p>实际会编辑的目录：</p>
-<table>
-  <thead>
-      <tr>
-          <th>路径</th>
-          <th>放什么</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><code>/etc/apache2/apache2.conf</code></td>
-          <td>全局配置——基本不直接改</td>
-      </tr>
-      <tr>
-          <td><code>/etc/apache2/sites-available/*.conf</code></td>
-          <td>虚拟主机定义</td>
-      </tr>
-      <tr>
-          <td><code>/etc/apache2/sites-enabled/</code></td>
-          <td>软链；<code>a2ensite</code> / <code>a2dissite</code> 管理</td>
-      </tr>
-      <tr>
-          <td><code>/etc/apache2/mods-available/*.{load,conf}</code></td>
-          <td>模块配置——<code>a2enmod</code> 管理</td>
-      </tr>
-      <tr>
-          <td><code>/var/www/html/</code></td>
-          <td>默认 DocumentRoot</td>
-      </tr>
-      <tr>
-          <td><code>/var/log/apache2/{access,error}.log</code></td>
-          <td>出问题第一时间看的地方</td>
-      </tr>
-  </tbody>
-</table>
-<p>调试期可以临时把日志级别调高，调完再调回去：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo sed -i <span class="s1">&#39;s/^LogLevel warn/LogLevel info/&#39;</span> /etc/apache2/apache2.conf
-</span></span><span class="line"><span class="cl">sudo systemctl reload apache2
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="62-mysql">6.2 MySQL</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y mysql-server
-</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now mysql
-</span></span><span class="line"><span class="cl">sudo mysql_secure_installation
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>mysql_secure_installation</code> 会问五个问题。建议的答案：</p>
-<ol>
-<li><strong>VALIDATE PASSWORD plugin：</strong> yes，强度选 2（strong）。</li>
-<li><strong>设置 root 密码：</strong> 用密码管理器生成的 16 位以上密码，存好。</li>
-<li><strong>删除匿名用户：</strong> yes。</li>
-<li><strong>禁止 root 远程登录：</strong> yes——你之后会用 SSH 隧道。</li>
-<li><strong>删除 test 库：</strong> yes。</li>
-</ol>
-<p>然后验：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status mysql
-</span></span><span class="line"><span class="cl">sudo mysql -e <span class="s2">&#34;SELECT version(), @@hostname;&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="caching_sha2_password-这个坑"><code>caching_sha2_password</code> 这个坑</h3>
-<p>MySQL 8.0 把默认认证插件从 <code>mysql_native_password</code> 改成了 <code>caching_sha2_password</code>。老一点的 PHP <code>mysqli</code> 驱动、PHP 自带的 <code>mysql</code> 扩展、还有不少 CMS 的安装程序不会说新协议，会报 <code>The server requested authentication method unknown to the client</code>。今天最正确的做法是升级驱动；现实里没条件升级时，<strong>只针对应用账号</strong>切回老插件：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">ALTER</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="s1">&#39;discuz_user&#39;</span><span class="o">@</span><span class="s1">&#39;localhost&#39;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">IDENTIFIED</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="n">mysql_native_password</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="s1">&#39;StrongPassword123!&#39;</span><span class="p">;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">FLUSH</span><span class="w"> </span><span class="k">PRIVILEGES</span><span class="p">;</span><span class="w">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>只对应用账号做，<strong>永远别</strong>这样削弱 root。</p>
-<h3 id="一份起步可用的-mycnf-调优">一份起步可用的 my.cnf 调优</h3>
-<p>MySQL 8 出厂的缓冲池小得可怜。对哪怕只是稍微忙一点的站点来说，这是性能差距最大的单一旋钮：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="c1"># /etc/mysql/mysql.conf.d/zz-tuning.cnf</span>
-</span></span><span class="line"><span class="cl"><span class="k">[mysqld]</span>
-</span></span><span class="line"><span class="cl"><span class="na">innodb_buffer_pool_size</span> <span class="o">=</span> <span class="s">4G          # 数据库专机大约用一半内存</span>
-</span></span><span class="line"><span class="cl"><span class="na">innodb_log_file_size</span>    <span class="o">=</span> <span class="s">512M</span>
-</span></span><span class="line"><span class="cl"><span class="na">innodb_flush_log_at_trx_commit</span> <span class="o">=</span> <span class="s">1    # 设 2 可以以丢 1 秒数据为代价换速度</span>
-</span></span><span class="line"><span class="cl"><span class="na">max_connections</span> <span class="o">=</span> <span class="s">200</span>
-</span></span><span class="line"><span class="cl"><span class="na">character-set-server</span>   <span class="o">=</span> <span class="s">utf8mb4</span>
-</span></span><span class="line"><span class="cl"><span class="na">collation-server</span>       <span class="o">=</span> <span class="s">utf8mb4_unicode_ci</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>改完重启 MySQL。缓冲池一项就能决定「每条 query 都打盘」和「热数据全在 RAM」的差别。</p>
-<h2 id="63-php">6.3 PHP</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y php libapache2-mod-php php-mysql <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>                    php-curl php-gd php-mbstring php-xml php-zip php-intl
-</span></span><span class="line"><span class="cl">sudo systemctl restart apache2
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>验 Apache 和 PHP 之间的桥：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;&lt;?php phpinfo();&#39;</span> <span class="p">|</span> sudo tee /var/www/html/info.php
-</span></span><span class="line"><span class="cl">curl -s http://127.0.0.1/info.php <span class="p">|</span> head -n <span class="m">5</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>应该看到 HTML，不是 PHP 源码。看到源码的话，说明 <code>php</code> 模块没启用：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls /etc/apache2/mods-enabled/php*.load   <span class="c1"># 有吗？</span>
-</span></span><span class="line"><span class="cl">sudo a2enmod php8.1                      <span class="c1"># 跟你装的版本对上</span>
-</span></span><span class="line"><span class="cl">sudo systemctl restart apache2
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>测完立刻把 <code>info.php</code> 删掉</strong>——它会泄露整份 PHP 配置，包括加载了哪些扩展、文件路径、<code>disable_functions</code>。攻击者扫描器第一个搜的就是它。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo rm /var/www/html/info.php
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h1 id="7-纵深防御把公网面收紧">7. 纵深防御：把公网面收紧</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig4_security_setup.png" alt="一台公网 LAMP 服务器的纵深防御" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>一台公网 LAMP 用默认配置上线，几分钟之内就会被自动扫描器开始探。把安全当作五圈同心圆——任何一圈被破，外面下一圈还能撑一段时间。</p>
-<h2 id="71-安全组最外圈">7.1 安全组——最外圈</h2>
-<p>第 4 节讲过了。原则是：安全组应该让操作系统防火墙看起来多余，操作系统防火墙也应该让安全组看起来多余。任何一道单独都不够。</p>
-<h2 id="72-操作系统加固">7.2 操作系统加固</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 系统补丁——开启自动安全更新</span>
-</span></span><span class="line"><span class="cl">sudo apt install -y unattended-upgrades
-</span></span><span class="line"><span class="cl">sudo dpkg-reconfigure -plow unattended-upgrades
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 禁用 SSH 密码登录（确认密钥能登之后再做）</span>
-</span></span><span class="line"><span class="cl">sudo sed -i <span class="s1">&#39;s/^#\?PasswordAuthentication.*/PasswordAuthentication no/&#39;</span> /etc/ssh/sshd_config
-</span></span><span class="line"><span class="cl">sudo sed -i <span class="s1">&#39;s/^#\?PermitRootLogin.*/PermitRootLogin no/&#39;</span> /etc/ssh/sshd_config
-</span></span><span class="line"><span class="cl">sudo systemctl restart ssh
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 装 fail2ban 减缓爆破</span>
-</span></span><span class="line"><span class="cl">sudo apt install -y fail2ban
-</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now fail2ban
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="73-用-lets-encrypt-上-https">7.3 用 Let&rsquo;s Encrypt 上 HTTPS</h2>
-<p>域名 A 记录指向你的公网 IP 之后，签证书就是两条命令：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y certbot python3-certbot-apache
-</span></span><span class="line"><span class="cl">sudo certbot --apache -d example.com -d www.example.com <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>             --redirect --agree-tos -m you@example.com
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>certbot --apache</code> 会写一份 443 的 vhost、启用 <code>mod_ssl</code> 和 <code>mod_rewrite</code>、加一条 80 -&gt; 443 的 301。它还会装一个 systemd timer 在到期前自动续期，验一下：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl list-timers <span class="p">|</span> grep certbot
-</span></span><span class="line"><span class="cl">sudo certbot renew --dry-run
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>现代的 TLS 配置不只是「打开 TLS」，还要把不安全的部分关掉。在 <code>/etc/apache2/sites-available/example.com-le-ssl.conf</code> 里加上：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-apache" data-lang="apache"><span class="line"><span class="cl"><span class="nb">SSLProtocol</span>             <span class="k">all</span> -SSLv3 -TLSv1 -TLSv1.1
-</span></span><span class="line"><span class="cl"><span class="nb">SSLCipherSuite</span>          HIGH:!aNULL:!MD5:!3DES
-</span></span><span class="line"><span class="cl"><span class="nb">SSLHonorCipherOrder</span>     <span class="k">on</span>
-</span></span><span class="line"><span class="cl"><span class="nb">Header</span> always set Strict-Transport-Security <span class="s2">&#34;max-age=63072000&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="74-mysql-加固">7.4 MySQL 加固</h2>
-<ul>
-<li>绑定到 <code>127.0.0.1</code>（新版包默认就是，去 <code>/etc/mysql/mysql.conf.d/mysqld.cnf</code> 确认一下）。</li>
-<li><strong>每个应用一个数据库账号</strong>，<code>GRANT</code> 范围限定到那个库。</li>
-<li>永远不要 <code>GRANT ALL ... TO root@'%'</code>。</li>
-<li>敏感数据的备份要加密落盘。</li>
-</ul>
-<h2 id="75-应用层卫生">7.5 应用层卫生</h2>
-<ul>
-<li>能用 <code>php-fpm</code> 就别用 <code>mod_php</code>——把 PHP 故障从 Apache 进程树里隔离出去。</li>
-<li>生产环境的 <code>/etc/php/8.1/apache2/php.ini</code> 里 <code>expose_php = Off</code>、<code>display_errors = Off</code>。</li>
-<li>不论部署什么框架，都要订阅它的安全公告。LAMP 服务器被入侵的最大单一来源就是 CMS 的 CVE。</li>
-</ul>
-<h1 id="8-端到端部署discuz">8. 端到端部署：Discuz!</h1>
-<p>拿 Discuz! 当例子，是因为它把一个新装的 LAMP 的薄弱环节都敲打了一遍：文件权限、多个可写目录、MySQL 用户创建、PHP 扩展依赖、还有一个 web 安装器把这些都重新校验一次。</p>
-<h2 id="81-下载">8.1 下载</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /var/www/html
-</span></span><span class="line"><span class="cl">sudo wget https://download.comsenz.com/DiscuzX/3.4/Discuz_X3.4_SC_UTF8.zip
-</span></span><span class="line"><span class="cl">sudo apt install -y unzip
-</span></span><span class="line"><span class="cl">sudo unzip -q Discuz_X3.4_SC_UTF8.zip
-</span></span><span class="line"><span class="cl">sudo mv upload/* upload/.htaccess . 2&gt;/dev/null <span class="o">||</span> sudo mv upload/* .
-</span></span><span class="line"><span class="cl">sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="82-权限人人都搞错的地方">8.2 权限——人人都搞错的地方</h2>
-<p>Apache 跑在 <code>www-data</code>（Ubuntu）或 <code>apache</code>（CentOS）下。唯一的规则：<strong>Apache 跑的那个用户必须 owns PHP 需要写入的所有文件，且仅此而已</strong>。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 基线：所有文件可读，归 web 用户所有</span>
-</span></span><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html
-</span></span><span class="line"><span class="cl">sudo find /var/www/html -type d -exec chmod <span class="m">755</span> <span class="o">{}</span> <span class="se">\;</span>
-</span></span><span class="line"><span class="cl">sudo find /var/www/html -type f -exec chmod <span class="m">644</span> <span class="o">{}</span> <span class="se">\;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Discuz 需要可写的目录（安装器会校验）</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> d in data config uc_server/data uc_client/data<span class="p">;</span> <span class="k">do</span>
-</span></span><span class="line"><span class="cl">  sudo chmod -R <span class="m">775</span> /var/www/html/<span class="nv">$d</span>
-</span></span><span class="line"><span class="cl"><span class="k">done</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>注意是 <code>775</code>，<strong>不是</strong> <code>777</code>。<code>www-data</code> 已经是属主了，<code>775</code> 让属主能写，同时只给 group 加写权限。<code>chmod 777</code> 是江湖偏方，不是建议——它让系统上<strong>任何</strong>用户都能改你的应用文件，在共享服务器上就是一条提权路径。</p>
-<h2 id="83-数据库账号">8.3 数据库账号</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo mysql -e <span class="s2">&#34;
-</span></span></span><span class="line"><span class="cl"><span class="s2">  CREATE DATABASE discuz CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-</span></span></span><span class="line"><span class="cl"><span class="s2">  CREATE USER &#39;discuz_user&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;StrongPassword123!&#39;;
-</span></span></span><span class="line"><span class="cl"><span class="s2">  GRANT ALL PRIVILEGES ON discuz.* TO &#39;discuz_user&#39;@&#39;localhost&#39;;
-</span></span></span><span class="line"><span class="cl"><span class="s2">  FLUSH PRIVILEGES;
-</span></span></span><span class="line"><span class="cl"><span class="s2">&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>两点注意：</p>
-<ul>
-<li><code>discuz.*</code>——授权范围是单一数据库。Discuz 即使被打穿，攻击者也读不到你别的应用的表。</li>
-<li><code>'discuz_user'@'localhost'</code>——主机部分是身份的一部分。同名用户从不同主机来是不同用户。走 unix socket 算 <code>'localhost'</code>，TCP 到 <code>127.0.0.1</code> 算 <code>'127.0.0.1'</code>。如果 <code>mysql_secure_installation</code> 之后这两个不等价，两个都要授权。</li>
-</ul>
-<h2 id="84-跑安装器">8.4 跑安装器</h2>
-<p>访问 <code>http://你的公网IP/install/</code>。三件事会发生：</p>
-<ol>
-<li><strong>环境检查</strong>——PHP 版本、GD、mbstring、mysqli。缺哪个就 <code>sudo apt install -y php-&lt;扩展&gt; &amp;&amp; sudo systemctl reload apache2</code>。</li>
-<li><strong>权限检查</strong>——<code>data/</code>、<code>config/</code>、<code>uc_server/data/</code>、<code>uc_client/data/</code> 旁边都应该是绿色的勾。没勾就回 8.2 重新检查。</li>
-<li><strong>数据库信息</strong>——host 填 <code>localhost</code>，name <code>discuz</code>，user <code>discuz_user</code>，密码用上面设的。</li>
-</ol>
-<p>装完之后：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo rm -rf /var/www/html/install
-</span></span><span class="line"><span class="cl"><span class="c1"># 不再需要可写的目录可以收紧回去</span>
-</span></span><span class="line"><span class="cl">sudo chmod -R <span class="m">755</span> /var/www/html/config
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h1 id="9-90-的人会撞上的-5-个故障">9. 90% 的人会撞上的 5 个故障</h1>
-<h2 id="故障-1-connection-refused">故障 1 ——「Connection refused」</h2>
-<p><strong>含义：</strong> 你和 Apache 之间有什么东西在丢 SYN，或者 Apache 没在监听。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 在服务器本地执行——能通就说明 Apache 没问题，问题在网络</span>
-</span></span><span class="line"><span class="cl">curl -I http://127.0.0.1
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 实际在监听的有谁？</span>
-</span></span><span class="line"><span class="cl">sudo ss -tlnp <span class="p">|</span> grep -E <span class="s1">&#39;:80|:443&#39;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 系统防火墙怎么说？</span>
-</span></span><span class="line"><span class="cl">sudo ufw status
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>127.0.0.1</code> 通但公网 IP 不通，说明系统这一侧是好的——去云控制台看安全组。</p>
-<h2 id="故障-2-403-forbidden或index-of-">故障 2 ——「403 Forbidden」或「Index of /」</h2>
-<p><strong>含义：</strong> Apache 把目录返回了，但里面没有 index 文件，或者读不到。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ls -l /var/www/html/                       <span class="c1"># index.php / index.html 在吗</span>
-</span></span><span class="line"><span class="cl">sudo -u www-data cat /var/www/html/index.php <span class="c1"># web 用户能读吗</span>
-</span></span><span class="line"><span class="cl">grep -r DirectoryIndex /etc/apache2/
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>修复方案 99% 是 <code>chown -R www-data:www-data /var/www/html</code>——你以 root 身份 <code>wget</code> 了某个东西，web 用户读不动。</p>
-<h2 id="故障-3--浏览器里看到-php-源码">故障 3 —— 浏览器里看到 PHP 源码</h2>
-<p><strong>含义：</strong> Apache 把 <code>.php</code> 当成静态文件返回了，PHP 处理器没注册。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">apache2ctl -M <span class="p">|</span> grep php_module    <span class="c1"># 没输出？PHP 模块没启用</span>
-</span></span><span class="line"><span class="cl">sudo a2enmod php8.1                <span class="c1"># 跟你的版本对上</span>
-</span></span><span class="line"><span class="cl">sudo systemctl restart apache2
-</span></span><span class="line"><span class="cl">curl -s http://127.0.0.1/info.php <span class="p">|</span> head -n <span class="m">1</span>   <span class="c1"># 应该是 HTML，不是 &lt;?php</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这是个安全事故，不只是配置问题——别让机器在这个状态下挂在公网上。</p>
-<h2 id="故障-4-cant-connect-to-mysql-server-on-localhost">故障 4 ——「Can&rsquo;t connect to MySQL server on &rsquo;localhost&rsquo;」</h2>
-<p><strong>含义：</strong> MySQL 没跑、socket 路径变了、或凭据错了。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo systemctl status mysql
-</span></span><span class="line"><span class="cl">sudo journalctl -u mysql -n <span class="m">100</span> --no-pager
-</span></span><span class="line"><span class="cl">mysql -u discuz_user -p -h 127.0.0.1 -e <span class="s1">&#39;SELECT 1&#39;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>小规格实例上常见原因：MySQL 被 OOM-killed。<code>dmesg | tail -50</code> 会显示 <code>Killed process ... mysqld</code>。要么把 <code>innodb_buffer_pool_size</code> 调小，要么换更大的实例。</p>
-<h2 id="故障-5--discuz-提示目录不可写">故障 5 —— Discuz 提示「目录不可写」</h2>
-<p><strong>含义：</strong> web 用户写不了那四个目录之一。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo -u www-data touch /var/www/html/data/.write_test
-</span></span><span class="line"><span class="cl"><span class="c1"># Permission denied？那就：</span>
-</span></span><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html/<span class="o">{</span>data,config,uc_server/data,uc_client/data<span class="o">}</span>
-</span></span><span class="line"><span class="cl">sudo chmod -R <span class="m">775</span> /var/www/html/<span class="o">{</span>data,config,uc_server/data,uc_client/data<span class="o">}</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>忍住别 <code>chmod -R 777 /var/www</code>。它能解决问题，但日后会反过来咬你。</p>
-<h1 id="10-上生产前要做完的几件事">10. 上生产前要做完的几件事</h1>
-<h2 id="101-虚拟主机">10.1 虚拟主机</h2>
-<p>只要你有一个以上的站点，就别再把所有东西堆在 <code>/var/www/html/</code> 里。每个站点一个 <code>/var/www/&lt;站点&gt;/</code> 目录、一个 vhost 文件，结构会清晰很多。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-apache" data-lang="apache"><span class="line"><span class="cl"><span class="c"># /etc/apache2/sites-available/blog.example.com.conf</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;VirtualHost</span> <span class="s">*:443</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">ServerName</span>  blog.example.com
-</span></span><span class="line"><span class="cl">    <span class="nb">ServerAlias</span> www.blog.example.com
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nb">DocumentRoot</span> <span class="sx">/var/www/blog.example.com</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;Directory</span> <span class="s">/var/www/blog.example.com</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">Options</span> -Indexes +FollowSymLinks
-</span></span><span class="line"><span class="cl">        <span class="nb">AllowOverride</span> <span class="k">All</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">Require</span> <span class="k">all</span> granted
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/Directory&gt;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nb">SSLEngine</span> <span class="k">on</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">SSLCertificateFile</span>      <span class="sx">/etc/letsencrypt/live/blog.example.com/fullchain.pem</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">SSLCertificateKeyFile</span>   <span class="sx">/etc/letsencrypt/live/blog.example.com/privkey.pem</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nb">ErrorLog</span>  ${APACHE_LOG_DIR}/blog.example.com.error.log
-</span></span><span class="line"><span class="cl">    <span class="nb">CustomLog</span> ${APACHE_LOG_DIR}/blog.example.com.access.log combined
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/VirtualHost&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo a2ensite blog.example.com
-</span></span><span class="line"><span class="cl">sudo apache2ctl configtest <span class="o">&amp;&amp;</span> sudo systemctl reload apache2
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>configtest</code> 在 <code>reload</code> 之前执行，是「平滑切换」和「打错括号宕机五分钟」之间的差别。</p>
-<h2 id="102-真正能恢复的备份">10.2 真正能恢复的备份</h2>
-<p>没演练过恢复的备份不是备份。最低限度：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># /usr/local/bin/db-backup.sh</span>
-</span></span><span class="line"><span class="cl"><span class="c1">#!/usr/bin/env bash</span>
-</span></span><span class="line"><span class="cl"><span class="nb">set</span> -euo pipefail
-</span></span><span class="line"><span class="cl"><span class="nv">DEST</span><span class="o">=</span>/var/backups/mysql
-</span></span><span class="line"><span class="cl"><span class="nv">DATE</span><span class="o">=</span><span class="k">$(</span>date +%F_%H%M<span class="k">)</span>
-</span></span><span class="line"><span class="cl">mkdir -p <span class="s2">&#34;</span><span class="nv">$DEST</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">mysqldump --single-transaction --routines --events <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>          --databases discuz <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>        <span class="p">|</span> gzip &gt; <span class="s2">&#34;</span><span class="nv">$DEST</span><span class="s2">/discuz_</span><span class="nv">$DATE</span><span class="s2">.sql.gz&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># 保留 14 天</span>
-</span></span><span class="line"><span class="cl">find <span class="s2">&#34;</span><span class="nv">$DEST</span><span class="s2">&#34;</span> -name <span class="s1">&#39;discuz_*.sql.gz&#39;</span> -mtime +14 -delete
-</span></span></code></pre></td></tr></table>
-</div>
-</div><pre tabindex="0"><code class="language-cron" data-lang="cron"># crontab -e
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>LAMP 与阿里云服务器详解 · Chen Kai Blog</title>
+<meta name=description content="刚买的一台阿里云 ECS，从「能 SSH 登录」到「公网能稳定访问、跑得动一个站点」之间，最容易卡的其实就三件事：
+网络通不通——包可能在云厂商的安全组、操作系统防火墙、监听端口三个地方被悄悄丢掉，你看到的现象只有一个：浏览器一直转圈。 服务串不起来——Apache、PHP、MySQL 是三个独立的进程，靠文件后缀、Unix socket、TCP 端口互相找 …"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/><meta property="og:type" content="article"><meta property="og:title" content="LAMP 与阿里云服务器详解"><meta property="og:description" content="机器学习、数学、计算机系统——把硬核技术写得人能读懂。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>LAMP 与阿里云服务器详解</h1><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-04-27>April 27, 2024</time> · 19 min read · 9100 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8/ class=tag>#云服务器</a><a href=/zh/tags/web-%E9%83%A8%E7%BD%B2/ class=tag>#Web 部署</a><a href=/zh/tags/lamp/ class=tag>#LAMP</a></div></div></header><div class=prose><p>刚买的一台阿里云 ECS，从「能 SSH 登录」到「公网能稳定访问、跑得动一个站点」之间，最容易卡的其实就三件事：</p><ol><li><strong>网络通不通</strong>——包可能在云厂商的安全组、操作系统防火墙、监听端口三个地方被悄悄丢掉，你看到的现象只有一个：浏览器一直转圈。</li><li><strong>服务串不起来</strong>——Apache、PHP、MySQL 是三个独立的进程，靠文件后缀、Unix socket、TCP 端口互相找到对方，每个接口都有自己的坑。</li><li><strong>身份和权限不匹配</strong>——Apache 跑在 <code>www-data</code> 用户下，MySQL 跑在 <code>mysql</code> 用户下，<code>wget</code> 下来的文件却归 <code>root</code> 所有。组合错了就是 403、Access denied，最后被逼到 <code>chmod 777</code>。</li></ol><p>这篇文章就按你第一天会撞到的顺序把上面三件事讲透，再继续把第三十天才会遇到的问题——HTTPS、虚拟主机、备份、源码编译、什么时候该把单机拆成多机——一起讲完。目标是你照着做能跑起来，并且过半年回头看不会觉得自己当时埋了一堆雷。</p><h2 id=读完这篇你能做到>读完这篇你能做到</h2><ul><li>在脑子里画出一个 HTTP 请求穿过 Linux、Apache、PHP、MySQL 的完整路径，知道每一跳可能在哪儿挂掉。</li><li>配置阿里云网络时不再用 <code>0.0.0.0/0</code> 一把梭，而是有真正的纵深防御。</li><li>在 Ubuntu 上装好、验通、加固 LAMP 的每一个组件（CentOS / Alibaba Cloud Linux 的差异点也会顺带说清）。</li><li>把一个真实的应用（Discuz!）从下载到上线全跑一遍，包括官方文档跳过的权限和数据库账号细节。</li><li>排查掉 90% 的 LAMP 故障所对应的那 5 个最常见错误。</li><li>判断什么时候应该一直留在单机，什么时候该拆成 SLB + ECS + RDS。</li></ul><h2 id=前提>前提</h2><ul><li>一台阿里云 ECS，操作系统 Ubuntu 22.04 LTS 或 Alibaba Cloud Linux 3 / CentOS 7+。</li><li>能用密钥（不是密码）SSH 进去。</li><li>常用的 Linux 命令熟练：<code>ls</code>、<code>cd</code>、<code>cat</code>、<code>systemctl</code>、<code>sudo</code>。</li><li>一个域名是可选的，但讲到 HTTPS 那段会方便很多。</li></ul><hr><h1 id=1-为什么-2025-年还要学-lamp>1. 为什么 2025 年还要学 LAMP</h1><p>LAMP（<strong>L</strong>inux + <strong>A</strong>pache + <strong>M</strong>ySQL + <strong>P</strong>HP）从 2010 年开始就被各种新框架轮番宣告过死亡，但它每次都活了下来。原因不是怀旧，是「合适」。对内容站点、CMS（WordPress、Discuz、Drupal、MediaWiki）、客户门户、内部工具，以及一长串小型 SaaS 后端来说，LAMP 仍然是把动态网页放到用户面前<strong>性价比最高、文档最全、维护成本最低</strong>的方案。</p><p>LAMP 自带、新栈要自己拼起来的东西：</p><ul><li><strong>极成熟的生态。</strong> Apache 二十八岁、MySQL 二十八岁、PHP 三十岁。你能遇到的几乎所有问题都被人踩过、写下过、被搜索引擎收录过。</li><li><strong>共享主机的兼容性。</strong> 一个 LAMP 应用从 5 块钱一个月的虚拟主机搬到 ECS，代码一行不用改。</li><li><strong>可预测的请求路径。</strong> 没有 service mesh、没有 sidecar、没有编排器，一棵进程树一台机器。延迟一上去，<code>top</code> 一下大概率能直接看到原因。</li><li><strong>极低的运维门槛。</strong> 一台机器，三个服务。需要装在脑子里的东西比 Kubernetes 少一个数量级。</li></ul><p>下面几种场景<strong>别</strong>用 LAMP：高扇出 API（用 Nginx + Go/Node/Rust）、长连接事件驱动（大规模 WebSocket 更适合 event loop 而不是 Apache prefork）、团队已经在容器和控制平面上有积累。把 LAMP 放在它擅长的地方用，别把它当默认选项。</p><h1 id=2-四层架构>2. 四层架构</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig1_lamp_architecture.png alt="LAMP 的四层架构" loading=lazy decoding=async></figure></p><p>上面这张图是整篇文章里最重要的一张。把它内化下来，遇到问题时你会自动从「服务器挂了」切到「哪一层挂了」。</p><p>每一层都<strong>owns</strong>一些具体的东西：</p><ul><li><strong>Linux</strong> 管进程、文件、socket。如果 <code>systemctl status apache2</code> 显示 <code>inactive</code>，上面的事情都不用谈。</li><li><strong>Apache</strong> 管 HTTP 协议本身，以及把 URL 映射到处理器的那一步。Apache 没起来，80 端口就只是个关着的 socket；起来了但没有 <code>VirtualHost</code> 匹配你的 <code>Host:</code> 头，请求就会落到默认页。</li><li><strong>PHP</strong> 管代码执行。Apache 把一个 <code>.php</code> 文件交给它，PHP 解析、运行、返回文本。如果 PHP 缺失或者它的模块没启用，Apache 会高高兴兴地把你的源代码当纯文本送出去——这是个穿着「配置错误」外衣的安全事故。</li><li><strong>MySQL</strong> 管持久化。MySQL 挂了，需要数据的 PHP 脚本会抛异常；MySQL 在但凭据不对，同样的脚本会输出空白页。</li></ul><p>层与层之间的接口，才是真正会出问题的地方：</p><table><thead><tr><th>接口</th><th>容易出什么问题</th><th>一行命令就能查</th></tr></thead><tbody><tr><td>Linux -> Apache</td><td>服务没启动、80 端口被占</td><td><code>ss -tlnp | grep ':80'</code></td></tr><tr><td>Apache -> PHP</td><td><code>php</code> 模块没启用</td><td><code>apache2ctl -M | grep php</code></td></tr><tr><td>PHP -> MySQL</td><td>扩展没装、host 或 socket 错</td><td><code>php -r "var_dump(extension_loaded('mysqli'));"</code></td></tr><tr><td>MySQL -> 磁盘</td><td>数据目录权限、磁盘满</td><td><code>journalctl -u mysql -n 50</code></td></tr></tbody></table><p>把这四条命令背下来，你之后基本不需要再去 Stack Overflow 翻 LAMP 的问题。</p><h1 id=3-阿里云-ecs-实例长什么样>3. 阿里云 ECS 实例长什么样</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig2_aliyun_ecs_overview.png alt="阿里云 ECS 实例的解剖图" loading=lazy decoding=async></figure></p><p>装东西之前先把机器选对。控制台上密密麻麻几百个选项，但要跑一个起步级的 LAMP 站，真正需要决定的只有四件事：</p><p><strong>地域和可用区。</strong> 地域是城市（杭州、北京、新加坡），可用区是这个城市里的某个机房。用户访问的延迟由地域决定，扛不扛得住一个机房挂掉由可用区决定。单机 LAMP 只能选一个可用区——别在一台机器上假装做多 AZ 高可用，没有意义。</p><p><strong>实例规格族。</strong> 命名是 <code>&lt;族>&lt;代>.&lt;规格></code>。对一个公网 LAMP 站来说：</p><ul><li><code>g7.large</code>（2 vCPU / 8 GiB）是稳妥的默认值——CPU 和内存均衡。</li><li><code>c7.large</code> 适合工作负载主要是 PHP（CPU bound）、数据库不大的场景。</li><li><code>r7.large</code> 适合读多、靠 MySQL 缓冲池命中率取胜的场景。</li><li><code>t6</code> 突发型实例价格只有 <code>g7</code> 的一小半，跑一个低流量博客绰绰有余——前提是你理解 CPU 积分会用完。</li></ul><p><strong>磁盘。</strong> ESSD PL1 比基础的云盘强太多。IOPS 从 ~1000 跳到 5000，对应到管理后台的体验就是「卡」和「不卡」的差别，而小容量上的价格差很小。系统盘 40 GiB 够用，数据库会长大就单挂一块数据盘。</p><p><strong>公网 IP。</strong> 直接用实例自带的公网 IP（便宜，但绑死在实例上，释放就没了）或者绑一个弹性公网 IP（EIP，可在实例间漂移）。任何你日后可能重建的环境，都付那点 EIP 的费用。</p><p>就这四件事。剩下那一长串高级特性，新手阶段可以无视。</p><h1 id=4-网络配置最容易把人坑住的地方>4. 网络配置：最容易把人坑住的地方</h1><p>阿里云论坛上每一条「我的服务器访问不了」，根因都落在这条链路的某一跳：</p><pre tabindex=0><code>你的笔记本 ---公网---&gt; [安全组] ---&gt; [系统防火墙] ---&gt; [监听 socket] ---&gt; Apache
+</code></pre><p>这四道关你必须每一道都开通，否则就会去诊断错的那一层。</p><h2 id=41-公网-ip>4.1 公网 IP</h2><p>控制台 <strong>实例 -> 你的实例 -> 网络与安全 -> 绑定弹性公网 IP</strong>（或者创建实例时直接分配公网 IP）。把这个 IP 记下来，下面用 <code>8.134.207.88</code> 当例子。</p><h2 id=42-安全组规则>4.2 安全组规则</h2><p>安全组是一个<strong>有状态的包过滤器</strong>，它跑在云上，不在你的操作系统里。它的判定<strong>早于</strong>任何到达实例的包，所以系统防火墙说什么都没用，安全组说不行就是不行。控制台 <strong>安全组 -> 配置规则 -> 入方向</strong>。</p><p>一个公网 LAMP 服务器的安全起步规则集：</p><table><thead><tr><th>协议</th><th>端口范围</th><th>源地址</th><th>用途</th><th>备注</th></tr></thead><tbody><tr><td>TCP</td><td>22/22</td><td>你家的公网 IP/32</td><td>SSH</td><td>永远别填 <code>0.0.0.0/0</code>。<code>curl ifconfig.me</code> 拿自己的 IP。</td></tr><tr><td>TCP</td><td>80/80</td><td>0.0.0.0/0</td><td>HTTP</td><td>只用来 301 跳到 HTTPS。</td></tr><tr><td>TCP</td><td>443/443</td><td>0.0.0.0/0</td><td>HTTPS</td><td>真正面向公网的端口。</td></tr><tr><td>TCP</td><td>3306/3306</td><td>（关闭）</td><td>MySQL</td><td><strong>永远别开。</strong> 走 SSH 隧道。</td></tr><tr><td>ICMP</td><td>-1/-1</td><td>0.0.0.0/0</td><td>Ping</td><td>可选，方便监控。</td></tr></tbody></table><p>如果你确实要给某个开发同学远程连 MySQL，加他单独那个 IP，别加全网。更优雅的办法是直接走 SSH 隧道：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 在自己的笔记本上建隧道，而不是去开 3306</span>
+</span></span><span class=line><span class=cl>ssh -L 33306:127.0.0.1:3306 user@8.134.207.88
+</span></span><span class=line><span class=cl><span class=c1># 然后本地连 127.0.0.1:33306</span>
+</span></span></code></pre></td></tr></table></div></div><p>跟在安全组里开 3306 比，隧道的好处是：</p><ul><li>复用你已有的 SSH key，不用多管理一套凭据；</li><li>只在隧道开着的时候才暴露 DB；</li><li>永远不会出现在 shodan 的扫描结果里。</li></ul><h2 id=43-操作系统防火墙>4.3 操作系统防火墙</h2><p>云安全组是必要不充分的——未来某个运维同学可能为了「调试方便」把安全组放开，你的第二道防线就是操作系统防火墙。</p><p>Ubuntu / Debian：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo ufw default deny incoming
+</span></span><span class=line><span class=cl>sudo ufw default allow outgoing
+</span></span><span class=line><span class=cl>sudo ufw allow 22/tcp
+</span></span><span class=line><span class=cl>sudo ufw allow 80/tcp
+</span></span><span class=line><span class=cl>sudo ufw allow 443/tcp
+</span></span><span class=line><span class=cl>sudo ufw <span class=nb>enable</span>
+</span></span><span class=line><span class=cl>sudo ufw status numbered
+</span></span></code></pre></td></tr></table></div></div><p>CentOS / Alibaba Cloud Linux（firewalld）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo firewall-cmd --permanent --add-service<span class=o>=</span>ssh
+</span></span><span class=line><span class=cl>sudo firewall-cmd --permanent --add-service<span class=o>=</span>http
+</span></span><span class=line><span class=cl>sudo firewall-cmd --permanent --add-service<span class=o>=</span>https
+</span></span><span class=line><span class=cl>sudo firewall-cmd --reload
+</span></span><span class=line><span class=cl>sudo firewall-cmd --list-all
+</span></span></code></pre></td></tr></table></div></div><h2 id=44-一跳一跳验>4.4 一跳一跳验</h2><p>访问不了的时候，按下面这个<strong>严格顺序</strong>排查。乱了顺序，你会浪费两个小时去查错的那一层。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 第 1 步：公网 IP 通不通</span>
+</span></span><span class=line><span class=cl>ping 8.134.207.88
+</span></span><span class=line><span class=cl><span class=c1># 不通 -&gt; 安全组 ICMP 没开，或实例已经停掉</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 第 2 步：操作系统上有进程在监听吗</span>
+</span></span><span class=line><span class=cl>ss -tlnp <span class=p>|</span> grep -E <span class=s1>&#39;:80|:443|:22&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 没看到 -&gt; 服务没起</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 第 3 步：操作系统防火墙放行了吗</span>
+</span></span><span class=line><span class=cl>sudo ufw status            <span class=c1># 或者 sudo firewall-cmd --list-all</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 第 4 步：本机能 curl 通 Apache 吗</span>
+</span></span><span class=line><span class=cl>curl -I http://127.0.0.1
+</span></span><span class=line><span class=cl><span class=c1># 200 OK -&gt; 问题在 Apache 上游（防火墙 / 安全组）</span>
+</span></span></code></pre></td></tr></table></div></div><h1 id=5-一个请求从头到尾走过的路>5. 一个请求从头到尾走过的路</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig3_request_flow.png alt="一个 HTTP 请求穿过整个栈的过程" loading=lazy decoding=async></figure></p><p>请求最终送到 Apache 时发生的事：</p><ol><li>浏览器对 <code>8.134.207.88:80</code> 发起 TCP 连接。</li><li>阿里云安全组放行 SYN（80 端口对 0.0.0.0/0 的规则）。</li><li>内核把这个连接交给监听者——<code>apache2</code>。</li><li>Apache 解析请求行 <code>GET /index.php HTTP/1.1</code>，遍历 <code>VirtualHost</code> 配置找到 <code>ServerName</code> 匹配 <code>Host:</code> 头的那一条，再用这条 vhost 的 <code>DocumentRoot</code> 去解析 <code>/index.php</code>。</li><li><code>mod_php</code> 处理器命中 <code>.php</code>，Apache 调用内嵌的 PHP 解释器（如果用 FPM，则是打开 unix socket 把请求转过去）。</li><li>PHP 脚本开始跑，第一句多半是 <code>new mysqli('localhost', ...)</code> 或者 <code>new PDO('mysql:host=localhost;...')</code>。PHP 对 <code>127.0.0.1:3306</code> 发起 TCP 连接（在 Debian/Ubuntu 上更可能是走 unix socket <code>/var/run/mysqld/mysqld.sock</code>）。</li><li>MySQL 验证用户、解析 SQL，命中 InnoDB 缓冲池（没命中就读盘），返回结果集。</li><li>PHP 把结果渲染成 HTML，交回 Apache，由 Apache 写回 socket。</li></ol><p>图里在每一跳下面标了最常见的故障模式。最高频的三种：</p><ul><li><strong>PHP 源码直接显示在浏览器里。</strong> Apache 把文件送出去了但没调用 PHP，模块没加载。</li><li><strong>装完之后空白页。</strong> PHP 错误被静默掉了，脚本崩了——去 <code>/var/log/apache2/error.log</code> 找，不要在浏览器里找。</li><li><strong>偶发的「Connection refused」。</strong> MySQL 连接数打满了，或者 OOM killer 把 <code>mysqld</code> 杀了。看 <code>dmesg</code> 和 <code>mysql.err</code>。</li></ul><h1 id=6-在-ubuntu-上装>6. 在 Ubuntu 上装</h1><p>第一步，先确认机器上没有别的 web 服务器或数据库在跑：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo systemctl status apache2 nginx mysql mariadb 2&gt;/dev/null <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  <span class=p>|</span> grep -E <span class=s1>&#39;Active|service&#39;</span>
+</span></span><span class=line><span class=cl><span class=c1># 不要的就停掉、屏蔽掉</span>
+</span></span><span class=line><span class=cl>sudo systemctl disable --now nginx
+</span></span></code></pre></td></tr></table></div></div><p>安装顺序很重要：先 Apache，再 MySQL，最后 PHP。PHP 的包会顺手把 Apache 模块拉进来并启用——前提是 Apache 已经在那儿。</p><h2 id=61-apache>6.1 Apache</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt update
+</span></span><span class=line><span class=cl>sudo apt install -y apache2
+</span></span><span class=line><span class=cl>sudo systemctl <span class=nb>enable</span> --now apache2
+</span></span></code></pre></td></tr></table></div></div><p>浏览器访问 <code>http://你的公网IP/</code>，应该看到 Apache2 Ubuntu Default Page。如果看不到，按 4.4 节的四步<strong>严格顺序</strong>排查。</p><p>实际会编辑的目录：</p><table><thead><tr><th>路径</th><th>放什么</th></tr></thead><tbody><tr><td><code>/etc/apache2/apache2.conf</code></td><td>全局配置——基本不直接改</td></tr><tr><td><code>/etc/apache2/sites-available/*.conf</code></td><td>虚拟主机定义</td></tr><tr><td><code>/etc/apache2/sites-enabled/</code></td><td>软链；<code>a2ensite</code> / <code>a2dissite</code> 管理</td></tr><tr><td><code>/etc/apache2/mods-available/*.{load,conf}</code></td><td>模块配置——<code>a2enmod</code> 管理</td></tr><tr><td><code>/var/www/html/</code></td><td>默认 DocumentRoot</td></tr><tr><td><code>/var/log/apache2/{access,error}.log</code></td><td>出问题第一时间看的地方</td></tr></tbody></table><p>调试期可以临时把日志级别调高，调完再调回去：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo sed -i <span class=s1>&#39;s/^LogLevel warn/LogLevel info/&#39;</span> /etc/apache2/apache2.conf
+</span></span><span class=line><span class=cl>sudo systemctl reload apache2
+</span></span></code></pre></td></tr></table></div></div><h2 id=62-mysql>6.2 MySQL</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt install -y mysql-server
+</span></span><span class=line><span class=cl>sudo systemctl <span class=nb>enable</span> --now mysql
+</span></span><span class=line><span class=cl>sudo mysql_secure_installation
+</span></span></code></pre></td></tr></table></div></div><p><code>mysql_secure_installation</code> 会问五个问题。建议的答案：</p><ol><li><strong>VALIDATE PASSWORD plugin：</strong> yes，强度选 2（strong）。</li><li><strong>设置 root 密码：</strong> 用密码管理器生成的 16 位以上密码，存好。</li><li><strong>删除匿名用户：</strong> yes。</li><li><strong>禁止 root 远程登录：</strong> yes——你之后会用 SSH 隧道。</li><li><strong>删除 test 库：</strong> yes。</li></ol><p>然后验：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo systemctl status mysql
+</span></span><span class=line><span class=cl>sudo mysql -e <span class=s2>&#34;SELECT version(), @@hostname;&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=caching_sha2_password-这个坑><code>caching_sha2_password</code> 这个坑</h3><p>MySQL 8.0 把默认认证插件从 <code>mysql_native_password</code> 改成了 <code>caching_sha2_password</code>。老一点的 PHP <code>mysqli</code> 驱动、PHP 自带的 <code>mysql</code> 扩展、还有不少 CMS 的安装程序不会说新协议，会报 <code>The server requested authentication method unknown to the client</code>。今天最正确的做法是升级驱动；现实里没条件升级时，<strong>只针对应用账号</strong>切回老插件：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-sql data-lang=sql><span class=line><span class=cl><span class=k>ALTER</span><span class=w> </span><span class=k>USER</span><span class=w> </span><span class=s1>&#39;discuz_user&#39;</span><span class=o>@</span><span class=s1>&#39;localhost&#39;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w>  </span><span class=n>IDENTIFIED</span><span class=w> </span><span class=k>WITH</span><span class=w> </span><span class=n>mysql_native_password</span><span class=w> </span><span class=k>BY</span><span class=w> </span><span class=s1>&#39;StrongPassword123!&#39;</span><span class=p>;</span><span class=w>
+</span></span></span><span class=line><span class=cl><span class=w></span><span class=n>FLUSH</span><span class=w> </span><span class=k>PRIVILEGES</span><span class=p>;</span><span class=w>
+</span></span></span></code></pre></td></tr></table></div></div><p>只对应用账号做，<strong>永远别</strong>这样削弱 root。</p><h3 id=一份起步可用的-mycnf-调优>一份起步可用的 my.cnf 调优</h3><p>MySQL 8 出厂的缓冲池小得可怜。对哪怕只是稍微忙一点的站点来说，这是性能差距最大的单一旋钮：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=c1># /etc/mysql/mysql.conf.d/zz-tuning.cnf</span>
+</span></span><span class=line><span class=cl><span class=k>[mysqld]</span>
+</span></span><span class=line><span class=cl><span class=na>innodb_buffer_pool_size</span> <span class=o>=</span> <span class=s>4G          # 数据库专机大约用一半内存</span>
+</span></span><span class=line><span class=cl><span class=na>innodb_log_file_size</span>    <span class=o>=</span> <span class=s>512M</span>
+</span></span><span class=line><span class=cl><span class=na>innodb_flush_log_at_trx_commit</span> <span class=o>=</span> <span class=s>1    # 设 2 可以以丢 1 秒数据为代价换速度</span>
+</span></span><span class=line><span class=cl><span class=na>max_connections</span> <span class=o>=</span> <span class=s>200</span>
+</span></span><span class=line><span class=cl><span class=na>character-set-server</span>   <span class=o>=</span> <span class=s>utf8mb4</span>
+</span></span><span class=line><span class=cl><span class=na>collation-server</span>       <span class=o>=</span> <span class=s>utf8mb4_unicode_ci</span>
+</span></span></code></pre></td></tr></table></div></div><p>改完重启 MySQL。缓冲池一项就能决定「每条 query 都打盘」和「热数据全在 RAM」的差别。</p><h2 id=63-php>6.3 PHP</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt install -y php libapache2-mod-php php-mysql <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>                    php-curl php-gd php-mbstring php-xml php-zip php-intl
+</span></span><span class=line><span class=cl>sudo systemctl restart apache2
+</span></span></code></pre></td></tr></table></div></div><p>验 Apache 和 PHP 之间的桥：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=s1>&#39;&lt;?php phpinfo();&#39;</span> <span class=p>|</span> sudo tee /var/www/html/info.php
+</span></span><span class=line><span class=cl>curl -s http://127.0.0.1/info.php <span class=p>|</span> head -n <span class=m>5</span>
+</span></span></code></pre></td></tr></table></div></div><p>应该看到 HTML，不是 PHP 源码。看到源码的话，说明 <code>php</code> 模块没启用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ls /etc/apache2/mods-enabled/php*.load   <span class=c1># 有吗？</span>
+</span></span><span class=line><span class=cl>sudo a2enmod php8.1                      <span class=c1># 跟你装的版本对上</span>
+</span></span><span class=line><span class=cl>sudo systemctl restart apache2
+</span></span></code></pre></td></tr></table></div></div><p><strong>测完立刻把 <code>info.php</code> 删掉</strong>——它会泄露整份 PHP 配置，包括加载了哪些扩展、文件路径、<code>disable_functions</code>。攻击者扫描器第一个搜的就是它。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo rm /var/www/html/info.php
+</span></span></code></pre></td></tr></table></div></div><h1 id=7-纵深防御把公网面收紧>7. 纵深防御：把公网面收紧</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig4_security_setup.png alt="一台公网 LAMP 服务器的纵深防御" loading=lazy decoding=async></figure></p><p>一台公网 LAMP 用默认配置上线，几分钟之内就会被自动扫描器开始探。把安全当作五圈同心圆——任何一圈被破，外面下一圈还能撑一段时间。</p><h2 id=71-安全组最外圈>7.1 安全组——最外圈</h2><p>第 4 节讲过了。原则是：安全组应该让操作系统防火墙看起来多余，操作系统防火墙也应该让安全组看起来多余。任何一道单独都不够。</p><h2 id=72-操作系统加固>7.2 操作系统加固</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 系统补丁——开启自动安全更新</span>
+</span></span><span class=line><span class=cl>sudo apt install -y unattended-upgrades
+</span></span><span class=line><span class=cl>sudo dpkg-reconfigure -plow unattended-upgrades
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 禁用 SSH 密码登录（确认密钥能登之后再做）</span>
+</span></span><span class=line><span class=cl>sudo sed -i <span class=s1>&#39;s/^#\?PasswordAuthentication.*/PasswordAuthentication no/&#39;</span> /etc/ssh/sshd_config
+</span></span><span class=line><span class=cl>sudo sed -i <span class=s1>&#39;s/^#\?PermitRootLogin.*/PermitRootLogin no/&#39;</span> /etc/ssh/sshd_config
+</span></span><span class=line><span class=cl>sudo systemctl restart ssh
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 装 fail2ban 减缓爆破</span>
+</span></span><span class=line><span class=cl>sudo apt install -y fail2ban
+</span></span><span class=line><span class=cl>sudo systemctl <span class=nb>enable</span> --now fail2ban
+</span></span></code></pre></td></tr></table></div></div><h2 id=73-用-lets-encrypt-上-https>7.3 用 Let&rsquo;s Encrypt 上 HTTPS</h2><p>域名 A 记录指向你的公网 IP 之后，签证书就是两条命令：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt install -y certbot python3-certbot-apache
+</span></span><span class=line><span class=cl>sudo certbot --apache -d example.com -d www.example.com <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>             --redirect --agree-tos -m you@example.com
+</span></span></code></pre></td></tr></table></div></div><p><code>certbot --apache</code> 会写一份 443 的 vhost、启用 <code>mod_ssl</code> 和 <code>mod_rewrite</code>、加一条 80 -> 443 的 301。它还会装一个 systemd timer 在到期前自动续期，验一下：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo systemctl list-timers <span class=p>|</span> grep certbot
+</span></span><span class=line><span class=cl>sudo certbot renew --dry-run
+</span></span></code></pre></td></tr></table></div></div><p>现代的 TLS 配置不只是「打开 TLS」，还要把不安全的部分关掉。在 <code>/etc/apache2/sites-available/example.com-le-ssl.conf</code> 里加上：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-apache data-lang=apache><span class=line><span class=cl><span class=nb>SSLProtocol</span>             <span class=k>all</span> -SSLv3 -TLSv1 -TLSv1.1
+</span></span><span class=line><span class=cl><span class=nb>SSLCipherSuite</span>          HIGH:!aNULL:!MD5:!3DES
+</span></span><span class=line><span class=cl><span class=nb>SSLHonorCipherOrder</span>     <span class=k>on</span>
+</span></span><span class=line><span class=cl><span class=nb>Header</span> always set Strict-Transport-Security <span class=s2>&#34;max-age=63072000&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=74-mysql-加固>7.4 MySQL 加固</h2><ul><li>绑定到 <code>127.0.0.1</code>（新版包默认就是，去 <code>/etc/mysql/mysql.conf.d/mysqld.cnf</code> 确认一下）。</li><li><strong>每个应用一个数据库账号</strong>，<code>GRANT</code> 范围限定到那个库。</li><li>永远不要 <code>GRANT ALL ... TO root@'%'</code>。</li><li>敏感数据的备份要加密落盘。</li></ul><h2 id=75-应用层卫生>7.5 应用层卫生</h2><ul><li>能用 <code>php-fpm</code> 就别用 <code>mod_php</code>——把 PHP 故障从 Apache 进程树里隔离出去。</li><li>生产环境的 <code>/etc/php/8.1/apache2/php.ini</code> 里 <code>expose_php = Off</code>、<code>display_errors = Off</code>。</li><li>不论部署什么框架，都要订阅它的安全公告。LAMP 服务器被入侵的最大单一来源就是 CMS 的 CVE。</li></ul><h1 id=8-端到端部署discuz>8. 端到端部署：Discuz!</h1><p>拿 Discuz! 当例子，是因为它把一个新装的 LAMP 的薄弱环节都敲打了一遍：文件权限、多个可写目录、MySQL 用户创建、PHP 扩展依赖、还有一个 web 安装器把这些都重新校验一次。</p><h2 id=81-下载>8.1 下载</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>cd</span> /var/www/html
+</span></span><span class=line><span class=cl>sudo wget https://download.comsenz.com/DiscuzX/3.4/Discuz_X3.4_SC_UTF8.zip
+</span></span><span class=line><span class=cl>sudo apt install -y unzip
+</span></span><span class=line><span class=cl>sudo unzip -q Discuz_X3.4_SC_UTF8.zip
+</span></span><span class=line><span class=cl>sudo mv upload/* upload/.htaccess . 2&gt;/dev/null <span class=o>||</span> sudo mv upload/* .
+</span></span><span class=line><span class=cl>sudo rm -rf upload Discuz_X3.4_SC_UTF8.zip readme.txt utility/
+</span></span></code></pre></td></tr></table></div></div><h2 id=82-权限人人都搞错的地方>8.2 权限——人人都搞错的地方</h2><p>Apache 跑在 <code>www-data</code>（Ubuntu）或 <code>apache</code>（CentOS）下。唯一的规则：<strong>Apache 跑的那个用户必须 owns PHP 需要写入的所有文件，且仅此而已</strong>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 基线：所有文件可读，归 web 用户所有</span>
+</span></span><span class=line><span class=cl>sudo chown -R www-data:www-data /var/www/html
+</span></span><span class=line><span class=cl>sudo find /var/www/html -type d -exec chmod <span class=m>755</span> <span class=o>{}</span> <span class=se>\;</span>
+</span></span><span class=line><span class=cl>sudo find /var/www/html -type f -exec chmod <span class=m>644</span> <span class=o>{}</span> <span class=se>\;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Discuz 需要可写的目录（安装器会校验）</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> d in data config uc_server/data uc_client/data<span class=p>;</span> <span class=k>do</span>
+</span></span><span class=line><span class=cl>  sudo chmod -R <span class=m>775</span> /var/www/html/<span class=nv>$d</span>
+</span></span><span class=line><span class=cl><span class=k>done</span>
+</span></span></code></pre></td></tr></table></div></div><p>注意是 <code>775</code>，<strong>不是</strong> <code>777</code>。<code>www-data</code> 已经是属主了，<code>775</code> 让属主能写，同时只给 group 加写权限。<code>chmod 777</code> 是江湖偏方，不是建议——它让系统上<strong>任何</strong>用户都能改你的应用文件，在共享服务器上就是一条提权路径。</p><h2 id=83-数据库账号>8.3 数据库账号</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo mysql -e <span class=s2>&#34;
+</span></span></span><span class=line><span class=cl><span class=s2>  CREATE DATABASE discuz CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+</span></span></span><span class=line><span class=cl><span class=s2>  CREATE USER &#39;discuz_user&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;StrongPassword123!&#39;;
+</span></span></span><span class=line><span class=cl><span class=s2>  GRANT ALL PRIVILEGES ON discuz.* TO &#39;discuz_user&#39;@&#39;localhost&#39;;
+</span></span></span><span class=line><span class=cl><span class=s2>  FLUSH PRIVILEGES;
+</span></span></span><span class=line><span class=cl><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>两点注意：</p><ul><li><code>discuz.*</code>——授权范围是单一数据库。Discuz 即使被打穿，攻击者也读不到你别的应用的表。</li><li><code>'discuz_user'@'localhost'</code>——主机部分是身份的一部分。同名用户从不同主机来是不同用户。走 unix socket 算 <code>'localhost'</code>，TCP 到 <code>127.0.0.1</code> 算 <code>'127.0.0.1'</code>。如果 <code>mysql_secure_installation</code> 之后这两个不等价，两个都要授权。</li></ul><h2 id=84-跑安装器>8.4 跑安装器</h2><p>访问 <code>http://你的公网IP/install/</code>。三件事会发生：</p><ol><li><strong>环境检查</strong>——PHP 版本、GD、mbstring、mysqli。缺哪个就 <code>sudo apt install -y php-&lt;扩展> && sudo systemctl reload apache2</code>。</li><li><strong>权限检查</strong>——<code>data/</code>、<code>config/</code>、<code>uc_server/data/</code>、<code>uc_client/data/</code> 旁边都应该是绿色的勾。没勾就回 8.2 重新检查。</li><li><strong>数据库信息</strong>——host 填 <code>localhost</code>，name <code>discuz</code>，user <code>discuz_user</code>，密码用上面设的。</li></ol><p>装完之后：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo rm -rf /var/www/html/install
+</span></span><span class=line><span class=cl><span class=c1># 不再需要可写的目录可以收紧回去</span>
+</span></span><span class=line><span class=cl>sudo chmod -R <span class=m>755</span> /var/www/html/config
+</span></span></code></pre></td></tr></table></div></div><h1 id=9-90-的人会撞上的-5-个故障>9. 90% 的人会撞上的 5 个故障</h1><h2 id=故障-1-connection-refused>故障 1 ——「Connection refused」</h2><p><strong>含义：</strong> 你和 Apache 之间有什么东西在丢 SYN，或者 Apache 没在监听。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 在服务器本地执行——能通就说明 Apache 没问题，问题在网络</span>
+</span></span><span class=line><span class=cl>curl -I http://127.0.0.1
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 实际在监听的有谁？</span>
+</span></span><span class=line><span class=cl>sudo ss -tlnp <span class=p>|</span> grep -E <span class=s1>&#39;:80|:443&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 系统防火墙怎么说？</span>
+</span></span><span class=line><span class=cl>sudo ufw status
+</span></span></code></pre></td></tr></table></div></div><p><code>127.0.0.1</code> 通但公网 IP 不通，说明系统这一侧是好的——去云控制台看安全组。</p><h2 id=故障-2-403-forbidden或index-of->故障 2 ——「403 Forbidden」或「Index of /」</h2><p><strong>含义：</strong> Apache 把目录返回了，但里面没有 index 文件，或者读不到。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ls -l /var/www/html/                       <span class=c1># index.php / index.html 在吗</span>
+</span></span><span class=line><span class=cl>sudo -u www-data cat /var/www/html/index.php <span class=c1># web 用户能读吗</span>
+</span></span><span class=line><span class=cl>grep -r DirectoryIndex /etc/apache2/
+</span></span></code></pre></td></tr></table></div></div><p>修复方案 99% 是 <code>chown -R www-data:www-data /var/www/html</code>——你以 root 身份 <code>wget</code> 了某个东西，web 用户读不动。</p><h2 id=故障-3--浏览器里看到-php-源码>故障 3 —— 浏览器里看到 PHP 源码</h2><p><strong>含义：</strong> Apache 把 <code>.php</code> 当成静态文件返回了，PHP 处理器没注册。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>apache2ctl -M <span class=p>|</span> grep php_module    <span class=c1># 没输出？PHP 模块没启用</span>
+</span></span><span class=line><span class=cl>sudo a2enmod php8.1                <span class=c1># 跟你的版本对上</span>
+</span></span><span class=line><span class=cl>sudo systemctl restart apache2
+</span></span><span class=line><span class=cl>curl -s http://127.0.0.1/info.php <span class=p>|</span> head -n <span class=m>1</span>   <span class=c1># 应该是 HTML，不是 &lt;?php</span>
+</span></span></code></pre></td></tr></table></div></div><p>这是个安全事故，不只是配置问题——别让机器在这个状态下挂在公网上。</p><h2 id=故障-4-cant-connect-to-mysql-server-on-localhost>故障 4 ——「Can&rsquo;t connect to MySQL server on &rsquo;localhost&rsquo;」</h2><p><strong>含义：</strong> MySQL 没跑、socket 路径变了、或凭据错了。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo systemctl status mysql
+</span></span><span class=line><span class=cl>sudo journalctl -u mysql -n <span class=m>100</span> --no-pager
+</span></span><span class=line><span class=cl>mysql -u discuz_user -p -h 127.0.0.1 -e <span class=s1>&#39;SELECT 1&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p>小规格实例上常见原因：MySQL 被 OOM-killed。<code>dmesg | tail -50</code> 会显示 <code>Killed process ... mysqld</code>。要么把 <code>innodb_buffer_pool_size</code> 调小，要么换更大的实例。</p><h2 id=故障-5--discuz-提示目录不可写>故障 5 —— Discuz 提示「目录不可写」</h2><p><strong>含义：</strong> web 用户写不了那四个目录之一。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo -u www-data touch /var/www/html/data/.write_test
+</span></span><span class=line><span class=cl><span class=c1># Permission denied？那就：</span>
+</span></span><span class=line><span class=cl>sudo chown -R www-data:www-data /var/www/html/<span class=o>{</span>data,config,uc_server/data,uc_client/data<span class=o>}</span>
+</span></span><span class=line><span class=cl>sudo chmod -R <span class=m>775</span> /var/www/html/<span class=o>{</span>data,config,uc_server/data,uc_client/data<span class=o>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>忍住别 <code>chmod -R 777 /var/www</code>。它能解决问题，但日后会反过来咬你。</p><h1 id=10-上生产前要做完的几件事>10. 上生产前要做完的几件事</h1><h2 id=101-虚拟主机>10.1 虚拟主机</h2><p>只要你有一个以上的站点，就别再把所有东西堆在 <code>/var/www/html/</code> 里。每个站点一个 <code>/var/www/&lt;站点>/</code> 目录、一个 vhost 文件，结构会清晰很多。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-apache data-lang=apache><span class=line><span class=cl><span class=c># /etc/apache2/sites-available/blog.example.com.conf</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;VirtualHost</span> <span class=s>*:443</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>ServerName</span>  blog.example.com
+</span></span><span class=line><span class=cl>    <span class=nb>ServerAlias</span> www.blog.example.com
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>DocumentRoot</span> <span class=sx>/var/www/blog.example.com</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;Directory</span> <span class=s>/var/www/blog.example.com</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nb>Options</span> -Indexes +FollowSymLinks
+</span></span><span class=line><span class=cl>        <span class=nb>AllowOverride</span> <span class=k>All</span>
+</span></span><span class=line><span class=cl>        <span class=nb>Require</span> <span class=k>all</span> granted
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/Directory&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>SSLEngine</span> <span class=k>on</span>
+</span></span><span class=line><span class=cl>    <span class=nb>SSLCertificateFile</span>      <span class=sx>/etc/letsencrypt/live/blog.example.com/fullchain.pem</span>
+</span></span><span class=line><span class=cl>    <span class=nb>SSLCertificateKeyFile</span>   <span class=sx>/etc/letsencrypt/live/blog.example.com/privkey.pem</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nb>ErrorLog</span>  ${APACHE_LOG_DIR}/blog.example.com.error.log
+</span></span><span class=line><span class=cl>    <span class=nb>CustomLog</span> ${APACHE_LOG_DIR}/blog.example.com.access.log combined
+</span></span><span class=line><span class=cl><span class=nt>&lt;/VirtualHost&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo a2ensite blog.example.com
+</span></span><span class=line><span class=cl>sudo apache2ctl configtest <span class=o>&amp;&amp;</span> sudo systemctl reload apache2
+</span></span></code></pre></td></tr></table></div></div><p><code>configtest</code> 在 <code>reload</code> 之前执行，是「平滑切换」和「打错括号宕机五分钟」之间的差别。</p><h2 id=102-真正能恢复的备份>10.2 真正能恢复的备份</h2><p>没演练过恢复的备份不是备份。最低限度：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># /usr/local/bin/db-backup.sh</span>
+</span></span><span class=line><span class=cl><span class=c1>#!/usr/bin/env bash</span>
+</span></span><span class=line><span class=cl><span class=nb>set</span> -euo pipefail
+</span></span><span class=line><span class=cl><span class=nv>DEST</span><span class=o>=</span>/var/backups/mysql
+</span></span><span class=line><span class=cl><span class=nv>DATE</span><span class=o>=</span><span class=k>$(</span>date +%F_%H%M<span class=k>)</span>
+</span></span><span class=line><span class=cl>mkdir -p <span class=s2>&#34;</span><span class=nv>$DEST</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>mysqldump --single-transaction --routines --events <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>          --databases discuz <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        <span class=p>|</span> gzip &gt; <span class=s2>&#34;</span><span class=nv>$DEST</span><span class=s2>/discuz_</span><span class=nv>$DATE</span><span class=s2>.sql.gz&#34;</span>
+</span></span><span class=line><span class=cl><span class=c1># 保留 14 天</span>
+</span></span><span class=line><span class=cl>find <span class=s2>&#34;</span><span class=nv>$DEST</span><span class=s2>&#34;</span> -name <span class=s1>&#39;discuz_*.sql.gz&#39;</span> -mtime +14 -delete
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code class=language-cron data-lang=cron># crontab -e
 0 3 * * * /usr/local/bin/db-backup.sh
-</code></pre><p>每周再同步一份到 OSS，免得磁盘挂了备份也一起没：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/<span class="k">$(</span>hostname<span class="k">)</span>/
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>每个月在另一台机器上跑一次 <code>gunzip &lt; some_backup.sql.gz | mysql -u root -p test_restore</code> 并核对行数。第一次演练一定会让你长见识。</p>
-<h2 id="103-可观测性">10.3 可观测性</h2>
-<p>阿里云的 Cloud Monitor agent 默认就给你 CPU、内存、磁盘、带宽。值得自己再加两个信号：</p>
-<ul>
-<li>Apache <code>mod_status</code> 暴露在 <code>127.0.0.1:80/server-status</code>——QPS、忙的 worker 数、慢请求。</li>
-<li>MySQL <code>performance_schema</code> 找慢查询：<code>SELECT digest_text, count_star, avg_timer_wait FROM events_statements_summary_by_digest ORDER BY sum_timer_wait DESC LIMIT 10</code>。</li>
-</ul>
-<p>每��花五分钟看一眼，能在容量真出事之前几周就发现端倪。</p>
-<h1 id="11-一个应用两种拓扑">11. 一个应用，两种拓扑</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig5_deployment_topology.png" alt="LAMP 站点的两种部署拓扑" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>几乎每个能跑起来的 LAMP 站，最终都会撞到单机拓扑的天花板，然后要决定是纵向扩（更大的 ECS）还是横向拆（拆三层）。上图就是这个决定的两个目的地。</p>
-<p><strong>继续单机的条件</strong>：峰值流量塞得进一台机器，数据库小到缓冲池能盖住热数据，团队就一个工程师。PHP 和 MySQL 之间走 localhost 的连接比任何网络调用都快，运维面只是一个操作系统要打补丁。</p>
-<p><strong>该拆三层的信号</strong>：需要横向扩容（SLB 后挂多个 PHP worker），需要高可用（RDS 直接给你主备），或者你为单台 ECS 付的钱已经超过两台小 ECS + 一个 RDS。阿里云上经典三层：</p>
-<ul>
-<li><strong>SLB</strong> 终结 TLS、把请求分发给 web 层。</li>
-<li><strong>N 台 ECS</strong> 跑 Apache + PHP，全部无状态（session 放 Redis，上传放 OSS）。</li>
-<li><strong>RDS for MySQL</strong> 作为唯一的事实来源。</li>
-</ul>
-<p>成本大致变成 3 倍，故障面从「一台机器」变成「多台机器加一段网络」，运维确实更难。别因为图画得好看就迁——单机真的扛不住了再迁。</p>
-<h1 id="12-源码编译-mysql进阶">12. 源码编译 MySQL（进阶）</h1>
-<p>通常你不需要这么干。除非有具体理由——发行版省了某个编译选项、合规要求锁死某个版本、上游还没 merge 的补丁——否则用包管理器。源码编译的代价是真的：编译几个小时、没自动安全更新、CVE 全靠你自己跟。</p>
-<p>如果一定要做，CentOS 上编译 MySQL 5.6 的标准咒语：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo yum install -y gcc gcc-c++ cmake bison <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>                    libaio-devel ncurses-devel zlib-devel openssl-devel
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local
-</span></span><span class="line"><span class="cl">sudo mkdir software-mysql <span class="o">&amp;&amp;</span> <span class="nb">cd</span> software-mysql
-</span></span><span class="line"><span class="cl">sudo wget https://repo.huaweicloud.com/mysql/Downloads/MySQL-5.6/mysql-5.6.49.tar.gz
-</span></span><span class="line"><span class="cl">sudo tar -xzf mysql-5.6.49.tar.gz
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> mysql-5.6.49
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo cmake . <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DCMAKE_INSTALL_PREFIX<span class="o">=</span>/usr/local/mysql <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DMYSQL_DATADIR<span class="o">=</span>/usr/local/mysql/data <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DENABLE_LOCAL_INFILE<span class="o">=</span><span class="m">1</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DWITH_INNOBASE_STORAGE_ENGINE<span class="o">=</span><span class="m">1</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DMYSQL_TCP_PORT<span class="o">=</span><span class="m">3306</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DDEFAULT_CHARSET<span class="o">=</span>utf8mb4 <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DDEFAULT_COLLATION<span class="o">=</span>utf8mb4_general_ci <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DWITH_EXTRA_CHARSETS<span class="o">=</span>all <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -DMYSQL_USER<span class="o">=</span>mysql
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo make -j<span class="k">$(</span>nproc<span class="k">)</span>         <span class="c1"># 2 vCPU 上 1-3 小时</span>
-</span></span><span class="line"><span class="cl">sudo make install
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo useradd -r -s /sbin/nologin mysql
-</span></span><span class="line"><span class="cl">sudo chown -R mysql:mysql /usr/local/mysql
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /usr/local/mysql
-</span></span><span class="line"><span class="cl">sudo ./scripts/mysql_install_db --user<span class="o">=</span>mysql
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo cp support-files/mysql.server /etc/init.d/mysql
-</span></span><span class="line"><span class="cl">sudo systemctl <span class="nb">enable</span> --now mysql
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>几乎每次都会撞到的两个坑：</p>
-<ol>
-<li><strong><code>Could not find OpenSSL</code></strong>——你少装了 <code>openssl-devel</code>。修复方式：装上之后<strong>把整个编译目录删掉重新解压</strong>再编。<code>cmake</code> 会缓存中间状态，半截的目录不会重新发现新装的头文件。</li>
-<li><strong>编译过程被 OOM</strong>——2 GiB 的实例上 <code>make -j$(nproc)</code> 一定会被杀。改成 <code>-j2</code>，并且开始之前先加 2 GiB 的 swap。</li>
-</ol>
-<p>装完别忘了同样要走 6.2 节的 <code>mysql_secure_installation</code> 和 <code>my.cnf</code> 调优——源码编译版本不会替你配好。</p>
-<h1 id="13-几个真实场景">13. 几个真实场景</h1>
-<h2 id="场景-a--把-wordpress-从虚拟主机迁过来">场景 A —— 把 WordPress 从虚拟主机迁过来</h2>
-<p>被反复验证过的菜谱：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 在老主机上（cPanel / phpMyAdmin / SSH）</span>
-</span></span><span class="line"><span class="cl">mysqldump --single-transaction wordpress &gt; wp.sql
-</span></span><span class="line"><span class="cl">tar czf wp-files.tar.gz public_html/
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 通过 scp / OSS 搬到 ECS 上</span>
-</span></span><span class="line"><span class="cl">scp wp.sql wp-files.tar.gz user@8.134.207.88:/tmp/
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 在 ECS 上</span>
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /var/www/html
-</span></span><span class="line"><span class="cl">sudo tar xzf /tmp/wp-files.tar.gz --strip-components<span class="o">=</span><span class="m">1</span>
-</span></span><span class="line"><span class="cl">sudo mysql -e <span class="s2">&#34;CREATE DATABASE wordpress; \
-</span></span></span><span class="line"><span class="cl"><span class="s2">               CREATE USER &#39;wp&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;...&#39;; \
-</span></span></span><span class="line"><span class="cl"><span class="s2">               GRANT ALL ON wordpress.* TO &#39;wp&#39;@&#39;localhost&#39;;&#34;</span>
-</span></span><span class="line"><span class="cl">sudo mysql wordpress &lt; /tmp/wp.sql
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 改 wp-config.php 里的数据库账号</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># 把站点 URL 同时改两处：</span>
-</span></span><span class="line"><span class="cl">sudo mysql wordpress -e <span class="s2">&#34;UPDATE wp_options SET option_value=&#39;https://example.com&#39; \
-</span></span></span><span class="line"><span class="cl"><span class="s2">                         WHERE option_name IN (&#39;siteurl&#39;,&#39;home&#39;);&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 权限</span>
-</span></span><span class="line"><span class="cl">sudo chown -R www-data:www-data /var/www/html
-</span></span><span class="line"><span class="cl">sudo find /var/www/html -type d -exec chmod <span class="m">755</span> <span class="o">{}</span> <span class="se">\;</span>
-</span></span><span class="line"><span class="cl">sudo find /var/www/html -type f -exec chmod <span class="m">644</span> <span class="o">{}</span> <span class="se">\;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># DNS A 记录改成 8.134.207.88，TTL 调小方便切换</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>唯一的雷几乎永远是权限——虚拟主机上一切都归你这个用户，到了 ECS 上一切归 <code>www-data</code>，上传会一直失败直到你修对。</p>
-<h2 id="场景-b--一台机器跑两个-php-版本">场景 B —— 一台机器跑两个 PHP 版本</h2>
-<p>老插件要 PHP 5.6，新应用要 8.1。用 <code>php-fpm</code> 装两套版本，按 vhost 路由：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo add-apt-repository ppa:ondrej/php
-</span></span><span class="line"><span class="cl">sudo apt update
-</span></span><span class="line"><span class="cl">sudo apt install -y php5.6-fpm php8.1-fpm
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-apache" data-lang="apache"><span class="line"><span class="cl"><span class="nt">&lt;VirtualHost</span> <span class="s">*:443</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">ServerName</span> legacy.example.com
-</span></span><span class="line"><span class="cl">    <span class="nb">DocumentRoot</span> <span class="sx">/var/www/legacy</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;FilesMatch</span> <span class="s">\.php$</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">SetHandler</span> <span class="s2">&#34;proxy:unix:/run/php/php5.6-fpm.sock|fcgi://localhost&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/FilesMatch&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/VirtualHost&gt;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;VirtualHost</span> <span class="s">*:443</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">ServerName</span> modern.example.com
-</span></span><span class="line"><span class="cl">    <span class="nb">DocumentRoot</span> <span class="sx">/var/www/modern</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;FilesMatch</span> <span class="s">\.php$</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">SetHandler</span> <span class="s2">&#34;proxy:unix:/run/php/php8.1-fpm.sock|fcgi://localhost&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&lt;/FilesMatch&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/VirtualHost&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这也是顺手摆脱 <code>mod_php</code> 的好时机。<code>php-fpm</code> 把 PHP 跑在自己的进程池里，有自己的用户、自己的资源限制、自己的崩溃恢复——PHP 里漏内存不再会把 Apache 一起拉下水。</p>
-<h2 id="场景-c--流量上来之后偶发-502">场景 C —— 流量上来之后偶发 502</h2>
-<p>很常见的连环反应：流量翻倍，站点开始对 5% 的请求返回 502。原因链几乎总是同一个：</p>
-<ol>
-<li>Apache prefork 打满 <code>MaxRequestWorkers</code>，新连接开始排队。</li>
-<li>PHP-FPM 打满 <code>pm.max_children</code>，Apache 从 FPM socket 拿到的就是 502。</li>
-<li>MySQL 打满 <code>max_connections</code>，PHP-FPM worker 阻塞在拿连接的位置直到超时。</li>
-</ol>
-<p>修法是把每一层的 worker pool 都调到比上一层略多。4 vCPU / 16 GiB 实例上一个起步参考：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="c1"># /etc/apache2/mods-available/mpm_event.conf</span>
-</span></span><span class="line"><span class="cl"><span class="na">StartServers             4</span>
-</span></span><span class="line"><span class="cl"><span class="na">MinSpareThreads         50</span>
-</span></span><span class="line"><span class="cl"><span class="na">MaxSpareThreads        100</span>
-</span></span><span class="line"><span class="cl"><span class="na">ThreadsPerChild         25</span>
-</span></span><span class="line"><span class="cl"><span class="na">MaxRequestWorkers      300</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># /etc/php/8.1/fpm/pool.d/www.conf</span>
-</span></span><span class="line"><span class="cl"><span class="na">pm</span> <span class="o">=</span> <span class="s">dynamic</span>
-</span></span><span class="line"><span class="cl"><span class="na">pm.max_children</span>      <span class="o">=</span> <span class="s">60</span>
-</span></span><span class="line"><span class="cl"><span class="na">pm.start_servers</span>     <span class="o">=</span> <span class="s">10</span>
-</span></span><span class="line"><span class="cl"><span class="na">pm.min_spare_servers</span> <span class="o">=</span> <span class="s">5</span>
-</span></span><span class="line"><span class="cl"><span class="na">pm.max_spare_servers</span> <span class="o">=</span> <span class="s">20</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># my.cnf</span>
-</span></span><span class="line"><span class="cl"><span class="na">max_connections</span> <span class="o">=</span> <span class="s">200</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>数字不是魔法，原则才是：每一层的 worker pool 必须能消化上面那一层送下来的并发，且不会等太久。</p>
-<h1 id="14-总结">14. 总结</h1>
-<p>阿里云 ECS 上的 LAMP 浓缩成一份 5 步清单：</p>
-<ol>
-<li><strong>端口开对</strong>——安全组、再操作系统防火墙、再一跳一跳验通。</li>
-<li><strong>按顺序装</strong>——Apache、MySQL、PHP，每装一个先验过再装下一个。</li>
-<li><strong>每层验通</strong>——Apache 出 HTML，PHP 跑得了，MySQL 连得上。三条命令，每次都跑。</li>
-<li><strong>权限给得有意识</strong>——<code>www-data</code> owns 该可写的部分，绝不 <code>chmod 777</code>。</li>
-<li><strong>部署应用</strong>——Discuz、WordPress、自己写的 PHP，套路都一样。</li>
-</ol>
-<p>接下来值得做的事：</p>
-<ul>
-<li>用 Let&rsquo;s Encrypt 配上 HTTPS，并打开 HSTS。</li>
-<li>把 <code>mysqldump -&gt; OSS</code> 跑起来，并且<strong>真的从备份恢复一次</strong>。</li>
-<li>花一个小时读自己的 access log——比任何博客文章都让你了解你的流量和你的攻击者。</li>
-<li>单机扛不住了再拆 SLB + ECS + RDS，别死命扩同一台机器。</li>
-</ul>
-<p>延伸阅读：</p>
-<ul>
-<li>Apache HTTP Server 文档 —— <a href="https://httpd.apache.org/docs/" target="_blank" rel="noopener noreferrer">https://httpd.apache.org/docs/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>MySQL 8.0 参考手册 —— <a href="https://dev.mysql.com/doc/refman/8.0/en/" target="_blank" rel="noopener noreferrer">https://dev.mysql.com/doc/refman/8.0/en/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>PHP 手册 —— <a href="https://www.php.net/manual/en/" target="_blank" rel="noopener noreferrer">https://www.php.net/manual/en/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>阿里云 ECS 用户指南 —— <a href="https://help.aliyun.com/zh/ecs/" target="_blank" rel="noopener noreferrer">https://help.aliyun.com/zh/ecs/ <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Let&rsquo;s Encrypt 与 Certbot —— <a href="https://certbot.eff.org/instructions" target="_blank" rel="noopener noreferrer">https://certbot.eff.org/instructions <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#读完这篇你能做到">读完这篇你能做到</a></li>
-    <li><a href="#前提">前提</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#41-公网-ip">4.1 公网 IP</a></li>
-    <li><a href="#42-安全组规则">4.2 安全组规则</a></li>
-    <li><a href="#43-操作系统防火墙">4.3 操作系统防火墙</a></li>
-    <li><a href="#44-一跳一跳验">4.4 一跳一跳验</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#61-apache">6.1 Apache</a></li>
-    <li><a href="#62-mysql">6.2 MySQL</a>
-      <ul>
-        <li><a href="#caching_sha2_password-这个坑"><code>caching_sha2_password</code> 这个坑</a></li>
-        <li><a href="#一份起步可用的-mycnf-调优">一份起步可用的 my.cnf 调优</a></li>
-      </ul>
-    </li>
-    <li><a href="#63-php">6.3 PHP</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#71-安全组最外圈">7.1 安全组——最外圈</a></li>
-    <li><a href="#72-操作系统加固">7.2 操作系统加固</a></li>
-    <li><a href="#73-用-lets-encrypt-上-https">7.3 用 Let&rsquo;s Encrypt 上 HTTPS</a></li>
-    <li><a href="#74-mysql-加固">7.4 MySQL 加固</a></li>
-    <li><a href="#75-应用层卫生">7.5 应用层卫生</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#81-下载">8.1 下载</a></li>
-    <li><a href="#82-权限人人都搞错的地方">8.2 权限——人人都搞错的地方</a></li>
-    <li><a href="#83-数据库账号">8.3 数据库账号</a></li>
-    <li><a href="#84-跑安装器">8.4 跑安装器</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#故障-1-connection-refused">故障 1 ——「Connection refused」</a></li>
-    <li><a href="#故障-2-403-forbidden或index-of-">故障 2 ——「403 Forbidden」或「Index of /」</a></li>
-    <li><a href="#故障-3--浏览器里看到-php-源码">故障 3 —— 浏览器里看到 PHP 源码</a></li>
-    <li><a href="#故障-4-cant-connect-to-mysql-server-on-localhost">故障 4 ——「Can&rsquo;t connect to MySQL server on &rsquo;localhost&rsquo;」</a></li>
-    <li><a href="#故障-5--discuz-提示目录不可写">故障 5 —— Discuz 提示「目录不可写」</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#101-虚拟主机">10.1 虚拟主机</a></li>
-    <li><a href="#102-真正能恢复的备份">10.2 真正能恢复的备份</a></li>
-    <li><a href="#103-可观测性">10.3 可观测性</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#场景-a--把-wordpress-从虚拟主机迁过来">场景 A —— 把 WordPress 从虚拟主机迁过来</a></li>
-    <li><a href="#场景-b--一台机器跑两个-php-版本">场景 B —— 一台机器跑两个 PHP 版本</a></li>
-    <li><a href="#场景-c--流量上来之后偶发-502">场景 C —— 流量上来之后偶发 502</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>19 min</strong></div>
-      <div class="row"><span>Word count</span><strong>9200</strong></div>
-      <div class="row"><span>Published</span><strong>Apr 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>每周再同步一份到 OSS，免得磁盘挂了备份也一起没：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ossutil cp -r /var/backups/mysql/ oss://mybucket/db-backups/<span class=k>$(</span>hostname<span class=k>)</span>/
+</span></span></code></pre></td></tr></table></div></div><p>每个月在另一台机器上跑一次 <code>gunzip &lt; some_backup.sql.gz | mysql -u root -p test_restore</code> 并核对行数。第一次演练一定会让你长见识。</p><h2 id=103-可观测性>10.3 可观测性</h2><p>阿里云的 Cloud Monitor agent 默认就给你 CPU、内存、磁盘、带宽。值得自己再加两个信号：</p><ul><li>Apache <code>mod_status</code> 暴露在 <code>127.0.0.1:80/server-status</code>——QPS、忙的 worker 数、慢请求。</li><li>MySQL <code>performance_schema</code> 找慢查询：<code>SELECT digest_text, count_star, avg_timer_wait FROM events_statements_summary_by_digest ORDER BY sum_timer_wait DESC LIMIT 10</code>。</li></ul><p>每��花五分钟看一眼，能在容量真出事之前几周就发现端倪。</p><h1 id=11-一个应用两种拓扑>11. 一个应用，两种拓扑</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/lamp-%E4%B8%8E%E9%98%BF%E9%87%8C%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AF%A6%E8%A7%A3/fig5_deployment_topology.png alt="LAMP 站点的两种部署拓扑" loading=lazy decoding=async></figure></p><p>几乎每个能跑起来的 LAMP 站，最终都会撞到单机拓扑的天花板，然后要决定是纵向扩（更大的 ECS）还是横向拆（拆三层）。上图就是这个决定的两个目的地。</p><p><strong>继续单机的条件</strong>：峰值流量塞得进一台机器，数据库小到缓冲池能盖住热数据，团队就一个工程师。PHP 和 MySQL 之间走 localhost 的连接比任何网络调用都快，运维面只是一个操作系统要打补丁。</p><p><strong>该拆三层的信号</strong>：需要横向扩容（SLB 后挂多个 PHP worker），需要高可用（RDS 直接给你主备），或者你为单台 ECS 付的钱已经超过两台小 ECS + 一个 RDS。阿里云上经典三层：</p><ul><li><strong>SLB</strong> 终结 TLS、把请求分发给 web 层。</li><li><strong>N 台 ECS</strong> 跑 Apache + PHP，全部无状态（session 放 Redis，上传放 OSS）。</li><li><strong>RDS for MySQL</strong> 作为唯一的事实来源。</li></ul><p>成本大致变成 3 倍，故障面从「一台机器」变成「多台机器加一段网络」，运维确实更难。别因为图画得好看就迁——单机真的扛不住了再迁。</p><h1 id=12-源码编译-mysql进阶>12. 源码编译 MySQL（进阶）</h1><p>通常你不需要这么干。除非有具体理由——发行版省了某个编译选项、合规要求锁死某个版本、上游还没 merge 的补丁——否则用包管理器。源码编译的代价是真的：编译几个小时、没自动安全更新、CVE 全靠你自己跟。</p><p>如果一定要做，CentOS 上编译 MySQL 5.6 的标准咒语：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo yum install -y gcc gcc-c++ cmake bison <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>                    libaio-devel ncurses-devel zlib-devel openssl-devel
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /usr/local
+</span></span><span class=line><span class=cl>sudo mkdir software-mysql <span class=o>&amp;&amp;</span> <span class=nb>cd</span> software-mysql
+</span></span><span class=line><span class=cl>sudo wget https://repo.huaweicloud.com/mysql/Downloads/MySQL-5.6/mysql-5.6.49.tar.gz
+</span></span><span class=line><span class=cl>sudo tar -xzf mysql-5.6.49.tar.gz
+</span></span><span class=line><span class=cl><span class=nb>cd</span> mysql-5.6.49
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo cmake . <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DCMAKE_INSTALL_PREFIX<span class=o>=</span>/usr/local/mysql <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DMYSQL_DATADIR<span class=o>=</span>/usr/local/mysql/data <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DENABLE_LOCAL_INFILE<span class=o>=</span><span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DWITH_INNOBASE_STORAGE_ENGINE<span class=o>=</span><span class=m>1</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DMYSQL_TCP_PORT<span class=o>=</span><span class=m>3306</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DDEFAULT_CHARSET<span class=o>=</span>utf8mb4 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DDEFAULT_COLLATION<span class=o>=</span>utf8mb4_general_ci <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DWITH_EXTRA_CHARSETS<span class=o>=</span>all <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  -DMYSQL_USER<span class=o>=</span>mysql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo make -j<span class=k>$(</span>nproc<span class=k>)</span>         <span class=c1># 2 vCPU 上 1-3 小时</span>
+</span></span><span class=line><span class=cl>sudo make install
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo useradd -r -s /sbin/nologin mysql
+</span></span><span class=line><span class=cl>sudo chown -R mysql:mysql /usr/local/mysql
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /usr/local/mysql
+</span></span><span class=line><span class=cl>sudo ./scripts/mysql_install_db --user<span class=o>=</span>mysql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo cp support-files/mysql.server /etc/init.d/mysql
+</span></span><span class=line><span class=cl>sudo systemctl <span class=nb>enable</span> --now mysql
+</span></span></code></pre></td></tr></table></div></div><p>几乎每次都会撞到的两个坑：</p><ol><li><strong><code>Could not find OpenSSL</code></strong>——你少装了 <code>openssl-devel</code>。修复方式：装上之后<strong>把整个编译目录删掉重新解压</strong>再编。<code>cmake</code> 会缓存中间状态，半截的目录不会重新发现新装的头文件。</li><li><strong>编译过程被 OOM</strong>——2 GiB 的实例上 <code>make -j$(nproc)</code> 一定会被杀。改成 <code>-j2</code>，并且开始之前先加 2 GiB 的 swap。</li></ol><p>装完别忘了同样要走 6.2 节的 <code>mysql_secure_installation</code> 和 <code>my.cnf</code> 调优——源码编译版本不会替你配好。</p><h1 id=13-几个真实场景>13. 几个真实场景</h1><h2 id=场景-a--把-wordpress-从虚拟主机迁过来>场景 A —— 把 WordPress 从虚拟主机迁过来</h2><p>被反复验证过的菜谱：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 在老主机上（cPanel / phpMyAdmin / SSH）</span>
+</span></span><span class=line><span class=cl>mysqldump --single-transaction wordpress &gt; wp.sql
+</span></span><span class=line><span class=cl>tar czf wp-files.tar.gz public_html/
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 通过 scp / OSS 搬到 ECS 上</span>
+</span></span><span class=line><span class=cl>scp wp.sql wp-files.tar.gz user@8.134.207.88:/tmp/
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 在 ECS 上</span>
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /var/www/html
+</span></span><span class=line><span class=cl>sudo tar xzf /tmp/wp-files.tar.gz --strip-components<span class=o>=</span><span class=m>1</span>
+</span></span><span class=line><span class=cl>sudo mysql -e <span class=s2>&#34;CREATE DATABASE wordpress; \
+</span></span></span><span class=line><span class=cl><span class=s2>               CREATE USER &#39;wp&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;...&#39;; \
+</span></span></span><span class=line><span class=cl><span class=s2>               GRANT ALL ON wordpress.* TO &#39;wp&#39;@&#39;localhost&#39;;&#34;</span>
+</span></span><span class=line><span class=cl>sudo mysql wordpress &lt; /tmp/wp.sql
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 改 wp-config.php 里的数据库账号</span>
+</span></span><span class=line><span class=cl><span class=c1># 把站点 URL 同时改两处：</span>
+</span></span><span class=line><span class=cl>sudo mysql wordpress -e <span class=s2>&#34;UPDATE wp_options SET option_value=&#39;https://example.com&#39; \
+</span></span></span><span class=line><span class=cl><span class=s2>                         WHERE option_name IN (&#39;siteurl&#39;,&#39;home&#39;);&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 权限</span>
+</span></span><span class=line><span class=cl>sudo chown -R www-data:www-data /var/www/html
+</span></span><span class=line><span class=cl>sudo find /var/www/html -type d -exec chmod <span class=m>755</span> <span class=o>{}</span> <span class=se>\;</span>
+</span></span><span class=line><span class=cl>sudo find /var/www/html -type f -exec chmod <span class=m>644</span> <span class=o>{}</span> <span class=se>\;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># DNS A 记录改成 8.134.207.88，TTL 调小方便切换</span>
+</span></span></code></pre></td></tr></table></div></div><p>唯一的雷几乎永远是权限——虚拟主机上一切都归你这个用户，到了 ECS 上一切归 <code>www-data</code>，上传会一直失败直到你修对。</p><h2 id=场景-b--一台机器跑两个-php-版本>场景 B —— 一台机器跑两个 PHP 版本</h2><p>老插件要 PHP 5.6，新应用要 8.1。用 <code>php-fpm</code> 装两套版本，按 vhost 路由：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo add-apt-repository ppa:ondrej/php
+</span></span><span class=line><span class=cl>sudo apt update
+</span></span><span class=line><span class=cl>sudo apt install -y php5.6-fpm php8.1-fpm
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-apache data-lang=apache><span class=line><span class=cl><span class=nt>&lt;VirtualHost</span> <span class=s>*:443</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>ServerName</span> legacy.example.com
+</span></span><span class=line><span class=cl>    <span class=nb>DocumentRoot</span> <span class=sx>/var/www/legacy</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;FilesMatch</span> <span class=s>\.php$</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nb>SetHandler</span> <span class=s2>&#34;proxy:unix:/run/php/php5.6-fpm.sock|fcgi://localhost&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/FilesMatch&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/VirtualHost&gt;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nt>&lt;VirtualHost</span> <span class=s>*:443</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>    <span class=nb>ServerName</span> modern.example.com
+</span></span><span class=line><span class=cl>    <span class=nb>DocumentRoot</span> <span class=sx>/var/www/modern</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;FilesMatch</span> <span class=s>\.php$</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>        <span class=nb>SetHandler</span> <span class=s2>&#34;proxy:unix:/run/php/php8.1-fpm.sock|fcgi://localhost&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=nt>&lt;/FilesMatch&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/VirtualHost&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>这也是顺手摆脱 <code>mod_php</code> 的好时机。<code>php-fpm</code> 把 PHP 跑在自己的进程池里，有自己的用户、自己的资源限制、自己的崩溃恢复——PHP 里漏内存不再会把 Apache 一起拉下水。</p><h2 id=场景-c--流量上来之后偶发-502>场景 C —— 流量上来之后偶发 502</h2><p>很常见的连环反应：流量翻倍，站点开始对 5% 的请求返回 502。原因链几乎总是同一个：</p><ol><li>Apache prefork 打满 <code>MaxRequestWorkers</code>，新连接开始排队。</li><li>PHP-FPM 打满 <code>pm.max_children</code>，Apache 从 FPM socket 拿到的就是 502。</li><li>MySQL 打满 <code>max_connections</code>，PHP-FPM worker 阻塞在拿连接的位置直到超时。</li></ol><p>修法是把每一层的 worker pool 都调到比上一层略多。4 vCPU / 16 GiB 实例上一个起步参考：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=c1># /etc/apache2/mods-available/mpm_event.conf</span>
+</span></span><span class=line><span class=cl><span class=na>StartServers             4</span>
+</span></span><span class=line><span class=cl><span class=na>MinSpareThreads         50</span>
+</span></span><span class=line><span class=cl><span class=na>MaxSpareThreads        100</span>
+</span></span><span class=line><span class=cl><span class=na>ThreadsPerChild         25</span>
+</span></span><span class=line><span class=cl><span class=na>MaxRequestWorkers      300</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># /etc/php/8.1/fpm/pool.d/www.conf</span>
+</span></span><span class=line><span class=cl><span class=na>pm</span> <span class=o>=</span> <span class=s>dynamic</span>
+</span></span><span class=line><span class=cl><span class=na>pm.max_children</span>      <span class=o>=</span> <span class=s>60</span>
+</span></span><span class=line><span class=cl><span class=na>pm.start_servers</span>     <span class=o>=</span> <span class=s>10</span>
+</span></span><span class=line><span class=cl><span class=na>pm.min_spare_servers</span> <span class=o>=</span> <span class=s>5</span>
+</span></span><span class=line><span class=cl><span class=na>pm.max_spare_servers</span> <span class=o>=</span> <span class=s>20</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># my.cnf</span>
+</span></span><span class=line><span class=cl><span class=na>max_connections</span> <span class=o>=</span> <span class=s>200</span>
+</span></span></code></pre></td></tr></table></div></div><p>数字不是魔法，原则才是：每一层的 worker pool 必须能消化上面那一层送下来的并发，且不会等太久。</p><h1 id=14-总结>14. 总结</h1><p>阿里云 ECS 上的 LAMP 浓缩成一份 5 步清单：</p><ol><li><strong>端口开对</strong>——安全组、再操作系统防火墙、再一跳一跳验通。</li><li><strong>按顺序装</strong>——Apache、MySQL、PHP，每装一个先验过再装下一个。</li><li><strong>每层验通</strong>——Apache 出 HTML，PHP 跑得了，MySQL 连得上。三条命令，每次都跑。</li><li><strong>权限给得有意识</strong>——<code>www-data</code> owns 该可写的部分，绝不 <code>chmod 777</code>。</li><li><strong>部署应用</strong>——Discuz、WordPress、自己写的 PHP，套路都一样。</li></ol><p>接下来值得做的事：</p><ul><li>用 Let&rsquo;s Encrypt 配上 HTTPS，并打开 HSTS。</li><li>把 <code>mysqldump -> OSS</code> 跑起来，并且<strong>真的从备份恢复一次</strong>。</li><li>花一个小时读自己的 access log——比任何博客文章都让你了解你的流量和你的攻击者。</li><li>单机扛不住了再拆 SLB + ECS + RDS，别死命扩同一台机器。</li></ul><p>延伸阅读：</p><ul><li>Apache HTTP Server 文档 —— <a href=https://httpd.apache.org/docs/ target=_blank rel="noopener noreferrer">https://httpd.apache.org/docs/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>MySQL 8.0 参考手册 —— <a href=https://dev.mysql.com/doc/refman/8.0/en/ target=_blank rel="noopener noreferrer">https://dev.mysql.com/doc/refman/8.0/en/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>PHP 手册 —— <a href=https://www.php.net/manual/en/ target=_blank rel="noopener noreferrer">https://www.php.net/manual/en/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>阿里云 ECS 用户指南 —— <a href=https://help.aliyun.com/zh/ecs/ target=_blank rel="noopener noreferrer">https://help.aliyun.com/zh/ecs/ <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Let&rsquo;s Encrypt 与 Certbot —— <a href=https://certbot.eff.org/instructions target=_blank rel="noopener noreferrer">https://certbot.eff.org/instructions <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#读完这篇你能做到>读完这篇你能做到</a></li><li><a href=#前提>前提</a></li></ul><ul><li><a href=#41-公网-ip>4.1 公网 IP</a></li><li><a href=#42-安全组规则>4.2 安全组规则</a></li><li><a href=#43-操作系统防火墙>4.3 操作系统防火墙</a></li><li><a href=#44-一跳一跳验>4.4 一跳一跳验</a></li></ul><ul><li><a href=#61-apache>6.1 Apache</a></li><li><a href=#62-mysql>6.2 MySQL</a><ul><li><a href=#caching_sha2_password-这个坑><code>caching_sha2_password</code> 这个坑</a></li><li><a href=#一份起步可用的-mycnf-调优>一份起步可用的 my.cnf 调优</a></li></ul></li><li><a href=#63-php>6.3 PHP</a></li></ul><ul><li><a href=#71-安全组最外圈>7.1 安全组——最外圈</a></li><li><a href=#72-操作系统加固>7.2 操作系统加固</a></li><li><a href=#73-用-lets-encrypt-上-https>7.3 用 Let&rsquo;s Encrypt 上 HTTPS</a></li><li><a href=#74-mysql-加固>7.4 MySQL 加固</a></li><li><a href=#75-应用层卫生>7.5 应用层卫生</a></li></ul><ul><li><a href=#81-下载>8.1 下载</a></li><li><a href=#82-权限人人都搞错的地方>8.2 权限——人人都搞错的地方</a></li><li><a href=#83-数据库账号>8.3 数据库账号</a></li><li><a href=#84-跑安装器>8.4 跑安装器</a></li></ul><ul><li><a href=#故障-1-connection-refused>故障 1 ——「Connection refused」</a></li><li><a href=#故障-2-403-forbidden或index-of->故障 2 ——「403 Forbidden」或「Index of /」</a></li><li><a href=#故障-3--浏览器里看到-php-源码>故障 3 —— 浏览器里看到 PHP 源码</a></li><li><a href=#故障-4-cant-connect-to-mysql-server-on-localhost>故障 4 ——「Can&rsquo;t connect to MySQL server on &rsquo;localhost&rsquo;」</a></li><li><a href=#故障-5--discuz-提示目录不可写>故障 5 —— Discuz 提示「目录不可写」</a></li></ul><ul><li><a href=#101-虚拟主机>10.1 虚拟主机</a></li><li><a href=#102-真正能恢复的备份>10.2 真正能恢复的备份</a></li><li><a href=#103-可观测性>10.3 可观测性</a></li></ul><ul><li><a href=#场景-a--把-wordpress-从虚拟主机迁过来>场景 A —— 把 WordPress 从虚拟主机迁过来</a></li><li><a href=#场景-b--一台机器跑两个-php-版本>场景 B —— 一台机器跑两个 PHP 版本</a></li><li><a href=#场景-c--流量上来之后偶发-502>场景 C —— 流量上来之后偶发 502</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>19 min</strong></div><div class=row><span>Word count</span><strong>9100</strong></div><div class=row><span>Published</span><strong>Apr 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

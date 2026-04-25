@@ -1,1080 +1,332 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>NLP Part 6: GPT and Generative Language Models · Chen Kai Blog</title>
-<meta name="description" content="From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/nlp/gpt-generative-models/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/nlp/gpt-generative-models/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="NLP Part 6: GPT and Generative Language Models">
-<meta property="og:description" content="From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace.">
-<meta property="og:url" content="https://www.chenk.top/en/nlp/gpt-generative-models/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Natural language processing</a>
-         · Chapter 6
-      </div>
-      <h1>NLP Part 6: GPT and Generative Language Models</h1>
-      <p class="deck">From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-10-26">October 26, 2025</time> · 6 min read · 1200 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/nlp/" class="tag">#NLP</a><a href="/en/tags/gpt/" class="tag">#GPT</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/language-models/" class="tag">#Language Models</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>When you ask ChatGPT a question and a fluent multi-paragraph answer streams back token by token, you are watching a single deceptively simple loop: feed everything-so-far into a Transformer decoder, look at the probability distribution it produces over the vocabulary, pick one token, append it, repeat. That is <em>all</em> an autoregressive language model does. The miracle is not the loop &ndash; it is what happens when you scale the network behind the loop to hundreds of billions of parameters and train it on most of the internet.</p>
-<p>If BERT (Part 5) is the king of <em>understanding</em>, GPT is the king of <em>generation</em>. This article walks the full GPT lineage, opens up the mechanics of autoregressive decoding, makes the choice of decoding strategy visceral, and ends with a working chatbot you can run on your laptop.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>How a decoder-only Transformer turns &ldquo;predict the next token&rdquo; into a general-purpose AI</li>
-<li>The role of <strong>causal (masked) self-attention</strong> &ndash; the one design choice that separates GPT from BERT</li>
-<li>The four canonical decoding strategies (greedy, beam search, top-k, top-p) and the role of <strong>temperature</strong></li>
-<li>Why <strong>in-context learning</strong> (zero / few-shot) works <em>without any gradient updates</em></li>
-<li>The empirical <strong>scaling laws</strong> and the strange phenomenon of <strong>emergent capabilities</strong></li>
-<li>How to evaluate generated text (BLEU, ROUGE, perplexity) and where each metric breaks</li>
-<li>A working multi-turn chatbot built on GPT-2 with HuggingFace</li>
-</ul>
-<p><strong>Prerequisites</strong>: Part 4 (Transformer architecture), Part 5 (pretraining and BERT).</p>
-<hr>
-<h2 id="1-the-decoder-only-transformer">1. The decoder-only Transformer</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig1_decoder_only_arch.png" alt="Decoder-only architecture and the causal mask" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The original Transformer (Vaswani et al. 2017) had two halves: an encoder that read the source sentence and a decoder that wrote the target sentence. BERT kept only the encoder. GPT keeps only the <em>decoder</em>, with one critical modification: every self-attention layer uses a <strong>causal mask</strong> so that position $i$ can attend to positions $1, 2, \ldots, i$ but never to anything in the future.</p>
-<p>Why does this single design choice matter so much? Because it makes training and inference <em>identical</em>. During training the model sees the whole sentence at once, but the mask hides the future, so each position is forced to predict its successor using only the past &ndash; exactly the situation it will face at generation time. There is no train/inference mismatch, no separate &ldquo;generation mode&rdquo;: the same forward pass that computes the loss during training also computes the next-token distribution at inference.</p>
-<h3 id="the-forward-pass-in-one-breath">The forward pass, in one breath</h3>
-<p>Given input tokens $x_1, \ldots, x_t$:</p>
-<ol>
-<li><strong>Embed</strong>: $h^0_i = E_{\text{tok}}(x_i) + E_{\text{pos}}(i)$</li>
-<li><strong>Repeat $L$ times</strong> (one Transformer block):</li>
-</ol>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>NLP Part 6: GPT and Generative Language Models · Chen Kai Blog</title>
+<meta name=description content="From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/nlp/gpt-generative-models/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/gpt-generative-models/><meta property="og:type" content="article"><meta property="og:title" content="NLP Part 6: GPT and Generative Language Models"><meta property="og:description" content="From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace."><meta property="og:url" content="https://www.chenk.top/en/nlp/gpt-generative-models/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Natural language processing</a>
+· Chapter 6</div><h1>NLP Part 6: GPT and Generative Language Models</h1><p class=deck>From GPT-1 to GPT-4: understand autoregressive language modeling, decoding strategies (greedy, beam search, top-k, top-p), in-context learning, and build a chatbot with HuggingFace.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-10-26>October 26, 2025</time> · 6 min read · 1163 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/nlp/ class=tag>#NLP</a><a href=/en/tags/gpt/ class=tag>#GPT</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/language-models/ class=tag>#Language Models</a></div></div></header><div class=prose><p>When you ask ChatGPT a question and a fluent multi-paragraph answer streams back token by token, you are watching a single deceptively simple loop: feed everything-so-far into a Transformer decoder, look at the probability distribution it produces over the vocabulary, pick one token, append it, repeat. That is <em>all</em> an autoregressive language model does. The miracle is not the loop &ndash; it is what happens when you scale the network behind the loop to hundreds of billions of parameters and train it on most of the internet.</p><p>If BERT (Part 5) is the king of <em>understanding</em>, GPT is the king of <em>generation</em>. This article walks the full GPT lineage, opens up the mechanics of autoregressive decoding, makes the choice of decoding strategy visceral, and ends with a working chatbot you can run on your laptop.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>How a decoder-only Transformer turns &ldquo;predict the next token&rdquo; into a general-purpose AI</li><li>The role of <strong>causal (masked) self-attention</strong> &ndash; the one design choice that separates GPT from BERT</li><li>The four canonical decoding strategies (greedy, beam search, top-k, top-p) and the role of <strong>temperature</strong></li><li>Why <strong>in-context learning</strong> (zero / few-shot) works <em>without any gradient updates</em></li><li>The empirical <strong>scaling laws</strong> and the strange phenomenon of <strong>emergent capabilities</strong></li><li>How to evaluate generated text (BLEU, ROUGE, perplexity) and where each metric breaks</li><li>A working multi-turn chatbot built on GPT-2 with HuggingFace</li></ul><p><strong>Prerequisites</strong>: Part 4 (Transformer architecture), Part 5 (pretraining and BERT).</p><hr><h2 id=1-the-decoder-only-transformer>1. The decoder-only Transformer</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig1_decoder_only_arch.png alt="Decoder-only architecture and the causal mask" loading=lazy decoding=async></figure></p><p>The original Transformer (Vaswani et al. 2017) had two halves: an encoder that read the source sentence and a decoder that wrote the target sentence. BERT kept only the encoder. GPT keeps only the <em>decoder</em>, with one critical modification: every self-attention layer uses a <strong>causal mask</strong> so that position $i$ can attend to positions $1, 2, \ldots, i$ but never to anything in the future.</p><p>Why does this single design choice matter so much? Because it makes training and inference <em>identical</em>. During training the model sees the whole sentence at once, but the mask hides the future, so each position is forced to predict its successor using only the past &ndash; exactly the situation it will face at generation time. There is no train/inference mismatch, no separate &ldquo;generation mode&rdquo;: the same forward pass that computes the loss during training also computes the next-token distribution at inference.</p><h3 id=the-forward-pass-in-one-breath>The forward pass, in one breath</h3><p>Given input tokens $x_1, \ldots, x_t$:</p><ol><li><strong>Embed</strong>: $h^0_i = E_{\text{tok}}(x_i) + E_{\text{pos}}(i)$</li><li><strong>Repeat $L$ times</strong> (one Transformer block):</li></ol>$$
 \tilde h = h + \text{MaskedMHA}(\text{LN}(h)), \quad h \leftarrow \tilde h + \text{FFN}(\text{LN}(\tilde h))
-$$<ol start="3">
-<li><strong>Project</strong>: logits $z_i = W_o\,h^L_i$, then $P(x_{i+1}\mid x_{\le i}) = \text{softmax}(z_i)$.</li>
-</ol>
-<h3 id="causal-mask-made-concrete">Causal mask, made concrete</h3>
-<p>The masked attention is the same scaled dot-product as before, with a $-\infty$ added to forbidden positions before the softmax:</p>
-$$
+$$<ol start=3><li><strong>Project</strong>: logits $z_i = W_o\,h^L_i$, then $P(x_{i+1}\mid x_{\le i}) = \text{softmax}(z_i)$.</li></ol><h3 id=causal-mask-made-concrete>Causal mask, made concrete</h3><p>The masked attention is the same scaled dot-product as before, with a $-\infty$ added to forbidden positions before the softmax:</p>$$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}} + M\right) V,
 \quad M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
-$$<p>The $-\infty$ becomes $0$ after softmax, so future tokens contribute nothing. The right panel above visualises this: each row is a query position, each column a key, and only the lower triangle (the past) is alive.</p>
-<h3 id="training-objective">Training objective</h3>
-<p>Maximise the log-likelihood of the corpus &ndash; which is just per-position cross-entropy summed over the sequence:</p>
-$$
+$$<p>The $-\infty$ becomes $0$ after softmax, so future tokens contribute nothing. The right panel above visualises this: each row is a query position, each column a key, and only the lower triangle (the past) is alive.</p><h3 id=training-objective>Training objective</h3><p>Maximise the log-likelihood of the corpus &ndash; which is just per-position cross-entropy summed over the sequence:</p>$$
 \mathcal{L} = -\sum_{i=1}^{n} \log P(x_i \mid x_1, \ldots, x_{i-1})
-$$<p>That single loss, applied to terabytes of text, is the entire training story.</p>
-<hr>
-<h2 id="2-autoregressive-generation-step-by-step">2. Autoregressive generation, step by step</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig2_autoregressive_step.png" alt="Autoregressive generation: one token at a time" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>At inference time the model produces one token at a time. Three things happen at every step:</p>
-<ol>
-<li><strong>Forward pass</strong> the current sequence to obtain logits at the <em>last</em> position only.</li>
-<li><strong>Convert logits to a probability distribution</strong> over the vocabulary (with optional temperature).</li>
-<li><strong>Choose</strong> the next token (deterministically or by sampling), append it, and repeat until you hit <code>&lt;eos&gt;</code> or a length limit.</li>
-</ol>
-<p>The bottom panel above shows the next-token distribution after the prompt <code>&quot;The cat sat on the&quot;</code>: <code>mat</code> wins with ~42% probability, but plenty of probability mass is sprinkled across plausible alternatives (<code>floor</code>, <code>couch</code>, <code>sofa</code>, &hellip;). Whether your model writes the same thing every time, or surprises you, depends entirely on <strong>how you sample from this distribution</strong> &ndash; which we get to in Section 4.</p>
-<blockquote>
-<p><strong>A practical note on speed</strong>. Naïvely, generating $T$ tokens means running $T$ forward passes whose cost grows quadratically with sequence length &ndash; prohibitive. In practice every implementation uses a <strong>KV cache</strong>: keys and values from past tokens are stored once and reused, so each new token only triggers attention against cached vectors. This turns generation from $O(T^3)$ into $O(T^2)$ aggregate FLOPs and is the reason real systems are usable at all.</p>
-</blockquote>
-<hr>
-<h2 id="3-the-gpt-family-5-years-sim10000times-growth">3. The GPT family: 5 years, $\sim$10,000$\times$ growth</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig4_gpt_evolution.png" alt="GPT-1 to GPT-4 evolution" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The GPT series tells the story of what happens when you take a small idea and crank the scale knob.</p>
-<h3 id="gpt-1-jun-2018----proof-of-concept">GPT-1 (Jun 2018) &ndash; proof of concept</h3>
-<ul>
-<li>12-layer decoder, <strong>117 M</strong> parameters, BooksCorpus (~4.5 GB).</li>
-<li>Recipe: pretrain with the language-modelling objective, then <strong>fine-tune</strong> a small task head per downstream task.</li>
-<li>Lesson: a generic Transformer decoder, pretrained on raw text, beats hand-engineered task-specific architectures across a wide benchmark suite.</li>
-</ul>
-<h3 id="gpt-2-feb-2019----zero-shot-emerges">GPT-2 (Feb 2019) &ndash; zero-shot emerges</h3>
-<ul>
-<li><strong>1.5 B</strong> parameters, WebText (~40 GB scraped from outbound Reddit links).</li>
-<li>New idea: skip fine-tuning entirely. If you simply <em>describe</em> a task in the prompt, the model often does it.</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Translate to French:
-</span></span><span class="line"><span class="cl">English: The cat sat on the mat.
-</span></span><span class="line"><span class="cl">French:
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>GPT-2 will produce a passable translation despite never having been trained on parallel data. It saw enough bilingual passages on the web to absorb the <em>pattern</em> &ldquo;English: &hellip; / French: &hellip;&rdquo;.</p>
-<h3 id="gpt-3-may-2020----scale-changes-the-game">GPT-3 (May 2020) &ndash; scale changes the game</h3>
-<ul>
-<li><strong>175 B</strong> parameters (~$100\times$ GPT-2), ~570 GB of curated text, ~3.14$\times 10^{23}$ FLOPs of training compute.</li>
-<li>The headline discovery: <strong>few-shot in-context learning</strong>. Drop a handful of input-output examples into the prompt and the model picks up the task on the fly, <em>with no gradient updates</em>.</li>
-<li>Many capabilities (3-digit arithmetic, code completion, multi-step reasoning) were essentially absent at GPT-2 scale and suddenly present at GPT-3 scale &ndash; the <strong>emergence</strong> phenomenon we revisit in Section 7.</li>
-</ul>
-<h3 id="gpt-4-mar-2023----multimodal-and-instruction-tuned">GPT-4 (Mar 2023) &ndash; multimodal and instruction-tuned</h3>
-<ul>
-<li>Architecture and parameter count never officially disclosed (rumoured to be a Mixture-of-Experts in the trillion-parameter range).</li>
-<li>Accepts both text and images.</li>
-<li>Heavily refined with <strong>RLHF</strong> (Reinforcement Learning from Human Feedback) for safety, helpfulness, and instruction following.</li>
-<li>Reaches the 90th percentile on the bar exam, scores 5 on AP exams, and handles long-horizon reasoning that earlier models could not.</li>
-</ul>
-<table>
-  <thead>
-      <tr>
-          <th>Model</th>
-          <th>Parameters</th>
-          <th>Training data</th>
-          <th>Headline capability</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>GPT-1</td>
-          <td>117 M</td>
-          <td>4.5 GB</td>
-          <td>Pretrain + fine-tune works</td>
-      </tr>
-      <tr>
-          <td>GPT-2</td>
-          <td>1.5 B</td>
-          <td>40 GB</td>
-          <td>Zero-shot from prompts</td>
-      </tr>
-      <tr>
-          <td>GPT-3</td>
-          <td>175 B</td>
-          <td>570 GB</td>
-          <td>Few-shot in-context learning</td>
-      </tr>
-      <tr>
-          <td>GPT-4</td>
-          <td>(undisclosed)</td>
-          <td>(undisclosed)</td>
-          <td>Multimodal, strong reasoning, RLHF</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="4-decoding-strategies">4. Decoding strategies</h2>
-<p>The choice of decoding strategy can change a generation from <em>repetitive and lifeless</em> to <em>surprising and on-topic</em> without retraining a single weight. Below we visualise the four canonical strategies on the <strong>same</strong> next-token distribution from Section 2.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig5_sampling_strategies.png" alt="Greedy, top-k, top-p, and temperature on the same distribution" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="41-greedy-decoding">4.1 Greedy decoding</h3>
-<p>Always pick the highest-probability token: $x_t = \arg\max_w P(w \mid x_{<t})$.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">greedy_decode</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">nxt</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nxt</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">break</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Pros</strong>: deterministic, fast. <strong>Cons</strong>: drifts into degenerate loops (<code>&quot;the the the&quot;</code>) and produces dull, predictable text. Use only when you need reproducibility for testing.</p>
-<h3 id="42-beam-search">4.2 Beam search</h3>
-<p>Maintain the top-$k$ partial sequences at every step, ranked by <em>cumulative</em> log-probability (with an optional length penalty to avoid favouring short sequences).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">beam_search</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">beam</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">lp</span><span class="o">=</span><span class="mf">0.6</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
-</span></span><span class="line"><span class="cl">    <span class="n">beams</span> <span class="o">=</span> <span class="p">[(</span><span class="n">ids</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">cands</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">beams</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">seq</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">cands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">seq</span><span class="p">,</span> <span class="n">score</span><span class="p">));</span> <span class="k">continue</span>
-</span></span><span class="line"><span class="cl">            <span class="n">logp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">top_lp</span><span class="p">,</span> <span class="n">top_id</span> <span class="o">=</span> <span class="n">logp</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">beam</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">top_lp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">top_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">new_seq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">seq</span><span class="p">,</span> <span class="n">idx</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">cands</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">new_seq</span><span class="p">,</span> <span class="n">score</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">item</span><span class="p">()))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">cands</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="n">lp</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">beams</span> <span class="o">=</span> <span class="n">cands</span><span class="p">[:</span><span class="n">beam</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">beams</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Pros</strong>: higher likelihood than greedy, the workhorse of machine translation and summarisation. <strong>Cons</strong>: tends to produce <em>bland</em>, generic outputs in open-ended generation &ndash; a phenomenon called <strong>beam-search curse</strong> (the highest-likelihood sentences are often the most boring).</p>
-<h3 id="43-top-k-sampling">4.3 Top-$k$ sampling</h3>
-<p>Sample only from the $k$ most probable tokens (re-normalising their probabilities to sum to 1):</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">top_k_sample</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="n">top_logits</span><span class="p">,</span> <span class="n">top_ids</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">top_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">top_ids</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">nxt</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nxt</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">break</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Caveat</strong>: $k$ is fixed. If the model is very confident (one token has 95% mass), top-$k$ still considers $k$ alternatives and may pick something silly. If the model is genuinely uncertain across hundreds of tokens, $k=50$ is too restrictive.</p>
-<h3 id="44-top-p-nucleus-sampling">4.4 Top-$p$ (nucleus) sampling</h3>
-<p>Pick the smallest set of tokens whose cumulative probability $\ge p$ &ndash; the <strong>nucleus</strong> &ndash; and sample from it. The size of the nucleus <em>adapts</em> to the model&rsquo;s confidence.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">top_p_sample</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">max_new</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ids</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">input_ids</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_new</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">/</span> <span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="n">sorted_logits</span><span class="p">,</span> <span class="n">sorted_ids</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">cum</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># keep tokens up to and including the one that crosses p</span>
-</span></span><span class="line"><span class="cl">        <span class="n">keep</span> <span class="o">=</span> <span class="n">cum</span> <span class="o">&lt;=</span> <span class="n">p</span>
-</span></span><span class="line"><span class="cl">        <span class="n">keep</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>               <span class="c1"># always keep the top token</span>
-</span></span><span class="line"><span class="cl">        <span class="n">keep</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">keep</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="o">|</span> <span class="p">(</span><span class="n">cum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">sorted_logits</span><span class="p">[</span><span class="o">~</span><span class="n">keep</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nucleus_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">nucleus_probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nxt</span> <span class="o">=</span> <span class="n">sorted_ids</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">nxt</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">nxt</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">break</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>In panel (c) above the nucleus has 5 tokens because the top 5 already cover 85% of the mass. On a different distribution it could be 1 token (very confident model) or 200 (very flat distribution). This adaptivity is why top-$p$ has become the default for open-ended generation.</p>
-<h3 id="45-temperature">4.5 Temperature</h3>
-<p>Temperature $T$ rescales the logits <em>before</em> the softmax:</p>
-$$
+$$<p>That single loss, applied to terabytes of text, is the entire training story.</p><hr><h2 id=2-autoregressive-generation-step-by-step>2. Autoregressive generation, step by step</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig2_autoregressive_step.png alt="Autoregressive generation: one token at a time" loading=lazy decoding=async></figure></p><p>At inference time the model produces one token at a time. Three things happen at every step:</p><ol><li><strong>Forward pass</strong> the current sequence to obtain logits at the <em>last</em> position only.</li><li><strong>Convert logits to a probability distribution</strong> over the vocabulary (with optional temperature).</li><li><strong>Choose</strong> the next token (deterministically or by sampling), append it, and repeat until you hit <code>&lt;eos></code> or a length limit.</li></ol><p>The bottom panel above shows the next-token distribution after the prompt <code>"The cat sat on the"</code>: <code>mat</code> wins with ~42% probability, but plenty of probability mass is sprinkled across plausible alternatives (<code>floor</code>, <code>couch</code>, <code>sofa</code>, &mldr;). Whether your model writes the same thing every time, or surprises you, depends entirely on <strong>how you sample from this distribution</strong> &ndash; which we get to in Section 4.</p><blockquote><p><strong>A practical note on speed</strong>. Naïvely, generating $T$ tokens means running $T$ forward passes whose cost grows quadratically with sequence length &ndash; prohibitive. In practice every implementation uses a <strong>KV cache</strong>: keys and values from past tokens are stored once and reused, so each new token only triggers attention against cached vectors. This turns generation from $O(T^3)$ into $O(T^2)$ aggregate FLOPs and is the reason real systems are usable at all.</p></blockquote><hr><h2 id=3-the-gpt-family-5-years-sim10000times-growth>3. The GPT family: 5 years, $\sim$10,000$\times$ growth</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig4_gpt_evolution.png alt="GPT-1 to GPT-4 evolution" loading=lazy decoding=async></figure></p><p>The GPT series tells the story of what happens when you take a small idea and crank the scale knob.</p><h3 id=gpt-1-jun-2018----proof-of-concept>GPT-1 (Jun 2018) &ndash; proof of concept</h3><ul><li>12-layer decoder, <strong>117 M</strong> parameters, BooksCorpus (~4.5 GB).</li><li>Recipe: pretrain with the language-modelling objective, then <strong>fine-tune</strong> a small task head per downstream task.</li><li>Lesson: a generic Transformer decoder, pretrained on raw text, beats hand-engineered task-specific architectures across a wide benchmark suite.</li></ul><h3 id=gpt-2-feb-2019----zero-shot-emerges>GPT-2 (Feb 2019) &ndash; zero-shot emerges</h3><ul><li><strong>1.5 B</strong> parameters, WebText (~40 GB scraped from outbound Reddit links).</li><li>New idea: skip fine-tuning entirely. If you simply <em>describe</em> a task in the prompt, the model often does it.</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>Translate to French:
+</span></span><span class=line><span class=cl>English: The cat sat on the mat.
+</span></span><span class=line><span class=cl>French:
+</span></span></code></pre></td></tr></table></div></div><p>GPT-2 will produce a passable translation despite never having been trained on parallel data. It saw enough bilingual passages on the web to absorb the <em>pattern</em> &ldquo;English: &mldr; / French: &mldr;&rdquo;.</p><h3 id=gpt-3-may-2020----scale-changes-the-game>GPT-3 (May 2020) &ndash; scale changes the game</h3><ul><li><strong>175 B</strong> parameters (~$100\times$ GPT-2), ~570 GB of curated text, ~3.14$\times 10^{23}$ FLOPs of training compute.</li><li>The headline discovery: <strong>few-shot in-context learning</strong>. Drop a handful of input-output examples into the prompt and the model picks up the task on the fly, <em>with no gradient updates</em>.</li><li>Many capabilities (3-digit arithmetic, code completion, multi-step reasoning) were essentially absent at GPT-2 scale and suddenly present at GPT-3 scale &ndash; the <strong>emergence</strong> phenomenon we revisit in Section 7.</li></ul><h3 id=gpt-4-mar-2023----multimodal-and-instruction-tuned>GPT-4 (Mar 2023) &ndash; multimodal and instruction-tuned</h3><ul><li>Architecture and parameter count never officially disclosed (rumoured to be a Mixture-of-Experts in the trillion-parameter range).</li><li>Accepts both text and images.</li><li>Heavily refined with <strong>RLHF</strong> (Reinforcement Learning from Human Feedback) for safety, helpfulness, and instruction following.</li><li>Reaches the 90th percentile on the bar exam, scores 5 on AP exams, and handles long-horizon reasoning that earlier models could not.</li></ul><table><thead><tr><th>Model</th><th>Parameters</th><th>Training data</th><th>Headline capability</th></tr></thead><tbody><tr><td>GPT-1</td><td>117 M</td><td>4.5 GB</td><td>Pretrain + fine-tune works</td></tr><tr><td>GPT-2</td><td>1.5 B</td><td>40 GB</td><td>Zero-shot from prompts</td></tr><tr><td>GPT-3</td><td>175 B</td><td>570 GB</td><td>Few-shot in-context learning</td></tr><tr><td>GPT-4</td><td>(undisclosed)</td><td>(undisclosed)</td><td>Multimodal, strong reasoning, RLHF</td></tr></tbody></table><hr><h2 id=4-decoding-strategies>4. Decoding strategies</h2><p>The choice of decoding strategy can change a generation from <em>repetitive and lifeless</em> to <em>surprising and on-topic</em> without retraining a single weight. Below we visualise the four canonical strategies on the <strong>same</strong> next-token distribution from Section 2.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig5_sampling_strategies.png alt="Greedy, top-k, top-p, and temperature on the same distribution" loading=lazy decoding=async></figure></p><h3 id=41-greedy-decoding>4.1 Greedy decoding</h3><p>Always pick the highest-probability token: $x_t = \arg\max_w P(w \mid x_{<t})$.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>greedy_decode</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>prompt</span><span class=p>,</span> <span class=n>max_new</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>ids</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>input_ids</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_new</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>ids</span><span class=p>)</span><span class=o>.</span><span class=n>logits</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:]</span>
+</span></span><span class=line><span class=cl>        <span class=n>nxt</span> <span class=o>=</span> <span class=n>logits</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdim</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>ids</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>ids</span><span class=p>,</span> <span class=n>nxt</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>nxt</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>==</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>ids</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Pros</strong>: deterministic, fast. <strong>Cons</strong>: drifts into degenerate loops (<code>"the the the"</code>) and produces dull, predictable text. Use only when you need reproducibility for testing.</p><h3 id=42-beam-search>4.2 Beam search</h3><p>Maintain the top-$k$ partial sequences at every step, ranked by <em>cumulative</em> log-probability (with an optional length penalty to avoid favouring short sequences).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>beam_search</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>prompt</span><span class=p>,</span> <span class=n>beam</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>max_new</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span> <span class=n>lp</span><span class=o>=</span><span class=mf>0.6</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>ids</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>input_ids</span>
+</span></span><span class=line><span class=cl>    <span class=n>beams</span> <span class=o>=</span> <span class=p>[(</span><span class=n>ids</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_new</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>cands</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>seq</span><span class=p>,</span> <span class=n>score</span> <span class=ow>in</span> <span class=n>beams</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>seq</span><span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>==</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>cands</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>seq</span><span class=p>,</span> <span class=n>score</span><span class=p>));</span> <span class=k>continue</span>
+</span></span><span class=line><span class=cl>            <span class=n>logp</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>log_softmax</span><span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>seq</span><span class=p>)</span><span class=o>.</span><span class=n>logits</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>top_lp</span><span class=p>,</span> <span class=n>top_id</span> <span class=o>=</span> <span class=n>logp</span><span class=o>.</span><span class=n>topk</span><span class=p>(</span><span class=n>beam</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>idx</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>top_lp</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>top_id</span><span class=p>[</span><span class=mi>0</span><span class=p>]):</span>
+</span></span><span class=line><span class=cl>                <span class=n>new_seq</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>seq</span><span class=p>,</span> <span class=n>idx</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>)],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>cands</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>new_seq</span><span class=p>,</span> <span class=n>score</span> <span class=o>+</span> <span class=n>p</span><span class=o>.</span><span class=n>item</span><span class=p>()))</span>
+</span></span><span class=line><span class=cl>        <span class=n>cands</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>/</span> <span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span> <span class=o>**</span> <span class=n>lp</span><span class=p>),</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>beams</span> <span class=o>=</span> <span class=n>cands</span><span class=p>[:</span><span class=n>beam</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>beams</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=mi>0</span><span class=p>][</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Pros</strong>: higher likelihood than greedy, the workhorse of machine translation and summarisation. <strong>Cons</strong>: tends to produce <em>bland</em>, generic outputs in open-ended generation &ndash; a phenomenon called <strong>beam-search curse</strong> (the highest-likelihood sentences are often the most boring).</p><h3 id=43-top-k-sampling>4.3 Top-$k$ sampling</h3><p>Sample only from the $k$ most probable tokens (re-normalising their probabilities to sum to 1):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>top_k_sample</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>prompt</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>max_new</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>ids</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>input_ids</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_new</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>ids</span><span class=p>)</span><span class=o>.</span><span class=n>logits</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:]</span> <span class=o>/</span> <span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=n>top_logits</span><span class=p>,</span> <span class=n>top_ids</span> <span class=o>=</span> <span class=n>logits</span><span class=o>.</span><span class=n>topk</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>top_logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>multinomial</span><span class=p>(</span><span class=n>probs</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>nxt</span> <span class=o>=</span> <span class=n>top_ids</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=n>idx</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>ids</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>ids</span><span class=p>,</span> <span class=n>nxt</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>nxt</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>==</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>ids</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Caveat</strong>: $k$ is fixed. If the model is very confident (one token has 95% mass), top-$k$ still considers $k$ alternatives and may pick something silly. If the model is genuinely uncertain across hundreds of tokens, $k=50$ is too restrictive.</p><h3 id=44-top-p-nucleus-sampling>4.4 Top-$p$ (nucleus) sampling</h3><p>Pick the smallest set of tokens whose cumulative probability $\ge p$ &ndash; the <strong>nucleus</strong> &ndash; and sample from it. The size of the nucleus <em>adapts</em> to the model&rsquo;s confidence.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>top_p_sample</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>prompt</span><span class=p>,</span> <span class=n>p</span><span class=o>=</span><span class=mf>0.9</span><span class=p>,</span> <span class=n>T</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>max_new</span><span class=o>=</span><span class=mi>100</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>ids</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>input_ids</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_new</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>ids</span><span class=p>)</span><span class=o>.</span><span class=n>logits</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=p>:]</span> <span class=o>/</span> <span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=n>sorted_logits</span><span class=p>,</span> <span class=n>sorted_ids</span> <span class=o>=</span> <span class=n>logits</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>descending</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>sorted_logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>cum</span> <span class=o>=</span> <span class=n>probs</span><span class=o>.</span><span class=n>cumsum</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># keep tokens up to and including the one that crosses p</span>
+</span></span><span class=line><span class=cl>        <span class=n>keep</span> <span class=o>=</span> <span class=n>cum</span> <span class=o>&lt;=</span> <span class=n>p</span>
+</span></span><span class=line><span class=cl>        <span class=n>keep</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>               <span class=c1># always keep the top token</span>
+</span></span><span class=line><span class=cl>        <span class=n>keep</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=mi>1</span><span class=p>:]</span> <span class=o>=</span> <span class=n>keep</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=p>:</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span> <span class=o>|</span> <span class=p>(</span><span class=n>cum</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=p>:</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>&lt;=</span> <span class=n>p</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>sorted_logits</span><span class=p>[</span><span class=o>~</span><span class=n>keep</span><span class=p>]</span> <span class=o>=</span> <span class=o>-</span><span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>nucleus_probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>sorted_logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>multinomial</span><span class=p>(</span><span class=n>nucleus_probs</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>nxt</span> <span class=o>=</span> <span class=n>sorted_ids</span><span class=o>.</span><span class=n>gather</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=n>idx</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>ids</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>ids</span><span class=p>,</span> <span class=n>nxt</span><span class=p>],</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>nxt</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>==</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token_id</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>break</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>ids</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>In panel (c) above the nucleus has 5 tokens because the top 5 already cover 85% of the mass. On a different distribution it could be 1 token (very confident model) or 200 (very flat distribution). This adaptivity is why top-$p$ has become the default for open-ended generation.</p><h3 id=45-temperature>4.5 Temperature</h3><p>Temperature $T$ rescales the logits <em>before</em> the softmax:</p>$$
 P_T(w) = \text{softmax}(z / T)
-$$<p>Panel (d) above shows the same logits at $T = 0.5$ and $T = 1.5$. Intuitively, $T$ controls how <em>peaky</em> the distribution is:</p>
-<ul>
-<li>$T \to 0$: distribution collapses to a one-hot at the argmax (equivalent to greedy).</li>
-<li>$T = 1$: original distribution (no change).</li>
-<li>$T \to \infty$: distribution flattens to uniform.</li>
-</ul>
-<p>A practical rule of thumb: <strong>top-$p$ = 0.9 with $T$ = 0.7-0.9</strong> is the default for most chat / creative-writing applications.</p>
-<h3 id="strategy-cheat-sheet">Strategy cheat sheet</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Strategy</th>
-          <th>Diversity</th>
-          <th>Quality</th>
-          <th>Speed</th>
-          <th>Best for</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Greedy</td>
-          <td>None</td>
-          <td>Low</td>
-          <td>Fast</td>
-          <td>Reproducible debugging</td>
-      </tr>
-      <tr>
-          <td>Beam</td>
-          <td>Low</td>
-          <td>High likelihood</td>
-          <td>Slow</td>
-          <td>Translation, summarisation</td>
-      </tr>
-      <tr>
-          <td>Top-$k$</td>
-          <td>Medium</td>
-          <td>Medium-high</td>
-          <td>Medium</td>
-          <td>General-purpose generation</td>
-      </tr>
-      <tr>
-          <td>Top-$p$</td>
-          <td>Medium-high</td>
-          <td>High</td>
-          <td>Medium</td>
-          <td>Chat, story-writing, dialogue</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="5-scaling-laws-predictability-before-emergence">5. Scaling laws: predictability before emergence</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig3_scaling_laws.png" alt="Scaling laws: loss decreases as a power law" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>In 2020 Kaplan et al. discovered that test loss decreases as a <em>clean power law</em> in three quantities &ndash; model parameters $N$, dataset size $D$, and training compute $C$ &ndash; as long as none of the three is the bottleneck:</p>
-$$
+$$<p>Panel (d) above shows the same logits at $T = 0.5$ and $T = 1.5$. Intuitively, $T$ controls how <em>peaky</em> the distribution is:</p><ul><li>$T \to 0$: distribution collapses to a one-hot at the argmax (equivalent to greedy).</li><li>$T = 1$: original distribution (no change).</li><li>$T \to \infty$: distribution flattens to uniform.</li></ul><p>A practical rule of thumb: <strong>top-$p$ = 0.9 with $T$ = 0.7-0.9</strong> is the default for most chat / creative-writing applications.</p><h3 id=strategy-cheat-sheet>Strategy cheat sheet</h3><table><thead><tr><th>Strategy</th><th>Diversity</th><th>Quality</th><th>Speed</th><th>Best for</th></tr></thead><tbody><tr><td>Greedy</td><td>None</td><td>Low</td><td>Fast</td><td>Reproducible debugging</td></tr><tr><td>Beam</td><td>Low</td><td>High likelihood</td><td>Slow</td><td>Translation, summarisation</td></tr><tr><td>Top-$k$</td><td>Medium</td><td>Medium-high</td><td>Medium</td><td>General-purpose generation</td></tr><tr><td>Top-$p$</td><td>Medium-high</td><td>High</td><td>Medium</td><td>Chat, story-writing, dialogue</td></tr></tbody></table><hr><h2 id=5-scaling-laws-predictability-before-emergence>5. Scaling laws: predictability before emergence</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig3_scaling_laws.png alt="Scaling laws: loss decreases as a power law" loading=lazy decoding=async></figure></p><p>In 2020 Kaplan et al. discovered that test loss decreases as a <em>clean power law</em> in three quantities &ndash; model parameters $N$, dataset size $D$, and training compute $C$ &ndash; as long as none of the three is the bottleneck:</p>$$
 L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N},\quad L(C) \approx \left(\frac{C_c}{C}\right)^{\alpha_C}
-$$<p>with empirically tiny exponents ($\alpha_N \approx 0.076$, $\alpha_C \approx 0.050$). On log-log axes these become straight lines, which is why both panels above are linear. Two consequences:</p>
-<ol>
-<li><strong>You can predict</strong> the loss of a 175 B-parameter model from runs at $\le 1$ B. This is what made the leap to GPT-3 economically defensible &ndash; the team knew, before spending millions of dollars on GPUs, roughly where the loss curve would land.</li>
-<li><strong>There is an irreducible loss floor</strong> (the dashed line) &ndash; the entropy of the data itself. No amount of scaling crosses it.</li>
-</ol>
-<p>The 2022 <strong>Chinchilla</strong> paper later refined the picture: for a fixed compute budget, GPT-3 was substantially <em>under-trained</em>. The compute-optimal recipe is roughly <strong>20 tokens per parameter</strong> &ndash; so a 70 B model trained on 1.4 T tokens (Chinchilla) outperforms a 175 B model trained on 300 B tokens (GPT-3) at the same compute. Modern open-weights models (LLaMA, Mistral, Qwen) all follow Chinchilla-style scaling.</p>
-<hr>
-<h2 id="6-emergent-capabilities">6. Emergent capabilities</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig6_emergent_capabilities.png" alt="Emergent capabilities: sharp phase transitions with scale" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Scaling laws say the <em>aggregate loss</em> decreases smoothly. But many <em>individual tasks</em> do not improve smoothly &ndash; they sit at chance for orders of magnitude of scale and then suddenly snap to high accuracy.</p>
-<p>The figure shows the qualitative shape: sentiment classification (blue) improves smoothly from small scale; few-shot in-context learning, 3-digit arithmetic, and chain-of-thought reasoning (purple, amber, green) stay near random until a critical model size, then shoot up. Wei et al. (2022) catalogued 137 such tasks in the <strong>BIG-Bench</strong> benchmark.</p>
-<p>Whether emergence is &ldquo;real&rdquo; or an artefact of how we measure (using exact-match accuracy on a discrete task) is still debated &ndash; Schaeffer et al. (2023) showed that switching to a continuous metric makes some emergence curves look smooth. But the operational fact remains: at small scale the model <em>cannot</em> do the task; somewhere between $10^{10}$ and $10^{11}$ parameters it can. Plan your roadmap accordingly.</p>
-<hr>
-<h2 id="7-in-context-learning">7. In-context learning</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig7_in_context_learning.png" alt="Few-shot in-context learning" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Possibly the most surprising property of large GPT-style models: you can teach them new tasks <em>just by showing examples in the prompt</em>. No backprop, no optimiser, no parameter updates &ndash; the model adapts purely through what it reads.</p>
-<h3 id="zero-shot-vs-few-shot">Zero-shot vs. few-shot</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl"># Zero-shot
-</span></span><span class="line"><span class="cl">Translate the following English sentence to French:
-</span></span><span class="line"><span class="cl">The bird flew in the sky.
-</span></span><span class="line"><span class="cl">French:
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"># Few-shot
-</span></span><span class="line"><span class="cl">Translate English to French.
-</span></span><span class="line"><span class="cl">English: The cat sat on the mat. -&gt; French: Le chat s&#39;est assis sur le tapis.
-</span></span><span class="line"><span class="cl">English: The dog ran in the park. -&gt; French: Le chien a couru dans le parc.
-</span></span><span class="line"><span class="cl">English: The bird flew in the sky. -&gt; French:
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The few-shot prompt gives the model a <em>format</em> to imitate. Empirically, 2-5 examples are enough for most tasks; returns flatten beyond about 8.</p>
-<h3 id="why-does-this-work">Why does this work?</h3>
-<p>The mechanism is still an active research area, but the leading explanations are:</p>
-<ul>
-<li><strong>Pattern matching at scale.</strong> Pretraining on the web exposes the model to countless input-output formats; the prompt activates a matching template.</li>
-<li><strong>Implicit gradient descent.</strong> Garg et al. (2022) and others show that, in toy linear-regression settings, a Transformer can implement a <em>single step of gradient descent</em> in its forward pass over the in-context examples. Larger models, more steps.</li>
-<li><strong>Bayesian latent-task inference.</strong> Xie et al. (2022) frame ICL as inferring a hidden &ldquo;task&rdquo; variable from the examples and then conditioning generation on it.</li>
-<li><strong>Phase transition with scale.</strong> ICL only works above a few-billion parameter threshold &ndash; consistent with the emergence story.</li>
-</ul>
-<h3 id="practical-prompt-engineering-recipe">Practical prompt-engineering recipe</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">few_shot_prompt</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">examples</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="p">,</span> <span class="s2">&#34;&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">inp</span><span class="p">,</span> <span class="n">out</span> <span class="ow">in</span> <span class="n">examples</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Input: </span><span class="si">{</span><span class="n">inp</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output: </span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Input: </span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="se">\n</span><span class="s2">Output:&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>A few rules of thumb that consistently help:</p>
-<ol>
-<li><strong>Be explicit.</strong> State the task in plain language at the top.</li>
-<li><strong>Pick representative examples.</strong> Cover the variation you expect at test time.</li>
-<li><strong>Keep formatting consistent.</strong> Same delimiters, same casing, same labels.</li>
-<li><strong>For reasoning tasks, use chain-of-thought.</strong> Ask the model to &ldquo;think step by step&rdquo; or include worked-through reasoning in your few-shot examples. This unlocks substantial accuracy gains on math and logic benchmarks.</li>
-</ol>
-<hr>
-<h2 id="8-evaluating-generated-text">8. Evaluating generated text</h2>
-<p>There is no perfect metric &ndash; but knowing which approximate metric to use, and what it misses, is essential.</p>
-<h3 id="bleu-translation">BLEU (translation)</h3>
-<p>Measures n-gram precision of the generation against one or more references, with a brevity penalty:</p>
-$$
+$$<p>with empirically tiny exponents ($\alpha_N \approx 0.076$, $\alpha_C \approx 0.050$). On log-log axes these become straight lines, which is why both panels above are linear. Two consequences:</p><ol><li><strong>You can predict</strong> the loss of a 175 B-parameter model from runs at $\le 1$ B. This is what made the leap to GPT-3 economically defensible &ndash; the team knew, before spending millions of dollars on GPUs, roughly where the loss curve would land.</li><li><strong>There is an irreducible loss floor</strong> (the dashed line) &ndash; the entropy of the data itself. No amount of scaling crosses it.</li></ol><p>The 2022 <strong>Chinchilla</strong> paper later refined the picture: for a fixed compute budget, GPT-3 was substantially <em>under-trained</em>. The compute-optimal recipe is roughly <strong>20 tokens per parameter</strong> &ndash; so a 70 B model trained on 1.4 T tokens (Chinchilla) outperforms a 175 B model trained on 300 B tokens (GPT-3) at the same compute. Modern open-weights models (LLaMA, Mistral, Qwen) all follow Chinchilla-style scaling.</p><hr><h2 id=6-emergent-capabilities>6. Emergent capabilities</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig6_emergent_capabilities.png alt="Emergent capabilities: sharp phase transitions with scale" loading=lazy decoding=async></figure></p><p>Scaling laws say the <em>aggregate loss</em> decreases smoothly. But many <em>individual tasks</em> do not improve smoothly &ndash; they sit at chance for orders of magnitude of scale and then suddenly snap to high accuracy.</p><p>The figure shows the qualitative shape: sentiment classification (blue) improves smoothly from small scale; few-shot in-context learning, 3-digit arithmetic, and chain-of-thought reasoning (purple, amber, green) stay near random until a critical model size, then shoot up. Wei et al. (2022) catalogued 137 such tasks in the <strong>BIG-Bench</strong> benchmark.</p><p>Whether emergence is &ldquo;real&rdquo; or an artefact of how we measure (using exact-match accuracy on a discrete task) is still debated &ndash; Schaeffer et al. (2023) showed that switching to a continuous metric makes some emergence curves look smooth. But the operational fact remains: at small scale the model <em>cannot</em> do the task; somewhere between $10^{10}$ and $10^{11}$ parameters it can. Plan your roadmap accordingly.</p><hr><h2 id=7-in-context-learning>7. In-context learning</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/gpt-generative-models/fig7_in_context_learning.png alt="Few-shot in-context learning" loading=lazy decoding=async></figure></p><p>Possibly the most surprising property of large GPT-style models: you can teach them new tasks <em>just by showing examples in the prompt</em>. No backprop, no optimiser, no parameter updates &ndash; the model adapts purely through what it reads.</p><h3 id=zero-shot-vs-few-shot>Zero-shot vs. few-shot</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl># Zero-shot
+</span></span><span class=line><span class=cl>Translate the following English sentence to French:
+</span></span><span class=line><span class=cl>The bird flew in the sky.
+</span></span><span class=line><span class=cl>French:
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl># Few-shot
+</span></span><span class=line><span class=cl>Translate English to French.
+</span></span><span class=line><span class=cl>English: The cat sat on the mat. -&gt; French: Le chat s&#39;est assis sur le tapis.
+</span></span><span class=line><span class=cl>English: The dog ran in the park. -&gt; French: Le chien a couru dans le parc.
+</span></span><span class=line><span class=cl>English: The bird flew in the sky. -&gt; French:
+</span></span></code></pre></td></tr></table></div></div><p>The few-shot prompt gives the model a <em>format</em> to imitate. Empirically, 2-5 examples are enough for most tasks; returns flatten beyond about 8.</p><h3 id=why-does-this-work>Why does this work?</h3><p>The mechanism is still an active research area, but the leading explanations are:</p><ul><li><strong>Pattern matching at scale.</strong> Pretraining on the web exposes the model to countless input-output formats; the prompt activates a matching template.</li><li><strong>Implicit gradient descent.</strong> Garg et al. (2022) and others show that, in toy linear-regression settings, a Transformer can implement a <em>single step of gradient descent</em> in its forward pass over the in-context examples. Larger models, more steps.</li><li><strong>Bayesian latent-task inference.</strong> Xie et al. (2022) frame ICL as inferring a hidden &ldquo;task&rdquo; variable from the examples and then conditioning generation on it.</li><li><strong>Phase transition with scale.</strong> ICL only works above a few-billion parameter threshold &ndash; consistent with the emergence story.</li></ul><h3 id=practical-prompt-engineering-recipe>Practical prompt-engineering recipe</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>few_shot_prompt</span><span class=p>(</span><span class=n>task</span><span class=p>,</span> <span class=n>examples</span><span class=p>,</span> <span class=n>query</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>parts</span> <span class=o>=</span> <span class=p>[</span><span class=n>task</span><span class=p>,</span> <span class=s2>&#34;&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>inp</span><span class=p>,</span> <span class=n>out</span> <span class=ow>in</span> <span class=n>examples</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>parts</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Input: </span><span class=si>{</span><span class=n>inp</span><span class=si>}</span><span class=se>\n</span><span class=s2>Output: </span><span class=si>{</span><span class=n>out</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>parts</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Input: </span><span class=si>{</span><span class=n>query</span><span class=si>}</span><span class=se>\n</span><span class=s2>Output:&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>parts</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>A few rules of thumb that consistently help:</p><ol><li><strong>Be explicit.</strong> State the task in plain language at the top.</li><li><strong>Pick representative examples.</strong> Cover the variation you expect at test time.</li><li><strong>Keep formatting consistent.</strong> Same delimiters, same casing, same labels.</li><li><strong>For reasoning tasks, use chain-of-thought.</strong> Ask the model to &ldquo;think step by step&rdquo; or include worked-through reasoning in your few-shot examples. This unlocks substantial accuracy gains on math and logic benchmarks.</li></ol><hr><h2 id=8-evaluating-generated-text>8. Evaluating generated text</h2><p>There is no perfect metric &ndash; but knowing which approximate metric to use, and what it misses, is essential.</p><h3 id=bleu-translation>BLEU (translation)</h3><p>Measures n-gram precision of the generation against one or more references, with a brevity penalty:</p>$$
 \text{BLEU} = \text{BP}\cdot\exp\!\left(\sum_{n=1}^{N} w_n \log p_n\right)
-$$<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.translate.bleu_score</span> <span class="kn">import</span> <span class="n">sentence_bleu</span><span class="p">,</span> <span class="n">SmoothingFunction</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">bleu</span><span class="p">(</span><span class="n">generated</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">sentence_bleu</span><span class="p">([</span><span class="n">reference</span><span class="o">.</span><span class="n">split</span><span class="p">()],</span> <span class="n">generated</span><span class="o">.</span><span class="n">split</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                         <span class="n">smoothing_function</span><span class="o">=</span><span class="n">SmoothingFunction</span><span class="p">()</span><span class="o">.</span><span class="n">method1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Strong correlation with human judgement <em>for translation</em>; weak for open-ended generation.</p>
-<h3 id="rouge-summarisation">ROUGE (summarisation)</h3>
-<p>Measures n-gram <strong>recall</strong> &ndash; how much of the reference appears in the generation:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">rouge_score</span> <span class="kn">import</span> <span class="n">rouge_scorer</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">rouge</span><span class="p">(</span><span class="n">generated</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">scorer</span> <span class="o">=</span> <span class="n">rouge_scorer</span><span class="o">.</span><span class="n">RougeScorer</span><span class="p">([</span><span class="s2">&#34;rouge1&#34;</span><span class="p">,</span> <span class="s2">&#34;rouge2&#34;</span><span class="p">,</span> <span class="s2">&#34;rougeL&#34;</span><span class="p">],</span> <span class="n">use_stemmer</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">s</span> <span class="o">=</span> <span class="n">scorer</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">generated</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">fmeasure</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="perplexity-intrinsic">Perplexity (intrinsic)</h3>
-<p>How &ldquo;surprised&rdquo; the model is by held-out text. Lower is better:</p>
-$$
-\text{PPL} = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i\mid w_{<i})\right)
-$$<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">perplexity</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">enc</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">enc</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">enc</span><span class="o">.</span><span class="n">input_ids</span><span class="p">)</span><span class="o">.</span><span class="n">loss</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Perplexity is a useful <em>intrinsic</em> signal during training, but <strong>a low perplexity does not mean a good chatbot</strong> &ndash; the model could be excellent at predicting common patterns and still hallucinate.</p>
-<h3 id="which-metric-for-which-task">Which metric for which task?</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Task</th>
-          <th>Recommended</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Machine translation</td>
-          <td>BLEU, chrF, COMET (learned)</td>
-      </tr>
-      <tr>
-          <td>Summarisation</td>
-          <td>ROUGE, BERTScore</td>
-      </tr>
-      <tr>
-          <td>Open-ended dialogue</td>
-          <td>Human eval + diversity (distinct-n)</td>
-      </tr>
-      <tr>
-          <td>Instruction following</td>
-          <td>LLM-as-judge + human eval</td>
-      </tr>
-      <tr>
-          <td>Language modelling</td>
-          <td>Perplexity</td>
-      </tr>
-  </tbody>
-</table>
-<p>For anything user-facing, <strong>human evaluation remains the gold standard</strong>.</p>
-<hr>
-<h2 id="9-build-a-chatbot-with-gpt-2">9. Build a chatbot with GPT-2</h2>
-<p>GPT-2 is small enough to run on CPU and large enough to be interesting. The HuggingFace <code>transformers</code> library hides almost all of the boilerplate.</p>
-<h3 id="single-turn">Single-turn</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">GPT2LMHeadModel</span><span class="p">,</span> <span class="n">GPT2Tokenizer</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ChatBot</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;gpt2&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">GPT2Tokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">GPT2LMHeadModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">respond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_new</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">top_p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;User: </span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="se">\n</span><span class="s2">Assistant:&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="n">ids</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">max_new</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">top_p</span><span class="o">=</span><span class="n">top_p</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">no_repeat_ngram_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">pad_token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;Assistant:&#34;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">ChatBot</span><span class="p">()</span><span class="o">.</span><span class="n">respond</span><span class="p">(</span><span class="s2">&#34;What is machine learning?&#34;</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="multi-turn-with-rolling-history">Multi-turn (with rolling history)</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MultiTurnBot</span><span class="p">(</span><span class="n">ChatBot</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;gpt2&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">respond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_turns</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="o">**</span><span class="n">gen_kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Keep only the last N turns to fit in the 1024-token context window</span>
-</span></span><span class="line"><span class="cl">        <span class="n">recent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">max_turns</span><span class="p">:]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prompt</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">recent</span> <span class="o">+</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;User: </span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="s2">&#34;Assistant:&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="n">ids</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">gen_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;max_new&#34;</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="o">=</span><span class="n">gen_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;temperature&#34;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">top_p</span><span class="o">=</span><span class="n">gen_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;top_p&#34;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">no_repeat_ngram_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">pad_token_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">reply</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">reply</span> <span class="o">=</span> <span class="n">reply</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;Assistant:&#34;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;User:&#34;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&#34;User: </span><span class="si">{</span><span class="n">user</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&#34;Assistant: </span><span class="si">{</span><span class="n">reply</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">reply</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="one-liner-with-the-pipeline-api">One-liner with the pipeline API</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">pipeline</span>
-</span></span><span class="line"><span class="cl"><span class="n">gen</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">(</span><span class="s2">&#34;text-generation&#34;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt2&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">gen</span><span class="p">(</span><span class="s2">&#34;User: What is deep learning?</span><span class="se">\n</span><span class="s2">Assistant:&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">          <span class="n">max_new_tokens</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">top_p</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&#34;generated_text&#34;</span><span class="p">])</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><blockquote>
-<p>GPT-2 will <em>not</em> sound like ChatGPT &ndash; it has neither instruction-tuning nor RLHF. To get ChatGPT-like behaviour you need either an instruction-tuned open model (e.g. <code>meta-llama/Llama-3-8B-Instruct</code>, <code>Qwen/Qwen2.5-7B-Instruct</code>) or to fine-tune GPT-2 yourself on an instruction dataset.</p>
-</blockquote>
-<hr>
-<h2 id="10-gpt-vs-bert-in-one-table">10. GPT vs. BERT, in one table</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Aspect</th>
-          <th>BERT</th>
-          <th>GPT</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Architecture</td>
-          <td>Encoder, bidirectional self-attention</td>
-          <td>Decoder, <strong>causal</strong> self-attention</td>
-      </tr>
-      <tr>
-          <td>Pretraining</td>
-          <td>Masked LM + Next-Sentence Prediction</td>
-          <td>Causal language modelling</td>
-      </tr>
-      <tr>
-          <td>Context</td>
-          <td>Sees both left and right</td>
-          <td>Sees only the left (past)</td>
-      </tr>
-      <tr>
-          <td>Sweet spot</td>
-          <td>Classification, NER, QA, retrieval</td>
-          <td>Generation, dialogue, code, creative text</td>
-      </tr>
-      <tr>
-          <td>Adaptation</td>
-          <td>Fine-tune a task head per task</td>
-          <td>Prompt (zero/few-shot) or fine-tune</td>
-      </tr>
-      <tr>
-          <td>Scaling story</td>
-          <td>Returns diminish above ~1 B params</td>
-          <td>Returns continue; emergent abilities appear</td>
-      </tr>
-  </tbody>
-</table>
-<p>A useful mental model: <strong>BERT is a search engine</strong>, <strong>GPT is a writer</strong>. Use BERT-family models when you need a vector representation of an input; use GPT-family models when you need to produce output text.</p>
-<hr>
-<h2 id="11-limitations-to-be-honest-about">11. Limitations to be honest about</h2>
-<ul>
-<li><strong>Hallucination.</strong> Producing fluent but factually wrong text is the model&rsquo;s default mode for anything it does not know. Mitigations: retrieval-augmentation (Part 10), tool use, calibrated refusal training.</li>
-<li><strong>Context length.</strong> GPT-2 had 1024 tokens; GPT-3 had 2048; GPT-4 went to 32 K and then 128 K; today 1 M is becoming common. But long contexts are expensive and recall in the <em>middle</em> of a long context degrades (&ldquo;lost in the middle&rdquo;).</li>
-<li><strong>Compute cost.</strong> A single forward pass of a 175 B-parameter model needs hundreds of GB of GPU memory. Inference cost dominates training cost over a model&rsquo;s lifetime.</li>
-<li><strong>Training-data bias.</strong> The model reproduces whatever statistical patterns &ndash; including stereotypes &ndash; exist in its training data.</li>
-<li><strong>Limited controllability.</strong> Hard guardrails on style, format, or factuality require additional machinery (system prompts, constrained decoding, RLHF, post-hoc filters).</li>
-</ul>
-<hr>
-<h2 id="12-key-takeaways">12. Key takeaways</h2>
-<ul>
-<li>A GPT model is just a <strong>decoder-only Transformer with a causal mask</strong> trained to predict the next token. The simplicity is the point.</li>
-<li><strong>Scale is the multiplier</strong>: parameters, data, and compute together produce a clean power-law improvement in loss, with sudden capability jumps on top.</li>
-<li><strong>In-context learning</strong> lets a single fixed model handle thousands of tasks via prompts &ndash; no fine-tuning required for most use-cases.</li>
-<li><strong>Decoding strategy</strong> is a free lever: prefer <strong>top-$p$ + temperature 0.7-0.9</strong> for chat and creative writing; greedy or beam for translation and reproducibility.</li>
-<li><strong>BERT understands; GPT generates.</strong> Together they cover the full spectrum of modern NLP, and Parts 7-12 will dive into how to wield GPT-style models effectively (prompting, fine-tuning, RAG, multimodal, &hellip;).</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-          <th>Link</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td>Introduction and Text Preprocessing</td>
-          <td><a href="/en/nlp-introduction-and-preprocessing/">Read</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td>Word Embeddings and Language Models</td>
-          <td><a href="/en/nlp-word-embeddings-lm/">Read</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td>RNN and Sequence Modeling</td>
-          <td><a href="/en/nlp-rnn-sequence-modeling/">Read</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td>Attention and Transformer</td>
-          <td><a href="/en/nlp-attention-transformer/">Read</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td>BERT and Pretrained Models</td>
-          <td><a href="/en/nlp-bert-pretrained-models/">Previous</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>6</strong></td>
-          <td><strong>GPT and Generative Models (this article)</strong></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td>7</td>
-          <td>Prompt Engineering and In-Context Learning</td>
-          <td><a href="/en/nlp-prompt-engineering-icl/">Next</a>
-</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td>Fine-tuning and PEFT</td>
-          <td><a href="/en/nlp-fine-tuning-peft/">Read</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#1-the-decoder-only-transformer">1. The decoder-only Transformer</a>
-      <ul>
-        <li><a href="#the-forward-pass-in-one-breath">The forward pass, in one breath</a></li>
-        <li><a href="#causal-mask-made-concrete">Causal mask, made concrete</a></li>
-        <li><a href="#training-objective">Training objective</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-autoregressive-generation-step-by-step">2. Autoregressive generation, step by step</a></li>
-    <li><a href="#3-the-gpt-family-5-years-sim10000times-growth">3. The GPT family: 5 years, 10,000 growth</a>
-      <ul>
-        <li><a href="#gpt-1-jun-2018----proof-of-concept">GPT-1 (Jun 2018) &ndash; proof of concept</a></li>
-        <li><a href="#gpt-2-feb-2019----zero-shot-emerges">GPT-2 (Feb 2019) &ndash; zero-shot emerges</a></li>
-        <li><a href="#gpt-3-may-2020----scale-changes-the-game">GPT-3 (May 2020) &ndash; scale changes the game</a></li>
-        <li><a href="#gpt-4-mar-2023----multimodal-and-instruction-tuned">GPT-4 (Mar 2023) &ndash; multimodal and instruction-tuned</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-decoding-strategies">4. Decoding strategies</a>
-      <ul>
-        <li><a href="#41-greedy-decoding">4.1 Greedy decoding</a></li>
-        <li><a href="#42-beam-search">4.2 Beam search</a></li>
-        <li><a href="#43-top-k-sampling">4.3 Top- sampling</a></li>
-        <li><a href="#44-top-p-nucleus-sampling">4.4 Top- (nucleus) sampling</a></li>
-        <li><a href="#45-temperature">4.5 Temperature</a></li>
-        <li><a href="#strategy-cheat-sheet">Strategy cheat sheet</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-scaling-laws-predictability-before-emergence">5. Scaling laws: predictability before emergence</a></li>
-    <li><a href="#6-emergent-capabilities">6. Emergent capabilities</a></li>
-    <li><a href="#7-in-context-learning">7. In-context learning</a>
-      <ul>
-        <li><a href="#zero-shot-vs-few-shot">Zero-shot vs. few-shot</a></li>
-        <li><a href="#why-does-this-work">Why does this work?</a></li>
-        <li><a href="#practical-prompt-engineering-recipe">Practical prompt-engineering recipe</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-evaluating-generated-text">8. Evaluating generated text</a>
-      <ul>
-        <li><a href="#bleu-translation">BLEU (translation)</a></li>
-        <li><a href="#rouge-summarisation">ROUGE (summarisation)</a></li>
-        <li><a href="#perplexity-intrinsic">Perplexity (intrinsic)</a></li>
-        <li><a href="#which-metric-for-which-task">Which metric for which task?</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-build-a-chatbot-with-gpt-2">9. Build a chatbot with GPT-2</a>
-      <ul>
-        <li><a href="#single-turn">Single-turn</a></li>
-        <li><a href="#multi-turn-with-rolling-history">Multi-turn (with rolling history)</a></li>
-        <li><a href="#one-liner-with-the-pipeline-api">One-liner with the pipeline API</a></li>
-      </ul>
-    </li>
-    <li><a href="#10-gpt-vs-bert-in-one-table">10. GPT vs. BERT, in one table</a></li>
-    <li><a href="#11-limitations-to-be-honest-about">11. Limitations to be honest about</a></li>
-    <li><a href="#12-key-takeaways">12. Key takeaways</a></li>
-    <li><a href="#series-navigation">Series navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Natural language processing</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>6 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1200</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.translate.bleu_score</span> <span class=kn>import</span> <span class=n>sentence_bleu</span><span class=p>,</span> <span class=n>SmoothingFunction</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>bleu</span><span class=p>(</span><span class=n>generated</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>reference</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>sentence_bleu</span><span class=p>([</span><span class=n>reference</span><span class=o>.</span><span class=n>split</span><span class=p>()],</span> <span class=n>generated</span><span class=o>.</span><span class=n>split</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                         <span class=n>smoothing_function</span><span class=o>=</span><span class=n>SmoothingFunction</span><span class=p>()</span><span class=o>.</span><span class=n>method1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Strong correlation with human judgement <em>for translation</em>; weak for open-ended generation.</p><h3 id=rouge-summarisation>ROUGE (summarisation)</h3><p>Measures n-gram <strong>recall</strong> &ndash; how much of the reference appears in the generation:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>rouge_score</span> <span class=kn>import</span> <span class=n>rouge_scorer</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>rouge</span><span class=p>(</span><span class=n>generated</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>reference</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>scorer</span> <span class=o>=</span> <span class=n>rouge_scorer</span><span class=o>.</span><span class=n>RougeScorer</span><span class=p>([</span><span class=s2>&#34;rouge1&#34;</span><span class=p>,</span> <span class=s2>&#34;rouge2&#34;</span><span class=p>,</span> <span class=s2>&#34;rougeL&#34;</span><span class=p>],</span> <span class=n>use_stemmer</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>s</span> <span class=o>=</span> <span class=n>scorer</span><span class=o>.</span><span class=n>score</span><span class=p>(</span><span class=n>reference</span><span class=p>,</span> <span class=n>generated</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=n>k</span><span class=p>:</span> <span class=n>v</span><span class=o>.</span><span class=n>fmeasure</span> <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>s</span><span class=o>.</span><span class=n>items</span><span class=p>()}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=perplexity-intrinsic>Perplexity (intrinsic)</h3><p>How &ldquo;surprised&rdquo; the model is by held-out text. Lower is better:</p>$$
+\text{PPL} = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i\mid w_{<i})\right) $$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>perplexity</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>enc</span> <span class=o>=</span> <span class=n>tokenizer</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=o>**</span><span class=n>enc</span><span class=p>,</span> <span class=n>labels</span><span class=o>=</span><span class=n>enc</span><span class=o>.</span><span class=n>input_ids</span><span class=p>)</span><span class=o>.</span><span class=n>loss</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>loss</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>Perplexity is a useful <em>intrinsic</em> signal during training, but <strong>a low perplexity does not mean a good chatbot</strong> &ndash; the model could be excellent at predicting common patterns and still hallucinate.</p><h3 id=which-metric-for-which-task>Which metric for which task?</h3><table><thead><tr><th>Task</th><th>Recommended</th></tr></thead><tbody><tr><td>Machine translation</td><td>BLEU, chrF, COMET (learned)</td></tr><tr><td>Summarisation</td><td>ROUGE, BERTScore</td></tr><tr><td>Open-ended dialogue</td><td>Human eval + diversity (distinct-n)</td></tr><tr><td>Instruction following</td><td>LLM-as-judge + human eval</td></tr><tr><td>Language modelling</td><td>Perplexity</td></tr></tbody></table><p>For anything user-facing, <strong>human evaluation remains the gold standard</strong>.</p><hr><h2 id=9-build-a-chatbot-with-gpt-2>9. Build a chatbot with GPT-2</h2><p>GPT-2 is small enough to run on CPU and large enough to be interesting. The HuggingFace <code>transformers</code> library hides almost all of the boilerplate.</p><h3 id=single-turn>Single-turn</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>GPT2LMHeadModel</span><span class=p>,</span> <span class=n>GPT2Tokenizer</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ChatBot</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;gpt2&#34;</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>GPT2Tokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=n>GPT2LMHeadModel</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>name</span><span class=p>)</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>pad_token</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>pad_token</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>respond</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_new</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>temperature</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.8</span><span class=p>,</span> <span class=n>top_p</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.9</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>prompt</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;User: </span><span class=si>{</span><span class=n>user</span><span class=si>}</span><span class=se>\n</span><span class=s2>Assistant:&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>ids</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>encode</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>ids</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>max_new_tokens</span><span class=o>=</span><span class=n>max_new</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>do_sample</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>temperature</span><span class=o>=</span><span class=n>temperature</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>top_p</span><span class=o>=</span><span class=n>top_p</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>no_repeat_ngram_size</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>pad_token_id</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>out</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>text</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;Assistant:&#34;</span><span class=p>)[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>ChatBot</span><span class=p>()</span><span class=o>.</span><span class=n>respond</span><span class=p>(</span><span class=s2>&#34;What is machine learning?&#34;</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=multi-turn-with-rolling-history>Multi-turn (with rolling history)</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>MultiTurnBot</span><span class=p>(</span><span class=n>ChatBot</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;gpt2&#34;</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>history</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>respond</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_turns</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5</span><span class=p>,</span> <span class=o>**</span><span class=n>gen_kwargs</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Keep only the last N turns to fit in the 1024-token context window</span>
+</span></span><span class=line><span class=cl>        <span class=n>recent</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>history</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span> <span class=o>*</span> <span class=n>max_turns</span><span class=p>:]</span>
+</span></span><span class=line><span class=cl>        <span class=n>prompt</span> <span class=o>=</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>recent</span> <span class=o>+</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;User: </span><span class=si>{</span><span class=n>user</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span> <span class=s2>&#34;Assistant:&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>ids</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>encode</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>ids</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>max_new_tokens</span><span class=o>=</span><span class=n>gen_kwargs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;max_new&#34;</span><span class=p>,</span> <span class=mi>100</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                <span class=n>do_sample</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>temperature</span><span class=o>=</span><span class=n>gen_kwargs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;temperature&#34;</span><span class=p>,</span> <span class=mf>0.8</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                <span class=n>top_p</span><span class=o>=</span><span class=n>gen_kwargs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;top_p&#34;</span><span class=p>,</span> <span class=mf>0.9</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                <span class=n>no_repeat_ngram_size</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>pad_token_id</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>eos_token_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>reply</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>out</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>reply</span> <span class=o>=</span> <span class=n>reply</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;Assistant:&#34;</span><span class=p>)[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;User:&#34;</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>history</span> <span class=o>+=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>&#34;User: </span><span class=si>{</span><span class=n>user</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&#34;Assistant: </span><span class=si>{</span><span class=n>reply</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>reply</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=one-liner-with-the-pipeline-api>One-liner with the pipeline API</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>pipeline</span>
+</span></span><span class=line><span class=cl><span class=n>gen</span> <span class=o>=</span> <span class=n>pipeline</span><span class=p>(</span><span class=s2>&#34;text-generation&#34;</span><span class=p>,</span> <span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt2&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>gen</span><span class=p>(</span><span class=s2>&#34;User: What is deep learning?</span><span class=se>\n</span><span class=s2>Assistant:&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>          <span class=n>max_new_tokens</span><span class=o>=</span><span class=mi>80</span><span class=p>,</span> <span class=n>do_sample</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>temperature</span><span class=o>=</span><span class=mf>0.8</span><span class=p>,</span> <span class=n>top_p</span><span class=o>=</span><span class=mf>0.9</span><span class=p>)[</span><span class=mi>0</span><span class=p>][</span><span class=s2>&#34;generated_text&#34;</span><span class=p>])</span>
+</span></span></code></pre></td></tr></table></div></div><blockquote><p>GPT-2 will <em>not</em> sound like ChatGPT &ndash; it has neither instruction-tuning nor RLHF. To get ChatGPT-like behaviour you need either an instruction-tuned open model (e.g. <code>meta-llama/Llama-3-8B-Instruct</code>, <code>Qwen/Qwen2.5-7B-Instruct</code>) or to fine-tune GPT-2 yourself on an instruction dataset.</p></blockquote><hr><h2 id=10-gpt-vs-bert-in-one-table>10. GPT vs. BERT, in one table</h2><table><thead><tr><th>Aspect</th><th>BERT</th><th>GPT</th></tr></thead><tbody><tr><td>Architecture</td><td>Encoder, bidirectional self-attention</td><td>Decoder, <strong>causal</strong> self-attention</td></tr><tr><td>Pretraining</td><td>Masked LM + Next-Sentence Prediction</td><td>Causal language modelling</td></tr><tr><td>Context</td><td>Sees both left and right</td><td>Sees only the left (past)</td></tr><tr><td>Sweet spot</td><td>Classification, NER, QA, retrieval</td><td>Generation, dialogue, code, creative text</td></tr><tr><td>Adaptation</td><td>Fine-tune a task head per task</td><td>Prompt (zero/few-shot) or fine-tune</td></tr><tr><td>Scaling story</td><td>Returns diminish above ~1 B params</td><td>Returns continue; emergent abilities appear</td></tr></tbody></table><p>A useful mental model: <strong>BERT is a search engine</strong>, <strong>GPT is a writer</strong>. Use BERT-family models when you need a vector representation of an input; use GPT-family models when you need to produce output text.</p><hr><h2 id=11-limitations-to-be-honest-about>11. Limitations to be honest about</h2><ul><li><strong>Hallucination.</strong> Producing fluent but factually wrong text is the model&rsquo;s default mode for anything it does not know. Mitigations: retrieval-augmentation (Part 10), tool use, calibrated refusal training.</li><li><strong>Context length.</strong> GPT-2 had 1024 tokens; GPT-3 had 2048; GPT-4 went to 32 K and then 128 K; today 1 M is becoming common. But long contexts are expensive and recall in the <em>middle</em> of a long context degrades (&ldquo;lost in the middle&rdquo;).</li><li><strong>Compute cost.</strong> A single forward pass of a 175 B-parameter model needs hundreds of GB of GPU memory. Inference cost dominates training cost over a model&rsquo;s lifetime.</li><li><strong>Training-data bias.</strong> The model reproduces whatever statistical patterns &ndash; including stereotypes &ndash; exist in its training data.</li><li><strong>Limited controllability.</strong> Hard guardrails on style, format, or factuality require additional machinery (system prompts, constrained decoding, RLHF, post-hoc filters).</li></ul><hr><h2 id=12-key-takeaways>12. Key takeaways</h2><ul><li>A GPT model is just a <strong>decoder-only Transformer with a causal mask</strong> trained to predict the next token. The simplicity is the point.</li><li><strong>Scale is the multiplier</strong>: parameters, data, and compute together produce a clean power-law improvement in loss, with sudden capability jumps on top.</li><li><strong>In-context learning</strong> lets a single fixed model handle thousands of tasks via prompts &ndash; no fine-tuning required for most use-cases.</li><li><strong>Decoding strategy</strong> is a free lever: prefer <strong>top-$p$ + temperature 0.7-0.9</strong> for chat and creative writing; greedy or beam for translation and reproducibility.</li><li><strong>BERT understands; GPT generates.</strong> Together they cover the full spectrum of modern NLP, and Parts 7-12 will dive into how to wield GPT-style models effectively (prompting, fine-tuning, RAG, multimodal, &mldr;).</li></ul><hr><h2 id=series-navigation>Series navigation</h2><table><thead><tr><th>Part</th><th>Topic</th><th>Link</th></tr></thead><tbody><tr><td>1</td><td>Introduction and Text Preprocessing</td><td><a href=/en/nlp-introduction-and-preprocessing/>Read</a></td></tr><tr><td>2</td><td>Word Embeddings and Language Models</td><td><a href=/en/nlp-word-embeddings-lm/>Read</a></td></tr><tr><td>3</td><td>RNN and Sequence Modeling</td><td><a href=/en/nlp-rnn-sequence-modeling/>Read</a></td></tr><tr><td>4</td><td>Attention and Transformer</td><td><a href=/en/nlp-attention-transformer/>Read</a></td></tr><tr><td>5</td><td>BERT and Pretrained Models</td><td><a href=/en/nlp-bert-pretrained-models/>Previous</a></td></tr><tr><td><strong>6</strong></td><td><strong>GPT and Generative Models (this article)</strong></td><td></td></tr><tr><td>7</td><td>Prompt Engineering and In-Context Learning</td><td><a href=/en/nlp-prompt-engineering-icl/>Next</a></td></tr><tr><td>8</td><td>Fine-tuning and PEFT</td><td><a href=/en/nlp-fine-tuning-peft/>Read</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#1-the-decoder-only-transformer>1. The decoder-only Transformer</a><ul><li><a href=#the-forward-pass-in-one-breath>The forward pass, in one breath</a></li><li><a href=#causal-mask-made-concrete>Causal mask, made concrete</a></li><li><a href=#training-objective>Training objective</a></li></ul></li><li><a href=#2-autoregressive-generation-step-by-step>2. Autoregressive generation, step by step</a></li><li><a href=#3-the-gpt-family-5-years-sim10000times-growth>3. The GPT family: 5 years, 10,000 growth</a><ul><li><a href=#gpt-1-jun-2018----proof-of-concept>GPT-1 (Jun 2018) &ndash; proof of concept</a></li><li><a href=#gpt-2-feb-2019----zero-shot-emerges>GPT-2 (Feb 2019) &ndash; zero-shot emerges</a></li><li><a href=#gpt-3-may-2020----scale-changes-the-game>GPT-3 (May 2020) &ndash; scale changes the game</a></li><li><a href=#gpt-4-mar-2023----multimodal-and-instruction-tuned>GPT-4 (Mar 2023) &ndash; multimodal and instruction-tuned</a></li></ul></li><li><a href=#4-decoding-strategies>4. Decoding strategies</a><ul><li><a href=#41-greedy-decoding>4.1 Greedy decoding</a></li><li><a href=#42-beam-search>4.2 Beam search</a></li><li><a href=#43-top-k-sampling>4.3 Top- sampling</a></li><li><a href=#44-top-p-nucleus-sampling>4.4 Top- (nucleus) sampling</a></li><li><a href=#45-temperature>4.5 Temperature</a></li><li><a href=#strategy-cheat-sheet>Strategy cheat sheet</a></li></ul></li><li><a href=#5-scaling-laws-predictability-before-emergence>5. Scaling laws: predictability before emergence</a></li><li><a href=#6-emergent-capabilities>6. Emergent capabilities</a></li><li><a href=#7-in-context-learning>7. In-context learning</a><ul><li><a href=#zero-shot-vs-few-shot>Zero-shot vs. few-shot</a></li><li><a href=#why-does-this-work>Why does this work?</a></li><li><a href=#practical-prompt-engineering-recipe>Practical prompt-engineering recipe</a></li></ul></li><li><a href=#8-evaluating-generated-text>8. Evaluating generated text</a><ul><li><a href=#bleu-translation>BLEU (translation)</a></li><li><a href=#rouge-summarisation>ROUGE (summarisation)</a></li><li><a href=#perplexity-intrinsic>Perplexity (intrinsic)</a></li><li><a href=#which-metric-for-which-task>Which metric for which task?</a></li></ul></li><li><a href=#9-build-a-chatbot-with-gpt-2>9. Build a chatbot with GPT-2</a><ul><li><a href=#single-turn>Single-turn</a></li><li><a href=#multi-turn-with-rolling-history>Multi-turn (with rolling history)</a></li><li><a href=#one-liner-with-the-pipeline-api>One-liner with the pipeline API</a></li></ul></li><li><a href=#10-gpt-vs-bert-in-one-table>10. GPT vs. BERT, in one table</a></li><li><a href=#11-limitations-to-be-honest-about>11. Limitations to be honest about</a></li><li><a href=#12-key-takeaways>12. Key takeaways</a></li><li><a href=#series-navigation>Series navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>6 min</strong></div><div class=row><span>Word count</span><strong>1163</strong></div><div class=row><span>Published</span><strong>Oct 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

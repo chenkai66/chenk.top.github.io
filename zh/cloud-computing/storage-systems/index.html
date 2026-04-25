@@ -1,1252 +1,384 @@
-<!doctype html>
-<html lang="zh" data-translation="/en/cloud-computing/storage-systems/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>云存储系统与分布式架构 · Chen Kai Blog</title>
-<meta name="description" content="从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/cloud-computing/storage-systems/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/cloud-computing/storage-systems/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/cloud-computing/storage-systems/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/cloud-computing/storage-systems/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="云存储系统与分布式架构">
-<meta property="og:description" content="从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。">
-<meta property="og:url" content="https://www.chenk.top/zh/cloud-computing/storage-systems/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">云计算</a>
-         · Chapter 4
-      </div>
-      <h1>云存储系统与分布式架构</h1>
-      <p class="deck">从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-03-30">March 30, 2023</time> · 14 min read · 6800 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/" class="tag">#云计算</a><a href="/zh/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8/" class="tag">#分布式存储</a><a href="/zh/tags/%E5%AF%B9%E8%B1%A1%E5%AD%98%E5%82%A8/" class="tag">#对象存储</a><a href="/zh/tags/hdfs/" class="tag">#HDFS</a><a href="/zh/tags/ceph/" class="tag">#Ceph</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/en/cloud-computing/storage-systems/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Netflix 存储 PB 级视频，Instagram 提供数十亿张照片，量化基金几分钟内回放一年的行情数据 —— 它们背后都是 <em>分布式存储系统</em>。从开发者的视角看，存储简单得近乎透明（<code>PUT key</code>、<code>GET key</code>），但只要跨过单机的边界，你就接管了一整摞折磨了学术界几十年的难题：如何在磁盘失效时不丢数据、如何线性扩展、如何提供一个不会让上层应用踩坑的一致性模型，还要把每 GB 的成本压到几分钱。</p>
-<p>本文打通整条堆栈：<em>理论地基</em>（CAP、一致性、一致性哈希），<em>三种存储形态</em>（对象、块、文件），<em>生产系统</em>（S3、HDFS、Ceph），以及把裸容量变成 SLA 的 <em>工程杠杆</em>（副本、纠删码、生命周期、分片上传）。</p>
-<h2 id="你将学到">你将学到</h2>
-<ol>
-<li><strong>取舍空间</strong> —— CAP、PACELC，以及为什么分区容错是底线</li>
-<li><strong>云存储的三种形态</strong> —— 块、文件、对象：什么场景选什么原语</li>
-<li><strong>对象存储的内部</strong> —— 分区、放置、持久性、S3 的请求路径</li>
-<li><strong>分布式文件系统</strong> —— HDFS（主从）vs Ceph（CRUSH 对等）</li>
-<li><strong>副本 vs 纠删码</strong> —— 11 个 9 的持久性背后的数学</li>
-<li><strong>运营层设计</strong> —— 一致性模型、仲裁、分片上传、生命周期策略</li>
-<li><strong>成本工程</strong> —— 存储等级、压缩、去重、分层策略</li>
-</ol>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>熟悉 Python 与 Unix shell</li>
-<li>对 TCP、HTTP 与文件系统有基本心智模型</li>
-<li>建议先读本系列前 2 篇（基础与虚拟化）</li>
-</ul>
-<hr>
-<h2 id="1-问题的形状">1. 问题的形状</h2>
-<h3 id="11-分布式存储为什么难">1.1 分布式存储为什么难</h3>
-<p>一块 SSD 能跑出几十万 IOPS、用上好几年。问题在于，生产环境里 <em>单个</em> 任何东西都是负债：</p>
-<ul>
-<li>一块磁盘几年坏一次 —— 一万块的机群里，每天都要换。</li>
-<li>单机有容量上限，受限于机柜槽位和电源预算。</li>
-<li>单条网络路径是单点，一台 ToR 重启就把整柜打黑。</li>
-</ul>
-<p>所以我们做副本。一旦做副本就引出两个更深的问题：让副本保持一致（一致性），以及在网络把副本切成孤岛时仍能服务（分区）。这正是 CAP 定理刻画的疆域。</p>
-<h3 id="12-对象-vs-块-vs-文件选对原语">1.2 对象 vs 块 vs 文件：选对原语</h3>
-<p>在谈一致性理论之前，先把词汇定下来。云存储一共三种 <em>形态</em>，几乎所有云产品都是它们的某种伪装：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig1_storage_comparison.png" alt="对象 vs 块 vs 文件 多维对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<table>
-  <thead>
-      <tr>
-          <th>形态</th>
-          <th>访问单元</th>
-          <th>API</th>
-          <th>延迟</th>
-          <th>规模</th>
-          <th>典型产品</th>
-          <th>最佳场景</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>块</strong></td>
-          <td>512 B / 4 KB 的块</td>
-          <td>iSCSI、NVMe、virtio</td>
-          <td>µs - 低 ms</td>
-          <td>TB / 卷</td>
-          <td>EBS、Azure Disk、ESSD</td>
-          <td>数据库、虚机系统盘、需要 <code>O_DIRECT</code> 的负载</td>
-      </tr>
-      <tr>
-          <td><strong>文件</strong></td>
-          <td>目录树中的字节流</td>
-          <td>NFS / SMB / POSIX</td>
-          <td>低 ms</td>
-          <td>PB / 文件系统</td>
-          <td>EFS、Azure Files、NAS</td>
-          <td>共享暂存、传统应用搬迁</td>
-      </tr>
-      <tr>
-          <td><strong>对象</strong></td>
-          <td>带元数据的不可变 Blob</td>
-          <td>HTTP/REST</td>
-          <td>几十 ms</td>
-          <td>EB</td>
-          <td>S3、GCS、OSS</td>
-          <td>Web 资源、备份、数据湖、ML 数据集</td>
-      </tr>
-  </tbody>
-</table>
-<p>一句心法：<strong>块是扇区，文件是路径，对象是 URL</strong>。每往上一层，都是用延迟换规模。块给你一个虚拟磁盘（内核再在上面盖文件系统）；文件直接给你共享文件系统；对象彻底放弃 POSIX 语义，换来近乎无限的规模和扁平 Key 空间。</p>
-<p>不知道选哪个时：负载是「打开文件、seek、写入」就用块或文件；是「按 Key 上传、下载、删除」就用对象。</p>
-<hr>
-<h2 id="2-cappacelc-与一致性菜单">2. CAP、PACELC 与一致性菜单</h2>
-<h3 id="21-cap-定理">2.1 CAP 定理</h3>
-<p>Brewer 2000 年提出的 CAP 猜想，2002 年被 Gilbert 和 Lynch 证明：当出现网络分区时，分布式系统必须在 <strong>C</strong>（一致性）与 <strong>A</strong>（可用性）之间二选一。两者不可兼得。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig3_cap_theorem.png" alt="CAP 定理 韦恩图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li><strong>一致性 C</strong> —— 任何读总是返回最新的提交（线性一致）。</li>
-<li><strong>可用性 A</strong> —— 每个未失效节点都在有限时间内返回响应。</li>
-<li><strong>分区容错 P</strong> —— 节点之间任意消息丢失时，系统仍能运行。</li>
-</ul>
-<p>真实网络里分区不可选 —— 交换机重启、光纤被挖、内核长 GC —— 所以 P 不是选项。真正要选的是 <strong>CP vs AP</strong>。&ldquo;CA&rdquo; 描述的是不承认分区会发生的单机系统。</p>
-<table>
-  <thead>
-      <tr>
-          <th>系统</th>
-          <th>类别</th>
-          <th>分区时的行为</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>ZooKeeper、etcd、HBase、MongoDB（多数写）</td>
-          <td>CP</td>
-          <td>少数派一侧拒绝写；集群停摆但永不分歧</td>
-      </tr>
-      <tr>
-          <td>Cassandra、DynamoDB、Riak、S3（旧版覆盖写）</td>
-          <td>AP</td>
-          <td>两侧都接受写；事后再合并</td>
-      </tr>
-      <tr>
-          <td>单机 Postgres</td>
-          <td>类 CA</td>
-          <td>一旦分区直接失能（&ldquo;分区&rdquo; = &ldquo;网络挂了&rdquo;）</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="22-pacelccap-漏掉的那一半">2.2 PACELC：CAP 漏掉的那一半</h3>
-<p>CAP 只描述 <em>分区时</em> 的行为。PACELC（Abadi, 2010）补全了它：<strong>若分区，选 A 或 C；否则，选延迟 L 或一致性 C</strong>。</p>
-<p>这就解释了为什么 Cassandra 是 &ldquo;AP/EL&rdquo;（正常情况下最终一致的读更快），而 Spanner 是 &ldquo;CP/EC&rdquo;（每次提交都要等 TrueTime 不确定窗口以保证严格一致）。生产中绝大多数决策其实是 PACELC 决策而不是 CAP 决策；分区罕见，但延迟 vs 一致性的旋钮每次请求都在拨。</p>
-<h3 id="23-实用一致性模型">2.3 实用一致性模型</h3>
-<table>
-  <thead>
-      <tr>
-          <th>模型</th>
-          <th>保证</th>
-          <th>出现位置</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>线性一致</strong></td>
-          <td>所有操作存在一个与真实时间一致的全局顺序</td>
-          <td>etcd、Spanner、ZooKeeper</td>
-      </tr>
-      <tr>
-          <td><strong>顺序一致</strong></td>
-          <td>存在全局顺序，但不必匹配真实时间</td>
-          <td>经典共享内存</td>
-      </tr>
-      <tr>
-          <td><strong>读己之写</strong></td>
-          <td>客户端总能读到自己写的最新值</td>
-          <td>S3（2020-12 起）、大多数会话型系统</td>
-      </tr>
-      <tr>
-          <td><strong>单调读</strong></td>
-          <td>一旦读到 v，就不会再读到更旧的值</td>
-          <td>带粘性会话的缓存</td>
-      </tr>
-      <tr>
-          <td><strong>最终一致</strong></td>
-          <td>停止写后读最终收敛</td>
-          <td>Cassandra 默认、DynamoDB 最终一致读</td>
-      </tr>
-  </tbody>
-</table>
-<p>S3 在 2020 年 12 月把所有操作切到 <strong>强读己之写一致</strong> 是个非常震撼的例子：通过重建元数据层（内部叫 <em>witness</em> 服务），AWS 把一个看似根本性的取舍硬给压平了 —— 既保留 AP 的数据路径，又给到线性一致的语义。</p>
-<hr>
-<h2 id="3-一致性哈希路由原语">3. 一致性哈希：路由原语</h2>
-<p>按 <code>hash(key) % N</code> 分片在加减节点之前都好用，一旦 <code>(N -&gt; N+1)</code> 几乎所有 Key 都要重排。<strong>一致性哈希</strong>（Karger 等, 1997）把扰动降到约 <code>1/N</code>。它是 DynamoDB、Cassandra、Riak、memcached 客户端的放置算法，Ceph 的 CRUSH 也是它的变体。</p>
-<p>技巧：把 Key <em>和</em> 节点都映射到同一个圆环上；每个 Key 归顺时针下一个节点所有。新加节点只从它顺时针的邻居那里偷一份 Key。引入 <strong>虚拟节点</strong>（同一物理节点哈希多次）就能把负载摊得很均匀。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">bisect</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">hashlib</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ConsistentHash</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;一个最小可用的、带虚拟节点的一致性哈希环。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vnodes</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">vnodes</span> <span class="o">=</span> <span class="n">vnodes</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ring</span> <span class="o">=</span> <span class="p">{}</span>              <span class="c1"># hash -&gt; 节点</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span> <span class="o">=</span> <span class="p">[]</span>       <span class="c1"># 排序后的 hash 列表</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="ow">or</span> <span class="p">[]:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vnodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span>
-</span></span><span class="line"><span class="cl">            <span class="n">bisect</span><span class="o">.</span><span class="n">insort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vnodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">[</span><span class="n">h</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_right</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">ring</span> <span class="o">=</span> <span class="n">ConsistentHash</span><span class="p">([</span><span class="s2">&#34;s3-az-a&#34;</span><span class="p">,</span> <span class="s2">&#34;s3-az-b&#34;</span><span class="p">,</span> <span class="s2">&#34;s3-az-c&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">ring</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s2">&#34;user:12345/profile.jpg&#34;</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>为什么用 128 个虚拟节点？</strong> 每个物理节点 1 个虚拟节点时，负载标准差大约 30%；换成 128 个，方差降到几个百分点 —— 接近均匀分布，可以按平均值规划容量了。</p>
-<hr>
-<h2 id="4-对象存储s3-究竟是怎么工作的">4. 对象存储：S3 究竟是怎么工作的</h2>
-<p>S3 是云对象存储的事实标准，OSS、GCS、R2、Backblaze B2 等几十个兼容系统都以它为蓝本。从一万米高空看，S3 是「一个把 <code>(bucket, key)</code> 映射到字节的 HTTP 服务器」。从内部看，它是有史以来最大的分布式系统之一。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig2_s3_architecture.png" alt="S3 类对象存储请求路径" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="41-请求路径">4.1 请求路径</h3>
-<p>一次 <code>PUT s3://my-bucket/users/42.jpg</code> 的全程：</p>
-<ol>
-<li><strong>DNS + 边缘</strong> —— 客户端解析到地域端点，落到边缘前端。</li>
-<li><strong>鉴权</strong> —— 校验 SigV4 签名；按 Bucket ACL / IAM 策略 / SCP / VPC 端点策略 / Object ACL 逐层授权。</li>
-<li><strong>索引查找</strong> —— Bucket 名称映射到内部一个键范围索引的 <em>分区</em>。热 Bucket 会自动分裂（一旦 QPS 或大小超过阈值；这是历史上「Key 前缀打散」建议的来源，现在已基本过时）。</li>
-<li><strong>放置</strong> —— Placement 服务按目标持久性方案选一组 OSD（例如跨 3 个 AZ 的 6+3 EC）。</li>
-<li><strong>写入</strong> —— 字节流式写到足以满足写仲裁的节点。</li>
-<li><strong>应答</strong> —— 一旦持久化，S3 返回 <code>200 OK</code> 与 ETag。</li>
-</ol>
-<h3 id="42-存储等级--成本杠杆">4.2 存储等级 —— 成本杠杆</h3>
-<table>
-  <thead>
-      <tr>
-          <th>等级</th>
-          <th>$/GB-月（US-East-1）</th>
-          <th>取回延迟</th>
-          <th>最短存储</th>
-          <th>取回费</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Standard</td>
-          <td>~$0.023</td>
-          <td>ms</td>
-          <td>无</td>
-          <td>无</td>
-      </tr>
-      <tr>
-          <td>Intelligent-Tiering</td>
-          <td>高频 $0.023，IA $0.0125</td>
-          <td>ms</td>
-          <td>30 d（自动）</td>
-          <td>无</td>
-      </tr>
-      <tr>
-          <td>Standard-IA</td>
-          <td>$0.0125</td>
-          <td>ms</td>
-          <td>30 d</td>
-          <td>$0.01 / GB</td>
-      </tr>
-      <tr>
-          <td>One Zone-IA</td>
-          <td>$0.01</td>
-          <td>ms</td>
-          <td>30 d</td>
-          <td>$0.01 / GB</td>
-      </tr>
-      <tr>
-          <td>Glacier Instant</td>
-          <td>$0.004</td>
-          <td>ms</td>
-          <td>90 d</td>
-          <td>$0.03 / GB</td>
-      </tr>
-      <tr>
-          <td>Glacier Flexible</td>
-          <td>$0.0036</td>
-          <td>1 分钟 - 12 小时</td>
-          <td>90 d</td>
-          <td>$0.01 / GB（标准）</td>
-      </tr>
-      <tr>
-          <td>Glacier Deep Archive</td>
-          <td>$0.00099</td>
-          <td>12 - 48 小时</td>
-          <td>180 d</td>
-          <td>$0.02 / GB</td>
-      </tr>
-  </tbody>
-</table>
-<p>两个实战要点：</p>
-<ul>
-<li><strong>冷层有最短保留期。</strong> Deep Archive 存 30 天就删，仍按 180 天计费。只把 <em>真不动</em> 的数据沉到冷层。</li>
-<li><strong>取回费可能远超存储费。</strong> 一个标 IA 的数据被意外频繁访问，比放 Standard 还贵。Intelligent-Tiering 的存在就是为了挡住这种坑。</li>
-</ul>
-<h3 id="43-生产级-python-sdk">4.3 生产级 Python SDK</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">boto3</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">botocore.config</span> <span class="kn">import</span> <span class="n">Config</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 调优过的客户端：积极超时、签名 v4、POST 不重试</span>
-</span></span><span class="line"><span class="cl"><span class="n">s3</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;s3&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">region_name</span><span class="o">=</span><span class="s2">&#34;us-east-1&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">signature_version</span><span class="o">=</span><span class="s2">&#34;s3v4&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">retries</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;max_attempts&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;mode&#34;</span><span class="p">:</span> <span class="s2">&#34;adaptive&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="n">connect_timeout</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">read_timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">max_pool_connections</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">),</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 服务端 KMS 加密、请求完整性校验、Intelligent-Tiering</span>
-</span></span><span class="line"><span class="cl"><span class="n">s3</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;my-app-data&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Key</span><span class="o">=</span><span class="s2">&#34;users/42/profile.jpg&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Body</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/local/profile.jpg&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ContentType</span><span class="o">=</span><span class="s2">&#34;image/jpeg&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">StorageClass</span><span class="o">=</span><span class="s2">&#34;INTELLIGENT_TIERING&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ServerSideEncryption</span><span class="o">=</span><span class="s2">&#34;aws:kms&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SSEKMSKeyId</span><span class="o">=</span><span class="s2">&#34;alias/app-data&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;user-id&#34;</span><span class="p">:</span> <span class="s2">&#34;42&#34;</span><span class="p">,</span> <span class="s2">&#34;uploader&#34;</span><span class="p">:</span> <span class="s2">&#34;ios-7.2&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ChecksumAlgorithm</span><span class="o">=</span><span class="s2">&#34;SHA256&#34;</span><span class="p">,</span>     <span class="c1"># 端到端完整性</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>三个团队常踩的坑：</p>
-<ul>
-<li><strong><code>ChecksumAlgorithm</code></strong> 让客户端算校验、S3 验校验；不设的话只能依赖 TCP/TLS，不是端到端。</li>
-<li><strong><code>StorageClass</code></strong> 在 PUT 时设几乎免费；事后改类要 <code>CopyObject</code>，可能产生取回费。</li>
-<li><strong>自适应重试</strong> 在收到 503 SlowDown 时退避；没有它，热 Prefix 能把整个机群打趴。</li>
-</ul>
-<h3 id="44-分片上传">4.4 分片上传</h3>
-<p>几百 MB 以上的对象都应分片上传：可并行、可断点续传、可分片校验。<code>boto3.s3.transfer</code> 已经封装好；下面给出显式版本，看清里面发生了什么：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">multipart_upload</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bucket</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                     <span class="n">part_mb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">part_size</span> <span class="o">=</span> <span class="n">part_mb</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
-</span></span><span class="line"><span class="cl">    <span class="n">num_parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">size</span> <span class="o">+</span> <span class="n">part_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">part_size</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">init</span> <span class="o">=</span> <span class="n">s3</span><span class="o">.</span><span class="n">create_multipart_upload</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">upload_id</span> <span class="o">=</span> <span class="n">init</span><span class="p">[</span><span class="s2">&#34;UploadId&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_upload_part</span><span class="p">(</span><span class="n">part_no</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">((</span><span class="n">part_no</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">part_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">part_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">resp</span> <span class="o">=</span> <span class="n">s3</span><span class="o">.</span><span class="n">upload_part</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">PartNumber</span><span class="o">=</span><span class="n">part_no</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">UploadId</span><span class="o">=</span><span class="n">upload_id</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ChecksumAlgorithm</span><span class="o">=</span><span class="s2">&#34;SHA256&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;PartNumber&#34;</span><span class="p">:</span> <span class="n">part_no</span><span class="p">,</span> <span class="s2">&#34;ETag&#34;</span><span class="p">:</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&#34;ETag&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ChecksumSHA256&#34;</span><span class="p">:</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&#34;ChecksumSHA256&#34;</span><span class="p">]}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">try</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">parts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_upload_part</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_parts</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s3</span><span class="o">.</span><span class="n">complete_multipart_upload</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">UploadId</span><span class="o">=</span><span class="n">upload_id</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">MultipartUpload</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;Parts&#34;</span><span class="p">:</span> <span class="n">parts</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s3</span><span class="o">.</span><span class="n">abort_multipart_upload</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">UploadId</span><span class="o">=</span><span class="n">upload_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">raise</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这里的 <code>try/except</code> 不是装饰：失败但没清理的分片上传会悄悄把孤片计入存储账单。给每个 Bucket 都加上 <code>AbortIncompleteMultipartUpload after 7 days</code> 的生命周期规则。</p>
-<hr>
-<h2 id="5-副本-vs-纠删码">5. 副本 vs 纠删码</h2>
-<p>3 副本是简单答案，纠删码是便宜答案。现代云对象存储基本两个都用：热数据走副本，冷数据走 EC。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig4_erasure_vs_replication.png" alt="副本 vs 纠删码 开销与持久性" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="51-数学">5.1 数学</h3>
-<p><strong>k+m</strong> 的 Reed-Solomon EC 把对象切成 <code>k</code> 个数据片 + <code>m</code> 个校验片；任意 <code>m</code> 片丢失仍可恢复，存储开销 <code>m/k</code>。</p>
-<table>
-  <thead>
-      <tr>
-          <th>方案</th>
-          <th>开销</th>
-          <th>容忍故障</th>
-          <th>重建时读放大</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>3 副本</td>
-          <td>200%</td>
-          <td>2 块磁盘</td>
-          <td>1（再读一块就行）</td>
-      </tr>
-      <tr>
-          <td>EC 6+3</td>
-          <td>50%</td>
-          <td>3 片</td>
-          <td>6（重建要读 6 片）</td>
-      </tr>
-      <tr>
-          <td>EC 10+4</td>
-          <td>40%</td>
-          <td>4 片</td>
-          <td>10</td>
-      </tr>
-      <tr>
-          <td>EC 12+4</td>
-          <td>33%</td>
-          <td>4 片</td>
-          <td>12</td>
-      </tr>
-  </tbody>
-</table>
-<p>取舍直白：</p>
-<ul>
-<li>副本：CPU 便宜，磁盘贵，重建快（拷一块就好）。</li>
-<li>EC：磁盘便宜，重建时 CPU + 网络贵，重建慢。</li>
-</ul>
-<p>热数据要副本（一次读一次 HTTP 拉取）。冷数据要 EC（很少摸到，重建成本能在年的尺度上摊掉）。</p>
-<h3 id="52-11-个-9-是个预算不是奇迹">5.2 11 个 9 是个预算，不是奇迹</h3>
-<p>S3 宣传 99.999999999%（11 个 9）的对象持久性 —— 也就是每 1000 亿对象 · 年期望丢一个。这个数字不是魔法，是工程出来的：</p>
-<ul>
-<li>磁盘年故障率约 1%。</li>
-<li><code>k+m</code> 个分片至少跨 3 个 AZ。</li>
-<li>后台持续扫描（scrubbing）在位翻转累积成下一次磁盘故障之前发现它。</li>
-<li>修复带宽节流但永不停。</li>
-</ul>
-<p>实战教训：<strong>持久性的本质不是「我有 3 份」，而是「修复速度比下一次故障到来更快」</strong>。如果你要自建存储，先把 repair pipeline 的指标盘做出来。</p>
-<hr>
-<h2 id="6-分布式文件系统hdfs-与-ceph">6. 分布式文件系统：HDFS 与 Ceph</h2>
-<p>当你确实需要跨多机的类 POSIX 语义时，两个参考设计占绝对主导：HDFS（主协调、追加为主）与 Ceph（对等、全功能）。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig5_distributed_fs.png" alt="HDFS vs Ceph 架构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="61-hdfs--主协调批处理友好">6.1 HDFS —— 主协调、批处理友好</h3>
-<p>HDFS 建立在三个判断之上：</p>
-<ol>
-<li><strong>文件大、写一次、读多次</strong>（日志、parquet、视频）。默认块大小 <strong>128 MB</strong> 正是为此。</li>
-<li><strong>失败是常态</strong>，副本下沉到块级，永不到文件级。</li>
-<li><strong>把计算搬到数据旁边</strong>（MapReduce 立身之本的数据本地性原则）。</li>
-</ol>
-<p>架构：</p>
-<ul>
-<li><strong>NameNode</strong> —— 命名空间和块位置的唯一真理来源。Active NN 与 <strong>Standby NN</strong> 通过 <strong>JournalNode</strong> 仲裁（QJM）共享 edits 实现 HA。</li>
-<li><strong>DataNode</strong> —— 存块。默认副本因子 3。</li>
-<li><strong>块放置</strong> —— 第一份在写入者所在节点（写入者在集群外则随机），第二份在不同 <em>机架</em>，第三份在第二份的同机架不同节点。能扛全机架故障，又保留机架内读速度。</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- hdfs-site.xml：能上生产的最小配置 --&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;configuration&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.replication<span class="nt">&lt;/name&gt;</span>             <span class="nt">&lt;value&gt;</span>3<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.blocksize<span class="nt">&lt;/name&gt;</span>               <span class="nt">&lt;value&gt;</span>134217728<span class="nt">&lt;/value&gt;&lt;/property&gt;</span> <span class="c">&lt;!-- 128 MB --&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.namenode.handler.count<span class="nt">&lt;/name&gt;</span>  <span class="nt">&lt;value&gt;</span>100<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.datanode.handler.count<span class="nt">&lt;/name&gt;</span>  <span class="nt">&lt;value&gt;</span>40<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.namenode.name.dir<span class="nt">&lt;/name&gt;</span>       <span class="nt">&lt;value&gt;</span>/data/nn1,/data/nn2<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.datanode.data.dir<span class="nt">&lt;/name&gt;</span>       <span class="nt">&lt;value&gt;</span>/data/dn1,/data/dn2,/data/dn3<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.namenode.shared.edits.dir<span class="nt">&lt;/name&gt;</span>
-</span></span><span class="line"><span class="cl">            <span class="nt">&lt;value&gt;</span>qjournal://jn1:8485;jn2:8485;jn3:8485/cluster1<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/configuration&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 现代 HDFS 客户端（PyArrow 的 HDFS 接口；hdfs3 已无人维护）</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">pyarrow.fs</span> <span class="k">as</span> <span class="nn">pafs</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">hdfs</span> <span class="o">=</span> <span class="n">pafs</span><span class="o">.</span><span class="n">HadoopFileSystem</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">&#34;namenode&#34;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">9000</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&#34;hadoop&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">hdfs</span><span class="o">.</span><span class="n">create_dir</span><span class="p">(</span><span class="s2">&#34;/user/data&#34;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">hdfs</span><span class="o">.</span><span class="n">open_output_stream</span><span class="p">(</span><span class="s2">&#34;/user/data/events.parquet&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/local/events.parquet&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">hdfs</span><span class="o">.</span><span class="n">get_file_info</span><span class="p">(</span><span class="n">pafs</span><span class="o">.</span><span class="n">FileSelector</span><span class="p">(</span><span class="s2">&#34;/user/data&#34;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">path</span><span class="si">:</span><span class="s2">50s</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">size</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2"> bytes&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>HDFS 不适合</strong>：海量小文件（每个吃 NameNode 约 150 字节内存）、随机写（它只能追加）、低延迟点查。除此之外，在 Hadoop / Spark 生态里它仍然非常好用。</p>
-<h3 id="62-ceph--一个集群三种接口">6.2 Ceph —— 一个集群、三种接口</h3>
-<p>Ceph 的贡献是 <em>统一存储</em>：单一 RADOS 集群暴露块（RBD）、对象（RGW）、文件（CephFS）三种接口，全部由同一组 OSD 承载。</p>
-<p>让 Ceph 跟 HDFS 不一样的两个想法：</p>
-<ul>
-<li><strong>没有放置元数据的中心节点</strong>。放置由 <strong>CRUSH</strong>（Controlled Replication Under Scalable Hashing）算出 —— 一个伪随机算法，输入对象名 + 集群图，输出确定的 OSD 集。从根上消除 NameNode 瓶颈。</li>
-<li><strong>OSD 自管理</strong>。每个 OSD 知道自己的对端，副本、扫描、恢复都自己跑，没有中心调度器。</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 现代 Ceph 部署用 cephadm + 容器</span>
-</span></span><span class="line"><span class="cl">cephadm bootstrap --mon-ip 10.0.1.10
-</span></span><span class="line"><span class="cl">ceph orch host add node2 10.0.1.11
-</span></span><span class="line"><span class="cl">ceph orch host add node3 10.0.1.12
-</span></span><span class="line"><span class="cl">ceph orch apply osd --all-available-devices
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 用 EC 4+2 建对象池（50% 开销，可容忍 2 个 OSD 故障）</span>
-</span></span><span class="line"><span class="cl">ceph osd erasure-code-profile <span class="nb">set</span> ec42 <span class="nv">k</span><span class="o">=</span><span class="m">4</span> <span class="nv">m</span><span class="o">=</span><span class="m">2</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    crush-failure-domain<span class="o">=</span>host
-</span></span><span class="line"><span class="cl">ceph osd pool create cold_objects erasure ec42
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># RBD：精简配置、可快照的虚拟磁盘</span>
-</span></span><span class="line"><span class="cl">rbd create --size 100G --pool rbd vm-disk-01
-</span></span><span class="line"><span class="cl">rbd map rbd/vm-disk-01            <span class="c1"># 出现 /dev/rbd0</span>
-</span></span><span class="line"><span class="cl">mkfs.xfs /dev/rbd0
-</span></span><span class="line"><span class="cl">rbd snap create rbd/vm-disk-01@before-upgrade
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># RGW：基于同一集群的 S3 兼容端点</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">boto3</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">botocore.client</span> <span class="kn">import</span> <span class="n">Config</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">rgw</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;s3&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">endpoint_url</span><span class="o">=</span><span class="s2">&#34;http://rgw.internal:7480&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">aws_access_key_id</span><span class="o">=</span><span class="s2">&#34;&lt;access&gt;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="s2">&#34;&lt;secret&gt;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="p">(</span><span class="n">signature_version</span><span class="o">=</span><span class="s2">&#34;s3v4&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">rgw</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;ml-datasets&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">rgw</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;ml-datasets&#34;</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="s2">&#34;cifar10.tar&#34;</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="sa">b</span><span class="s2">&#34;...&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Ceph 的灵活性是有运维代价的：调 CRUSH 规则、平衡 PG、规划 OSD 容量、监控重建带宽，规模上来后都是全职工作。多数团队应该先用云上托管的对象/块存储，只有出现硬约束（数据主权、本地化部署、定制硬件）时再考虑 Ceph。</p>
-<hr>
-<h2 id="7-副本策略与运维">7. 副本策略与运维</h2>
-<h3 id="71-同步-vs-异步副本">7.1 同步 vs 异步副本</h3>
-<table>
-  <thead>
-      <tr>
-          <th>维度</th>
-          <th>同步</th>
-          <th>异步</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>一致性</td>
-          <td>强（所有副本 ack 后才返回）</td>
-          <td>最终一致</td>
-      </tr>
-      <tr>
-          <td>延迟</td>
-          <td>受最慢副本的 RTT 限制</td>
-          <td>仅本地磁盘</td>
-      </tr>
-      <tr>
-          <td>RPO</td>
-          <td>0</td>
-          <td>秒 - 分钟</td>
-      </tr>
-      <tr>
-          <td>吞吐</td>
-          <td>受最慢链路限</td>
-          <td>受主节点磁盘限</td>
-      </tr>
-      <tr>
-          <td>适用</td>
-          <td>金融账本、单地域数据库 HA</td>
-          <td>跨地域 DR、分析副本</td>
-      </tr>
-  </tbody>
-</table>
-<p>常见组合：<strong>地域内同步</strong>（跨 AZ，亚毫秒）+ <strong>跨地域异步</strong>（DR 副本，几秒 RPO）。</p>
-<h3 id="72-仲裁">7.2 仲裁</h3>
-<p><code>N</code> 副本，读/写仲裁分别为 <code>R</code> 与 <code>W</code>：</p>
-<ul>
-<li><code>W + R &gt; N</code> 保证读必与最新写有交集。</li>
-<li><code>W = N</code> 写最强（任一节点失败即不可写）；<code>W = 1</code> 写最弱。</li>
-<li>Dynamo 系把 <code>R / W</code> 让 <em>应用</em> 按请求选；ZooKeeper / etcd 直接写死多数派。</li>
-</ul>
-<h3 id="73-生命周期策略--把成本工程自动化">7.3 生命周期策略 —— 把成本工程自动化</h3>
-<p>成本优化大多是几行策略，而不是工程改造。把日志 30 天降到 IA、90 天降到 Glacier、365 天删；过期未完成的分片上传；过期对象旧版本：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">s3</span><span class="o">.</span><span class="n">put_bucket_lifecycle_configuration</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;prod-data&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">LifecycleConfiguration</span><span class="o">=</span><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Rules&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ID&#34;</span><span class="p">:</span> <span class="s2">&#34;AbortStuckUploads&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Status&#34;</span><span class="p">:</span> <span class="s2">&#34;Enabled&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;AbortIncompleteMultipartUpload&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;DaysAfterInitiation&#34;</span><span class="p">:</span> <span class="mi">7</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ID&#34;</span><span class="p">:</span> <span class="s2">&#34;TierDataset&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Status&#34;</span><span class="p">:</span> <span class="s2">&#34;Enabled&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Filter&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;Prefix&#34;</span><span class="p">:</span> <span class="s2">&#34;datasets/&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Transitions&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">                    <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>  <span class="s2">&#34;StorageClass&#34;</span><span class="p">:</span> <span class="s2">&#34;STANDARD_IA&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                    <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span>  <span class="s2">&#34;StorageClass&#34;</span><span class="p">:</span> <span class="s2">&#34;GLACIER_IR&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                    <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">365</span><span class="p">,</span> <span class="s2">&#34;StorageClass&#34;</span><span class="p">:</span> <span class="s2">&#34;DEEP_ARCHIVE&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ID&#34;</span><span class="p">:</span> <span class="s2">&#34;ExpireOldLogs&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Status&#34;</span><span class="p">:</span> <span class="s2">&#34;Enabled&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Filter&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;Prefix&#34;</span><span class="p">:</span> <span class="s2">&#34;logs/&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Expiration&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">365</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;NoncurrentVersionExpiration&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;NoncurrentDays&#34;</span><span class="p">:</span> <span class="mi">30</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="74-备份rto-与-rpo">7.4 备份、RTO 与 RPO</h3>
-<table>
-  <thead>
-      <tr>
-          <th>策略</th>
-          <th>RTO</th>
-          <th>RPO</th>
-          <th>成本</th>
-          <th>适用</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>热备（多地域双活）</td>
-          <td>秒</td>
-          <td>接近 0</td>
-          <td>2-3x</td>
-          <td>支付、社交 Feed</td>
-      </tr>
-      <tr>
-          <td>温备（副本闲置，故障时拉起）</td>
-          <td>分钟</td>
-          <td>秒</td>
-          <td>1.2-1.5x</td>
-          <td>多数生产 Web</td>
-      </tr>
-      <tr>
-          <td>火种（数据有副本，基础设施缺位）</td>
-          <td>小时</td>
-          <td>分钟</td>
-          <td>1.05-1.1x</td>
-          <td>内部应用</td>
-      </tr>
-      <tr>
-          <td>仅备份</td>
-          <td>小时 - 天</td>
-          <td>小时</td>
-          <td>1.01x</td>
-          <td>开发/分析</td>
-      </tr>
-  </tbody>
-</table>
-<p>正确答案很少是最严格的那个，而是 <em>成本与每分钟宕机损失匹配</em> 的那个。</p>
-<hr>
-<h2 id="8-性能优化">8. 性能优化</h2>
-<h3 id="81-长尾延迟才是主导">8.1 长尾延迟才是主导</h3>
-<p>要看的是 <strong>P99 延迟</strong>，不是平均值。一个扇出 10 后端、等所有返回的请求，整体 P99 大约就是单后端 P99（Dean &amp; Barroso，<em>The Tail at Scale</em>, 2013）。每一个依赖都是一个倍率。</p>
-<h3 id="82-四个杠杆">8.2 四个杠杆</h3>
-<ul>
-<li><strong>并行</strong> —— 分片上传、Range GET、并发 Prefix。</li>
-<li><strong>本地性</strong> —— 计算与存储就近（HDFS 数据本地性、S3 跨地域里的 AZ 亲和）。</li>
-<li><strong>缓存</strong> —— 应用层 LRU、CloudFront 挡在公开 S3 前面、OSS CDN 挡在热 Prefix 前面。</li>
-<li><strong>压缩</strong> —— zstd 是现代默认（level 3 ≈ gzip-6 速度 + gzip-9 压缩比）；CPU 紧张时用 Snappy。</li>
-</ul>
-<h3 id="83-一条吞吐拇指法则">8.3 一条吞吐拇指法则</h3>
-<p>长距链路上的单条 TCP 流被 <code>窗口 / RTT</code> 限制。100 ms RTT、64 KB 默认窗口的天花板大约 5 Mbit/s。要把一根 10 Gbit/s 的管子打满，要么把窗口放大（内核自动调优能帮你），要么开多条流。分片上传就是「多条流」的显式形态 —— 这才是它快的 <em>原因</em>，而不仅仅是 <em>现象</em>。</p>
-<hr>
-<h2 id="9-成本工程">9. 成本工程</h2>
-<h3 id="91-三条账单线">9.1 三条账单线</h3>
-<table>
-  <thead>
-      <tr>
-          <th>账单项</th>
-          <th>驱动因素</th>
-          <th>杠杆</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>存储</td>
-          <td>GB-月</td>
-          <td>分层、压缩、去重、过期</td>
-      </tr>
-      <tr>
-          <td>请求</td>
-          <td>PUT / GET / LIST 计数</td>
-          <td>批量、分片、Prefix 设计</td>
-      </tr>
-      <tr>
-          <td>出网</td>
-          <td>跨地域 / 出云的 GB</td>
-          <td>CDN、地域内计算、专线</td>
-      </tr>
-  </tbody>
-</table>
-<p>对多数团队来说，<strong>出网是账单上的&quot;惊喜&quot;</strong>。1 PB 跨地域复制按 $0.02/GB 是 $20,000。能在地域内复制就在地域内复制；非要出去，就走更便宜的传输通道（Direct Connect、专属对接、阿里云的 CEN）。</p>
-<h3 id="92-一个具体的成本计算">9.2 一个具体的成本计算</h3>
-<p>1 TB 数据集，每天访问 2 次，存 1 年：</p>
-<ul>
-<li><strong>Standard：</strong> 1 TB × $0.023 × 12 = **$276/年**，请求成本可忽略。</li>
-<li><strong>Standard + 30 天后转 IA：</strong> 存储约 $160/年 + IA 取回约 $10 ≈ <strong>$170/年</strong>。</li>
-<li><strong>90 天后转 Deep Archive，每年 2 次再训练取回：</strong> 存储约 $15/年 + 取回费约 $40 ≈ <strong>$55/年</strong>。</li>
-</ul>
-<p>精确数字会随官方定价漂移，但 <em>量级</em> 不会变 —— <strong>生命周期是 5-10 倍的成本杠杆，且开通它本身免费</strong>。</p>
-<hr>
-<h2 id="10-常见问题">10. 常见问题</h2>
-<p><strong>问：新数据湖选 HDFS 还是 S3？</strong></p>
-<p>绿地几乎一律选 S3（或对应物）。现代引擎（Trino、Spark、Flink、DuckDB）原生读对象存储；存算分离让两者独立扩缩；省去维护 NameNode HA 集群的麻烦。只有当本地化部署或极端的数据本地性是硬约束时，才回头选 HDFS。</p>
-<p><strong>问：Ceph 在什么情况下值得它的运维代价？</strong></p>
-<p>三种情况：监管要求数据留在自有硬件上；块 + 对象量大到云上托管价更高；已有 OpenStack 环境受益于 Ceph 的紧密集成。除此之外，把 SRE 工时算上之后，云上托管基本更便宜。</p>
-<p><strong>问：3 副本还是纠删码？</strong></p>
-<p>热的、低延迟敏感的数据用副本；冷数据和大对象用 EC。许多系统会自动两个都做（S3 内部、Ceph 通过分层池）。这个决定基本不需要应用层操心。</p>
-<p><strong>问：对象存储前面的缓存该怎么定容？</strong></p>
-<p>把对象访问频次按对象数量画出来，找&quot;拐点&quot;。典型 Web 负载缓存前 1-5% 的对象就能吸收 80-95% 的 GET。再往后是边际收益递减。CloudFront / OSS CDN 把它从容量决策变成了配置决策。</p>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>篇</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/zh/cloud-computing-fundamentals/">基础与架构体系</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/zh/cloud-computing-virtualization/">虚拟化技术深度解析</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>3</strong></td>
-          <td><strong>存储系统与分布式架构（当前）</strong></td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/zh/cloud-computing-networking-sdn/">网络架构与 SDN</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/zh/cloud-computing-security-privacy/">安全与隐私保护</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/zh/cloud-computing-operations-devops/">运维与 DevOps 实践</a>
-</td>
-      </tr>
-      <tr>
-          <td>7</td>
-          <td><a href="/zh/cloud-computing-cloud-native-containers/">云原生与容器技术</a>
-</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td><a href="/zh/cloud-computing-multi-cloud-hybrid/">多云与混合架构</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-问题的形状">1. 问题的形状</a>
-      <ul>
-        <li><a href="#11-分布式存储为什么难">1.1 分布式存储为什么难</a></li>
-        <li><a href="#12-对象-vs-块-vs-文件选对原语">1.2 对象 vs 块 vs 文件：选对原语</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-cappacelc-与一致性菜单">2. CAP、PACELC 与一致性菜单</a>
-      <ul>
-        <li><a href="#21-cap-定理">2.1 CAP 定理</a></li>
-        <li><a href="#22-pacelccap-漏掉的那一半">2.2 PACELC：CAP 漏掉的那一半</a></li>
-        <li><a href="#23-实用一致性模型">2.3 实用一致性模型</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-一致性哈希路由原语">3. 一致性哈希：路由原语</a></li>
-    <li><a href="#4-对象存储s3-究竟是怎么工作的">4. 对象存储：S3 究竟是怎么工作的</a>
-      <ul>
-        <li><a href="#41-请求路径">4.1 请求路径</a></li>
-        <li><a href="#42-存储等级--成本杠杆">4.2 存储等级 —— 成本杠杆</a></li>
-        <li><a href="#43-生产级-python-sdk">4.3 生产级 Python SDK</a></li>
-        <li><a href="#44-分片上传">4.4 分片上传</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-副本-vs-纠删码">5. 副本 vs 纠删码</a>
-      <ul>
-        <li><a href="#51-数学">5.1 数学</a></li>
-        <li><a href="#52-11-个-9-是个预算不是奇迹">5.2 11 个 9 是个预算，不是奇迹</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-分布式文件系统hdfs-与-ceph">6. 分布式文件系统：HDFS 与 Ceph</a>
-      <ul>
-        <li><a href="#61-hdfs--主协调批处理友好">6.1 HDFS —— 主协调、批处理友好</a></li>
-        <li><a href="#62-ceph--一个集群三种接口">6.2 Ceph —— 一个集群、三种接口</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-副本策略与运维">7. 副本策略与运维</a>
-      <ul>
-        <li><a href="#71-同步-vs-异步副本">7.1 同步 vs 异步副本</a></li>
-        <li><a href="#72-仲裁">7.2 仲裁</a></li>
-        <li><a href="#73-生命周期策略--把成本工程自动化">7.3 生命周期策略 —— 把成本工程自动化</a></li>
-        <li><a href="#74-备份rto-与-rpo">7.4 备份、RTO 与 RPO</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-性能优化">8. 性能优化</a>
-      <ul>
-        <li><a href="#81-长尾延迟才是主导">8.1 长尾延迟才是主导</a></li>
-        <li><a href="#82-四个杠杆">8.2 四个杠杆</a></li>
-        <li><a href="#83-一条吞吐拇指法则">8.3 一条吞吐拇指法则</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-成本工程">9. 成本工程</a>
-      <ul>
-        <li><a href="#91-三条账单线">9.1 三条账单线</a></li>
-        <li><a href="#92-一个具体的成本计算">9.2 一个具体的成本计算</a></li>
-      </ul>
-    </li>
-    <li><a href="#10-常见问题">10. 常见问题</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">云计算</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>6800</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation=/en/cloud-computing/storage-systems/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>云存储系统与分布式架构 · Chen Kai Blog</title>
+<meta name=description content="从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/cloud-computing/storage-systems/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/cloud-computing/storage-systems/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/cloud-computing/storage-systems/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/cloud-computing/storage-systems/><meta property="og:type" content="article"><meta property="og:title" content="云存储系统与分布式架构"><meta property="og:description" content="从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。"><meta property="og:url" content="https://www.chenk.top/zh/cloud-computing/storage-systems/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>云计算</a>
+· Chapter 4</div><h1>云存储系统与分布式架构</h1><p class=deck>从 CAP 定理到 S3、HDFS、Ceph —— 深入剖析分布式存储原语、一致性、副本、纠删码与成本优化。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-03-30>March 30, 2023</time> · 14 min read · 6767 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E4%BA%91%E8%AE%A1%E7%AE%97/ class=tag>#云计算</a><a href=/zh/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8/ class=tag>#分布式存储</a><a href=/zh/tags/%E5%AF%B9%E8%B1%A1%E5%AD%98%E5%82%A8/ class=tag>#对象存储</a><a href=/zh/tags/hdfs/ class=tag>#HDFS</a><a href=/zh/tags/ceph/ class=tag>#Ceph</a></div><a class="pill pill-outline" href=/en/cloud-computing/storage-systems/>Read in English →</a></div></header><div class=prose><p>Netflix 存储 PB 级视频，Instagram 提供数十亿张照片，量化基金几分钟内回放一年的行情数据 —— 它们背后都是 <em>分布式存储系统</em>。从开发者的视角看，存储简单得近乎透明（<code>PUT key</code>、<code>GET key</code>），但只要跨过单机的边界，你就接管了一整摞折磨了学术界几十年的难题：如何在磁盘失效时不丢数据、如何线性扩展、如何提供一个不会让上层应用踩坑的一致性模型，还要把每 GB 的成本压到几分钱。</p><p>本文打通整条堆栈：<em>理论地基</em>（CAP、一致性、一致性哈希），<em>三种存储形态</em>（对象、块、文件），<em>生产系统</em>（S3、HDFS、Ceph），以及把裸容量变成 SLA 的 <em>工程杠杆</em>（副本、纠删码、生命周期、分片上传）。</p><h2 id=你将学到>你将学到</h2><ol><li><strong>取舍空间</strong> —— CAP、PACELC，以及为什么分区容错是底线</li><li><strong>云存储的三种形态</strong> —— 块、文件、对象：什么场景选什么原语</li><li><strong>对象存储的内部</strong> —— 分区、放置、持久性、S3 的请求路径</li><li><strong>分布式文件系统</strong> —— HDFS（主从）vs Ceph（CRUSH 对等）</li><li><strong>副本 vs 纠删码</strong> —— 11 个 9 的持久性背后的数学</li><li><strong>运营层设计</strong> —— 一致性模型、仲裁、分片上传、生命周期策略</li><li><strong>成本工程</strong> —— 存储等级、压缩、去重、分层策略</li></ol><h2 id=前置知识>前置知识</h2><ul><li>熟悉 Python 与 Unix shell</li><li>对 TCP、HTTP 与文件系统有基本心智模型</li><li>建议先读本系列前 2 篇（基础与虚拟化）</li></ul><hr><h2 id=1-问题的形状>1. 问题的形状</h2><h3 id=11-分布式存储为什么难>1.1 分布式存储为什么难</h3><p>一块 SSD 能跑出几十万 IOPS、用上好几年。问题在于，生产环境里 <em>单个</em> 任何东西都是负债：</p><ul><li>一块磁盘几年坏一次 —— 一万块的机群里，每天都要换。</li><li>单机有容量上限，受限于机柜槽位和电源预算。</li><li>单条网络路径是单点，一台 ToR 重启就把整柜打黑。</li></ul><p>所以我们做副本。一旦做副本就引出两个更深的问题：让副本保持一致（一致性），以及在网络把副本切成孤岛时仍能服务（分区）。这正是 CAP 定理刻画的疆域。</p><h3 id=12-对象-vs-块-vs-文件选对原语>1.2 对象 vs 块 vs 文件：选对原语</h3><p>在谈一致性理论之前，先把词汇定下来。云存储一共三种 <em>形态</em>，几乎所有云产品都是它们的某种伪装：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig1_storage_comparison.png alt="对象 vs 块 vs 文件 多维对比" loading=lazy decoding=async></figure></p><table><thead><tr><th>形态</th><th>访问单元</th><th>API</th><th>延迟</th><th>规模</th><th>典型产品</th><th>最佳场景</th></tr></thead><tbody><tr><td><strong>块</strong></td><td>512 B / 4 KB 的块</td><td>iSCSI、NVMe、virtio</td><td>µs - 低 ms</td><td>TB / 卷</td><td>EBS、Azure Disk、ESSD</td><td>数据库、虚机系统盘、需要 <code>O_DIRECT</code> 的负载</td></tr><tr><td><strong>文件</strong></td><td>目录树中的字节流</td><td>NFS / SMB / POSIX</td><td>低 ms</td><td>PB / 文件系统</td><td>EFS、Azure Files、NAS</td><td>共享暂存、传统应用搬迁</td></tr><tr><td><strong>对象</strong></td><td>带元数据的不可变 Blob</td><td>HTTP/REST</td><td>几十 ms</td><td>EB</td><td>S3、GCS、OSS</td><td>Web 资源、备份、数据湖、ML 数据集</td></tr></tbody></table><p>一句心法：<strong>块是扇区，文件是路径，对象是 URL</strong>。每往上一层，都是用延迟换规模。块给你一个虚拟磁盘（内核再在上面盖文件系统）；文件直接给你共享文件系统；对象彻底放弃 POSIX 语义，换来近乎无限的规模和扁平 Key 空间。</p><p>不知道选哪个时：负载是「打开文件、seek、写入」就用块或文件；是「按 Key 上传、下载、删除」就用对象。</p><hr><h2 id=2-cappacelc-与一致性菜单>2. CAP、PACELC 与一致性菜单</h2><h3 id=21-cap-定理>2.1 CAP 定理</h3><p>Brewer 2000 年提出的 CAP 猜想，2002 年被 Gilbert 和 Lynch 证明：当出现网络分区时，分布式系统必须在 <strong>C</strong>（一致性）与 <strong>A</strong>（可用性）之间二选一。两者不可兼得。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig3_cap_theorem.png alt="CAP 定理 韦恩图" loading=lazy decoding=async></figure></p><ul><li><strong>一致性 C</strong> —— 任何读总是返回最新的提交（线性一致）。</li><li><strong>可用性 A</strong> —— 每个未失效节点都在有限时间内返回响应。</li><li><strong>分区容错 P</strong> —— 节点之间任意消息丢失时，系统仍能运行。</li></ul><p>真实网络里分区不可选 —— 交换机重启、光纤被挖、内核长 GC —— 所以 P 不是选项。真正要选的是 <strong>CP vs AP</strong>。&ldquo;CA&rdquo; 描述的是不承认分区会发生的单机系统。</p><table><thead><tr><th>系统</th><th>类别</th><th>分区时的行为</th></tr></thead><tbody><tr><td>ZooKeeper、etcd、HBase、MongoDB（多数写）</td><td>CP</td><td>少数派一侧拒绝写；集群停摆但永不分歧</td></tr><tr><td>Cassandra、DynamoDB、Riak、S3（旧版覆盖写）</td><td>AP</td><td>两侧都接受写；事后再合并</td></tr><tr><td>单机 Postgres</td><td>类 CA</td><td>一旦分区直接失能（&ldquo;分区&rdquo; = &ldquo;网络挂了&rdquo;）</td></tr></tbody></table><h3 id=22-pacelccap-漏掉的那一半>2.2 PACELC：CAP 漏掉的那一半</h3><p>CAP 只描述 <em>分区时</em> 的行为。PACELC（Abadi, 2010）补全了它：<strong>若分区，选 A 或 C；否则，选延迟 L 或一致性 C</strong>。</p><p>这就解释了为什么 Cassandra 是 &ldquo;AP/EL&rdquo;（正常情况下最终一致的读更快），而 Spanner 是 &ldquo;CP/EC&rdquo;（每次提交都要等 TrueTime 不确定窗口以保证严格一致）。生产中绝大多数决策其实是 PACELC 决策而不是 CAP 决策；分区罕见，但延迟 vs 一致性的旋钮每次请求都在拨。</p><h3 id=23-实用一致性模型>2.3 实用一致性模型</h3><table><thead><tr><th>模型</th><th>保证</th><th>出现位置</th></tr></thead><tbody><tr><td><strong>线性一致</strong></td><td>所有操作存在一个与真实时间一致的全局顺序</td><td>etcd、Spanner、ZooKeeper</td></tr><tr><td><strong>顺序一致</strong></td><td>存在全局顺序，但不必匹配真实时间</td><td>经典共享内存</td></tr><tr><td><strong>读己之写</strong></td><td>客户端总能读到自己写的最新值</td><td>S3（2020-12 起）、大多数会话型系统</td></tr><tr><td><strong>单调读</strong></td><td>一旦读到 v，就不会再读到更旧的值</td><td>带粘性会话的缓存</td></tr><tr><td><strong>最终一致</strong></td><td>停止写后读最终收敛</td><td>Cassandra 默认、DynamoDB 最终一致读</td></tr></tbody></table><p>S3 在 2020 年 12 月把所有操作切到 <strong>强读己之写一致</strong> 是个非常震撼的例子：通过重建元数据层（内部叫 <em>witness</em> 服务），AWS 把一个看似根本性的取舍硬给压平了 —— 既保留 AP 的数据路径，又给到线性一致的语义。</p><hr><h2 id=3-一致性哈希路由原语>3. 一致性哈希：路由原语</h2><p>按 <code>hash(key) % N</code> 分片在加减节点之前都好用，一旦 <code>(N -> N+1)</code> 几乎所有 Key 都要重排。<strong>一致性哈希</strong>（Karger 等, 1997）把扰动降到约 <code>1/N</code>。它是 DynamoDB、Cassandra、Riak、memcached 客户端的放置算法，Ceph 的 CRUSH 也是它的变体。</p><p>技巧：把 Key <em>和</em> 节点都映射到同一个圆环上；每个 Key 归顺时针下一个节点所有。新加节点只从它顺时针的邻居那里偷一份 Key。引入 <strong>虚拟节点</strong>（同一物理节点哈希多次）就能把负载摊得很均匀。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>bisect</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>hashlib</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ConsistentHash</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;一个最小可用的、带虚拟节点的一致性哈希环。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>nodes</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>vnodes</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>vnodes</span> <span class=o>=</span> <span class=n>vnodes</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ring</span> <span class=o>=</span> <span class=p>{}</span>              <span class=c1># hash -&gt; 节点</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span> <span class=o>=</span> <span class=p>[]</span>       <span class=c1># 排序后的 hash 列表</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>node</span> <span class=ow>in</span> <span class=n>nodes</span> <span class=ow>or</span> <span class=p>[]:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>add_node</span><span class=p>(</span><span class=n>node</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@staticmethod</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_hash</span><span class=p>(</span><span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>hashlib</span><span class=o>.</span><span class=n>md5</span><span class=p>(</span><span class=n>key</span><span class=o>.</span><span class=n>encode</span><span class=p>())</span><span class=o>.</span><span class=n>hexdigest</span><span class=p>(),</span> <span class=mi>16</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>add_node</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>node</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>vnodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_hash</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>node</span><span class=si>}</span><span class=s2>#</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>[</span><span class=n>h</span><span class=p>]</span> <span class=o>=</span> <span class=n>node</span>
+</span></span><span class=line><span class=cl>            <span class=n>bisect</span><span class=o>.</span><span class=n>insort</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>,</span> <span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>remove_node</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>node</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>vnodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_hash</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>node</span><span class=si>}</span><span class=s2>#</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>del</span> <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>[</span><span class=n>h</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_node</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_hash</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>bisect</span><span class=o>.</span><span class=n>bisect_right</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>,</span> <span class=n>h</span><span class=p>)</span> <span class=o>%</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>[</span><span class=n>idx</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>ring</span> <span class=o>=</span> <span class=n>ConsistentHash</span><span class=p>([</span><span class=s2>&#34;s3-az-a&#34;</span><span class=p>,</span> <span class=s2>&#34;s3-az-b&#34;</span><span class=p>,</span> <span class=s2>&#34;s3-az-c&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>ring</span><span class=o>.</span><span class=n>get_node</span><span class=p>(</span><span class=s2>&#34;user:12345/profile.jpg&#34;</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>为什么用 128 个虚拟节点？</strong> 每个物理节点 1 个虚拟节点时，负载标准差大约 30%；换成 128 个，方差降到几个百分点 —— 接近均匀分布，可以按平均值规划容量了。</p><hr><h2 id=4-对象存储s3-究竟是怎么工作的>4. 对象存储：S3 究竟是怎么工作的</h2><p>S3 是云对象存储的事实标准，OSS、GCS、R2、Backblaze B2 等几十个兼容系统都以它为蓝本。从一万米高空看，S3 是「一个把 <code>(bucket, key)</code> 映射到字节的 HTTP 服务器」。从内部看，它是有史以来最大的分布式系统之一。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig2_s3_architecture.png alt="S3 类对象存储请求路径" loading=lazy decoding=async></figure></p><h3 id=41-请求路径>4.1 请求路径</h3><p>一次 <code>PUT s3://my-bucket/users/42.jpg</code> 的全程：</p><ol><li><strong>DNS + 边缘</strong> —— 客户端解析到地域端点，落到边缘前端。</li><li><strong>鉴权</strong> —— 校验 SigV4 签名；按 Bucket ACL / IAM 策略 / SCP / VPC 端点策略 / Object ACL 逐层授权。</li><li><strong>索引查找</strong> —— Bucket 名称映射到内部一个键范围索引的 <em>分区</em>。热 Bucket 会自动分裂（一旦 QPS 或大小超过阈值；这是历史上「Key 前缀打散」建议的来源，现在已基本过时）。</li><li><strong>放置</strong> —— Placement 服务按目标持久性方案选一组 OSD（例如跨 3 个 AZ 的 6+3 EC）。</li><li><strong>写入</strong> —— 字节流式写到足以满足写仲裁的节点。</li><li><strong>应答</strong> —— 一旦持久化，S3 返回 <code>200 OK</code> 与 ETag。</li></ol><h3 id=42-存储等级--成本杠杆>4.2 存储等级 —— 成本杠杆</h3><table><thead><tr><th>等级</th><th>$/GB-月（US-East-1）</th><th>取回延迟</th><th>最短存储</th><th>取回费</th></tr></thead><tbody><tr><td>Standard</td><td>~$0.023</td><td>ms</td><td>无</td><td>无</td></tr><tr><td>Intelligent-Tiering</td><td>高频 $0.023，IA $0.0125</td><td>ms</td><td>30 d（自动）</td><td>无</td></tr><tr><td>Standard-IA</td><td>$0.0125</td><td>ms</td><td>30 d</td><td>$0.01 / GB</td></tr><tr><td>One Zone-IA</td><td>$0.01</td><td>ms</td><td>30 d</td><td>$0.01 / GB</td></tr><tr><td>Glacier Instant</td><td>$0.004</td><td>ms</td><td>90 d</td><td>$0.03 / GB</td></tr><tr><td>Glacier Flexible</td><td>$0.0036</td><td>1 分钟 - 12 小时</td><td>90 d</td><td>$0.01 / GB（标准）</td></tr><tr><td>Glacier Deep Archive</td><td>$0.00099</td><td>12 - 48 小时</td><td>180 d</td><td>$0.02 / GB</td></tr></tbody></table><p>两个实战要点：</p><ul><li><strong>冷层有最短保留期。</strong> Deep Archive 存 30 天就删，仍按 180 天计费。只把 <em>真不动</em> 的数据沉到冷层。</li><li><strong>取回费可能远超存储费。</strong> 一个标 IA 的数据被意外频繁访问，比放 Standard 还贵。Intelligent-Tiering 的存在就是为了挡住这种坑。</li></ul><h3 id=43-生产级-python-sdk>4.3 生产级 Python SDK</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>boto3</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>botocore.config</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 调优过的客户端：积极超时、签名 v4、POST 不重试</span>
+</span></span><span class=line><span class=cl><span class=n>s3</span> <span class=o>=</span> <span class=n>boto3</span><span class=o>.</span><span class=n>client</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;s3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>region_name</span><span class=o>=</span><span class=s2>&#34;us-east-1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>config</span><span class=o>=</span><span class=n>Config</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>signature_version</span><span class=o>=</span><span class=s2>&#34;s3v4&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>retries</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;max_attempts&#34;</span><span class=p>:</span> <span class=mi>5</span><span class=p>,</span> <span class=s2>&#34;mode&#34;</span><span class=p>:</span> <span class=s2>&#34;adaptive&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=n>connect_timeout</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>read_timeout</span><span class=o>=</span><span class=mi>60</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>max_pool_connections</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 服务端 KMS 加密、请求完整性校验、Intelligent-Tiering</span>
+</span></span><span class=line><span class=cl><span class=n>s3</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;my-app-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Key</span><span class=o>=</span><span class=s2>&#34;users/42/profile.jpg&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Body</span><span class=o>=</span><span class=nb>open</span><span class=p>(</span><span class=s2>&#34;/local/profile.jpg&#34;</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>ContentType</span><span class=o>=</span><span class=s2>&#34;image/jpeg&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>StorageClass</span><span class=o>=</span><span class=s2>&#34;INTELLIGENT_TIERING&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>ServerSideEncryption</span><span class=o>=</span><span class=s2>&#34;aws:kms&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>SSEKMSKeyId</span><span class=o>=</span><span class=s2>&#34;alias/app-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Metadata</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;user-id&#34;</span><span class=p>:</span> <span class=s2>&#34;42&#34;</span><span class=p>,</span> <span class=s2>&#34;uploader&#34;</span><span class=p>:</span> <span class=s2>&#34;ios-7.2&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=n>ChecksumAlgorithm</span><span class=o>=</span><span class=s2>&#34;SHA256&#34;</span><span class=p>,</span>     <span class=c1># 端到端完整性</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>三个团队常踩的坑：</p><ul><li><strong><code>ChecksumAlgorithm</code></strong> 让客户端算校验、S3 验校验；不设的话只能依赖 TCP/TLS，不是端到端。</li><li><strong><code>StorageClass</code></strong> 在 PUT 时设几乎免费；事后改类要 <code>CopyObject</code>，可能产生取回费。</li><li><strong>自适应重试</strong> 在收到 503 SlowDown 时退避；没有它，热 Prefix 能把整个机群打趴。</li></ul><h3 id=44-分片上传>4.4 分片上传</h3><p>几百 MB 以上的对象都应分片上传：可并行、可断点续传、可分片校验。<code>boto3.s3.transfer</code> 已经封装好；下面给出显式版本，看清里面发生了什么：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>multipart_upload</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>bucket</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                     <span class=n>part_mb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>,</span> <span class=n>workers</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>size</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>path</span><span class=o>.</span><span class=n>getsize</span><span class=p>(</span><span class=n>path</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>part_size</span> <span class=o>=</span> <span class=n>part_mb</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_parts</span> <span class=o>=</span> <span class=p>(</span><span class=n>size</span> <span class=o>+</span> <span class=n>part_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>//</span> <span class=n>part_size</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>init</span> <span class=o>=</span> <span class=n>s3</span><span class=o>.</span><span class=n>create_multipart_upload</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>upload_id</span> <span class=o>=</span> <span class=n>init</span><span class=p>[</span><span class=s2>&#34;UploadId&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_upload_part</span><span class=p>(</span><span class=n>part_no</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>f</span><span class=o>.</span><span class=n>seek</span><span class=p>((</span><span class=n>part_no</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>part_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>data</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>part_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span> <span class=o>=</span> <span class=n>s3</span><span class=o>.</span><span class=n>upload_part</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>,</span> <span class=n>PartNumber</span><span class=o>=</span><span class=n>part_no</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>UploadId</span><span class=o>=</span><span class=n>upload_id</span><span class=p>,</span> <span class=n>Body</span><span class=o>=</span><span class=n>data</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>ChecksumAlgorithm</span><span class=o>=</span><span class=s2>&#34;SHA256&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;PartNumber&#34;</span><span class=p>:</span> <span class=n>part_no</span><span class=p>,</span> <span class=s2>&#34;ETag&#34;</span><span class=p>:</span> <span class=n>resp</span><span class=p>[</span><span class=s2>&#34;ETag&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ChecksumSHA256&#34;</span><span class=p>:</span> <span class=n>resp</span><span class=p>[</span><span class=s2>&#34;ChecksumSHA256&#34;</span><span class=p>]}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=n>workers</span><span class=p>)</span> <span class=k>as</span> <span class=n>ex</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>parts</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>ex</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>_upload_part</span><span class=p>,</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>num_parts</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=n>s3</span><span class=o>.</span><span class=n>complete_multipart_upload</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>,</span> <span class=n>UploadId</span><span class=o>=</span><span class=n>upload_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>MultipartUpload</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;Parts&#34;</span><span class=p>:</span> <span class=n>parts</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>s3</span><span class=o>.</span><span class=n>abort_multipart_upload</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>,</span> <span class=n>UploadId</span><span class=o>=</span><span class=n>upload_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span>
+</span></span></code></pre></td></tr></table></div></div><p>这里的 <code>try/except</code> 不是装饰：失败但没清理的分片上传会悄悄把孤片计入存储账单。给每个 Bucket 都加上 <code>AbortIncompleteMultipartUpload after 7 days</code> 的生命周期规则。</p><hr><h2 id=5-副本-vs-纠删码>5. 副本 vs 纠删码</h2><p>3 副本是简单答案，纠删码是便宜答案。现代云对象存储基本两个都用：热数据走副本，冷数据走 EC。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig4_erasure_vs_replication.png alt="副本 vs 纠删码 开销与持久性" loading=lazy decoding=async></figure></p><h3 id=51-数学>5.1 数学</h3><p><strong>k+m</strong> 的 Reed-Solomon EC 把对象切成 <code>k</code> 个数据片 + <code>m</code> 个校验片；任意 <code>m</code> 片丢失仍可恢复，存储开销 <code>m/k</code>。</p><table><thead><tr><th>方案</th><th>开销</th><th>容忍故障</th><th>重建时读放大</th></tr></thead><tbody><tr><td>3 副本</td><td>200%</td><td>2 块磁盘</td><td>1（再读一块就行）</td></tr><tr><td>EC 6+3</td><td>50%</td><td>3 片</td><td>6（重建要读 6 片）</td></tr><tr><td>EC 10+4</td><td>40%</td><td>4 片</td><td>10</td></tr><tr><td>EC 12+4</td><td>33%</td><td>4 片</td><td>12</td></tr></tbody></table><p>取舍直白：</p><ul><li>副本：CPU 便宜，磁盘贵，重建快（拷一块就好）。</li><li>EC：磁盘便宜，重建时 CPU + 网络贵，重建慢。</li></ul><p>热数据要副本（一次读一次 HTTP 拉取）。冷数据要 EC（很少摸到，重建成本能在年的尺度上摊掉）。</p><h3 id=52-11-个-9-是个预算不是奇迹>5.2 11 个 9 是个预算，不是奇迹</h3><p>S3 宣传 99.999999999%（11 个 9）的对象持久性 —— 也就是每 1000 亿对象 · 年期望丢一个。这个数字不是魔法，是工程出来的：</p><ul><li>磁盘年故障率约 1%。</li><li><code>k+m</code> 个分片至少跨 3 个 AZ。</li><li>后台持续扫描（scrubbing）在位翻转累积成下一次磁盘故障之前发现它。</li><li>修复带宽节流但永不停。</li></ul><p>实战教训：<strong>持久性的本质不是「我有 3 份」，而是「修复速度比下一次故障到来更快」</strong>。如果你要自建存储，先把 repair pipeline 的指标盘做出来。</p><hr><h2 id=6-分布式文件系统hdfs-与-ceph>6. 分布式文件系统：HDFS 与 Ceph</h2><p>当你确实需要跨多机的类 POSIX 语义时，两个参考设计占绝对主导：HDFS（主协调、追加为主）与 Ceph（对等、全功能）。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/cloud-computing/storage-systems/fig5_distributed_fs.png alt="HDFS vs Ceph 架构" loading=lazy decoding=async></figure></p><h3 id=61-hdfs--主协调批处理友好>6.1 HDFS —— 主协调、批处理友好</h3><p>HDFS 建立在三个判断之上：</p><ol><li><strong>文件大、写一次、读多次</strong>（日志、parquet、视频）。默认块大小 <strong>128 MB</strong> 正是为此。</li><li><strong>失败是常态</strong>，副本下沉到块级，永不到文件级。</li><li><strong>把计算搬到数据旁边</strong>（MapReduce 立身之本的数据本地性原则）。</li></ol><p>架构：</p><ul><li><strong>NameNode</strong> —— 命名空间和块位置的唯一真理来源。Active NN 与 <strong>Standby NN</strong> 通过 <strong>JournalNode</strong> 仲裁（QJM）共享 edits 实现 HA。</li><li><strong>DataNode</strong> —— 存块。默认副本因子 3。</li><li><strong>块放置</strong> —— 第一份在写入者所在节点（写入者在集群外则随机），第二份在不同 <em>机架</em>，第三份在第二份的同机架不同节点。能扛全机架故障，又保留机架内读速度。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=c>&lt;!-- hdfs-site.xml：能上生产的最小配置 --&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;configuration&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.replication<span class=nt>&lt;/name&gt;</span>             <span class=nt>&lt;value&gt;</span>3<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.blocksize<span class=nt>&lt;/name&gt;</span>               <span class=nt>&lt;value&gt;</span>134217728<span class=nt>&lt;/value&gt;&lt;/property&gt;</span> <span class=c>&lt;!-- 128 MB --&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.namenode.handler.count<span class=nt>&lt;/name&gt;</span>  <span class=nt>&lt;value&gt;</span>100<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.datanode.handler.count<span class=nt>&lt;/name&gt;</span>  <span class=nt>&lt;value&gt;</span>40<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.namenode.name.dir<span class=nt>&lt;/name&gt;</span>       <span class=nt>&lt;value&gt;</span>/data/nn1,/data/nn2<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.datanode.data.dir<span class=nt>&lt;/name&gt;</span>       <span class=nt>&lt;value&gt;</span>/data/dn1,/data/dn2,/data/dn3<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.namenode.shared.edits.dir<span class=nt>&lt;/name&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;value&gt;</span>qjournal://jn1:8485;jn2:8485;jn3:8485/cluster1<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/configuration&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 现代 HDFS 客户端（PyArrow 的 HDFS 接口；hdfs3 已无人维护）</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pyarrow.fs</span> <span class=k>as</span> <span class=nn>pafs</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>hdfs</span> <span class=o>=</span> <span class=n>pafs</span><span class=o>.</span><span class=n>HadoopFileSystem</span><span class=p>(</span><span class=n>host</span><span class=o>=</span><span class=s2>&#34;namenode&#34;</span><span class=p>,</span> <span class=n>port</span><span class=o>=</span><span class=mi>9000</span><span class=p>,</span> <span class=n>user</span><span class=o>=</span><span class=s2>&#34;hadoop&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>hdfs</span><span class=o>.</span><span class=n>create_dir</span><span class=p>(</span><span class=s2>&#34;/user/data&#34;</span><span class=p>,</span> <span class=n>recursive</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>hdfs</span><span class=o>.</span><span class=n>open_output_stream</span><span class=p>(</span><span class=s2>&#34;/user/data/events.parquet&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>f</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=nb>open</span><span class=p>(</span><span class=s2>&#34;/local/events.parquet&#34;</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>read</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>info</span> <span class=ow>in</span> <span class=n>hdfs</span><span class=o>.</span><span class=n>get_file_info</span><span class=p>(</span><span class=n>pafs</span><span class=o>.</span><span class=n>FileSelector</span><span class=p>(</span><span class=s2>&#34;/user/data&#34;</span><span class=p>,</span> <span class=n>recursive</span><span class=o>=</span><span class=kc>False</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>info</span><span class=o>.</span><span class=n>path</span><span class=si>:</span><span class=s2>50s</span><span class=si>}</span><span class=s2>  </span><span class=si>{</span><span class=n>info</span><span class=o>.</span><span class=n>size</span><span class=si>:</span><span class=s2>&gt;12</span><span class=si>}</span><span class=s2> bytes&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>HDFS 不适合</strong>：海量小文件（每个吃 NameNode 约 150 字节内存）、随机写（它只能追加）、低延迟点查。除此之外，在 Hadoop / Spark 生态里它仍然非常好用。</p><h3 id=62-ceph--一个集群三种接口>6.2 Ceph —— 一个集群、三种接口</h3><p>Ceph 的贡献是 <em>统一存储</em>：单一 RADOS 集群暴露块（RBD）、对象（RGW）、文件（CephFS）三种接口，全部由同一组 OSD 承载。</p><p>让 Ceph 跟 HDFS 不一样的两个想法：</p><ul><li><strong>没有放置元数据的中心节点</strong>。放置由 <strong>CRUSH</strong>（Controlled Replication Under Scalable Hashing）算出 —— 一个伪随机算法，输入对象名 + 集群图，输出确定的 OSD 集。从根上消除 NameNode 瓶颈。</li><li><strong>OSD 自管理</strong>。每个 OSD 知道自己的对端，副本、扫描、恢复都自己跑，没有中心调度器。</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># 现代 Ceph 部署用 cephadm + 容器</span>
+</span></span><span class=line><span class=cl>cephadm bootstrap --mon-ip 10.0.1.10
+</span></span><span class=line><span class=cl>ceph orch host add node2 10.0.1.11
+</span></span><span class=line><span class=cl>ceph orch host add node3 10.0.1.12
+</span></span><span class=line><span class=cl>ceph orch apply osd --all-available-devices
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 用 EC 4+2 建对象池（50% 开销，可容忍 2 个 OSD 故障）</span>
+</span></span><span class=line><span class=cl>ceph osd erasure-code-profile <span class=nb>set</span> ec42 <span class=nv>k</span><span class=o>=</span><span class=m>4</span> <span class=nv>m</span><span class=o>=</span><span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    crush-failure-domain<span class=o>=</span>host
+</span></span><span class=line><span class=cl>ceph osd pool create cold_objects erasure ec42
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># RBD：精简配置、可快照的虚拟磁盘</span>
+</span></span><span class=line><span class=cl>rbd create --size 100G --pool rbd vm-disk-01
+</span></span><span class=line><span class=cl>rbd map rbd/vm-disk-01            <span class=c1># 出现 /dev/rbd0</span>
+</span></span><span class=line><span class=cl>mkfs.xfs /dev/rbd0
+</span></span><span class=line><span class=cl>rbd snap create rbd/vm-disk-01@before-upgrade
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># RGW：基于同一集群的 S3 兼容端点</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>boto3</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>botocore.client</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>rgw</span> <span class=o>=</span> <span class=n>boto3</span><span class=o>.</span><span class=n>client</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;s3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>endpoint_url</span><span class=o>=</span><span class=s2>&#34;http://rgw.internal:7480&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>aws_access_key_id</span><span class=o>=</span><span class=s2>&#34;&lt;access&gt;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>aws_secret_access_key</span><span class=o>=</span><span class=s2>&#34;&lt;secret&gt;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>config</span><span class=o>=</span><span class=n>Config</span><span class=p>(</span><span class=n>signature_version</span><span class=o>=</span><span class=s2>&#34;s3v4&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>rgw</span><span class=o>.</span><span class=n>create_bucket</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;ml-datasets&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>rgw</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;ml-datasets&#34;</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=s2>&#34;cifar10.tar&#34;</span><span class=p>,</span> <span class=n>Body</span><span class=o>=</span><span class=sa>b</span><span class=s2>&#34;...&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Ceph 的灵活性是有运维代价的：调 CRUSH 规则、平衡 PG、规划 OSD 容量、监控重建带宽，规模上来后都是全职工作。多数团队应该先用云上托管的对象/块存储，只有出现硬约束（数据主权、本地化部署、定制硬件）时再考虑 Ceph。</p><hr><h2 id=7-副本策略与运维>7. 副本策略与运维</h2><h3 id=71-同步-vs-异步副本>7.1 同步 vs 异步副本</h3><table><thead><tr><th>维度</th><th>同步</th><th>异步</th></tr></thead><tbody><tr><td>一致性</td><td>强（所有副本 ack 后才返回）</td><td>最终一致</td></tr><tr><td>延迟</td><td>受最慢副本的 RTT 限制</td><td>仅本地磁盘</td></tr><tr><td>RPO</td><td>0</td><td>秒 - 分钟</td></tr><tr><td>吞吐</td><td>受最慢链路限</td><td>受主节点磁盘限</td></tr><tr><td>适用</td><td>金融账本、单地域数据库 HA</td><td>跨地域 DR、分析副本</td></tr></tbody></table><p>常见组合：<strong>地域内同步</strong>（跨 AZ，亚毫秒）+ <strong>跨地域异步</strong>（DR 副本，几秒 RPO）。</p><h3 id=72-仲裁>7.2 仲裁</h3><p><code>N</code> 副本，读/写仲裁分别为 <code>R</code> 与 <code>W</code>：</p><ul><li><code>W + R > N</code> 保证读必与最新写有交集。</li><li><code>W = N</code> 写最强（任一节点失败即不可写）；<code>W = 1</code> 写最弱。</li><li>Dynamo 系把 <code>R / W</code> 让 <em>应用</em> 按请求选；ZooKeeper / etcd 直接写死多数派。</li></ul><h3 id=73-生命周期策略--把成本工程自动化>7.3 生命周期策略 —— 把成本工程自动化</h3><p>成本优化大多是几行策略，而不是工程改造。把日志 30 天降到 IA、90 天降到 Glacier、365 天删；过期未完成的分片上传；过期对象旧版本：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>s3</span><span class=o>.</span><span class=n>put_bucket_lifecycle_configuration</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;prod-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>LifecycleConfiguration</span><span class=o>=</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;Rules&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;AbortStuckUploads&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;AbortIncompleteMultipartUpload&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;DaysAfterInitiation&#34;</span><span class=p>:</span> <span class=mi>7</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;TierDataset&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Filter&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;datasets/&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Transitions&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>                    <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>30</span><span class=p>,</span>  <span class=s2>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;STANDARD_IA&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                    <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>90</span><span class=p>,</span>  <span class=s2>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;GLACIER_IR&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                    <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>365</span><span class=p>,</span> <span class=s2>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;DEEP_ARCHIVE&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;ExpireOldLogs&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Filter&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;logs/&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Expiration&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>365</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;NoncurrentVersionExpiration&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;NoncurrentDays&#34;</span><span class=p>:</span> <span class=mi>30</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=74-备份rto-与-rpo>7.4 备份、RTO 与 RPO</h3><table><thead><tr><th>策略</th><th>RTO</th><th>RPO</th><th>成本</th><th>适用</th></tr></thead><tbody><tr><td>热备（多地域双活）</td><td>秒</td><td>接近 0</td><td>2-3x</td><td>支付、社交 Feed</td></tr><tr><td>温备（副本闲置，故障时拉起）</td><td>分钟</td><td>秒</td><td>1.2-1.5x</td><td>多数生产 Web</td></tr><tr><td>火种（数据有副本，基础设施缺位）</td><td>小时</td><td>分钟</td><td>1.05-1.1x</td><td>内部应用</td></tr><tr><td>仅备份</td><td>小时 - 天</td><td>小时</td><td>1.01x</td><td>开发/分析</td></tr></tbody></table><p>正确答案很少是最严格的那个，而是 <em>成本与每分钟宕机损失匹配</em> 的那个。</p><hr><h2 id=8-性能优化>8. 性能优化</h2><h3 id=81-长尾延迟才是主导>8.1 长尾延迟才是主导</h3><p>要看的是 <strong>P99 延迟</strong>，不是平均值。一个扇出 10 后端、等所有返回的请求，整体 P99 大约就是单后端 P99（Dean & Barroso，<em>The Tail at Scale</em>, 2013）。每一个依赖都是一个倍率。</p><h3 id=82-四个杠杆>8.2 四个杠杆</h3><ul><li><strong>并行</strong> —— 分片上传、Range GET、并发 Prefix。</li><li><strong>本地性</strong> —— 计算与存储就近（HDFS 数据本地性、S3 跨地域里的 AZ 亲和）。</li><li><strong>缓存</strong> —— 应用层 LRU、CloudFront 挡在公开 S3 前面、OSS CDN 挡在热 Prefix 前面。</li><li><strong>压缩</strong> —— zstd 是现代默认（level 3 ≈ gzip-6 速度 + gzip-9 压缩比）；CPU 紧张时用 Snappy。</li></ul><h3 id=83-一条吞吐拇指法则>8.3 一条吞吐拇指法则</h3><p>长距链路上的单条 TCP 流被 <code>窗口 / RTT</code> 限制。100 ms RTT、64 KB 默认窗口的天花板大约 5 Mbit/s。要把一根 10 Gbit/s 的管子打满，要么把窗口放大（内核自动调优能帮你），要么开多条流。分片上传就是「多条流」的显式形态 —— 这才是它快的 <em>原因</em>，而不仅仅是 <em>现象</em>。</p><hr><h2 id=9-成本工程>9. 成本工程</h2><h3 id=91-三条账单线>9.1 三条账单线</h3><table><thead><tr><th>账单项</th><th>驱动因素</th><th>杠杆</th></tr></thead><tbody><tr><td>存储</td><td>GB-月</td><td>分层、压缩、去重、过期</td></tr><tr><td>请求</td><td>PUT / GET / LIST 计数</td><td>批量、分片、Prefix 设计</td></tr><tr><td>出网</td><td>跨地域 / 出云的 GB</td><td>CDN、地域内计算、专线</td></tr></tbody></table><p>对多数团队来说，<strong>出网是账单上的"惊喜"</strong>。1 PB 跨地域复制按 $0.02/GB 是 $20,000。能在地域内复制就在地域内复制；非要出去，就走更便宜的传输通道（Direct Connect、专属对接、阿里云的 CEN）。</p><h3 id=92-一个具体的成本计算>9.2 一个具体的成本计算</h3><p>1 TB 数据集，每天访问 2 次，存 1 年：</p><ul><li><strong>Standard：</strong> 1 TB × $0.023 × 12 = **$276/年**，请求成本可忽略。</li><li><strong>Standard + 30 天后转 IA：</strong> 存储约 $160/年 + IA 取回约 $10 ≈ <strong>$170/年</strong>。</li><li><strong>90 天后转 Deep Archive，每年 2 次再训练取回：</strong> 存储约 $15/年 + 取回费约 $40 ≈ <strong>$55/年</strong>。</li></ul><p>精确数字会随官方定价漂移，但 <em>量级</em> 不会变 —— <strong>生命周期是 5-10 倍的成本杠杆，且开通它本身免费</strong>。</p><hr><h2 id=10-常见问题>10. 常见问题</h2><p><strong>问：新数据湖选 HDFS 还是 S3？</strong></p><p>绿地几乎一律选 S3（或对应物）。现代引擎（Trino、Spark、Flink、DuckDB）原生读对象存储；存算分离让两者独立扩缩；省去维护 NameNode HA 集群的麻烦。只有当本地化部署或极端的数据本地性是硬约束时，才回头选 HDFS。</p><p><strong>问：Ceph 在什么情况下值得它的运维代价？</strong></p><p>三种情况：监管要求数据留在自有硬件上；块 + 对象量大到云上托管价更高；已有 OpenStack 环境受益于 Ceph 的紧密集成。除此之外，把 SRE 工时算上之后，云上托管基本更便宜。</p><p><strong>问：3 副本还是纠删码？</strong></p><p>热的、低延迟敏感的数据用副本；冷数据和大对象用 EC。许多系统会自动两个都做（S3 内部、Ceph 通过分层池）。这个决定基本不需要应用层操心。</p><p><strong>问：对象存储前面的缓存该怎么定容？</strong></p><p>把对象访问频次按对象数量画出来，找"拐点"。典型 Web 负载缓存前 1-5% 的对象就能吸收 80-95% 的 GET。再往后是边际收益递减。CloudFront / OSS CDN 把它从容量决策变成了配置决策。</p><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>篇</th><th>主题</th></tr></thead><tbody><tr><td>1</td><td><a href=/zh/cloud-computing-fundamentals/>基础与架构体系</a></td></tr><tr><td>2</td><td><a href=/zh/cloud-computing-virtualization/>虚拟化技术深度解析</a></td></tr><tr><td><strong>3</strong></td><td><strong>存储系统与分布式架构（当前）</strong></td></tr><tr><td>4</td><td><a href=/zh/cloud-computing-networking-sdn/>网络架构与 SDN</a></td></tr><tr><td>5</td><td><a href=/zh/cloud-computing-security-privacy/>安全与隐私保护</a></td></tr><tr><td>6</td><td><a href=/zh/cloud-computing-operations-devops/>运维与 DevOps 实践</a></td></tr><tr><td>7</td><td><a href=/zh/cloud-computing-cloud-native-containers/>云原生与容器技术</a></td></tr><tr><td>8</td><td><a href=/zh/cloud-computing-multi-cloud-hybrid/>多云与混合架构</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-问题的形状>1. 问题的形状</a><ul><li><a href=#11-分布式存储为什么难>1.1 分布式存储为什么难</a></li><li><a href=#12-对象-vs-块-vs-文件选对原语>1.2 对象 vs 块 vs 文件：选对原语</a></li></ul></li><li><a href=#2-cappacelc-与一致性菜单>2. CAP、PACELC 与一致性菜单</a><ul><li><a href=#21-cap-定理>2.1 CAP 定理</a></li><li><a href=#22-pacelccap-漏掉的那一半>2.2 PACELC：CAP 漏掉的那一半</a></li><li><a href=#23-实用一致性模型>2.3 实用一致性模型</a></li></ul></li><li><a href=#3-一致性哈希路由原语>3. 一致性哈希：路由原语</a></li><li><a href=#4-对象存储s3-究竟是怎么工作的>4. 对象存储：S3 究竟是怎么工作的</a><ul><li><a href=#41-请求路径>4.1 请求路径</a></li><li><a href=#42-存储等级--成本杠杆>4.2 存储等级 —— 成本杠杆</a></li><li><a href=#43-生产级-python-sdk>4.3 生产级 Python SDK</a></li><li><a href=#44-分片上传>4.4 分片上传</a></li></ul></li><li><a href=#5-副本-vs-纠删码>5. 副本 vs 纠删码</a><ul><li><a href=#51-数学>5.1 数学</a></li><li><a href=#52-11-个-9-是个预算不是奇迹>5.2 11 个 9 是个预算，不是奇迹</a></li></ul></li><li><a href=#6-分布式文件系统hdfs-与-ceph>6. 分布式文件系统：HDFS 与 Ceph</a><ul><li><a href=#61-hdfs--主协调批处理友好>6.1 HDFS —— 主协调、批处理友好</a></li><li><a href=#62-ceph--一个集群三种接口>6.2 Ceph —— 一个集群、三种接口</a></li></ul></li><li><a href=#7-副本策略与运维>7. 副本策略与运维</a><ul><li><a href=#71-同步-vs-异步副本>7.1 同步 vs 异步副本</a></li><li><a href=#72-仲裁>7.2 仲裁</a></li><li><a href=#73-生命周期策略--把成本工程自动化>7.3 生命周期策略 —— 把成本工程自动化</a></li><li><a href=#74-备份rto-与-rpo>7.4 备份、RTO 与 RPO</a></li></ul></li><li><a href=#8-性能优化>8. 性能优化</a><ul><li><a href=#81-长尾延迟才是主导>8.1 长尾延迟才是主导</a></li><li><a href=#82-四个杠杆>8.2 四个杠杆</a></li><li><a href=#83-一条吞吐拇指法则>8.3 一条吞吐拇指法则</a></li></ul></li><li><a href=#9-成本工程>9. 成本工程</a><ul><li><a href=#91-三条账单线>9.1 三条账单线</a></li><li><a href=#92-一个具体的成本计算>9.2 一个具体的成本计算</a></li></ul></li><li><a href=#10-常见问题>10. 常见问题</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>6767</strong></div><div class=row><span>Published</span><strong>Mar 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

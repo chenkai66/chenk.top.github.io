@@ -1,961 +1,443 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>NLP Part 3: RNN and Sequence Modeling · Chen Kai Blog</title>
-<meta name="description" content="How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/nlp/rnn-sequence-modeling/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/nlp/rnn-sequence-modeling/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="NLP Part 3: RNN and Sequence Modeling">
-<meta property="og:description" content="How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch.">
-<meta property="og:url" content="https://www.chenk.top/en/nlp/rnn-sequence-modeling/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Natural language processing</a>
-         · Chapter 3
-      </div>
-      <h1>NLP Part 3: RNN and Sequence Modeling</h1>
-      <p class="deck">How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-10-11">October 11, 2025</time> · 8 min read · 1600 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/nlp/" class="tag">#NLP</a><a href="/en/tags/rnn/" class="tag">#RNN</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/lstm/" class="tag">#LSTM</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Open Google Translate, swipe-type a message, dictate a memo to your phone — every one of these systems must consume an ordered stream of tokens and produce another. A feed-forward network treats each input independently, but language is fundamentally <strong>sequential</strong>: the meaning of &ldquo;mat&rdquo; in <em>the cat sat on the mat</em> depends on every word that came before. Recurrent Neural Networks (RNNs) handle this by maintaining a <strong>hidden state</strong> that evolves as they consume each token. The hidden state is the network&rsquo;s running summary of the past — its memory.</p>
-<p>This article builds up the family of recurrent architectures from scratch. We start with the vanilla RNN, derive <em>why</em> it cannot remember more than a dozen tokens, watch the LSTM and GRU rescue it with gating, and finish with a working English-to-French translator in PyTorch. By the end, you will understand the architectural shift that ultimately motivated attention and Transformers.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>How RNNs maintain memory through recurrent connections and parameter sharing</li>
-<li>A first-principles derivation of vanishing and exploding gradients</li>
-<li>How LSTM gates (forget, input, output) and the cell-state highway fix long-range dependencies</li>
-<li>GRU as a leaner alternative to LSTM, and when to pick each</li>
-<li>Bidirectional and stacked RNNs for richer per-token representations</li>
-<li>The Seq2Seq encoder-decoder, its bottleneck, and why attention was inevitable</li>
-<li>Working PyTorch implementations of text generation and translation</li>
-</ul>
-<p><strong>Prerequisites</strong>: Parts 1-2 of this series (tokenization and embeddings), plus basic PyTorch (tensors, <code>nn.Module</code>, training loops).</p>
-<hr>
-<h2 id="1-the-core-idea-recurrence-and-parameter-sharing">1. The core idea: recurrence and parameter sharing</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig1_unrolled_rnn.png" alt="Vanilla RNN unrolled across five time steps, showing recurrent weight sharing" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>At every time step $t$, an RNN consumes input $x_t$ and the previous hidden state $h_{t-1}$, then produces a new hidden state and an output:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>NLP Part 3: RNN and Sequence Modeling · Chen Kai Blog</title>
+<meta name=description content="How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/nlp/rnn-sequence-modeling/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/rnn-sequence-modeling/><meta property="og:type" content="article"><meta property="og:title" content="NLP Part 3: RNN and Sequence Modeling"><meta property="og:description" content="How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch."><meta property="og:url" content="https://www.chenk.top/en/nlp/rnn-sequence-modeling/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Natural language processing</a>
+· Chapter 3</div><h1>NLP Part 3: RNN and Sequence Modeling</h1><p class=deck>How RNNs, LSTMs, and GRUs process sequences with memory. We derive vanishing gradients from first principles, build a character-level text generator, and implement a Seq2Seq translator in PyTorch.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-10-11>October 11, 2025</time> · 8 min read · 1543 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/nlp/ class=tag>#NLP</a><a href=/en/tags/rnn/ class=tag>#RNN</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/lstm/ class=tag>#LSTM</a></div></div></header><div class=prose><p>Open Google Translate, swipe-type a message, dictate a memo to your phone — every one of these systems must consume an ordered stream of tokens and produce another. A feed-forward network treats each input independently, but language is fundamentally <strong>sequential</strong>: the meaning of &ldquo;mat&rdquo; in <em>the cat sat on the mat</em> depends on every word that came before. Recurrent Neural Networks (RNNs) handle this by maintaining a <strong>hidden state</strong> that evolves as they consume each token. The hidden state is the network&rsquo;s running summary of the past — its memory.</p><p>This article builds up the family of recurrent architectures from scratch. We start with the vanilla RNN, derive <em>why</em> it cannot remember more than a dozen tokens, watch the LSTM and GRU rescue it with gating, and finish with a working English-to-French translator in PyTorch. By the end, you will understand the architectural shift that ultimately motivated attention and Transformers.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>How RNNs maintain memory through recurrent connections and parameter sharing</li><li>A first-principles derivation of vanishing and exploding gradients</li><li>How LSTM gates (forget, input, output) and the cell-state highway fix long-range dependencies</li><li>GRU as a leaner alternative to LSTM, and when to pick each</li><li>Bidirectional and stacked RNNs for richer per-token representations</li><li>The Seq2Seq encoder-decoder, its bottleneck, and why attention was inevitable</li><li>Working PyTorch implementations of text generation and translation</li></ul><p><strong>Prerequisites</strong>: Parts 1-2 of this series (tokenization and embeddings), plus basic PyTorch (tensors, <code>nn.Module</code>, training loops).</p><hr><h2 id=1-the-core-idea-recurrence-and-parameter-sharing>1. The core idea: recurrence and parameter sharing</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig1_unrolled_rnn.png alt="Vanilla RNN unrolled across five time steps, showing recurrent weight sharing" loading=lazy decoding=async></figure></p><p>At every time step $t$, an RNN consumes input $x_t$ and the previous hidden state $h_{t-1}$, then produces a new hidden state and an output:</p>$$
 h_t = \tanh(W_h h_{t-1} + W_x x_t + b), \qquad y_t = W_y h_t + b_y.
-$$<p>The crucial property — visible in the figure as the same arrows repeating at each step — is that <strong>the matrices $W_h$, $W_x$, $W_y$ are reused at every position</strong>. This single design choice gives RNNs three nice features at once:</p>
-<ul>
-<li><strong>Generalisation across positions</strong>: a pattern learned at position 3 transfers to position 30, because the same weights see both.</li>
-<li><strong>Constant parameter count</strong>: the model size is independent of sequence length, so a 10-token and a 10 000-token sentence cost the same to <em>store</em>.</li>
-<li><strong>Variable-length input and output</strong>: nothing in the equations cares whether $T$ is 5 or 500.</li>
-</ul>
-<p>Mentally, picture the network reading one token at a time, updating its &ldquo;running understanding&rdquo; of the sentence after each word. The hidden state at step $t$ is a learned, fixed-size summary of $x_1, \dots, x_t$.</p>
-<hr>
-<h2 id="2-the-vanishing-gradient-problem">2. The vanishing gradient problem</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig2_vanishing_gradient.png" alt="Gradient norm decay vs. distance, with a long-range dependency illustrated on a sample sentence" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The trouble starts when we train. To compute gradients we <em>unroll</em> the network through time and run backpropagation — a procedure called Backpropagation Through Time (BPTT). The gradient of the loss at step $T$ with respect to the hidden state at step $t$ is a chain product:</p>
-$$
+$$<p>The crucial property — visible in the figure as the same arrows repeating at each step — is that <strong>the matrices $W_h$, $W_x$, $W_y$ are reused at every position</strong>. This single design choice gives RNNs three nice features at once:</p><ul><li><strong>Generalisation across positions</strong>: a pattern learned at position 3 transfers to position 30, because the same weights see both.</li><li><strong>Constant parameter count</strong>: the model size is independent of sequence length, so a 10-token and a 10 000-token sentence cost the same to <em>store</em>.</li><li><strong>Variable-length input and output</strong>: nothing in the equations cares whether $T$ is 5 or 500.</li></ul><p>Mentally, picture the network reading one token at a time, updating its &ldquo;running understanding&rdquo; of the sentence after each word. The hidden state at step $t$ is a learned, fixed-size summary of $x_1, \dots, x_t$.</p><hr><h2 id=2-the-vanishing-gradient-problem>2. The vanishing gradient problem</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig2_vanishing_gradient.png alt="Gradient norm decay vs. distance, with a long-range dependency illustrated on a sample sentence" loading=lazy decoding=async></figure></p><p>The trouble starts when we train. To compute gradients we <em>unroll</em> the network through time and run backpropagation — a procedure called Backpropagation Through Time (BPTT). The gradient of the loss at step $T$ with respect to the hidden state at step $t$ is a chain product:</p>$$
 \frac{\partial h_T}{\partial h_t} \;=\; \prod_{k=t}^{T-1} \frac{\partial h_{k+1}}{\partial h_k}.
-$$<p>Each Jacobian factor in that product is roughly $W_h^{\top}\,\mathrm{diag}(\tanh'(\cdot))$. Because $\tanh' \le 1$, the factor&rsquo;s spectral norm is bounded above by the largest singular value of $W_h$, call it $\lambda$. Multiplying $T-t$ such factors gives</p>
-$$
+$$<p>Each Jacobian factor in that product is roughly $W_h^{\top}\,\mathrm{diag}(\tanh'(\cdot))$. Because $\tanh' \le 1$, the factor&rsquo;s spectral norm is bounded above by the largest singular value of $W_h$, call it $\lambda$. Multiplying $T-t$ such factors gives</p>$$
 \left\| \frac{\partial h_T}{\partial h_t} \right\| \;\lesssim\; \lambda^{\,T-t}.
-$$<p>Two regimes follow immediately, and you can see both in the left panel of the figure:</p>
-<ul>
-<li>If $\lambda < 1$, the gradient norm <strong>decays exponentially</strong>. Beyond roughly 10–20 steps the signal is numerically zero, so the optimiser cannot tell that token $t$ matters for the loss at $T$. The model literally cannot learn the dependency.</li>
-<li>If $\lambda > 1$, the gradient <strong>explodes</strong> — finite weight updates become wild, and training diverges in a single step.</li>
-</ul>
-<p>The right panel makes this concrete. In <em>&ldquo;The cat, which sat on the mat and purred, <strong>was</strong> happy&rdquo;</em>, subject (&ldquo;cat&rdquo;) and verb (&ldquo;was&rdquo;) are separated by ten tokens. A vanilla RNN cannot route the gradient that far, so it never learns the agreement.</p>
-<p><strong>What helps in practice.</strong> <em>Gradient clipping</em> — capping the global norm at some threshold like 5.0 — solves explosion but does nothing for vanishing. The real fix requires re-architecting the recurrence so that gradients have a path that <em>does not</em> shrink. That path is exactly what LSTMs and GRUs introduce.</p>
-<hr>
-<h2 id="3-long-short-term-memory-lstm">3. Long Short-Term Memory (LSTM)</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig3_lstm_gates.png" alt="LSTM cell architecture: forget, input, output gates and the additive cell-state highway" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The LSTM (Hochreiter &amp; Schmidhuber, 1997) replaces the simple recurrent unit with a <strong>gated cell</strong> that carries an explicit long-term memory $C_t$ alongside the hidden state $h_t$.</p>
-<h3 id="the-three-gates">The three gates</h3>
-<p>Let $[h_{t-1}, x_t]$ denote the concatenation of the previous hidden state and current input. All gates share this same input.</p>
-<p><strong>Forget gate</strong> — what to discard from the long-term memory:</p>
-$$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f).$$<p><strong>Input gate</strong> + <strong>candidate</strong> — what new information to write:</p>
-$$
+$$<p>Two regimes follow immediately, and you can see both in the left panel of the figure:</p><ul><li>If $\lambda < 1$, the gradient norm <strong>decays exponentially</strong>. Beyond roughly 10–20 steps the signal is numerically zero, so the optimiser cannot tell that token $t$ matters for the loss at $T$. The model literally cannot learn the dependency.</li><li>If $\lambda > 1$, the gradient <strong>explodes</strong> — finite weight updates become wild, and training diverges in a single step.</li></ul><p>The right panel makes this concrete. In <em>&ldquo;The cat, which sat on the mat and purred, <strong>was</strong> happy&rdquo;</em>, subject (&ldquo;cat&rdquo;) and verb (&ldquo;was&rdquo;) are separated by ten tokens. A vanilla RNN cannot route the gradient that far, so it never learns the agreement.</p><p><strong>What helps in practice.</strong> <em>Gradient clipping</em> — capping the global norm at some threshold like 5.0 — solves explosion but does nothing for vanishing. The real fix requires re-architecting the recurrence so that gradients have a path that <em>does not</em> shrink. That path is exactly what LSTMs and GRUs introduce.</p><hr><h2 id=3-long-short-term-memory-lstm>3. Long Short-Term Memory (LSTM)</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig3_lstm_gates.png alt="LSTM cell architecture: forget, input, output gates and the additive cell-state highway" loading=lazy decoding=async></figure></p><p>The LSTM (Hochreiter & Schmidhuber, 1997) replaces the simple recurrent unit with a <strong>gated cell</strong> that carries an explicit long-term memory $C_t$ alongside the hidden state $h_t$.</p><h3 id=the-three-gates>The three gates</h3><p>Let $[h_{t-1}, x_t]$ denote the concatenation of the previous hidden state and current input. All gates share this same input.</p><p><strong>Forget gate</strong> — what to discard from the long-term memory:</p>$$f_t = \sigma(W_f [h_{t-1}, x_t] + b_f).$$<p><strong>Input gate</strong> + <strong>candidate</strong> — what new information to write:</p>$$
 i_t = \sigma(W_i [h_{t-1}, x_t] + b_i), \qquad
 \tilde{C}_t = \tanh(W_C [h_{t-1}, x_t] + b_C).
-$$<p><strong>Cell-state update</strong> — combine old memory with new content:</p>
-$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$<p><strong>Output gate</strong> — what slice of the cell to expose as the new hidden state:</p>
-$$
+$$<p><strong>Cell-state update</strong> — combine old memory with new content:</p>$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$<p><strong>Output gate</strong> — what slice of the cell to expose as the new hidden state:</p>$$
 o_t = \sigma(W_o [h_{t-1}, x_t] + b_o), \qquad
 h_t = o_t \odot \tanh(C_t).
-$$<p>Here $\sigma$ is the sigmoid (a soft 0–1 switch) and $\odot$ is element-wise multiplication. Each gate is a learned, position-dependent decision: <em>forget this, write that, expose the rest</em>.</p>
-<h3 id="why-this-fixes-vanishing-gradients">Why this fixes vanishing gradients</h3>
-<p>The cell-state line in the diagram is the key. Its update is <strong>additive</strong>:</p>
-$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$<p>Differentiating gives $\partial C_t / \partial C_{t-1} = f_t$, an element-wise scalar in $[0,1]$. When the forget gate stays near 1, the chain product $\prod f_k$ stays near 1 too — gradients flow through the cell-state highway essentially unchanged, even over hundreds of steps. Compare this with the vanilla RNN&rsquo;s <em>multiplicative</em> update through $W_h$, which compounds toward zero. The LSTM trades one shared $W_h$ for a learnable, time-varying $f_t$, and that single change is what lets it model long contexts.</p>
-<h3 id="the-conveyor-belt-analogy">The conveyor-belt analogy</h3>
-<p>Picture the cell state as a conveyor belt running the length of the sequence. The forget gate is a worker who <em>removes</em> items the belt no longer needs, the input gate is a worker who <em>places</em> new items on, and the output gate is a window that decides which items the outside world (the rest of the network) sees right now. An item placed at step 3 can ride the belt undisturbed all the way to step 300.</p>
-<hr>
-<h2 id="4-gated-recurrent-unit-gru">4. Gated Recurrent Unit (GRU)</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig4_gru_cell.png" alt="GRU cell with reset and update gates — simpler than LSTM" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The GRU (Cho et al., 2014) keeps the gating idea but trims the design. It merges forget and input into a single <strong>update gate</strong>, drops the separate cell state, and works directly on $h_t$:</p>
-$$
+$$<p>Here $\sigma$ is the sigmoid (a soft 0–1 switch) and $\odot$ is element-wise multiplication. Each gate is a learned, position-dependent decision: <em>forget this, write that, expose the rest</em>.</p><h3 id=why-this-fixes-vanishing-gradients>Why this fixes vanishing gradients</h3><p>The cell-state line in the diagram is the key. Its update is <strong>additive</strong>:</p>$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t.$$<p>Differentiating gives $\partial C_t / \partial C_{t-1} = f_t$, an element-wise scalar in $[0,1]$. When the forget gate stays near 1, the chain product $\prod f_k$ stays near 1 too — gradients flow through the cell-state highway essentially unchanged, even over hundreds of steps. Compare this with the vanilla RNN&rsquo;s <em>multiplicative</em> update through $W_h$, which compounds toward zero. The LSTM trades one shared $W_h$ for a learnable, time-varying $f_t$, and that single change is what lets it model long contexts.</p><h3 id=the-conveyor-belt-analogy>The conveyor-belt analogy</h3><p>Picture the cell state as a conveyor belt running the length of the sequence. The forget gate is a worker who <em>removes</em> items the belt no longer needs, the input gate is a worker who <em>places</em> new items on, and the output gate is a window that decides which items the outside world (the rest of the network) sees right now. An item placed at step 3 can ride the belt undisturbed all the way to step 300.</p><hr><h2 id=4-gated-recurrent-unit-gru>4. Gated Recurrent Unit (GRU)</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig4_gru_cell.png alt="GRU cell with reset and update gates — simpler than LSTM" loading=lazy decoding=async></figure></p><p>The GRU (Cho et al., 2014) keeps the gating idea but trims the design. It merges forget and input into a single <strong>update gate</strong>, drops the separate cell state, and works directly on $h_t$:</p>$$
 z_t = \sigma(W_z [h_{t-1}, x_t]), \qquad
 r_t = \sigma(W_r [h_{t-1}, x_t]),
 $$$$
 \tilde{h}_t = \tanh(W [r_t \odot h_{t-1}, x_t]), \qquad
 h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t.
-$$<p>The <strong>reset gate</strong> $r_t$ controls how much of the past leaks into the candidate. The <strong>update gate</strong> $z_t$ does linear interpolation between the old state and the new candidate — when $z_t \approx 0$, the GRU just copies $h_{t-1}$ forward, which is exactly the same gradient-preserving trick as the LSTM&rsquo;s cell highway.</p>
-<h3 id="lstm-vs-gru">LSTM vs. GRU</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Aspect</th>
-          <th>LSTM</th>
-          <th>GRU</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Gates</td>
-          <td>3 (forget, input, output)</td>
-          <td>2 (reset, update)</td>
-      </tr>
-      <tr>
-          <td>Separate cell state</td>
-          <td>Yes ($C_t$)</td>
-          <td>No (just $h_t$)</td>
-      </tr>
-      <tr>
-          <td>Parameters</td>
-          <td>$\sim\!4\times$ vanilla RNN</td>
-          <td>$\sim\!3\times$ vanilla RNN ($\approx 25\%$ fewer than LSTM)</td>
-      </tr>
-      <tr>
-          <td>Long sequences</td>
-          <td>Slight edge in many benchmarks</td>
-          <td>Comparable</td>
-      </tr>
-      <tr>
-          <td>Training speed</td>
-          <td>Slower</td>
-          <td>Faster</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>Rule of thumb</strong>: start with a GRU. It trains faster, has fewer hyperparameters, and on most tasks the accuracy gap is within noise. Switch to LSTM if your sequences are very long or if your task is known to benefit from the extra capacity (some speech tasks do).</p>
-<hr>
-<h2 id="5-bidirectional-rnns">5. Bidirectional RNNs</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig5_bidirectional_rnn.png" alt="Bidirectional RNN: forward and backward states concatenated per position" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>In many tasks, the future is just as informative as the past. <em>&ldquo;He said the food was <strong>not</strong> good&rdquo;</em> — without seeing &ldquo;not&rdquo;, a left-to-right reader would label &ldquo;good&rdquo; as positive sentiment.</p>
-<p>A Bidirectional RNN (Schuster &amp; Paliwal, 1997) runs two independent recurrences and concatenates their states:</p>
-$$
+$$<p>The <strong>reset gate</strong> $r_t$ controls how much of the past leaks into the candidate. The <strong>update gate</strong> $z_t$ does linear interpolation between the old state and the new candidate — when $z_t \approx 0$, the GRU just copies $h_{t-1}$ forward, which is exactly the same gradient-preserving trick as the LSTM&rsquo;s cell highway.</p><h3 id=lstm-vs-gru>LSTM vs. GRU</h3><table><thead><tr><th>Aspect</th><th>LSTM</th><th>GRU</th></tr></thead><tbody><tr><td>Gates</td><td>3 (forget, input, output)</td><td>2 (reset, update)</td></tr><tr><td>Separate cell state</td><td>Yes ($C_t$)</td><td>No (just $h_t$)</td></tr><tr><td>Parameters</td><td>$\sim\!4\times$ vanilla RNN</td><td>$\sim\!3\times$ vanilla RNN ($\approx 25\%$ fewer than LSTM)</td></tr><tr><td>Long sequences</td><td>Slight edge in many benchmarks</td><td>Comparable</td></tr><tr><td>Training speed</td><td>Slower</td><td>Faster</td></tr></tbody></table><p><strong>Rule of thumb</strong>: start with a GRU. It trains faster, has fewer hyperparameters, and on most tasks the accuracy gap is within noise. Switch to LSTM if your sequences are very long or if your task is known to benefit from the extra capacity (some speech tasks do).</p><hr><h2 id=5-bidirectional-rnns>5. Bidirectional RNNs</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig5_bidirectional_rnn.png alt="Bidirectional RNN: forward and backward states concatenated per position" loading=lazy decoding=async></figure></p><p>In many tasks, the future is just as informative as the past. <em>&ldquo;He said the food was <strong>not</strong> good&rdquo;</em> — without seeing &ldquo;not&rdquo;, a left-to-right reader would label &ldquo;good&rdquo; as positive sentiment.</p><p>A Bidirectional RNN (Schuster & Paliwal, 1997) runs two independent recurrences and concatenates their states:</p>$$
 \overrightarrow{h}_t = \mathrm{RNN}_\text{fwd}(x_t, \overrightarrow{h}_{t-1}), \qquad
 \overleftarrow{h}_t = \mathrm{RNN}_\text{bwd}(x_t, \overleftarrow{h}_{t+1}),
 $$$$
 h_t = \big[\overrightarrow{h}_t \,;\, \overleftarrow{h}_t\big].
-$$<p>Each per-position representation now sees both directions of context.</p>
-<p><strong>Use it for</strong>: named entity recognition, part-of-speech tagging, machine-translation encoders, anything where you have the whole input up front.</p>
-<p><strong>Do not use it for</strong>: streaming or autoregressive generation. The backward pass requires future tokens, which by definition do not exist when you are emitting one token at a time.</p>
-<hr>
-<h2 id="6-stacked-rnns">6. Stacked RNNs</h2>
-<p>Depth helps: stacking RNN layers lets each layer build on the previous layer&rsquo;s per-step output:</p>
-$$
+$$<p>Each per-position representation now sees both directions of context.</p><p><strong>Use it for</strong>: named entity recognition, part-of-speech tagging, machine-translation encoders, anything where you have the whole input up front.</p><p><strong>Do not use it for</strong>: streaming or autoregressive generation. The backward pass requires future tokens, which by definition do not exist when you are emitting one token at a time.</p><hr><h2 id=6-stacked-rnns>6. Stacked RNNs</h2><p>Depth helps: stacking RNN layers lets each layer build on the previous layer&rsquo;s per-step output:</p>$$
 h_t^{(1)} = \mathrm{RNN}^{(1)}(x_t,\, h_{t-1}^{(1)}), \qquad
 h_t^{(2)} = \mathrm{RNN}^{(2)}(h_t^{(1)},\, h_{t-1}^{(2)}).
-$$<p>Empirically the lower layers learn local patterns (character n-grams, word boundaries, morphology), while the higher layers capture syntax and longer-range semantics. Two to four layers is the sweet spot for most NLP tasks; beyond that, residual connections become essential to keep optimisation stable.</p>
-<hr>
-<h2 id="7-sequence-to-sequence-models">7. Sequence-to-sequence models</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig6_seq2seq.png" alt="Seq2Seq encoder-decoder with the fixed-size context-vector bottleneck" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The Seq2Seq architecture (Sutskever et al., 2014) maps an input sequence to an output sequence of <em>different</em> length — the canonical example being machine translation. It uses two RNNs:</p>
-<ul>
-<li>An <strong>encoder</strong> reads the entire input and compresses it into a single context vector $c = h_T^{\text{enc}}$.</li>
-<li>A <strong>decoder</strong> generates the output one token at a time, conditioned on $c$ and on the tokens it has already emitted:</li>
-</ul>
-$$
+$$<p>Empirically the lower layers learn local patterns (character n-grams, word boundaries, morphology), while the higher layers capture syntax and longer-range semantics. Two to four layers is the sweet spot for most NLP tasks; beyond that, residual connections become essential to keep optimisation stable.</p><hr><h2 id=7-sequence-to-sequence-models>7. Sequence-to-sequence models</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig6_seq2seq.png alt="Seq2Seq encoder-decoder with the fixed-size context-vector bottleneck" loading=lazy decoding=async></figure></p><p>The Seq2Seq architecture (Sutskever et al., 2014) maps an input sequence to an output sequence of <em>different</em> length — the canonical example being machine translation. It uses two RNNs:</p><ul><li>An <strong>encoder</strong> reads the entire input and compresses it into a single context vector $c = h_T^{\text{enc}}$.</li><li>A <strong>decoder</strong> generates the output one token at a time, conditioned on $c$ and on the tokens it has already emitted:</li></ul>$$
 s_t = \mathrm{RNN}_\text{dec}(y_{t-1}, s_{t-1}), \qquad
-P(y_t \mid y_{<t}, x) = \mathrm{softmax}(W_o s_t).
-$$<p><strong>The bottleneck.</strong> The whole input — possibly 50 words of context — must squeeze through the single fixed-size vector $c$. For short sentences this is fine; for long ones, the encoder simply runs out of room. Sutskever&rsquo;s original paper found that BLEU scores fell sharply once the input exceeded about 30 tokens, and that <em>reversing</em> the source sentence helped (which is itself a hint that the bottleneck was the problem).</p>
-<p>This bottleneck is the direct motivation for <strong>attention</strong>, the topic of Part 4: instead of forcing the decoder to live on a single $c$, attention lets it look back at <em>every</em> encoder hidden state at each decoding step.</p>
-<hr>
-<h2 id="8-pytorch-implementation-character-level-text-generator">8. PyTorch implementation: character-level text generator</h2>
-<p>Let us train a tiny LSTM that learns to generate text one character at a time.</p>
-<h3 id="dataset-preparation">Dataset preparation</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;&#34;&#34;Deep learning is a subset of machine learning that uses neural
-</span></span></span><span class="line"><span class="cl"><span class="s2">networks with many layers. These networks can learn hierarchical
-</span></span></span><span class="line"><span class="cl"><span class="s2">representations of data, making them powerful for tasks like image
-</span></span></span><span class="line"><span class="cl"><span class="s2">recognition, natural language processing, and speech recognition.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">chars</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">char_to_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">ch</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chars</span><span class="p">)}</span>
-</span></span><span class="line"><span class="cl"><span class="n">idx_to_char</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">ch</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chars</span><span class="p">)}</span>
-</span></span><span class="line"><span class="cl"><span class="n">vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chars</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Vocabulary size: </span><span class="si">{</span><span class="n">vocab_size</span><span class="si">}</span><span class="s2"> characters&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="model">Model</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CharRNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">embedded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="n">embedded</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">hidden</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">init_hidden</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">c0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">h0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="training-loop">Training loop</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">text_data</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">seq_length</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.002</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;cuda&#39;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">char_to_idx</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">text_data</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hidden</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">total_loss</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">n_batches</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">//</span> <span class="p">(</span><span class="n">seq_length</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batches</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="n">seq_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="n">s</span><span class="p">:</span><span class="n">s</span><span class="o">+</span><span class="n">seq_length</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="n">s</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">s</span><span class="o">+</span><span class="n">seq_length</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">hidden</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hidden</span><span class="p">)</span>        <span class="c1"># truncated BPTT</span>
-</span></span><span class="line"><span class="cl">            <span class="n">outputs</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">5.0</span><span class="p">)</span>   <span class="c1"># explosion guard</span>
-</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">20</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2">, Loss: </span><span class="si">{</span><span class="n">total_loss</span><span class="o">/</span><span class="n">n_batches</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Note the two RNN-specific tricks: <strong>detaching hidden state between batches</strong> to truncate BPTT (otherwise gradients try to flow back through the entire training corpus), and <strong>gradient clipping</strong> to defuse the exploding-gradient regime.</p>
-<h3 id="sampling--temperature-controls-creativity">Sampling — temperature controls creativity</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">start_str</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">device</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hidden</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">init_hidden</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">input_seq</span> <span class="o">=</span> <span class="p">[</span><span class="n">char_to_idx</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">start_str</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">generated</span> <span class="o">=</span> <span class="n">start_str</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">input_seq</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>                     <span class="c1"># warm up the hidden state</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">idx</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">_</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">input_seq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">output</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">char_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">generated</span> <span class="o">+=</span> <span class="n">idx_to_char</span><span class="p">[</span><span class="n">char_idx</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">char_idx</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">generated</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">CharRNN</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">train</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">generate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&#34;Deep learning&#34;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Temperature</strong> rescales logits before softmax: $P(w) = \mathrm{softmax}(\text{logits}/T)$. Low $T$ (around 0.5) sharpens the distribution toward the mode and yields conservative, repetitive output. High $T$ (1.5+) flattens it and produces creative but often nonsensical text. $T=0.8$ is a common compromise.</p>
-<hr>
-<h2 id="9-pytorch-implementation-a-minimal-seq2seq-translator">9. PyTorch implementation: a minimal Seq2Seq translator</h2>
-<p>A bare-bones English-to-French translator, useful for understanding the encoder-decoder pipeline before we add attention in Part 4.</p>
-<h3 id="data-and-vocabulary">Data and vocabulary</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;hello&#34;</span><span class="p">,</span> <span class="s2">&#34;bonjour&#34;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&#34;good morning&#34;</span><span class="p">,</span> <span class="s2">&#34;bon matin&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;thank you&#34;</span><span class="p">,</span> <span class="s2">&#34;merci&#34;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&#34;goodbye&#34;</span><span class="p">,</span> <span class="s2">&#34;au revoir&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;how are you&#34;</span><span class="p">,</span> <span class="s2">&#34;comment allez vous&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">    <span class="p">(</span><span class="s2">&#34;i love you&#34;</span><span class="p">,</span> <span class="s2">&#34;je t aime&#34;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&#34;welcome&#34;</span><span class="p">,</span> <span class="s2">&#34;bienvenue&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">SOS</span><span class="p">,</span> <span class="n">EOS</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Vocab</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">word2idx</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&#34;&lt;SOS&gt;&#34;</span><span class="p">:</span> <span class="n">SOS</span><span class="p">,</span> <span class="s2">&#34;&lt;EOS&gt;&#34;</span><span class="p">:</span> <span class="n">EOS</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">idx2word</span> <span class="o">=</span> <span class="p">{</span><span class="n">SOS</span><span class="p">:</span> <span class="s2">&#34;&lt;SOS&gt;&#34;</span><span class="p">,</span> <span class="n">EOS</span><span class="p">:</span> <span class="s2">&#34;&lt;EOS&gt;&#34;</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_words</span> <span class="o">=</span> <span class="mi">2</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_sentence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sentence</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">sentence</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">word</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">word2idx</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">word2idx</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_words</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">idx2word</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_words</span><span class="p">]</span> <span class="o">=</span> <span class="n">word</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">n_words</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">src_vocab</span><span class="p">,</span> <span class="n">tgt_vocab</span> <span class="o">=</span> <span class="n">Vocab</span><span class="p">(),</span> <span class="n">Vocab</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">en</span><span class="p">,</span> <span class="n">fr</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">src_vocab</span><span class="o">.</span><span class="n">add_sentence</span><span class="p">(</span><span class="n">en</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">tgt_vocab</span><span class="o">.</span><span class="n">add_sentence</span><span class="p">(</span><span class="n">fr</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="encoder-and-decoder">Encoder and decoder</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">out</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span> <span class="n">hidden</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="training-with-teacher-forcing">Training (with teacher forcing)</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_seq2seq</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">decoder</span><span class="p">,</span> <span class="n">pairs</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;cuda&#39;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">encoder</span><span class="p">,</span> <span class="n">decoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">decoder</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">enc_opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">encoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">dec_opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">total_loss</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">src_sent</span><span class="p">,</span> <span class="n">tgt_sent</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">src_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">src_vocab</span><span class="o">.</span><span class="n">word2idx</span><span class="p">[</span><span class="n">w</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">src_sent</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span> <span class="o">+</span> <span class="p">[</span><span class="n">EOS</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="n">tgt_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">tgt_vocab</span><span class="o">.</span><span class="n">word2idx</span><span class="p">[</span><span class="n">w</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">tgt_sent</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span> <span class="o">+</span> <span class="p">[</span><span class="n">EOS</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">src_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">src_ids</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">tgt_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">enc_opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">();</span> <span class="n">dec_opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">_</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">src_t</span><span class="p">)</span>                     <span class="c1"># context vector</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dec_input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">SOS</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">output</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">dec_input</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">loss</span> <span class="o">+=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tgt_t</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">                <span class="n">dec_input</span> <span class="o">=</span> <span class="n">tgt_t</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>      <span class="c1"># teacher forcing</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">enc_opt</span><span class="o">.</span><span class="n">step</span><span class="p">();</span> <span class="n">dec_opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2">, Loss: </span><span class="si">{</span><span class="n">total_loss</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="inference">Inference</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">decoder</span><span class="p">,</span> <span class="n">sentence</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">device</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">encoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span>
-</span></span><span class="line"><span class="cl">    <span class="n">encoder</span><span class="o">.</span><span class="n">eval</span><span class="p">();</span> <span class="n">decoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="n">src_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">src_vocab</span><span class="o">.</span><span class="n">word2idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">sentence</span><span class="o">.</span><span class="n">split</span><span class="p">()]</span> <span class="o">+</span> <span class="p">[</span><span class="n">EOS</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">_</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">src_ids</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dec_input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">SOS</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">words</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">output</span><span class="p">,</span> <span class="n">hidden</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">dec_input</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">token</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">token</span> <span class="o">==</span> <span class="n">EOS</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span>
-</span></span><span class="line"><span class="cl">            <span class="n">words</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tgt_vocab</span><span class="o">.</span><span class="n">idx2word</span><span class="p">[</span><span class="n">token</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">            <span class="n">dec_input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">token</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">hidden_size</span> <span class="o">=</span> <span class="mi">256</span>
-</span></span><span class="line"><span class="cl"><span class="n">encoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span><span class="n">src_vocab</span><span class="o">.</span><span class="n">n_words</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">decoder</span> <span class="o">=</span> <span class="n">Decoder</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">tgt_vocab</span><span class="o">.</span><span class="n">n_words</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">train_seq2seq</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">decoder</span><span class="p">,</span> <span class="n">pairs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&#34;hello&#34;</span><span class="p">,</span> <span class="s2">&#34;thank you&#34;</span><span class="p">,</span> <span class="s2">&#34;good morning&#34;</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">translate</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">decoder</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Caveats.</strong> This minimal implementation overfits a tiny phrase book, uses greedy decoding, and has no attention or beam search. It is meant only to make the encoder-decoder data flow concrete. For real translation systems you would add attention (Part 4), beam search, subword (BPE) tokenisation, and a held-out validation set for early stopping.</p>
-<hr>
-<h2 id="10-how-they-actually-compare">10. How they actually compare</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig7_loss_curves.png" alt="Loss curves and accuracy vs. sequence length, comparing RNN, LSTM, GRU" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The two panels above tell the story qualitatively. On a long-dependency task, vanilla RNN training plateaus at a high loss while LSTM and GRU keep descending — the gradient highway is doing real work. As sequence length grows, vanilla RNN accuracy collapses, while LSTM and GRU degrade gracefully. The gap between LSTM and GRU is small in most settings, which is why GRU is a reasonable default.</p>
-<hr>
-<h2 id="attention-preview">Attention preview</h2>
-<p>The encoder squeezes everything into one vector $c$. For long sentences, this bottleneck loses information. <strong>Attention</strong> lets the decoder consult <em>every</em> encoder hidden state, with learned weights:</p>
-$$
+P(y_t \mid y_{<t}, x)=\mathrm{softmax}(W_o s_t). $$<p><strong>The bottleneck.</strong> The whole input — possibly 50 words of context — must squeeze through the single fixed-size vector $c$. For short sentences this is fine; for long ones, the encoder simply runs out of room. Sutskever&rsquo;s original paper found that BLEU scores fell sharply once the input exceeded about 30 tokens, and that <em>reversing</em> the source sentence helped (which is itself a hint that the bottleneck was the problem).</p><p>This bottleneck is the direct motivation for <strong>attention</strong>, the topic of Part 4: instead of forcing the decoder to live on a single $c$, attention lets it look back at <em>every</em> encoder hidden state at each decoding step.</p><hr><h2 id=8-pytorch-implementation-character-level-text-generator>8. PyTorch implementation: character-level text generator</h2><p>Let us train a tiny LSTM that learns to generate text one character at a time.</p><h3 id=dataset-preparation>Dataset preparation</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;&#34;&#34;Deep learning is a subset of machine learning that uses neural
+</span></span></span><span class=line><span class=cl><span class=s2>networks with many layers. These networks can learn hierarchical
+</span></span></span><span class=line><span class=cl><span class=s2>representations of data, making them powerful for tasks like image
+</span></span></span><span class=line><span class=cl><span class=s2>recognition, natural language processing, and speech recognition.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>chars</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=nb>set</span><span class=p>(</span><span class=n>text</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>char_to_idx</span> <span class=o>=</span> <span class=p>{</span><span class=n>ch</span><span class=p>:</span> <span class=n>i</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>chars</span><span class=p>)}</span>
+</span></span><span class=line><span class=cl><span class=n>idx_to_char</span> <span class=o>=</span> <span class=p>{</span><span class=n>i</span><span class=p>:</span> <span class=n>ch</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>chars</span><span class=p>)}</span>
+</span></span><span class=line><span class=cl><span class=n>vocab_size</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>chars</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Vocabulary size: </span><span class=si>{</span><span class=n>vocab_size</span><span class=si>}</span><span class=s2> characters&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=model>Model</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>CharRNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_layers</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span> <span class=o>=</span> <span class=n>hidden_size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>num_layers</span> <span class=o>=</span> <span class=n>num_layers</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_layers</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>embedded</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=n>embedded</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc</span><span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>out</span><span class=p>,</span> <span class=n>hidden</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>init_hidden</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=n>device</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h0</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_layers</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>c0</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_layers</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span><span class=n>h0</span><span class=p>,</span> <span class=n>c0</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=training-loop>Training loop</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>text_data</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span> <span class=n>seq_length</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.002</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>device</span><span class=p>(</span><span class=s1>&#39;cuda&#39;</span> <span class=k>if</span> <span class=n>torch</span><span class=o>.</span><span class=n>cuda</span><span class=o>.</span><span class=n>is_available</span><span class=p>()</span> <span class=k>else</span> <span class=s1>&#39;cpu&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>optimizer</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>data</span> <span class=o>=</span> <span class=p>[</span><span class=n>char_to_idx</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=k>for</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>text_data</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>init_hidden</span><span class=p>(</span><span class=n>batch_size</span><span class=p>,</span> <span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_loss</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=n>n_batches</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span> <span class=o>//</span> <span class=p>(</span><span class=n>seq_length</span> <span class=o>*</span> <span class=n>batch_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_batches</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>starts</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span> <span class=o>-</span> <span class=n>seq_length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=n>batch_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>inputs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>data</span><span class=p>[</span><span class=n>s</span><span class=p>:</span><span class=n>s</span><span class=o>+</span><span class=n>seq_length</span><span class=p>]</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>starts</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>targets</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>data</span><span class=p>[</span><span class=n>s</span><span class=o>+</span><span class=mi>1</span><span class=p>:</span><span class=n>s</span><span class=o>+</span><span class=n>seq_length</span><span class=o>+</span><span class=mi>1</span><span class=p>]</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>starts</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>hidden</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>h</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span> <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>hidden</span><span class=p>)</span>        <span class=c1># truncated BPTT</span>
+</span></span><span class=line><span class=cl>            <span class=n>outputs</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>inputs</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>criterion</span><span class=p>(</span><span class=n>outputs</span><span class=p>,</span> <span class=n>targets</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>5.0</span><span class=p>)</span>   <span class=c1># explosion guard</span>
+</span></span><span class=line><span class=cl>            <span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>20</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Epoch </span><span class=si>{</span><span class=n>epoch</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>epochs</span><span class=si>}</span><span class=s2>, Loss: </span><span class=si>{</span><span class=n>total_loss</span><span class=o>/</span><span class=n>n_batches</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Note the two RNN-specific tricks: <strong>detaching hidden state between batches</strong> to truncate BPTT (otherwise gradients try to flow back through the entire training corpus), and <strong>gradient clipping</strong> to defuse the exploding-gradient regime.</p><h3 id=sampling--temperature-controls-creativity>Sampling — temperature controls creativity</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>generate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>start_str</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mi>200</span><span class=p>,</span> <span class=n>temperature</span><span class=o>=</span><span class=mf>0.8</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=nb>next</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span><span class=o>.</span><span class=n>device</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>init_hidden</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>input_seq</span> <span class=o>=</span> <span class=p>[</span><span class=n>char_to_idx</span><span class=p>[</span><span class=n>ch</span><span class=p>]</span> <span class=k>for</span> <span class=n>ch</span> <span class=ow>in</span> <span class=n>start_str</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>generated</span> <span class=o>=</span> <span class=n>start_str</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>idx</span> <span class=ow>in</span> <span class=n>input_seq</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]:</span>                     <span class=c1># warm up the hidden state</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>idx</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>_</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>input_seq</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>length</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>output</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>output</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span> <span class=o>/</span> <span class=n>temperature</span><span class=p>,</span> <span class=n>dim</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>char_idx</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>probs</span><span class=p>),</span> <span class=n>p</span><span class=o>=</span><span class=n>probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>generated</span> <span class=o>+=</span> <span class=n>idx_to_char</span><span class=p>[</span><span class=n>char_idx</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>char_idx</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>generated</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>CharRNN</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=o>=</span><span class=mi>128</span><span class=p>,</span> <span class=n>num_layers</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>train</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>text</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>100</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>generate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=s2>&#34;Deep learning&#34;</span><span class=p>,</span> <span class=n>length</span><span class=o>=</span><span class=mi>200</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Temperature</strong> rescales logits before softmax: $P(w) = \mathrm{softmax}(\text{logits}/T)$. Low $T$ (around 0.5) sharpens the distribution toward the mode and yields conservative, repetitive output. High $T$ (1.5+) flattens it and produces creative but often nonsensical text. $T=0.8$ is a common compromise.</p><hr><h2 id=9-pytorch-implementation-a-minimal-seq2seq-translator>9. PyTorch implementation: a minimal Seq2Seq translator</h2><p>A bare-bones English-to-French translator, useful for understanding the encoder-decoder pipeline before we add attention in Part 4.</p><h3 id=data-and-vocabulary>Data and vocabulary</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>random</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>pairs</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;hello&#34;</span><span class=p>,</span> <span class=s2>&#34;bonjour&#34;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&#34;good morning&#34;</span><span class=p>,</span> <span class=s2>&#34;bon matin&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;thank you&#34;</span><span class=p>,</span> <span class=s2>&#34;merci&#34;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&#34;goodbye&#34;</span><span class=p>,</span> <span class=s2>&#34;au revoir&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;how are you&#34;</span><span class=p>,</span> <span class=s2>&#34;comment allez vous&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=p>(</span><span class=s2>&#34;i love you&#34;</span><span class=p>,</span> <span class=s2>&#34;je t aime&#34;</span><span class=p>),</span> <span class=p>(</span><span class=s2>&#34;welcome&#34;</span><span class=p>,</span> <span class=s2>&#34;bienvenue&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>SOS</span><span class=p>,</span> <span class=n>EOS</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Vocab</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>word2idx</span> <span class=o>=</span> <span class=p>{</span><span class=s2>&#34;&lt;SOS&gt;&#34;</span><span class=p>:</span> <span class=n>SOS</span><span class=p>,</span> <span class=s2>&#34;&lt;EOS&gt;&#34;</span><span class=p>:</span> <span class=n>EOS</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>idx2word</span> <span class=o>=</span> <span class=p>{</span><span class=n>SOS</span><span class=p>:</span> <span class=s2>&#34;&lt;SOS&gt;&#34;</span><span class=p>,</span> <span class=n>EOS</span><span class=p>:</span> <span class=s2>&#34;&lt;EOS&gt;&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_words</span> <span class=o>=</span> <span class=mi>2</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>add_sentence</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>sentence</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>word</span> <span class=ow>in</span> <span class=n>sentence</span><span class=o>.</span><span class=n>split</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>word</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>word2idx</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>word2idx</span><span class=p>[</span><span class=n>word</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_words</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>idx2word</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>n_words</span><span class=p>]</span> <span class=o>=</span> <span class=n>word</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>n_words</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>src_vocab</span><span class=p>,</span> <span class=n>tgt_vocab</span> <span class=o>=</span> <span class=n>Vocab</span><span class=p>(),</span> <span class=n>Vocab</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>en</span><span class=p>,</span> <span class=n>fr</span> <span class=ow>in</span> <span class=n>pairs</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>src_vocab</span><span class=o>.</span><span class=n>add_sentence</span><span class=p>(</span><span class=n>en</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>tgt_vocab</span><span class=o>.</span><span class=n>add_sentence</span><span class=p>(</span><span class=n>fr</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=encoder-and-decoder>Encoder and decoder</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>Encoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Decoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>embedding</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Embedding</span><span class=p>(</span><span class=n>vocab_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>LSTM</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>,</span> <span class=n>batch_first</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>vocab_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>hidden</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>out</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lstm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>embedding</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc</span><span class=p>(</span><span class=n>out</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=mi>1</span><span class=p>)),</span> <span class=n>hidden</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=training-with-teacher-forcing>Training (with teacher forcing)</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_seq2seq</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>pairs</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>500</span><span class=p>,</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.01</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>device</span><span class=p>(</span><span class=s1>&#39;cuda&#39;</span> <span class=k>if</span> <span class=n>torch</span><span class=o>.</span><span class=n>cuda</span><span class=o>.</span><span class=n>is_available</span><span class=p>()</span> <span class=k>else</span> <span class=s1>&#39;cpu&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>decoder</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>enc_opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>encoder</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>dec_opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>Adam</span><span class=p>(</span><span class=n>decoder</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>lr</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_loss</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>pairs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>src_sent</span><span class=p>,</span> <span class=n>tgt_sent</span> <span class=ow>in</span> <span class=n>pairs</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>src_ids</span> <span class=o>=</span> <span class=p>[</span><span class=n>src_vocab</span><span class=o>.</span><span class=n>word2idx</span><span class=p>[</span><span class=n>w</span><span class=p>]</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>src_sent</span><span class=o>.</span><span class=n>split</span><span class=p>()]</span> <span class=o>+</span> <span class=p>[</span><span class=n>EOS</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=n>tgt_ids</span> <span class=o>=</span> <span class=p>[</span><span class=n>tgt_vocab</span><span class=o>.</span><span class=n>word2idx</span><span class=p>[</span><span class=n>w</span><span class=p>]</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>tgt_sent</span><span class=o>.</span><span class=n>split</span><span class=p>()]</span> <span class=o>+</span> <span class=p>[</span><span class=n>EOS</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>src_t</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>src_ids</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>tgt_t</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>(</span><span class=n>tgt_ids</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>enc_opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>();</span> <span class=n>dec_opt</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>_</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>encoder</span><span class=p>(</span><span class=n>src_t</span><span class=p>)</span>                     <span class=c1># context vector</span>
+</span></span><span class=line><span class=cl>            <span class=n>dec_input</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>SOS</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>tgt_ids</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>                <span class=n>output</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>decoder</span><span class=p>(</span><span class=n>dec_input</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>+=</span> <span class=n>criterion</span><span class=p>(</span><span class=n>output</span><span class=p>,</span> <span class=n>tgt_t</span><span class=p>[</span><span class=n>i</span><span class=p>:</span><span class=n>i</span><span class=o>+</span><span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=n>dec_input</span> <span class=o>=</span> <span class=n>tgt_t</span><span class=p>[</span><span class=n>i</span><span class=p>:</span><span class=n>i</span><span class=o>+</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>      <span class=c1># teacher forcing</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>enc_opt</span><span class=o>.</span><span class=n>step</span><span class=p>();</span> <span class=n>dec_opt</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=n>tgt_ids</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=mi>100</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Epoch </span><span class=si>{</span><span class=n>epoch</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>epochs</span><span class=si>}</span><span class=s2>, Loss: </span><span class=si>{</span><span class=n>total_loss</span><span class=o>/</span><span class=nb>len</span><span class=p>(</span><span class=n>pairs</span><span class=p>)</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=inference>Inference</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>translate</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>sentence</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>device</span> <span class=o>=</span> <span class=nb>next</span><span class=p>(</span><span class=n>encoder</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span><span class=o>.</span><span class=n>device</span>
+</span></span><span class=line><span class=cl>    <span class=n>encoder</span><span class=o>.</span><span class=n>eval</span><span class=p>();</span> <span class=n>decoder</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=n>src_ids</span> <span class=o>=</span> <span class=p>[</span><span class=n>src_vocab</span><span class=o>.</span><span class=n>word2idx</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>w</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>sentence</span><span class=o>.</span><span class=n>split</span><span class=p>()]</span> <span class=o>+</span> <span class=p>[</span><span class=n>EOS</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>_</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>encoder</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([</span><span class=n>src_ids</span><span class=p>])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>dec_input</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>SOS</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>words</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>output</span><span class=p>,</span> <span class=n>hidden</span> <span class=o>=</span> <span class=n>decoder</span><span class=p>(</span><span class=n>dec_input</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>token</span> <span class=o>=</span> <span class=n>output</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>token</span> <span class=o>==</span> <span class=n>EOS</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>            <span class=n>words</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tgt_vocab</span><span class=o>.</span><span class=n>idx2word</span><span class=p>[</span><span class=n>token</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>dec_input</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>LongTensor</span><span class=p>([[</span><span class=n>token</span><span class=p>]])</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s1>&#39; &#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>words</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>hidden_size</span> <span class=o>=</span> <span class=mi>256</span>
+</span></span><span class=line><span class=cl><span class=n>encoder</span> <span class=o>=</span> <span class=n>Encoder</span><span class=p>(</span><span class=n>src_vocab</span><span class=o>.</span><span class=n>n_words</span><span class=p>,</span> <span class=n>hidden_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>decoder</span> <span class=o>=</span> <span class=n>Decoder</span><span class=p>(</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>tgt_vocab</span><span class=o>.</span><span class=n>n_words</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>train_seq2seq</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>pairs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>&#34;hello&#34;</span><span class=p>,</span> <span class=s2>&#34;thank you&#34;</span><span class=p>,</span> <span class=s2>&#34;good morning&#34;</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>s</span><span class=si>}</span><span class=s2> -&gt; </span><span class=si>{</span><span class=n>translate</span><span class=p>(</span><span class=n>encoder</span><span class=p>,</span> <span class=n>decoder</span><span class=p>,</span> <span class=n>s</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Caveats.</strong> This minimal implementation overfits a tiny phrase book, uses greedy decoding, and has no attention or beam search. It is meant only to make the encoder-decoder data flow concrete. For real translation systems you would add attention (Part 4), beam search, subword (BPE) tokenisation, and a held-out validation set for early stopping.</p><hr><h2 id=10-how-they-actually-compare>10. How they actually compare</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/rnn-sequence-modeling/fig7_loss_curves.png alt="Loss curves and accuracy vs. sequence length, comparing RNN, LSTM, GRU" loading=lazy decoding=async></figure></p><p>The two panels above tell the story qualitatively. On a long-dependency task, vanilla RNN training plateaus at a high loss while LSTM and GRU keep descending — the gradient highway is doing real work. As sequence length grows, vanilla RNN accuracy collapses, while LSTM and GRU degrade gracefully. The gap between LSTM and GRU is small in most settings, which is why GRU is a reasonable default.</p><hr><h2 id=attention-preview>Attention preview</h2><p>The encoder squeezes everything into one vector $c$. For long sentences, this bottleneck loses information. <strong>Attention</strong> lets the decoder consult <em>every</em> encoder hidden state, with learned weights:</p>$$
 \alpha_{tj} = \frac{\exp(\mathrm{score}(s_t, h_j))}{\sum_k \exp(\mathrm{score}(s_t, h_k))}, \qquad
 c_t = \sum_j \alpha_{tj}\, h_j.
-$$<p>The context vector becomes a <em>time-varying</em> weighted sum of encoder states. This was the bridge from RNNs to Transformers, which we cover in Part 4.</p>
-<hr>
-<h2 id="common-questions">Common questions</h2>
-<p><strong>Why tanh instead of ReLU in vanilla RNNs?</strong> Tanh outputs values in $[-1, 1]$, which keeps the hidden state bounded across time. ReLU has unbounded positive output, so a recurrent application can blow up exponentially. LSTMs use sigmoid for gates (a soft 0–1 switch) and tanh for candidates (zero-centred values that can both add and subtract from the cell state).</p>
-<p><strong>What is teacher forcing, and what is its downside?</strong> During training we feed the <em>ground-truth</em> previous token as the decoder input rather than the model&rsquo;s own prediction. This stabilises learning early on but creates a train/test mismatch — at inference the decoder must consume its own (noisy) outputs, which it has never seen during training. A standard mitigation is <strong>scheduled sampling</strong>: gradually increase the probability of feeding the model&rsquo;s own prediction as training progresses.</p>
-<p><strong>How does temperature affect generation?</strong> It rescales logits before softmax: $P(w) = \mathrm{softmax}(\text{logits}/T)$. Low $T$ (0.5) is peaky and conservative; high $T$ (1.5) is flat and creative but error-prone. Greedy decoding is the limit $T \to 0$.</p>
-<p><strong>Are RNNs still relevant after Transformers?</strong> Transformers dominate offline NLP benchmarks, but RNNs remain useful when you need (i) a small parameter budget, (ii) genuine streaming/online inference (no need to re-attend over the whole prefix), or (iii) constant memory per step regardless of sequence length. They also remain a common ingredient in time-series forecasting and on-device speech models. And because attention can be motivated as &ldquo;what if we replaced the LSTM&rsquo;s forget gate with a learned look-back over all previous states?&rdquo;, understanding RNNs is the cleanest path to understanding Transformers.</p>
-<hr>
-<h2 id="key-takeaways">Key takeaways</h2>
-<ul>
-<li><strong>RNNs process sequences with memory</strong> via recurrent connections and parameter sharing — the same weights at every step.</li>
-<li><strong>Vanilla RNNs fail on long sequences</strong> because the chained Jacobian product $\prod \partial h_{k+1} / \partial h_k$ shrinks (or explodes) exponentially.</li>
-<li><strong>LSTMs add an additive cell-state highway</strong> gated by forget/input/output, giving gradients a path that does not vanish.</li>
-<li><strong>GRUs simplify LSTMs</strong> to two gates and one state, often matching LSTM accuracy with ~25% fewer parameters.</li>
-<li><strong>Bidirectional and stacked variants</strong> widen the per-position context and add depth, respectively.</li>
-<li><strong>Seq2Seq encoder-decoders</strong> map sequences to sequences but bottleneck on a single context vector $c$ — a limitation that motivates attention, the topic of Part 4.</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-          <th>Link</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td>Introduction and Text Preprocessing</td>
-          <td><a href="/en/nlp-introduction-and-preprocessing/">&lt;&ndash; Read</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td>Word Embeddings and Language Models</td>
-          <td><a href="/en/nlp-word-embeddings-lm/">&lt;&ndash; Previous</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>3</strong></td>
-          <td><strong>RNN and Sequence Modeling (this article)</strong></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td>Attention Mechanism and Transformer</td>
-          <td><a href="/en/nlp-attention-transformer/">Read next &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td>BERT and Pretrained Models</td>
-          <td><a href="/en/nlp-bert-pretrained-models/">Read &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td>GPT and Generative Models</td>
-          <td><a href="/en/nlp-gpt-generative-models/">Read &ndash;&gt;</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#1-the-core-idea-recurrence-and-parameter-sharing">1. The core idea: recurrence and parameter sharing</a></li>
-    <li><a href="#2-the-vanishing-gradient-problem">2. The vanishing gradient problem</a></li>
-    <li><a href="#3-long-short-term-memory-lstm">3. Long Short-Term Memory (LSTM)</a>
-      <ul>
-        <li><a href="#the-three-gates">The three gates</a></li>
-        <li><a href="#why-this-fixes-vanishing-gradients">Why this fixes vanishing gradients</a></li>
-        <li><a href="#the-conveyor-belt-analogy">The conveyor-belt analogy</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-gated-recurrent-unit-gru">4. Gated Recurrent Unit (GRU)</a>
-      <ul>
-        <li><a href="#lstm-vs-gru">LSTM vs. GRU</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-bidirectional-rnns">5. Bidirectional RNNs</a></li>
-    <li><a href="#6-stacked-rnns">6. Stacked RNNs</a></li>
-    <li><a href="#7-sequence-to-sequence-models">7. Sequence-to-sequence models</a></li>
-    <li><a href="#8-pytorch-implementation-character-level-text-generator">8. PyTorch implementation: character-level text generator</a>
-      <ul>
-        <li><a href="#dataset-preparation">Dataset preparation</a></li>
-        <li><a href="#model">Model</a></li>
-        <li><a href="#training-loop">Training loop</a></li>
-        <li><a href="#sampling--temperature-controls-creativity">Sampling — temperature controls creativity</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-pytorch-implementation-a-minimal-seq2seq-translator">9. PyTorch implementation: a minimal Seq2Seq translator</a>
-      <ul>
-        <li><a href="#data-and-vocabulary">Data and vocabulary</a></li>
-        <li><a href="#encoder-and-decoder">Encoder and decoder</a></li>
-        <li><a href="#training-with-teacher-forcing">Training (with teacher forcing)</a></li>
-        <li><a href="#inference">Inference</a></li>
-      </ul>
-    </li>
-    <li><a href="#10-how-they-actually-compare">10. How they actually compare</a></li>
-    <li><a href="#attention-preview">Attention preview</a></li>
-    <li><a href="#common-questions">Common questions</a></li>
-    <li><a href="#key-takeaways">Key takeaways</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Natural language processing</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>8 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1600</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>The context vector becomes a <em>time-varying</em> weighted sum of encoder states. This was the bridge from RNNs to Transformers, which we cover in Part 4.</p><hr><h2 id=common-questions>Common questions</h2><p><strong>Why tanh instead of ReLU in vanilla RNNs?</strong> Tanh outputs values in $[-1, 1]$, which keeps the hidden state bounded across time. ReLU has unbounded positive output, so a recurrent application can blow up exponentially. LSTMs use sigmoid for gates (a soft 0–1 switch) and tanh for candidates (zero-centred values that can both add and subtract from the cell state).</p><p><strong>What is teacher forcing, and what is its downside?</strong> During training we feed the <em>ground-truth</em> previous token as the decoder input rather than the model&rsquo;s own prediction. This stabilises learning early on but creates a train/test mismatch — at inference the decoder must consume its own (noisy) outputs, which it has never seen during training. A standard mitigation is <strong>scheduled sampling</strong>: gradually increase the probability of feeding the model&rsquo;s own prediction as training progresses.</p><p><strong>How does temperature affect generation?</strong> It rescales logits before softmax: $P(w) = \mathrm{softmax}(\text{logits}/T)$. Low $T$ (0.5) is peaky and conservative; high $T$ (1.5) is flat and creative but error-prone. Greedy decoding is the limit $T \to 0$.</p><p><strong>Are RNNs still relevant after Transformers?</strong> Transformers dominate offline NLP benchmarks, but RNNs remain useful when you need (i) a small parameter budget, (ii) genuine streaming/online inference (no need to re-attend over the whole prefix), or (iii) constant memory per step regardless of sequence length. They also remain a common ingredient in time-series forecasting and on-device speech models. And because attention can be motivated as &ldquo;what if we replaced the LSTM&rsquo;s forget gate with a learned look-back over all previous states?&rdquo;, understanding RNNs is the cleanest path to understanding Transformers.</p><hr><h2 id=key-takeaways>Key takeaways</h2><ul><li><strong>RNNs process sequences with memory</strong> via recurrent connections and parameter sharing — the same weights at every step.</li><li><strong>Vanilla RNNs fail on long sequences</strong> because the chained Jacobian product $\prod \partial h_{k+1} / \partial h_k$ shrinks (or explodes) exponentially.</li><li><strong>LSTMs add an additive cell-state highway</strong> gated by forget/input/output, giving gradients a path that does not vanish.</li><li><strong>GRUs simplify LSTMs</strong> to two gates and one state, often matching LSTM accuracy with ~25% fewer parameters.</li><li><strong>Bidirectional and stacked variants</strong> widen the per-position context and add depth, respectively.</li><li><strong>Seq2Seq encoder-decoders</strong> map sequences to sequences but bottleneck on a single context vector $c$ — a limitation that motivates attention, the topic of Part 4.</li></ul><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th><th>Link</th></tr></thead><tbody><tr><td>1</td><td>Introduction and Text Preprocessing</td><td><a href=/en/nlp-introduction-and-preprocessing/>&lt;&ndash; Read</a></td></tr><tr><td>2</td><td>Word Embeddings and Language Models</td><td><a href=/en/nlp-word-embeddings-lm/>&lt;&ndash; Previous</a></td></tr><tr><td><strong>3</strong></td><td><strong>RNN and Sequence Modeling (this article)</strong></td><td></td></tr><tr><td>4</td><td>Attention Mechanism and Transformer</td><td><a href=/en/nlp-attention-transformer/>Read next &ndash;></a></td></tr><tr><td>5</td><td>BERT and Pretrained Models</td><td><a href=/en/nlp-bert-pretrained-models/>Read &ndash;></a></td></tr><tr><td>6</td><td>GPT and Generative Models</td><td><a href=/en/nlp-gpt-generative-models/>Read &ndash;></a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#1-the-core-idea-recurrence-and-parameter-sharing>1. The core idea: recurrence and parameter sharing</a></li><li><a href=#2-the-vanishing-gradient-problem>2. The vanishing gradient problem</a></li><li><a href=#3-long-short-term-memory-lstm>3. Long Short-Term Memory (LSTM)</a><ul><li><a href=#the-three-gates>The three gates</a></li><li><a href=#why-this-fixes-vanishing-gradients>Why this fixes vanishing gradients</a></li><li><a href=#the-conveyor-belt-analogy>The conveyor-belt analogy</a></li></ul></li><li><a href=#4-gated-recurrent-unit-gru>4. Gated Recurrent Unit (GRU)</a><ul><li><a href=#lstm-vs-gru>LSTM vs. GRU</a></li></ul></li><li><a href=#5-bidirectional-rnns>5. Bidirectional RNNs</a></li><li><a href=#6-stacked-rnns>6. Stacked RNNs</a></li><li><a href=#7-sequence-to-sequence-models>7. Sequence-to-sequence models</a></li><li><a href=#8-pytorch-implementation-character-level-text-generator>8. PyTorch implementation: character-level text generator</a><ul><li><a href=#dataset-preparation>Dataset preparation</a></li><li><a href=#model>Model</a></li><li><a href=#training-loop>Training loop</a></li><li><a href=#sampling--temperature-controls-creativity>Sampling — temperature controls creativity</a></li></ul></li><li><a href=#9-pytorch-implementation-a-minimal-seq2seq-translator>9. PyTorch implementation: a minimal Seq2Seq translator</a><ul><li><a href=#data-and-vocabulary>Data and vocabulary</a></li><li><a href=#encoder-and-decoder>Encoder and decoder</a></li><li><a href=#training-with-teacher-forcing>Training (with teacher forcing)</a></li><li><a href=#inference>Inference</a></li></ul></li><li><a href=#10-how-they-actually-compare>10. How they actually compare</a></li><li><a href=#attention-preview>Attention preview</a></li><li><a href=#common-questions>Common questions</a></li><li><a href=#key-takeaways>Key takeaways</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>8 min</strong></div><div class=row><span>Word count</span><strong>1543</strong></div><div class=row><span>Published</span><strong>Oct 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

@@ -1,933 +1,390 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>推荐系统（十二）—— 大语言模型与推荐系统 · Chen Kai Blog</title>
-<meta name="description" content="LLM 如何重塑推荐系统：增强器（P5、M6Rec）、预测器（TallRec、GenRec）、智能体（LlamaRec、ChatREC）三种角色，混合管线、冷启动突破、Prompt 设计与成本/质量帕累托前沿。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="推荐系统（十二）—— 大语言模型与推荐系统">
-<meta property="og:description" content="LLM 如何重塑推荐系统：增强器（P5、M6Rec）、预测器（TallRec、GenRec）、智能体（LlamaRec、ChatREC）三种角色，混合管线、冷启动突破、Prompt 设计与成本/质量帕累托前沿。">
-<meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">推荐系统</a>
-         · Chapter 12
-      </div>
-      <h1>推荐系统（十二）—— 大语言模型与推荐系统</h1>
-      <p class="deck">LLM 如何重塑推荐系统：增强器（P5、M6Rec）、预测器（TallRec、GenRec）、智能体（LlamaRec、ChatREC）三种角色，混合管线、冷启动突破、Prompt 设计与成本/质量帕累托前沿。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-01-03">January 3, 2026</time> · 14 min read · 6800 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/" class="tag">#推荐系统</a><a href="/zh/tags/llm/" class="tag">#LLM</a><a href="/zh/tags/%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/" class="tag">#大语言模型</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>一个用户打开电影 App，输入：「想看类似《盗梦空间》的，但别太压抑。」传统推荐系统——协同过滤、双塔 DNN、甚至 DIN——在这句话里抓不到任何有用的信号。它没有点赞按钮可以计数，没有共看图谱可以遍历，也没有用户 ID 关联到历史记录。这句话必须先被翻译成 ID，系统才能开始工作。</p>
-<p>大语言模型的问题恰好相反：它有过多的世界知识，却不知道「这个用户」是谁。它知道《盗梦空间》是诺兰拍的、采用非线性叙事、结尾留有希望但不明确；它理解电影语境下「压抑」的含义；它能立刻列出二十部相符的片子。但它无法分辨这二十部里哪些用户已经看过、给过差评、或者看到一半就退出。</p>
-<p>2023 到 2026 年，推荐系统圈真正有意思的问题不是「LLM 还是传统模型」，而是<strong>怎么把它们组合起来</strong>。本文沿着三种已经在工业界跑通的组合模式展开，附上代码和那些绕不过去的取舍。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li>LLM 在推荐里的<strong>三种角色</strong>：增强器、预测器、智能体——以及哪些论文落在哪种角色</li>
-<li>排序任务的 <strong>Prompt 解剖学</strong>（TallRec / P5 风格）以及为什么必须把温度压到 0.3 以下</li>
-<li>LLM 改写物品描述如何让 embedding 聚类<strong>显著变锐</strong>、解决冷启动</li>
-<li>所有生产团队最终都会收敛到的<strong>混合管线</strong>：ANN → DNN 排序器 → LLM 重排</li>
-<li>ChatREC 风格的<strong>多轮对话</strong>流程：状态管理与工具调用</li>
-<li><strong>成本/质量帕累托前沿</strong>：什么时候微调的 7B 比 GPT-4 划算，甜点区在哪</li>
-<li>可运行的 <strong>Python 代码</strong>：Prompt 排序、混合重排、对话状态管理</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>Embedding、排序、检索/排序两阶段架构（<a href="/zh/recommendation-systems-1-fundamentals/">第 1 篇</a>
-、<a href="/zh/recommendation-systems-4-ctr-prediction/">第 4 篇</a>
-）</li>
-<li>熟悉一个 LLM SDK 即可（OpenAI、Anthropic、vLLM），不需要懂微调</li>
-<li>编码器示例需要一些 PyTorch 基础</li>
-</ul>
-<hr>
-<h2 id="llm-在推荐系统中的三种角色">LLM 在推荐系统中的三种角色</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig1_three_roles.png" alt="LLM 在推荐中的三种角色：增强器、预测器、智能体" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>文献看起来很乱——P5、M6-Rec、KAR、TallRec、BIGRec、GenRec、LlamaRec、ChatREC——但每一篇都能精确地落到三种角色之一。角色一旦确定，延迟、成本、训练开销、以及 LLM 在系统里到底做什么，就全都定下来了。</p>
-<h3 id="角色一增强器离线特征生成">角色一：增强器（离线特征生成）</h3>
-<p>LLM 永远不参与在线请求。离线阶段，它读取每个物品的标题、描述、评论，吐出更丰富的特征：结构化属性、稠密语义向量、扩写后的描述，或者伪标签。这些特征再喂给一个完全传统的 CTR / CF 系统。</p>
-<p>这是最早一批严肃的「LLM + 推荐」工作的核心思路：<strong>P5</strong>（Geng et al., RecSys 2022）用统一的文本到文本 T5 把五种推荐任务整合在一起；<strong>M6-Rec</strong>（Cui et al., 2022）用阿里 M6 生成物品描述和行为提示；<strong>KAR</strong>（Xi et al., 2024）把 LLM 的推理结果蒸馏成可复用的特征向量。在线服务依然能保持 50ms 以内，因为 LLM 的成本被摊薄到了百万级请求上。</p>
-<p><strong>适用场景</strong>：你已经有一个跑得动的排序模型，但冷启动物品、稀疏文本、难以打标的类别正在拖累召回。</p>
-<h3 id="角色二预测器直接排序或生成">角色二：预测器（直接排序或生成）</h3>
-<p>LLM 就是排序器。你把用户历史和候选列表（甚至不给候选）交给它，让它输出 yes/no 判断、分数、或者直接生成下一个物品。</p>
-<p>两个流派：<strong>判别式</strong>（TallRec、BIGRec——用 LoRA 在 <code>(历史, 物品) → yes/no</code> 上微调 Llama-2-7B）和<strong>生成式</strong>（GenRec——直接生成下一部电影的标题）。<strong>TallRec</strong>（Bao et al., RecSys 2023）有一个很惊艳的结果：用 LoRA 微调过的 7B 模型，在只有几百条训练样本的情况下，能击败大得多的零样本 LLM，并且追平强序列推荐 baseline。<strong>LlamaRec</strong>（Yue et al., 2023）更进一步，加了一个 verbalizer 头，让 LLM 一次前向就能对整个候选集排序，而不是 K 次单独调用。</p>
-<p><strong>适用场景</strong>：物品文本信息丰富、数据量小（冷启动领域、新业务线），或者需要排序结果自带解释。</p>
-<h3 id="角色三智能体带工具的编排者">角色三：智能体（带工具的编排者）</h3>
-<p>LLM 不只做排序——它做规划。它维护对话状态，决定何时调用检索、何时反问澄清、何时按年份/价格过滤、何时把任务交给下游模型。<strong>ChatREC</strong>（Gao et al., 2023）是这个范式的开山之作；<strong>RecAgent</strong>（Wang et al., 2023）和 <strong>InteRecAgent</strong> 进一步引入模拟用户做评测。</p>
-<p><strong>适用场景</strong>：对话式产品（聊天机器人、语音助手、带追问的搜索），或者用户确实没法一句话说清自己想要什么。</p>
-<p>成本排序大致是：增强器 ≪ 预测器 ≪ 智能体。灵活性的排序也是这样。多数生产系统都是从增强器起步，再升级为预测器（接在传统排序后面做重排），只在特定产品形态上才用智能体。</p>
-<hr>
-<h2 id="基于-prompt-的排序">基于 Prompt 的排序</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig2_prompt_template.png" alt="LLM-as-recommender 的 Prompt 模板解剖图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>基于 Prompt 的推荐是入门方案：不需要训练，一个 API key 加一个写得好的 Prompt 就够了。模板有五个部分，顺序很重要。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_recommendation_prompt</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">examples</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;TallRec / P5 风格的排序 Prompt。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 1. 角色 + 任务：把 LLM 锁定到一个窄行为里</span>
-</span></span><span class="line"><span class="cl">    <span class="n">role</span> <span class="o">=</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;You are a movie recommender. Given the user&#39;s viewing history, &#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;predict whether they will like the target movie.&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 2. 用户历史（按时间顺序，带信号）</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hist_lines</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s2">&#34;  - </span><span class="si">{</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="s1">&#39;liked&#39;</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;liked&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;disliked&#39;</span><span class="si">}</span><span class="s2">)&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">:]</span>   <span class="c1"># 截断以适应上下文</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 3. 候选物品（带属性）</span>
-</span></span><span class="line"><span class="cl">    <span class="n">target_line</span> <span class="o">=</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s1">&#39;Target movie: &#34;</span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;title&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#34; &#39;</span>
-</span></span><span class="line"><span class="cl">        <span class="sa">f</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;genre&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;year&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">, dir. </span><span class="si">{</span><span class="n">target</span><span class="p">[</span><span class="s2">&#34;director&#34;</span><span class="p">]</span><span class="si">}</span><span class="s1">)&#39;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 4. 输出格式（强约束——能用单 token 就用单 token）</span>
-</span></span><span class="line"><span class="cl">    <span class="n">output_spec</span> <span class="o">=</span> <span class="s1">&#39;Answer with exactly one token: &#34;Yes&#34; or &#34;No&#34;.&#39;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># 5. Few-shot 示例（可选；除了输出格式外最大的精度杠杆）</span>
-</span></span><span class="line"><span class="cl">    <span class="n">fewshot</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">examples</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">fewshot</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="sa">f</span><span class="s2">&#34;[Example </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">]</span><span class="se">\n</span><span class="s2">History: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;history&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="sa">f</span><span class="s2">&#34;Target: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">Answer: </span><span class="si">{</span><span class="n">ex</span><span class="p">[</span><span class="s1">&#39;answer&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ex</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">examples</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;&#34;&#34;</span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">fewshot</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">History:
-</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">hist_lines</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">target_line</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{</span><span class="n">output_spec</span><span class="si">}</span><span class="s2">&#34;&#34;&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>有<strong>三条工程规则</strong>听起来像废话，实际上每一条都救过命：</p>
-<ol>
-<li><strong>逐 token 约束输出</strong>。单个 <code>Yes</code>/<code>No</code> 可以解析；「我觉得用户可能会喜欢，因为……」没法解析。对 K 个物品排序时，让模型输出 <code>[3, 1, 5, 2, 4]</code>——不要自由文本。SDK 支持的话，用 logit bias 或语法约束解码。</li>
-<li><strong>温度压到 0.3 以下</strong>。推荐不是创意写作。高温度会让同样的输入产生不同的排序——调试时会让你怀疑人生。</li>
-<li><strong>截断历史</strong>。LLM 处理超过 50 条历史时质量会下降，而且成本与 prompt token 数线性相关。最近的优先，太老的可以摘要。</li>
-</ol>
-<h3 id="零样本-vs-少样本-vs-微调">零样本 vs 少样本 vs 微调</h3>
-<table>
-  <thead>
-      <tr>
-          <th>方案</th>
-          <th>启动成本</th>
-          <th>单次调用成本</th>
-          <th>冷启动精度</th>
-          <th>热启动精度</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>零样本（GPT-4o）</td>
-          <td>数小时</td>
-          <td>高（$0.01+/次）</td>
-          <td>强</td>
-          <td>一般</td>
-      </tr>
-      <tr>
-          <td>少样本（3-5 例）</td>
-          <td>数小时</td>
-          <td>更高（更多 token）</td>
-          <td>强</td>
-          <td>较好</td>
-      </tr>
-      <tr>
-          <td>微调（TallRec，7B+LoRA）</td>
-          <td>数天 + GPU</td>
-          <td>低（$0.0005/次）</td>
-          <td>强</td>
-          <td>强</td>
-      </tr>
-  </tbody>
-</table>
-<p>TallRec 的结果非常有说服力：用 <strong>256 条微调样本</strong>，LoRA 微调过的 Llama-7B 就能在推荐任务上追平甚至超过零样本 GPT-4，单次成本只有 GPT-4 的零头。只要你手上有一点带标签的交互数据，就该微调。</p>
-<hr>
-<h2 id="llm-作为增强器让-embedding-更锐利冷启动更稳">LLM 作为增强器：让 Embedding 更锐利、冷启动更稳</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig3_embedding_quality.png" alt="LLM 描述增强前后的 embedding 聚类对比" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>把 LLM 接入生产系统最便宜、风险最低的方式：离线用它把单薄的物品文本扩写成丰富描述，再用现有的句向量编码器重新编码。</p>
-<p>电影标题 <code>&quot;Tenet&quot;</code> 对句向量编码器几乎没有信号。让 GPT-4 把它扩写成：</p>
-<blockquote>
-<p>「2020 年由克里斯托弗·诺兰执导的科幻动作惊悚片。以熵的逆转作为核心剧情装置，探讨自由意志与命定论的主题。基调偏冷峻、氛围感强，配以精心设计的实拍动作场面。受众：喜欢《盗梦空间》《星际穿越》或其他烧脑结构片的观众。节奏紧凑，情感内核是友谊与牺牲。」</p>
-</blockquote>
-<p>——产生的 embedding 就会显著靠近它真正的语义邻居。在 MovieLens 这类数据上的离线测试中，按类型聚类的轮廓系数（silhouette）通常会从 ~0.2（原始标题）跳到 ~0.65（LLM 增强后），P5 和 KAR 的论文都报告过类似效果。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">enhance_item</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;离线：把稀疏的物品文本扩写成丰富的语义描述。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;&#34;&#34;Write an 80-word description of this item for a
-</span></span></span><span class="line"><span class="cl"><span class="s2">recommendation system. Cover: themes, tone, mood, target audience,
-</span></span></span><span class="line"><span class="cl"><span class="s2">similar items, what kind of user would love it.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">Title: </span><span class="si">{</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">Existing tags: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="p">[]))</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">Year: </span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">Description:&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt-4o-mini&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
-</span></span><span class="line"><span class="cl">        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">max_tokens</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">build_enhanced_index</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">encoder</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;每个物品跑一次；缓存到物品本身变更为止。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">enhanced_texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">enhance_item</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">encoder</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">enhanced_texts</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>经济账之所以划算，是因为<strong>增强是离线的、一次性的</strong>。一百万物品的目录，每次调用 $0.0002，总共 $200，付一次。对比一下在每次在线请求都用 LLM、单次成本相同的话：每百万次查询 $200，<strong>持续累计</strong>。</p>
-<h3 id="只能离线这个约束在哪里会疼">「只能离线」这个约束在哪里会疼</h3>
-<p>LLM 增强只能生成稳定的、<strong>物品侧</strong>的特征。它做不到：</p>
-<ul>
-<li>对一个<strong>新物品</strong>第一小时的交互做出反应</li>
-<li>捕捉用户专属信号（口味、当下心情、本次会话意图）</li>
-<li>反映正在发生的趋势（「最近大家都在看 X，因为 Y」）</li>
-</ul>
-<p>这些场景就需要在线 LLM 调用——更现实地说，需要混合管线。</p>
-<hr>
-<h2 id="混合管线你最终一定会落到这个架构">混合管线（你最终一定会落到这个架构）</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig4_hybrid_pipeline.png" alt="混合管线：ANN 检索 &#43; DNN 排序 &#43; LLM 重排" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>每一个把 LLM 推到生产环境的团队，最后都会收敛到同一个形状：</p>
-<ol>
-<li><strong>物品池</strong>（10⁶–10⁸）</li>
-<li><strong>ANN 检索</strong> Faiss/HNSW，<del>10ms，</del>$0，缩到 ~1000 候选</li>
-<li><strong>CF 或深度排序</strong>（DIN、DCN-V2、双塔），<del>30ms，</del>$0，缩到 ~50</li>
-<li><strong>LLM 重排</strong>（GPT-4o 或微调的 7B），<del>1-2s，</del>$0.005-0.01，挑出 Top-10</li>
-<li><strong>用户</strong>看到 Top-10 + LLM 生成的解释</li>
-</ol>
-<p>漏斗比例是关键：在那个昂贵的 LLM 调用之前，已经做了 <strong>5-7 个数量级</strong>的剪枝。LLM 永远只看 ~50 个物品，不会看到百万级目录。<strong>正是这一个架构选择，让 LLM 推荐变得可行</strong>。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">HybridRecommender</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;ANN -&gt; DNN -&gt; LLM。所有团队最后都会落到这个形状。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ann_index</span><span class="p">,</span> <span class="n">dnn_ranker</span><span class="p">,</span> <span class="n">llm_reranker</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ann</span> <span class="o">=</span> <span class="n">ann_index</span>            <span class="c1"># Faiss / HNSW</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span> <span class="o">=</span> <span class="n">dnn_ranker</span>        <span class="c1"># DIN / DCN-V2 / 双塔</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm_reranker</span>         <span class="c1"># GPT-4o 或微调 7B</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">recommend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Stage 1: ANN —— 百万 -&gt; ~1000，约 10ms</span>
-</span></span><span class="line"><span class="cl">        <span class="n">cand_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ann</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query_embedding</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Stage 2: DNN 排序 —— 1000 -&gt; ~50，约 30ms</span>
-</span></span><span class="line"><span class="cl">        <span class="n">scored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span><span class="o">.</span><span class="n">score_batch</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">cand_ids</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">top50</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scored</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">])[:</span><span class="mi">50</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Stage 3: LLM 重排 —— 50 -&gt; Top-10，约 1.5s</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 关键：prompt 装得下，成本有上界</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">rerank</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">top50</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>中间这个 DNN 排序阶段是新接触 LLM 的人最容易低估的。你不能从 ANN 直接跳到 LLM 重排：ANN 的 1000 候选噪声仍然太大（爆款但不相关的物品会主导），把 1000 个物品塞进 prompt 要么爆上下文、要么把信号埋了。DNN 给你的是一个干净的 Top-50，并且带着 LLM 没有的<strong>学到的交互模式</strong>。</p>
-<hr>
-<h2 id="冷启动llm-真正胜出的战场">冷启动：LLM 真正胜出的战场</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig5_cold_start.png" alt="冷启动：随用户交互数变化，LLM 零样本 vs CF" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>「LLM 还是 CF」这个问题，画一张精度对用户历史长度的曲线就有非常清晰的答案：</p>
-<ul>
-<li><strong>0-5 次交互</strong>（冷）：LLM 零样本以 4-7 倍优势胜出。CF 没有任何素材；LLM 的世界知识就是仅有的信号。</li>
-<li><strong>10-50 次交互</strong>（升温中）：差距快速缩小。CF 开始抓到真正的协同信号。</li>
-<li><strong>100+ 次交互</strong>（热）：CF 在纯排序精度上反超。LLM 的世界知识相对于用户实际暴露出的偏好，反而成了噪声。</li>
-</ul>
-<p>推论是：<strong>按用户状态分流</strong>。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">route_recommend</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">cf_model</span><span class="p">,</span> <span class="n">llm_model</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;根据这个用户的数据密度，选择最合适的模型。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">n_interactions</span> <span class="o">=</span> <span class="n">cf_model</span><span class="o">.</span><span class="n">interaction_count</span><span class="p">(</span><span class="n">user_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">n_interactions</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 冷：LLM 仅靠 query 调用世界知识</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">llm_model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">elif</span> <span class="n">n_interactions</span> <span class="o">&lt;</span> <span class="mi">50</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 升温中：混合</span>
-</span></span><span class="line"><span class="cl">        <span class="n">cf_recs</span> <span class="o">=</span> <span class="n">cf_model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">llm_model</span><span class="o">.</span><span class="n">rerank</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">cf_recs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 热：CF 严格更优；LLM 只用来生成解释</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">cf_model</span><span class="o">.</span><span class="n">recommend</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>这也解释了为什么「我们试过 LLM，没打过我们的 DCN」是一个常见的假阴性结论：那个团队几乎可以肯定是在热用户上做的测试，而热用户场景 CF 本来就稳赢。</p>
-<hr>
-<h2 id="对话式推荐chatrec-风格">对话式推荐：ChatREC 风格</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig6_chat_flow.png" alt="对话式推荐流程：对话状态与工具调用" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>对话式推荐器在本质上是另一种东西：它是<strong>规划器</strong>，不是一次性的排序器。LLM 维护对话状态，决定何时检索、何时澄清、何时给出推荐。推荐这一步本身经常会再委托回检索 + DNN 排序栈。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ChatREC</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;LLM 是规划器；检索和排序是它调用的工具。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">,</span> <span class="n">retriever</span><span class="p">,</span> <span class="n">ranker</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">retriever</span> <span class="o">=</span> <span class="n">retriever</span>      <span class="c1"># ANN 检索</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span> <span class="o">=</span> <span class="n">ranker</span>            <span class="c1"># DNN</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;history&#34;</span><span class="p">:</span> <span class="p">[],</span>              <span class="c1"># 消息日志</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;preferences&#34;</span><span class="p">:</span> <span class="p">{},</span>          <span class="c1"># 累积的偏好</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;candidates&#34;</span><span class="p">:</span> <span class="p">[],</span>           <span class="c1"># 当前候选短列表</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">turn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_message</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;history&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">user_message</span><span class="p">})</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># LLM 决定下一步动作：澄清 / 检索 / 推荐 / 解释</span>
-</span></span><span class="line"><span class="cl">        <span class="n">plan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">history</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;history&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="n">current_prefs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="n">current_candidates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;extract_preference&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">extracted_prefs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">acknowledge</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">extracted_prefs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;retrieve&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">build_query</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">            <span class="n">cand</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retriever</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ranker</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">cand</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">][:</span><span class="mi">5</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;filter&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">                <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">filter_fn</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;candidates&#34;</span><span class="p">][:</span><span class="mi">5</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;explain&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">target_item</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;preferences&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">respond</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">[</span><span class="s2">&#34;history&#34;</span><span class="p">])</span>  <span class="c1"># 兜底</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>真正难的部分不在这段代码里——难在规划器 prompt（暴露哪些动作、怎么防止 LLM 推荐 <code>candidates</code> 之外的虚构物品）和状态管理（用户改主意时何时丢弃旧偏好、过滤后何时刷新候选）。</p>
-<hr>
-<h2 id="成本质量帕累托前沿">成本/质量帕累托前沿</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig7_cost_quality.png" alt="LLM 推荐方法在成本/质量平面上的帕累托前沿" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>把已发表的方法都映射到（每千次请求成本，相对 CF baseline 的 NDCG 提升），三件事会变得很清楚：</p>
-<ol>
-<li>**每千请求 $1 以上，收益急剧递减**。从微调 7B（~$0.4）跳到 GPT-4 生成式（~$25），只换来 ~2.4 个 NDCG 点。从 CF baseline 跳到微调 7B，能换来 ~8.6 点，单次延迟成本不到 100 倍。</li>
-<li><strong>微调 7B 是生产甜点区</strong>。TallRec / LlamaRec 的精度逼近 GPT-4，单次成本却只有 GPT-4 的 1%。如果能一次性付得起 4 张 A100 几小时的 LoRA 训练，全年的推理账单都能省下来。</li>
-<li><strong>对话式智能体在另一条曲线上，不是同一曲线的另一个点</strong>。它贵不是因为模型本身贵，而是每个 session 都是多轮的——同样一次推荐结果，你付了 5-10 次的请求量。要为它付费，就要因为对话 UX 本身有价值，而不是因为某个排序指标的提升。</li>
-</ol>
-<h3 id="实用的成本杠杆">实用的成本杠杆</h3>
-<table>
-  <thead>
-      <tr>
-          <th>杠杆</th>
-          <th>典型节省</th>
-          <th>注意事项</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>缓存相同 prompt</td>
-          <td>30-60%</td>
-          <td>仅在请求重复时有效</td>
-      </tr>
-      <tr>
-          <td>历史截断到 20 条</td>
-          <td>20-40%</td>
-          <td>会丢长尾偏好</td>
-      </tr>
-      <tr>
-          <td>重排 Top-20 而非 Top-50</td>
-          <td>50%</td>
-          <td>精度损失小（~1 NDCG 点）</td>
-      </tr>
-      <tr>
-          <td>微调 7B 替代 GPT-4</td>
-          <td>90%+</td>
-          <td>需要标注数据 + GPU 时间</td>
-      </tr>
-      <tr>
-          <td>热用户路由到纯 CF</td>
-          <td>40-80%</td>
-          <td>取决于用户构成</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>最大的杠杆</strong>，没有之一，是上一节讲的<strong>按用户状态分流</strong>。一个典型平台 70% 以上的请求来自热用户，而热用户场景 CF 严格更优；把他们从 LLM 路径上分流出去，等于免费省下真金白银。</p>
-<hr>
-<h2 id="评测到底要测什么">评测：到底要测什么</h2>
-<p>标准排序指标依然适用（NDCG@K、Recall@K、MRR），但 LLM 系统需要额外的维度：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">evaluate_llm_recommender</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">,</span> <span class="n">llm_calls</span><span class="p">,</span> <span class="n">latencies</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;标准指标 + LLM 专属的运营指标。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># --- 质量 ---</span>
-</span></span><span class="line"><span class="cl">    <span class="n">k</span> <span class="o">=</span> <span class="mi">10</span>
-</span></span><span class="line"><span class="cl">    <span class="n">hits</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">gt</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">gt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="n">k</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">recall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">gt</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">gt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hits</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">ndcg</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">gt_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">gt</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">dcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pred</span><span class="p">[:</span><span class="n">k</span><span class="p">])</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">gt_set</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gt_set</span><span class="p">))))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span> <span class="k">if</span> <span class="n">idcg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">ndcg_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">ndcg</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">gt</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">gt</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># --- 运营 ---</span>
-</span></span><span class="line"><span class="cl">    <span class="n">p50_latency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">latencies</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">p99_latency</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">latencies</span><span class="p">,</span> <span class="mi">99</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">cost_per_request</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">llm_calls</span><span class="p">))</span> <span class="o">*</span> <span class="mf">0.005</span>   <span class="c1"># 单次成本粗估</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;precision@10&#34;</span><span class="p">:</span> <span class="n">precision</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;recall@10&#34;</span><span class="p">:</span> <span class="n">recall</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;ndcg@10&#34;</span><span class="p">:</span> <span class="n">ndcg_score</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;p50_latency_s&#34;</span><span class="p">:</span> <span class="n">p50_latency</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;p99_latency_s&#34;</span><span class="p">:</span> <span class="n">p99_latency</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;cost_per_request_usd&#34;</span><span class="p">:</span> <span class="n">cost_per_request</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>运营指标的重要性远超大多数人的预期。一个 NDCG 涨 2 点但 p50 延迟多 1.5 秒的模型，在多数 C 端产品里都是净亏损——用户流失的速度比排序质量提升的速度快得多。</p>
-<p>对话式系统还要额外跟踪：</p>
-<ul>
-<li><strong>达成满意的轮数</strong>：用户接受推荐前要聊几轮</li>
-<li><strong>每个 session 的推荐多样性</strong>：会不会每次对话都收敛到同样那五个物品</li>
-<li><strong>幻觉率</strong>：LLM 多大比例会推荐不在候选集里的物品</li>
-</ul>
-<hr>
-<h2 id="常见问题">常见问题</h2>
-<h3 id="我到底什么时候才该用-llm">我到底什么时候才该用 LLM？</h3>
-<p>至少满足以下一条：(a) 物品文本信息丰富，(b) 有严重的冷启动问题，(c) 需要给用户看的解释，(d) 在做对话式产品。如果一条都不沾，调好的 DCN-V2 或 DIN 在更低成本下能赢任何 LLM。</p>
-<h3 id="用-gpt-4-还是微调-7b">用 GPT-4 还是微调 7B？</h3>
-<p>几乎总是该微调。<strong>TallRec</strong> 和 <strong>LlamaRec</strong> 都证明，LoRA 微调过的 7B 在推荐任务上能追平或超过 GPT-4 零样本，推理成本只有 GPT-4 的 1%。继续用 GPT-4 的唯一理由是：你完全没有训练数据，或者你的领域漂移得比你能重新微调的速度还快。</p>
-<h3 id="怎么避免-llm-幻觉出不存在的物品">怎么避免 LLM 幻觉出不存在的物品？</h3>
-<p>两层防护：(1) 把 LLM 的输出约束为候选集的索引（<code>[3, 1, 5, 2, 4]</code>，不是标题），(2) 返回前对照候选列表硬校验。如果 LLM 吐出了未知索引，回退到 DNN 排序的顺序。</p>
-<h3 id="传给-llm-的候选集要多大">传给 LLM 的候选集要多大？</h3>
-<p>经验值是 20-50。低于 20，重排没什么腾挪空间；高于 50，prompt 又长又慢又贵，模型还会丢失中间位置的物品（&ldquo;lost in the middle&rdquo; 现象）。</p>
-<h3 id="推荐需要-rag-吗">推荐需要 RAG 吗？</h3>
-<p>有时候需要。当 LLM 需要 prompt 之外的<strong>事实性</strong>知识时（发售日期、规格参数、当前可用性），RAG 能帮上忙。如果只是从已知目录里做排序，目录本身放进 prompt 就是检索，不需要单独的向量库。</p>
-<h3 id="实时-feed-流场景延迟怎么办">实时 feed 流场景延迟怎么办？</h3>
-<p>实时 feed（TikTok 那种无限下滑、新闻流）通常承担不起每次曝光一次同步 LLM 调用。可行的模式：(a) 离线高峰外预先算好 LLM 重排结果，缓存起来；(b) 只在第一页用 LLM，后续页用 DNN；(c) 把 LLM 放到离线批处理路径上，给次日推荐用。</p>
-<h3 id="多语言目录怎么处理">多语言目录怎么处理？</h3>
-<p>LLM 天然能处理——翻译和跨语言推理都内置在里面。陷阱在于：纯英文交互数据上微调，多语言能力会塌掉。要么微调数据里掺一些非英文样本，要么直接微调多语言基座（Qwen、Llama-3 多语言版、mT5）。</p>
-<hr>
-<h2 id="总结">总结</h2>
-<p>LLM 不是在替代推荐系统——它在填补上一代填不上的具体缺口。三种角色干净对应三种缺口：</p>
-<ul>
-<li><strong>增强器</strong>填<strong>内容理解</strong>的缺口。离线跑、永久缓存，得到更干净的 embedding 和更稳的冷启动。</li>
-<li><strong>预测器</strong>填<strong>冷启动和小数据</strong>的缺口。微调一个 7B，用它给传统管线产出的 Top-20-50 做重排。</li>
-<li><strong>智能体</strong>填<strong>交互</strong>的缺口。只在真正的对话式产品上用，并且清楚地知道自己在为延迟买单。</li>
-</ul>
-<p>所有生产团队最终都会收敛到的架构是混合管线：ANN 检索 → DNN 排序 → LLM 重排 → 可选的解释生成。它跑得通是因为 LLM 永远只看 Top-50，永远不会看到全量目录。成本有上界，质量拿到 LLM 的语义增益。</p>
-<p>从这里开始。第一天就把运营指标和排序指标一起测。把热用户从 LLM 路径上分流出去，让账单不爆炸。一旦攒到几百条带标签的样本，立刻微调。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ol>
-<li>Geng, S., Liu, S., Fu, Z., Ge, Y., &amp; Zhang, Y. (2022). <a href="https://arxiv.org/abs/2203.13366" target="_blank" rel="noopener noreferrer"><strong>Recommendation as Language Processing (RLP): A Unified Pretrain, Personalized Prompt &amp; Predict Paradigm (P5)</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. RecSys 2022.</li>
-<li>Cui, Z., Ma, J., Zhou, C., Zhou, J., &amp; Yang, H. (2022). <a href="https://arxiv.org/abs/2205.08084" target="_blank" rel="noopener noreferrer"><strong>M6-Rec: Generative Pretrained Language Models are Open-Ended Recommender Systems</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. arXiv:2205.08084.</li>
-<li>Bao, K., Zhang, J., Zhang, Y., Wang, W., Feng, F., &amp; He, X. (2023). <a href="https://arxiv.org/abs/2305.00447" target="_blank" rel="noopener noreferrer"><strong>TallRec: An Effective and Efficient Tuning Framework to Align Large Language Model with Recommendation</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. RecSys 2023.</li>
-<li>Ji, J., Li, Z., Xu, S., Hua, W., Ge, Y., Tan, J., &amp; Zhang, Y. (2024). <a href="https://arxiv.org/abs/2307.00457" target="_blank" rel="noopener noreferrer"><strong>GenRec: Large Language Model for Generative Recommendation</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. ECIR 2024.</li>
-<li>Yue, Z., Rabhi, S., Moreira, G. de S. P., Wang, D., &amp; Oldridge, E. (2023). <a href="https://arxiv.org/abs/2311.02089" target="_blank" rel="noopener noreferrer"><strong>LlamaRec: Two-Stage Recommendation using Large Language Models for Ranking</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. arXiv:2311.02089.</li>
-<li>Gao, Y., Sheng, T., Xiang, Y., Xiong, Y., Wang, H., &amp; Zhang, J. (2023). <a href="https://arxiv.org/abs/2303.14524" target="_blank" rel="noopener noreferrer"><strong>Chat-REC: Towards Interactive and Explainable LLMs-Augmented Recommender System</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. arXiv:2303.14524.</li>
-<li>Xi, Y., Liu, W., Lin, J., Zhu, J., Chen, B., Tang, R., Zhang, W., Zhang, R., &amp; Yu, Y. (2024). <a href="https://arxiv.org/abs/2306.10933" target="_blank" rel="noopener noreferrer"><strong>Towards Open-World Recommendation with Knowledge Augmentation from Large Language Models (KAR)</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. RecSys 2024.</li>
-<li>Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., &amp; Liang, P. (2024). <a href="https://arxiv.org/abs/2307.03172" target="_blank" rel="noopener noreferrer"><strong>Lost in the Middle: How Language Models Use Long Contexts</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. TACL.</li>
-</ol>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<p>本文是 16 篇推荐系统系列的<strong>第 12 篇</strong>。</p>
-<table>
-  <thead>
-      <tr>
-          <th style="text-align: left">上一篇</th>
-          <th style="text-align: center"></th>
-          <th style="text-align: right">下一篇</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td style="text-align: left"><a href="/zh/recommendation-systems-11-contrastive-learning/">第 11 篇：对比学习</a>
-</td>
-          <td style="text-align: center"><a href="/tags/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">全部章节</a>
-</td>
-          <td style="text-align: right"><a href="/tags/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/">第 13 篇：敬请期待</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#llm-在推荐系统中的三种角色">LLM 在推荐系统中的三种角色</a>
-      <ul>
-        <li><a href="#角色一增强器离线特征生成">角色一：增强器（离线特征生成）</a></li>
-        <li><a href="#角色二预测器直接排序或生成">角色二：预测器（直接排序或生成）</a></li>
-        <li><a href="#角色三智能体带工具的编排者">角色三：智能体（带工具的编排者）</a></li>
-      </ul>
-    </li>
-    <li><a href="#基于-prompt-的排序">基于 Prompt 的排序</a>
-      <ul>
-        <li><a href="#零样本-vs-少样本-vs-微调">零样本 vs 少样本 vs 微调</a></li>
-      </ul>
-    </li>
-    <li><a href="#llm-作为增强器让-embedding-更锐利冷启动更稳">LLM 作为增强器：让 Embedding 更锐利、冷启动更稳</a>
-      <ul>
-        <li><a href="#只能离线这个约束在哪里会疼">「只能离线」这个约束在哪里会疼</a></li>
-      </ul>
-    </li>
-    <li><a href="#混合管线你最终一定会落到这个架构">混合管线（你最终一定会落到这个架构）</a></li>
-    <li><a href="#冷启动llm-真正胜出的战场">冷启动：LLM 真正胜出的战场</a></li>
-    <li><a href="#对话式推荐chatrec-风格">对话式推荐：ChatREC 风格</a></li>
-    <li><a href="#成本质量帕累托前沿">成本/质量帕累托前沿</a>
-      <ul>
-        <li><a href="#实用的成本杠杆">实用的成本杠杆</a></li>
-      </ul>
-    </li>
-    <li><a href="#评测到底要测什么">评测：到底要测什么</a></li>
-    <li><a href="#常见问题">常见问题</a>
-      <ul>
-        <li><a href="#我到底什么时候才该用-llm">我到底什么时候才该用 LLM？</a></li>
-        <li><a href="#用-gpt-4-还是微调-7b">用 GPT-4 还是微调 7B？</a></li>
-        <li><a href="#怎么避免-llm-幻觉出不存在的物品">怎么避免 LLM 幻觉出不存在的物品？</a></li>
-        <li><a href="#传给-llm-的候选集要多大">传给 LLM 的候选集要多大？</a></li>
-        <li><a href="#推荐需要-rag-吗">推荐需要 RAG 吗？</a></li>
-        <li><a href="#实时-feed-流场景延迟怎么办">实时 feed 流场景延迟怎么办？</a></li>
-        <li><a href="#多语言目录怎么处理">多语言目录怎么处理？</a></li>
-      </ul>
-    </li>
-    <li><a href="#总结">总结</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">推荐系统</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>6800</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>推荐系统（十二）—— 大语言模型与推荐系统 · Chen Kai Blog</title>
+<meta name=description content="LLM 如何重塑推荐系统：增强器（P5、M6Rec）、预测器（TallRec、GenRec）、智能体（LlamaRec、ChatREC）三种角色，混合管线、冷启动突破、Prompt 设计与成本/质量帕累托前沿。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/><meta property="og:type" content="article"><meta property="og:title" content="推荐系统（十二）—— 大语言模型与推荐系统"><meta property="og:description" content="LLM 如何重塑推荐系统：增强器（P5、M6Rec）、预测器（TallRec、GenRec）、智能体（LlamaRec、ChatREC）三种角色，混合管线、冷启动突破、Prompt 设计与成本/质量帕累托前沿。"><meta property="og:url" content="https://www.chenk.top/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>推荐系统</a>
+· Chapter 12</div><h1>推荐系统（十二）—— 大语言模型与推荐系统</h1><p class=deck>LLM 如何重塑推荐系统：增强器（P5、M6Rec）、预测器（TallRec、GenRec）、智能体（LlamaRec、ChatREC）三种角色，混合管线、冷启动突破、Prompt 设计与成本/质量帕累托前沿。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-01-03>January 3, 2026</time> · 14 min read · 6749 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/ class=tag>#推荐系统</a><a href=/zh/tags/llm/ class=tag>#LLM</a><a href=/zh/tags/%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/ class=tag>#大语言模型</a></div></div></header><div class=prose><p>一个用户打开电影 App，输入：「想看类似《盗梦空间》的，但别太压抑。」传统推荐系统——协同过滤、双塔 DNN、甚至 DIN——在这句话里抓不到任何有用的信号。它没有点赞按钮可以计数，没有共看图谱可以遍历，也没有用户 ID 关联到历史记录。这句话必须先被翻译成 ID，系统才能开始工作。</p><p>大语言模型的问题恰好相反：它有过多的世界知识，却不知道「这个用户」是谁。它知道《盗梦空间》是诺兰拍的、采用非线性叙事、结尾留有希望但不明确；它理解电影语境下「压抑」的含义；它能立刻列出二十部相符的片子。但它无法分辨这二十部里哪些用户已经看过、给过差评、或者看到一半就退出。</p><p>2023 到 2026 年，推荐系统圈真正有意思的问题不是「LLM 还是传统模型」，而是<strong>怎么把它们组合起来</strong>。本文沿着三种已经在工业界跑通的组合模式展开，附上代码和那些绕不过去的取舍。</p><h2 id=你将学到>你将学到</h2><ul><li>LLM 在推荐里的<strong>三种角色</strong>：增强器、预测器、智能体——以及哪些论文落在哪种角色</li><li>排序任务的 <strong>Prompt 解剖学</strong>（TallRec / P5 风格）以及为什么必须把温度压到 0.3 以下</li><li>LLM 改写物品描述如何让 embedding 聚类<strong>显著变锐</strong>、解决冷启动</li><li>所有生产团队最终都会收敛到的<strong>混合管线</strong>：ANN → DNN 排序器 → LLM 重排</li><li>ChatREC 风格的<strong>多轮对话</strong>流程：状态管理与工具调用</li><li><strong>成本/质量帕累托前沿</strong>：什么时候微调的 7B 比 GPT-4 划算，甜点区在哪</li><li>可运行的 <strong>Python 代码</strong>：Prompt 排序、混合重排、对话状态管理</li></ul><h2 id=前置知识>前置知识</h2><ul><li>Embedding、排序、检索/排序两阶段架构（<a href=/zh/recommendation-systems-1-fundamentals/>第 1 篇</a>
+、<a href=/zh/recommendation-systems-4-ctr-prediction/>第 4 篇</a>
+）</li><li>熟悉一个 LLM SDK 即可（OpenAI、Anthropic、vLLM），不需要懂微调</li><li>编码器示例需要一些 PyTorch 基础</li></ul><hr><h2 id=llm-在推荐系统中的三种角色>LLM 在推荐系统中的三种角色</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig1_three_roles.png alt="LLM 在推荐中的三种角色：增强器、预测器、智能体" loading=lazy decoding=async></figure></p><p>文献看起来很乱——P5、M6-Rec、KAR、TallRec、BIGRec、GenRec、LlamaRec、ChatREC——但每一篇都能精确地落到三种角色之一。角色一旦确定，延迟、成本、训练开销、以及 LLM 在系统里到底做什么，就全都定下来了。</p><h3 id=角色一增强器离线特征生成>角色一：增强器（离线特征生成）</h3><p>LLM 永远不参与在线请求。离线阶段，它读取每个物品的标题、描述、评论，吐出更丰富的特征：结构化属性、稠密语义向量、扩写后的描述，或者伪标签。这些特征再喂给一个完全传统的 CTR / CF 系统。</p><p>这是最早一批严肃的「LLM + 推荐」工作的核心思路：<strong>P5</strong>（Geng et al., RecSys 2022）用统一的文本到文本 T5 把五种推荐任务整合在一起；<strong>M6-Rec</strong>（Cui et al., 2022）用阿里 M6 生成物品描述和行为提示；<strong>KAR</strong>（Xi et al., 2024）把 LLM 的推理结果蒸馏成可复用的特征向量。在线服务依然能保持 50ms 以内，因为 LLM 的成本被摊薄到了百万级请求上。</p><p><strong>适用场景</strong>：你已经有一个跑得动的排序模型，但冷启动物品、稀疏文本、难以打标的类别正在拖累召回。</p><h3 id=角色二预测器直接排序或生成>角色二：预测器（直接排序或生成）</h3><p>LLM 就是排序器。你把用户历史和候选列表（甚至不给候选）交给它，让它输出 yes/no 判断、分数、或者直接生成下一个物品。</p><p>两个流派：<strong>判别式</strong>（TallRec、BIGRec——用 LoRA 在 <code>(历史, 物品) → yes/no</code> 上微调 Llama-2-7B）和<strong>生成式</strong>（GenRec——直接生成下一部电影的标题）。<strong>TallRec</strong>（Bao et al., RecSys 2023）有一个很惊艳的结果：用 LoRA 微调过的 7B 模型，在只有几百条训练样本的情况下，能击败大得多的零样本 LLM，并且追平强序列推荐 baseline。<strong>LlamaRec</strong>（Yue et al., 2023）更进一步，加了一个 verbalizer 头，让 LLM 一次前向就能对整个候选集排序，而不是 K 次单独调用。</p><p><strong>适用场景</strong>：物品文本信息丰富、数据量小（冷启动领域、新业务线），或者需要排序结果自带解释。</p><h3 id=角色三智能体带工具的编排者>角色三：智能体（带工具的编排者）</h3><p>LLM 不只做排序——它做规划。它维护对话状态，决定何时调用检索、何时反问澄清、何时按年份/价格过滤、何时把任务交给下游模型。<strong>ChatREC</strong>（Gao et al., 2023）是这个范式的开山之作；<strong>RecAgent</strong>（Wang et al., 2023）和 <strong>InteRecAgent</strong> 进一步引入模拟用户做评测。</p><p><strong>适用场景</strong>：对话式产品（聊天机器人、语音助手、带追问的搜索），或者用户确实没法一句话说清自己想要什么。</p><p>成本排序大致是：增强器 ≪ 预测器 ≪ 智能体。灵活性的排序也是这样。多数生产系统都是从增强器起步，再升级为预测器（接在传统排序后面做重排），只在特定产品形态上才用智能体。</p><hr><h2 id=基于-prompt-的排序>基于 Prompt 的排序</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig2_prompt_template.png alt="LLM-as-recommender 的 Prompt 模板解剖图" loading=lazy decoding=async></figure></p><p>基于 Prompt 的推荐是入门方案：不需要训练，一个 API key 加一个写得好的 Prompt 就够了。模板有五个部分，顺序很重要。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>build_recommendation_prompt</span><span class=p>(</span><span class=n>history</span><span class=p>,</span> <span class=n>target</span><span class=p>,</span> <span class=n>examples</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;TallRec / P5 风格的排序 Prompt。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 1. 角色 + 任务：把 LLM 锁定到一个窄行为里</span>
+</span></span><span class=line><span class=cl>    <span class=n>role</span> <span class=o>=</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;You are a movie recommender. Given the user&#39;s viewing history, &#34;</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;predict whether they will like the target movie.&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 2. 用户历史（按时间顺序，带信号）</span>
+</span></span><span class=line><span class=cl>    <span class=n>hist_lines</span> <span class=o>=</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s2>&#34;  - </span><span class=si>{</span><span class=n>item</span><span class=p>[</span><span class=s1>&#39;title&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2> (</span><span class=si>{</span><span class=s1>&#39;liked&#39;</span> <span class=k>if</span> <span class=n>item</span><span class=p>[</span><span class=s1>&#39;liked&#39;</span><span class=p>]</span> <span class=k>else</span> <span class=s1>&#39;disliked&#39;</span><span class=si>}</span><span class=s2>)&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>item</span> <span class=ow>in</span> <span class=n>history</span><span class=p>[</span><span class=o>-</span><span class=mi>20</span><span class=p>:]</span>   <span class=c1># 截断以适应上下文</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 3. 候选物品（带属性）</span>
+</span></span><span class=line><span class=cl>    <span class=n>target_line</span> <span class=o>=</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s1>&#39;Target movie: &#34;</span><span class=si>{</span><span class=n>target</span><span class=p>[</span><span class=s2>&#34;title&#34;</span><span class=p>]</span><span class=si>}</span><span class=s1>&#34; &#39;</span>
+</span></span><span class=line><span class=cl>        <span class=sa>f</span><span class=s1>&#39;(</span><span class=si>{</span><span class=n>target</span><span class=p>[</span><span class=s2>&#34;genre&#34;</span><span class=p>]</span><span class=si>}</span><span class=s1>, </span><span class=si>{</span><span class=n>target</span><span class=p>[</span><span class=s2>&#34;year&#34;</span><span class=p>]</span><span class=si>}</span><span class=s1>, dir. </span><span class=si>{</span><span class=n>target</span><span class=p>[</span><span class=s2>&#34;director&#34;</span><span class=p>]</span><span class=si>}</span><span class=s1>)&#39;</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 4. 输出格式（强约束——能用单 token 就用单 token）</span>
+</span></span><span class=line><span class=cl>    <span class=n>output_spec</span> <span class=o>=</span> <span class=s1>&#39;Answer with exactly one token: &#34;Yes&#34; or &#34;No&#34;.&#39;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># 5. Few-shot 示例（可选；除了输出格式外最大的精度杠杆）</span>
+</span></span><span class=line><span class=cl>    <span class=n>fewshot</span> <span class=o>=</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>examples</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>fewshot</span> <span class=o>=</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;[Example </span><span class=si>{</span><span class=n>i</span><span class=o>+</span><span class=mi>1</span><span class=si>}</span><span class=s2>]</span><span class=se>\n</span><span class=s2>History: </span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;history&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=sa>f</span><span class=s2>&#34;Target: </span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;target&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>Answer: </span><span class=si>{</span><span class=n>ex</span><span class=p>[</span><span class=s1>&#39;answer&#39;</span><span class=p>]</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ex</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>examples</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;&#34;&#34;</span><span class=si>{</span><span class=n>role</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2></span><span class=si>{</span><span class=n>fewshot</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>History:
+</span></span></span><span class=line><span class=cl><span class=s2></span><span class=si>{</span><span class=n>hist_lines</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2></span><span class=si>{</span><span class=n>target_line</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2></span><span class=si>{</span><span class=n>output_spec</span><span class=si>}</span><span class=s2>&#34;&#34;&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>有<strong>三条工程规则</strong>听起来像废话，实际上每一条都救过命：</p><ol><li><strong>逐 token 约束输出</strong>。单个 <code>Yes</code>/<code>No</code> 可以解析；「我觉得用户可能会喜欢，因为……」没法解析。对 K 个物品排序时，让模型输出 <code>[3, 1, 5, 2, 4]</code>——不要自由文本。SDK 支持的话，用 logit bias 或语法约束解码。</li><li><strong>温度压到 0.3 以下</strong>。推荐不是创意写作。高温度会让同样的输入产生不同的排序——调试时会让你怀疑人生。</li><li><strong>截断历史</strong>。LLM 处理超过 50 条历史时质量会下降，而且成本与 prompt token 数线性相关。最近的优先，太老的可以摘要。</li></ol><h3 id=零样本-vs-少样本-vs-微调>零样本 vs 少样本 vs 微调</h3><table><thead><tr><th>方案</th><th>启动成本</th><th>单次调用成本</th><th>冷启动精度</th><th>热启动精度</th></tr></thead><tbody><tr><td>零样本（GPT-4o）</td><td>数小时</td><td>高（$0.01+/次）</td><td>强</td><td>一般</td></tr><tr><td>少样本（3-5 例）</td><td>数小时</td><td>更高（更多 token）</td><td>强</td><td>较好</td></tr><tr><td>微调（TallRec，7B+LoRA）</td><td>数天 + GPU</td><td>低（$0.0005/次）</td><td>强</td><td>强</td></tr></tbody></table><p>TallRec 的结果非常有说服力：用 <strong>256 条微调样本</strong>，LoRA 微调过的 Llama-7B 就能在推荐任务上追平甚至超过零样本 GPT-4，单次成本只有 GPT-4 的零头。只要你手上有一点带标签的交互数据，就该微调。</p><hr><h2 id=llm-作为增强器让-embedding-更锐利冷启动更稳>LLM 作为增强器：让 Embedding 更锐利、冷启动更稳</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig3_embedding_quality.png alt="LLM 描述增强前后的 embedding 聚类对比" loading=lazy decoding=async></figure></p><p>把 LLM 接入生产系统最便宜、风险最低的方式：离线用它把单薄的物品文本扩写成丰富描述，再用现有的句向量编码器重新编码。</p><p>电影标题 <code>"Tenet"</code> 对句向量编码器几乎没有信号。让 GPT-4 把它扩写成：</p><blockquote><p>「2020 年由克里斯托弗·诺兰执导的科幻动作惊悚片。以熵的逆转作为核心剧情装置，探讨自由意志与命定论的主题。基调偏冷峻、氛围感强，配以精心设计的实拍动作场面。受众：喜欢《盗梦空间》《星际穿越》或其他烧脑结构片的观众。节奏紧凑，情感内核是友谊与牺牲。」</p></blockquote><p>——产生的 embedding 就会显著靠近它真正的语义邻居。在 MovieLens 这类数据上的离线测试中，按类型聚类的轮廓系数（silhouette）通常会从 ~0.2（原始标题）跳到 ~0.65（LLM 增强后），P5 和 KAR 的论文都报告过类似效果。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>openai</span> <span class=kn>import</span> <span class=n>OpenAI</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>enhance_item</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;离线：把稀疏的物品文本扩写成丰富的语义描述。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>prompt</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;&#34;&#34;Write an 80-word description of this item for a
+</span></span></span><span class=line><span class=cl><span class=s2>recommendation system. Cover: themes, tone, mood, target audience,
+</span></span></span><span class=line><span class=cl><span class=s2>similar items, what kind of user would love it.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Title: </span><span class=si>{</span><span class=n>item</span><span class=p>[</span><span class=s1>&#39;title&#39;</span><span class=p>]</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Existing tags: </span><span class=si>{</span><span class=s1>&#39;, &#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;tags&#39;</span><span class=p>,</span> <span class=p>[]))</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Year: </span><span class=si>{</span><span class=n>item</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s1>&#39;year&#39;</span><span class=p>,</span> <span class=s1>&#39;unknown&#39;</span><span class=p>)</span><span class=si>}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Description:&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt-4o-mini&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>prompt</span><span class=p>}],</span>
+</span></span><span class=line><span class=cl>        <span class=n>temperature</span><span class=o>=</span><span class=mf>0.4</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>max_tokens</span><span class=o>=</span><span class=mi>200</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span><span class=o>.</span><span class=n>content</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>build_enhanced_index</span><span class=p>(</span><span class=n>items</span><span class=p>,</span> <span class=n>encoder</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;每个物品跑一次；缓存到物品本身变更为止。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>enhanced_texts</span> <span class=o>=</span> <span class=p>[</span><span class=n>enhance_item</span><span class=p>(</span><span class=n>it</span><span class=p>)</span> <span class=k>for</span> <span class=n>it</span> <span class=ow>in</span> <span class=n>items</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>encoder</span><span class=o>.</span><span class=n>encode</span><span class=p>(</span><span class=n>enhanced_texts</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>64</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>经济账之所以划算，是因为<strong>增强是离线的、一次性的</strong>。一百万物品的目录，每次调用 $0.0002，总共 $200，付一次。对比一下在每次在线请求都用 LLM、单次成本相同的话：每百万次查询 $200，<strong>持续累计</strong>。</p><h3 id=只能离线这个约束在哪里会疼>「只能离线」这个约束在哪里会疼</h3><p>LLM 增强只能生成稳定的、<strong>物品侧</strong>的特征。它做不到：</p><ul><li>对一个<strong>新物品</strong>第一小时的交互做出反应</li><li>捕捉用户专属信号（口味、当下心情、本次会话意图）</li><li>反映正在发生的趋势（「最近大家都在看 X，因为 Y」）</li></ul><p>这些场景就需要在线 LLM 调用——更现实地说，需要混合管线。</p><hr><h2 id=混合管线你最终一定会落到这个架构>混合管线（你最终一定会落到这个架构）</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig4_hybrid_pipeline.png alt="混合管线：ANN 检索 + DNN 排序 + LLM 重排" loading=lazy decoding=async></figure></p><p>每一个把 LLM 推到生产环境的团队，最后都会收敛到同一个形状：</p><ol><li><strong>物品池</strong>（10⁶–10⁸）</li><li><strong>ANN 检索</strong> Faiss/HNSW，<del>10ms，</del>$0，缩到 ~1000 候选</li><li><strong>CF 或深度排序</strong>（DIN、DCN-V2、双塔），<del>30ms，</del>$0，缩到 ~50</li><li><strong>LLM 重排</strong>（GPT-4o 或微调的 7B），<del>1-2s，</del>$0.005-0.01，挑出 Top-10</li><li><strong>用户</strong>看到 Top-10 + LLM 生成的解释</li></ol><p>漏斗比例是关键：在那个昂贵的 LLM 调用之前，已经做了 <strong>5-7 个数量级</strong>的剪枝。LLM 永远只看 ~50 个物品，不会看到百万级目录。<strong>正是这一个架构选择，让 LLM 推荐变得可行</strong>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>HybridRecommender</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;ANN -&gt; DNN -&gt; LLM。所有团队最后都会落到这个形状。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>ann_index</span><span class=p>,</span> <span class=n>dnn_ranker</span><span class=p>,</span> <span class=n>llm_reranker</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ann</span> <span class=o>=</span> <span class=n>ann_index</span>            <span class=c1># Faiss / HNSW</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ranker</span> <span class=o>=</span> <span class=n>dnn_ranker</span>        <span class=c1># DIN / DCN-V2 / 双塔</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>llm</span> <span class=o>=</span> <span class=n>llm_reranker</span>         <span class=c1># GPT-4o 或微调 7B</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>recommend</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_id</span><span class=p>,</span> <span class=n>query_embedding</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>10</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Stage 1: ANN —— 百万 -&gt; ~1000，约 10ms</span>
+</span></span><span class=line><span class=cl>        <span class=n>cand_ids</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ann</span><span class=o>.</span><span class=n>search</span><span class=p>(</span><span class=n>query_embedding</span><span class=p>,</span> <span class=n>top_k</span><span class=o>=</span><span class=mi>1000</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Stage 2: DNN 排序 —— 1000 -&gt; ~50，约 30ms</span>
+</span></span><span class=line><span class=cl>        <span class=n>scored</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ranker</span><span class=o>.</span><span class=n>score_batch</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>cand_ids</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>top50</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>scored</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=o>-</span><span class=n>x</span><span class=p>[</span><span class=s1>&#39;score&#39;</span><span class=p>])[:</span><span class=mi>50</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Stage 3: LLM 重排 —— 50 -&gt; Top-10，约 1.5s</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 关键：prompt 装得下，成本有上界</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>rerank</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>top50</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=n>k</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>中间这个 DNN 排序阶段是新接触 LLM 的人最容易低估的。你不能从 ANN 直接跳到 LLM 重排：ANN 的 1000 候选噪声仍然太大（爆款但不相关的物品会主导），把 1000 个物品塞进 prompt 要么爆上下文、要么把信号埋了。DNN 给你的是一个干净的 Top-50，并且带着 LLM 没有的<strong>学到的交互模式</strong>。</p><hr><h2 id=冷启动llm-真正胜出的战场>冷启动：LLM 真正胜出的战场</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig5_cold_start.png alt="冷启动：随用户交互数变化，LLM 零样本 vs CF" loading=lazy decoding=async></figure></p><p>「LLM 还是 CF」这个问题，画一张精度对用户历史长度的曲线就有非常清晰的答案：</p><ul><li><strong>0-5 次交互</strong>（冷）：LLM 零样本以 4-7 倍优势胜出。CF 没有任何素材；LLM 的世界知识就是仅有的信号。</li><li><strong>10-50 次交互</strong>（升温中）：差距快速缩小。CF 开始抓到真正的协同信号。</li><li><strong>100+ 次交互</strong>（热）：CF 在纯排序精度上反超。LLM 的世界知识相对于用户实际暴露出的偏好，反而成了噪声。</li></ul><p>推论是：<strong>按用户状态分流</strong>。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>route_recommend</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>query</span><span class=p>,</span> <span class=n>cf_model</span><span class=p>,</span> <span class=n>llm_model</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;根据这个用户的数据密度，选择最合适的模型。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>n_interactions</span> <span class=o>=</span> <span class=n>cf_model</span><span class=o>.</span><span class=n>interaction_count</span><span class=p>(</span><span class=n>user_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>n_interactions</span> <span class=o>&lt;</span> <span class=mi>5</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 冷：LLM 仅靠 query 调用世界知识</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>llm_model</span><span class=o>.</span><span class=n>recommend</span><span class=p>(</span><span class=n>query</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>elif</span> <span class=n>n_interactions</span> <span class=o>&lt;</span> <span class=mi>50</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 升温中：混合</span>
+</span></span><span class=line><span class=cl>        <span class=n>cf_recs</span> <span class=o>=</span> <span class=n>cf_model</span><span class=o>.</span><span class=n>recommend</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>50</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>llm_model</span><span class=o>.</span><span class=n>rerank</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>cf_recs</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 热：CF 严格更优；LLM 只用来生成解释</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>cf_model</span><span class=o>.</span><span class=n>recommend</span><span class=p>(</span><span class=n>user_id</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>这也解释了为什么「我们试过 LLM，没打过我们的 DCN」是一个常见的假阴性结论：那个团队几乎可以肯定是在热用户上做的测试，而热用户场景 CF 本来就稳赢。</p><hr><h2 id=对话式推荐chatrec-风格>对话式推荐：ChatREC 风格</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig6_chat_flow.png alt=对话式推荐流程：对话状态与工具调用 loading=lazy decoding=async></figure></p><p>对话式推荐器在本质上是另一种东西：它是<strong>规划器</strong>，不是一次性的排序器。LLM 维护对话状态，决定何时检索、何时澄清、何时给出推荐。推荐这一步本身经常会再委托回检索 + DNN 排序栈。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>ChatREC</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;LLM 是规划器；检索和排序是它调用的工具。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>llm</span><span class=p>,</span> <span class=n>retriever</span><span class=p>,</span> <span class=n>ranker</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>llm</span> <span class=o>=</span> <span class=n>llm</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>retriever</span> <span class=o>=</span> <span class=n>retriever</span>      <span class=c1># ANN 检索</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ranker</span> <span class=o>=</span> <span class=n>ranker</span>            <span class=c1># DNN</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>state</span> <span class=o>=</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;history&#34;</span><span class=p>:</span> <span class=p>[],</span>              <span class=c1># 消息日志</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;preferences&#34;</span><span class=p>:</span> <span class=p>{},</span>          <span class=c1># 累积的偏好</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;candidates&#34;</span><span class=p>:</span> <span class=p>[],</span>           <span class=c1># 当前候选短列表</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>turn</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_message</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;history&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>({</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>user_message</span><span class=p>})</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># LLM 决定下一步动作：澄清 / 检索 / 推荐 / 解释</span>
+</span></span><span class=line><span class=cl>        <span class=n>plan</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>plan</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>history</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;history&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=n>current_prefs</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;preferences&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=n>current_candidates</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;candidates&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>plan</span><span class=o>.</span><span class=n>action</span> <span class=o>==</span> <span class=s2>&#34;extract_preference&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;preferences&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>plan</span><span class=o>.</span><span class=n>extracted_prefs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>acknowledge</span><span class=p>(</span><span class=n>plan</span><span class=o>.</span><span class=n>extracted_prefs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>plan</span><span class=o>.</span><span class=n>action</span> <span class=o>==</span> <span class=s2>&#34;retrieve&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>query</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>build_query</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;preferences&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>            <span class=n>cand</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>retriever</span><span class=o>.</span><span class=n>search</span><span class=p>(</span><span class=n>query</span><span class=p>,</span> <span class=n>top_k</span><span class=o>=</span><span class=mi>200</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;candidates&#34;</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ranker</span><span class=o>.</span><span class=n>rank</span><span class=p>(</span><span class=n>cand</span><span class=p>,</span> <span class=n>top_k</span><span class=o>=</span><span class=mi>20</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>present</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;candidates&#34;</span><span class=p>][:</span><span class=mi>5</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>plan</span><span class=o>.</span><span class=n>action</span> <span class=o>==</span> <span class=s2>&#34;filter&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;candidates&#34;</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>                <span class=n>c</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;candidates&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>plan</span><span class=o>.</span><span class=n>filter_fn</span><span class=p>(</span><span class=n>c</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>present</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;candidates&#34;</span><span class=p>][:</span><span class=mi>5</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>plan</span><span class=o>.</span><span class=n>action</span> <span class=o>==</span> <span class=s2>&#34;explain&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>explain</span><span class=p>(</span><span class=n>plan</span><span class=o>.</span><span class=n>target_item</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;preferences&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=o>.</span><span class=n>respond</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>state</span><span class=p>[</span><span class=s2>&#34;history&#34;</span><span class=p>])</span>  <span class=c1># 兜底</span>
+</span></span></code></pre></td></tr></table></div></div><p>真正难的部分不在这段代码里——难在规划器 prompt（暴露哪些动作、怎么防止 LLM 推荐 <code>candidates</code> 之外的虚构物品）和状态管理（用户改主意时何时丢弃旧偏好、过滤后何时刷新候选）。</p><hr><h2 id=成本质量帕累托前沿>成本/质量帕累托前沿</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/recommendation-systems/12-%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E4%B8%8E%E6%8E%A8%E8%8D%90%E7%B3%BB%E7%BB%9F/fig7_cost_quality.png alt="LLM 推荐方法在成本/质量平面上的帕累托前沿" loading=lazy decoding=async></figure></p><p>把已发表的方法都映射到（每千次请求成本，相对 CF baseline 的 NDCG 提升），三件事会变得很清楚：</p><ol><li>**每千请求 $1 以上，收益急剧递减**。从微调 7B（~$0.4）跳到 GPT-4 生成式（~$25），只换来 ~2.4 个 NDCG 点。从 CF baseline 跳到微调 7B，能换来 ~8.6 点，单次延迟成本不到 100 倍。</li><li><strong>微调 7B 是生产甜点区</strong>。TallRec / LlamaRec 的精度逼近 GPT-4，单次成本却只有 GPT-4 的 1%。如果能一次性付得起 4 张 A100 几小时的 LoRA 训练，全年的推理账单都能省下来。</li><li><strong>对话式智能体在另一条曲线上，不是同一曲线的另一个点</strong>。它贵不是因为模型本身贵，而是每个 session 都是多轮的——同样一次推荐结果，你付了 5-10 次的请求量。要为它付费，就要因为对话 UX 本身有价值，而不是因为某个排序指标的提升。</li></ol><h3 id=实用的成本杠杆>实用的成本杠杆</h3><table><thead><tr><th>杠杆</th><th>典型节省</th><th>注意事项</th></tr></thead><tbody><tr><td>缓存相同 prompt</td><td>30-60%</td><td>仅在请求重复时有效</td></tr><tr><td>历史截断到 20 条</td><td>20-40%</td><td>会丢长尾偏好</td></tr><tr><td>重排 Top-20 而非 Top-50</td><td>50%</td><td>精度损失小（~1 NDCG 点）</td></tr><tr><td>微调 7B 替代 GPT-4</td><td>90%+</td><td>需要标注数据 + GPU 时间</td></tr><tr><td>热用户路由到纯 CF</td><td>40-80%</td><td>取决于用户构成</td></tr></tbody></table><p><strong>最大的杠杆</strong>，没有之一，是上一节讲的<strong>按用户状态分流</strong>。一个典型平台 70% 以上的请求来自热用户，而热用户场景 CF 严格更优；把他们从 LLM 路径上分流出去，等于免费省下真金白银。</p><hr><h2 id=评测到底要测什么>评测：到底要测什么</h2><p>标准排序指标依然适用（NDCG@K、Recall@K、MRR），但 LLM 系统需要额外的维度：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>evaluate_llm_recommender</span><span class=p>(</span><span class=n>predictions</span><span class=p>,</span> <span class=n>ground_truth</span><span class=p>,</span> <span class=n>llm_calls</span><span class=p>,</span> <span class=n>latencies</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;标准指标 + LLM 专属的运营指标。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=c1># --- 质量 ---</span>
+</span></span><span class=line><span class=cl>    <span class=n>k</span> <span class=o>=</span> <span class=mi>10</span>
+</span></span><span class=line><span class=cl>    <span class=n>hits</span> <span class=o>=</span> <span class=p>[</span><span class=nb>set</span><span class=p>(</span><span class=n>p</span><span class=p>[:</span><span class=n>k</span><span class=p>])</span> <span class=o>&amp;</span> <span class=nb>set</span><span class=p>(</span><span class=n>gt</span><span class=p>)</span> <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>gt</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>predictions</span><span class=p>,</span> <span class=n>ground_truth</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>    <span class=n>precision</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>([</span><span class=nb>len</span><span class=p>(</span><span class=n>h</span><span class=p>)</span> <span class=o>/</span> <span class=n>k</span> <span class=k>for</span> <span class=n>h</span> <span class=ow>in</span> <span class=n>hits</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>recall</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>([</span><span class=nb>len</span><span class=p>(</span><span class=n>h</span><span class=p>)</span> <span class=o>/</span> <span class=nb>max</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>gt</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span> <span class=k>for</span> <span class=n>h</span><span class=p>,</span> <span class=n>gt</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>hits</span><span class=p>,</span> <span class=n>ground_truth</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>ndcg</span><span class=p>(</span><span class=n>pred</span><span class=p>,</span> <span class=n>gt</span><span class=p>,</span> <span class=n>k</span><span class=o>=</span><span class=mi>10</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>gt_set</span> <span class=o>=</span> <span class=nb>set</span><span class=p>(</span><span class=n>gt</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>dcg</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=n>np</span><span class=o>.</span><span class=n>log2</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>2</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>pred</span><span class=p>[:</span><span class=n>k</span><span class=p>])</span> <span class=k>if</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>gt_set</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>idcg</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=n>np</span><span class=o>.</span><span class=n>log2</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>2</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>gt_set</span><span class=p>))))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>dcg</span> <span class=o>/</span> <span class=n>idcg</span> <span class=k>if</span> <span class=n>idcg</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>ndcg_score</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>([</span><span class=n>ndcg</span><span class=p>(</span><span class=n>p</span><span class=p>,</span> <span class=n>gt</span><span class=p>)</span> <span class=k>for</span> <span class=n>p</span><span class=p>,</span> <span class=n>gt</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>predictions</span><span class=p>,</span> <span class=n>ground_truth</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># --- 运营 ---</span>
+</span></span><span class=line><span class=cl>    <span class=n>p50_latency</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>percentile</span><span class=p>(</span><span class=n>latencies</span><span class=p>,</span> <span class=mi>50</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>p99_latency</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>percentile</span><span class=p>(</span><span class=n>latencies</span><span class=p>,</span> <span class=mi>99</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>cost_per_request</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>llm_calls</span><span class=p>))</span> <span class=o>*</span> <span class=mf>0.005</span>   <span class=c1># 单次成本粗估</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;precision@10&#34;</span><span class=p>:</span> <span class=n>precision</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;recall@10&#34;</span><span class=p>:</span> <span class=n>recall</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;ndcg@10&#34;</span><span class=p>:</span> <span class=n>ndcg_score</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;p50_latency_s&#34;</span><span class=p>:</span> <span class=n>p50_latency</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;p99_latency_s&#34;</span><span class=p>:</span> <span class=n>p99_latency</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;cost_per_request_usd&#34;</span><span class=p>:</span> <span class=n>cost_per_request</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>运营指标的重要性远超大多数人的预期。一个 NDCG 涨 2 点但 p50 延迟多 1.5 秒的模型，在多数 C 端产品里都是净亏损——用户流失的速度比排序质量提升的速度快得多。</p><p>对话式系统还要额外跟踪：</p><ul><li><strong>达成满意的轮数</strong>：用户接受推荐前要聊几轮</li><li><strong>每个 session 的推荐多样性</strong>：会不会每次对话都收敛到同样那五个物品</li><li><strong>幻觉率</strong>：LLM 多大比例会推荐不在候选集里的物品</li></ul><hr><h2 id=常见问题>常见问题</h2><h3 id=我到底什么时候才该用-llm>我到底什么时候才该用 LLM？</h3><p>至少满足以下一条：(a) 物品文本信息丰富，(b) 有严重的冷启动问题，(c) 需要给用户看的解释，(d) 在做对话式产品。如果一条都不沾，调好的 DCN-V2 或 DIN 在更低成本下能赢任何 LLM。</p><h3 id=用-gpt-4-还是微调-7b>用 GPT-4 还是微调 7B？</h3><p>几乎总是该微调。<strong>TallRec</strong> 和 <strong>LlamaRec</strong> 都证明，LoRA 微调过的 7B 在推荐任务上能追平或超过 GPT-4 零样本，推理成本只有 GPT-4 的 1%。继续用 GPT-4 的唯一理由是：你完全没有训练数据，或者你的领域漂移得比你能重新微调的速度还快。</p><h3 id=怎么避免-llm-幻觉出不存在的物品>怎么避免 LLM 幻觉出不存在的物品？</h3><p>两层防护：(1) 把 LLM 的输出约束为候选集的索引（<code>[3, 1, 5, 2, 4]</code>，不是标题），(2) 返回前对照候选列表硬校验。如果 LLM 吐出了未知索引，回退到 DNN 排序的顺序。</p><h3 id=传给-llm-的候选集要多大>传给 LLM 的候选集要多大？</h3><p>经验值是 20-50。低于 20，重排没什么腾挪空间；高于 50，prompt 又长又慢又贵，模型还会丢失中间位置的物品（&ldquo;lost in the middle&rdquo; 现象）。</p><h3 id=推荐需要-rag-吗>推荐需要 RAG 吗？</h3><p>有时候需要。当 LLM 需要 prompt 之外的<strong>事实性</strong>知识时（发售日期、规格参数、当前可用性），RAG 能帮上忙。如果只是从已知目录里做排序，目录本身放进 prompt 就是检索，不需要单独的向量库。</p><h3 id=实时-feed-流场景延迟怎么办>实时 feed 流场景延迟怎么办？</h3><p>实时 feed（TikTok 那种无限下滑、新闻流）通常承担不起每次曝光一次同步 LLM 调用。可行的模式：(a) 离线高峰外预先算好 LLM 重排结果，缓存起来；(b) 只在第一页用 LLM，后续页用 DNN；(c) 把 LLM 放到离线批处理路径上，给次日推荐用。</p><h3 id=多语言目录怎么处理>多语言目录怎么处理？</h3><p>LLM 天然能处理——翻译和跨语言推理都内置在里面。陷阱在于：纯英文交互数据上微调，多语言能力会塌掉。要么微调数据里掺一些非英文样本，要么直接微调多语言基座（Qwen、Llama-3 多语言版、mT5）。</p><hr><h2 id=总结>总结</h2><p>LLM 不是在替代推荐系统——它在填补上一代填不上的具体缺口。三种角色干净对应三种缺口：</p><ul><li><strong>增强器</strong>填<strong>内容理解</strong>的缺口。离线跑、永久缓存，得到更干净的 embedding 和更稳的冷启动。</li><li><strong>预测器</strong>填<strong>冷启动和小数据</strong>的缺口。微调一个 7B，用它给传统管线产出的 Top-20-50 做重排。</li><li><strong>智能体</strong>填<strong>交互</strong>的缺口。只在真正的对话式产品上用，并且清楚地知道自己在为延迟买单。</li></ul><p>所有生产团队最终都会收敛到的架构是混合管线：ANN 检索 → DNN 排序 → LLM 重排 → 可选的解释生成。它跑得通是因为 LLM 永远只看 Top-50，永远不会看到全量目录。成本有上界，质量拿到 LLM 的语义增益。</p><p>从这里开始。第一天就把运营指标和排序指标一起测。把热用户从 LLM 路径上分流出去，让账单不爆炸。一旦攒到几百条带标签的样本，立刻微调。</p><hr><h2 id=参考文献>参考文献</h2><ol><li>Geng, S., Liu, S., Fu, Z., Ge, Y., & Zhang, Y. (2022). <a href=https://arxiv.org/abs/2203.13366 target=_blank rel="noopener noreferrer"><strong>Recommendation as Language Processing (RLP): A Unified Pretrain, Personalized Prompt & Predict Paradigm (P5)</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. RecSys 2022.</li><li>Cui, Z., Ma, J., Zhou, C., Zhou, J., & Yang, H. (2022). <a href=https://arxiv.org/abs/2205.08084 target=_blank rel="noopener noreferrer"><strong>M6-Rec: Generative Pretrained Language Models are Open-Ended Recommender Systems</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. arXiv:2205.08084.</li><li>Bao, K., Zhang, J., Zhang, Y., Wang, W., Feng, F., & He, X. (2023). <a href=https://arxiv.org/abs/2305.00447 target=_blank rel="noopener noreferrer"><strong>TallRec: An Effective and Efficient Tuning Framework to Align Large Language Model with Recommendation</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. RecSys 2023.</li><li>Ji, J., Li, Z., Xu, S., Hua, W., Ge, Y., Tan, J., & Zhang, Y. (2024). <a href=https://arxiv.org/abs/2307.00457 target=_blank rel="noopener noreferrer"><strong>GenRec: Large Language Model for Generative Recommendation</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. ECIR 2024.</li><li>Yue, Z., Rabhi, S., Moreira, G. de S. P., Wang, D., & Oldridge, E. (2023). <a href=https://arxiv.org/abs/2311.02089 target=_blank rel="noopener noreferrer"><strong>LlamaRec: Two-Stage Recommendation using Large Language Models for Ranking</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. arXiv:2311.02089.</li><li>Gao, Y., Sheng, T., Xiang, Y., Xiong, Y., Wang, H., & Zhang, J. (2023). <a href=https://arxiv.org/abs/2303.14524 target=_blank rel="noopener noreferrer"><strong>Chat-REC: Towards Interactive and Explainable LLMs-Augmented Recommender System</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. arXiv:2303.14524.</li><li>Xi, Y., Liu, W., Lin, J., Zhu, J., Chen, B., Tang, R., Zhang, W., Zhang, R., & Yu, Y. (2024). <a href=https://arxiv.org/abs/2306.10933 target=_blank rel="noopener noreferrer"><strong>Towards Open-World Recommendation with Knowledge Augmentation from Large Language Models (KAR)</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. RecSys 2024.</li><li>Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., & Liang, P. (2024). <a href=https://arxiv.org/abs/2307.03172 target=_blank rel="noopener noreferrer"><strong>Lost in the Middle: How Language Models Use Long Contexts</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. TACL.</li></ol><hr><h2 id=系列导航>系列导航</h2><p>本文是 16 篇推荐系统系列的<strong>第 12 篇</strong>。</p><table><thead><tr><th style=text-align:left>上一篇</th><th style=text-align:center></th><th style=text-align:right>下一篇</th></tr></thead><tbody><tr><td style=text-align:left><a href=/zh/recommendation-systems-11-contrastive-learning/>第 11 篇：对比学习</a></td><td style=text-align:center><a href=/tags/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/>全部章节</a></td><td style=text-align:right><a href=/tags/%e6%8e%a8%e8%8d%90%e7%b3%bb%e7%bb%9f/>第 13 篇：敬请期待</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#llm-在推荐系统中的三种角色>LLM 在推荐系统中的三种角色</a><ul><li><a href=#角色一增强器离线特征生成>角色一：增强器（离线特征生成）</a></li><li><a href=#角色二预测器直接排序或生成>角色二：预测器（直接排序或生成）</a></li><li><a href=#角色三智能体带工具的编排者>角色三：智能体（带工具的编排者）</a></li></ul></li><li><a href=#基于-prompt-的排序>基于 Prompt 的排序</a><ul><li><a href=#零样本-vs-少样本-vs-微调>零样本 vs 少样本 vs 微调</a></li></ul></li><li><a href=#llm-作为增强器让-embedding-更锐利冷启动更稳>LLM 作为增强器：让 Embedding 更锐利、冷启动更稳</a><ul><li><a href=#只能离线这个约束在哪里会疼>「只能离线」这个约束在哪里会疼</a></li></ul></li><li><a href=#混合管线你最终一定会落到这个架构>混合管线（你最终一定会落到这个架构）</a></li><li><a href=#冷启动llm-真正胜出的战场>冷启动：LLM 真正胜出的战场</a></li><li><a href=#对话式推荐chatrec-风格>对话式推荐：ChatREC 风格</a></li><li><a href=#成本质量帕累托前沿>成本/质量帕累托前沿</a><ul><li><a href=#实用的成本杠杆>实用的成本杠杆</a></li></ul></li><li><a href=#评测到底要测什么>评测：到底要测什么</a></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#我到底什么时候才该用-llm>我到底什么时候才该用 LLM？</a></li><li><a href=#用-gpt-4-还是微调-7b>用 GPT-4 还是微调 7B？</a></li><li><a href=#怎么避免-llm-幻觉出不存在的物品>怎么避免 LLM 幻觉出不存在的物品？</a></li><li><a href=#传给-llm-的候选集要多大>传给 LLM 的候选集要多大？</a></li><li><a href=#推荐需要-rag-吗>推荐需要 RAG 吗？</a></li><li><a href=#实时-feed-流场景延迟怎么办>实时 feed 流场景延迟怎么办？</a></li><li><a href=#多语言目录怎么处理>多语言目录怎么处理？</a></li></ul></li><li><a href=#总结>总结</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>6749</strong></div><div class=row><span>Published</span><strong>Jan 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

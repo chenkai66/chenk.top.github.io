@@ -1,971 +1,479 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>自然语言处理（十二）：前沿技术与实战应用 · Chen Kai Blog</title>
-<meta name="description" content="系列收官：Agent 与工具调用（Function Calling、ReAct）、代码生成（Code Llama、Codex）、长上下文（Longformer、Infini-attention）、推理模型（o1、R1）、安全对齐、评估体系，以及基于 FastAPI &#43; vLLM &#43; Docker 的生产级部署。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="自然语言处理（十二）：前沿技术与实战应用">
-<meta property="og:description" content="系列收官：Agent 与工具调用（Function Calling、ReAct）、代码生成（Code Llama、Codex）、长上下文（Longformer、Infini-attention）、推理模型（o1、R1）、安全对齐、评估体系，以及基于 FastAPI &#43; vLLM &#43; Docker 的生产级部署。">
-<meta property="og:url" content="https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">自然语言处理</a>
-         · Chapter 12
-      </div>
-      <h1>自然语言处理（十二）：前沿技术与实战应用</h1>
-      <p class="deck">系列收官：Agent 与工具调用（Function Calling、ReAct）、代码生成（Code Llama、Codex）、长上下文（Longformer、Infini-attention）、推理模型（o1、R1）、安全对齐、评估体系，以及基于 FastAPI &#43; vLLM &#43; Docker 的生产级部署。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-11-25">November 25, 2025</time> · 16 min read · 7600 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/nlp/" class="tag">#NLP</a><a href="/zh/tags/llm/" class="tag">#LLM</a><a href="/zh/tags/agent/" class="tag">#Agent</a><a href="/zh/tags/%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90/" class="tag">#代码生成</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>我们用了十一章，从原始文本一路爬到多模态基础模型。这第十二章既站在前沿，也站在跑道上：研究在这里不再是论文，而是一个服务——一个能调用工具、写代码并自我修复、做百步推理、吞下 20 万 token 合同、并以 p95 &lt; 300 ms 的延迟支撑上千并发的 LLM。</p>
-<p>能力的扩张带来新的失败模式。模型会自信地胡说，会在被诱导时输出有害内容，会泄露训练数据，会在部署粗糙时烧掉惊人的预算。所以这一章分成两半。前半部分——Agent、代码生成、长上下文、推理模型——是模型能力的前沿。后半部分——安全、评估、部署——是把这些前沿放进生产环境而不烧用户和预算所必须的工程。</p>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li><strong>Agent</strong>：Function Calling 协议与 ReAct 推理-行动循环，附可运行的 Python 实现。</li>
-<li><strong>代码生成</strong>：Codex / Code Llama / DeepSeek-Coder 在 HumanEval 上的实际位置，以及自我修复回路是如何工作的。</li>
-<li><strong>长上下文</strong>：滑动窗口、稀疏 + 全局、Infini-attention 三类注意力掩码，及其取舍。</li>
-<li><strong>推理模型</strong>：o1 与 DeepSeek-R1 如何用测试时算力换取准确率，CoT 为什么要被策略化。</li>
-<li><strong>安全</strong>：幻觉分类、RLHF / DPO / Constitutional AI 三种主流对齐路线、护栏的工程做法。</li>
-<li><strong>评估</strong>：能力 / 安全 / 效率三轴基准，以及它们各自不能告诉你什么。</li>
-<li><strong>生产部署</strong>：FastAPI + vLLM + Docker 参考栈、可观测性以及具体的延迟目标。</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>本系列前十一章，尤其是第 4 章（Transformer）、第 6 章（GPT）、第 8 章（PEFT）、第 9 章（LLM 内部）和第 10 章（RAG）。</li>
-<li>Python、基本的 asyncio、Docker 容器的大致形状。</li>
-<li>熟悉一点强化学习对理解对齐部分有帮助；详细版见 <a href="/en/reinforcement-learning-12-rlhf-and-llm-applications/">RL 第 12 章 — RLHF 与 LLM 应用</a>
-。</li>
-</ul>
-<hr>
-<h2 id="1-agent-与工具调用">1. Agent 与工具调用</h2>
-<p>继 instruction tuning 之后，最大的能力跃迁是教模型<strong>调用函数</strong>。一个普通 LLM 是一个被冻结的近似器：训练时不知道的东西，它就永远不知道。一个具备 Agent 能力的 LLM 是一个控制器，可以向外部世界询问事实、运行代码、查询数据库，然后继续生成。这把系统从&quot;聪明的自动补全&quot;变成了&quot;可编程的执行器&quot;。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig1_agent_architecture.png" alt="ReAct Agent 架构" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="11-function-calling--协议本身">1.1 Function Calling — 协议本身</h3>
-<p>Function Calling 由 OpenAI 在 2023 年中推出，如今已成为 Claude、Gemini、Llama-3、Qwen 的通用能力。它是叠加在 chat completion 之上的一个<strong>类型化协议</strong>：应用以 JSON Schema 声明工具，模型被训练成&quot;要么直接回答，要么发出一个结构化的工具调用&quot;。五个阶段，没有魔法：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig2_tool_use_pipeline.png" alt="Function Calling 流水线" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ol>
-<li><strong>Schema 声明</strong>：应用为每个工具注册名称、说明、参数 JSON Schema。</li>
-<li><strong>路由</strong>：模型读用户消息，决定回答还是调用。</li>
-<li><strong>参数生成</strong>：约束解码产出符合 schema 的 JSON。</li>
-<li><strong>执行</strong>：函数由<strong>应用</strong>而非模型在沙箱中运行。</li>
-<li><strong>结果回灌</strong>：执行结果作为 <code>tool</code> 消息追加到对话，模型据此组织最终答复。</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">TOOLS</span> <span class="o">=</span> <span class="p">[{</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;function&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;function&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;get_weather&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;查询指定城市的当前天气，返回摄氏度温度与简短状态。&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;parameters&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;object&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">,</span> <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;城市英文名&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;unit&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">,</span> <span class="s2">&#34;enum&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;celsius&#34;</span><span class="p">,</span> <span class="s2">&#34;fahrenheit&#34;</span><span class="p">],</span> <span class="s2">&#34;default&#34;</span><span class="p">:</span> <span class="s2">&#34;celsius&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;required&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;city&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">        <span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">}]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;celsius&#34;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 真实实现会调用天气 API。</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="n">city</span><span class="p">,</span> <span class="s2">&#34;temp&#34;</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span> <span class="s2">&#34;unit&#34;</span><span class="p">:</span> <span class="n">unit</span><span class="p">,</span> <span class="s2">&#34;condition&#34;</span><span class="p">:</span> <span class="s2">&#34;sunny&#34;</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">chat</span><span class="p">(</span><span class="n">user_msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">user_msg</span><span class="p">}]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt-4o-mini&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">TOOLS</span><span class="p">,</span> <span class="n">tool_choice</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">msg</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">call</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">result</span> <span class="o">=</span> <span class="n">get_weather</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;tool&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;tool_call_id&#34;</span><span class="p">:</span> <span class="n">call</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="p">})</span>
-</span></span><span class="line"><span class="cl">        <span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&#34;gpt-4o-mini&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>三个常见错误。第一，<strong>让模型自己决定</strong>是否调用（<code>tool_choice=&quot;auto&quot;</code>）；强行调用会得到稀奇古怪的参数。第二，<strong>永远要沙箱执行</strong>——模型完全可能产出 <code>delete_all_users()</code> 调用，只要你的 schema 允许它。第三，工具描述本身就是 prompt：要不断改写直到模型每次都能挑对工具。</p>
-<h3 id="12-react--推理与行动的循环">1.2 ReAct — 推理与行动的循环</h3>
-<p>Function Calling 是单轮接口。<strong>ReAct</strong>（Yao et al., ICLR 2023, <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">arXiv:2210.03629 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-）把它推广为 <code>Thought -&gt; Action -&gt; Observation</code> 的迭代循环，让模型可以分解、分支、重新规划。这是 LangChain、AutoGPT、OpenAI Assistants、Claude tool-use 模式以及 2025 年大多数生产级 Agent 的架构骨架。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">re</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nd">@dataclass</span>
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Tool</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-</span></span><span class="line"><span class="cl">    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span>
-</span></span><span class="line"><span class="cl">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">REACT_PROMPT</span> <span class="o">=</span> <span class="s2">&#34;&#34;&#34;你是一个谨慎的推理 Agent，可以使用以下工具：
-</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{tool_block}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">每一轮严格按下面的格式输出：
-</span></span></span><span class="line"><span class="cl"><span class="s2">Thought: &lt;一句话推理&gt;
-</span></span></span><span class="line"><span class="cl"><span class="s2">Action: &lt;工具名&gt;
-</span></span></span><span class="line"><span class="cl"><span class="s2">Action Input: &lt;单行参数&gt;
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">完成时改用：
-</span></span></span><span class="line"><span class="cl"><span class="s2">Thought: &lt;推理&gt;
-</span></span></span><span class="line"><span class="cl"><span class="s2">Action: Final Answer
-</span></span></span><span class="line"><span class="cl"><span class="s2">Action Input: &lt;给用户的最终回答&gt;
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">Question: </span><span class="si">{question}</span><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2"></span><span class="si">{scratchpad}</span><span class="s2">&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ReActAgent</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span> <span class="n">tools</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Tool</span><span class="p">],</span> <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tools</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">max_steps</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_render_tools</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;</span><span class="se">\n</span><span class="s2">&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;- </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">&#34;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">txt</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&#34;Action:\s*(.+?)\s*\nAction Input:\s*(.+)&#34;</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">S</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;无法解析模型输出:</span><span class="se">\n</span><span class="si">{</span><span class="n">txt</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">question</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">scratch</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">prompt</span> <span class="o">=</span> <span class="n">REACT_PROMPT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="n">tool_block</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_render_tools</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">scratchpad</span><span class="o">=</span><span class="n">scratch</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">try</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">action</span><span class="p">,</span> <span class="n">action_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;[第 </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2"> 步格式错误]</span><span class="se">\n</span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">action</span> <span class="o">==</span> <span class="s2">&#34;Final Answer&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="n">action_input</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">action</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">obs</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;未知工具 &#39;</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">&#39;，可用：</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tools</span><span class="p">[</span><span class="n">action</span><span class="p">]</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="n">action_input</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">scratch</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&#34;</span><span class="se">\n</span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="se">\n</span><span class="s2">Observation: </span><span class="si">{</span><span class="n">obs</span><span class="si">}</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s2">&#34;[到达最大步数] &#34;</span> <span class="o">+</span> <span class="n">scratch</span><span class="p">[</span><span class="o">-</span><span class="mi">500</span><span class="p">:]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>什么时候用什么？<strong>Function Calling</strong> 是默认选择：结构化、prompt 短、单轮往返便宜。<strong>ReAct</strong> 在需要多步规划、需要在中间观察上分支、或需要从工具失败中恢复时才值得它的开销——研究综述、数据分析、多跳问答、复杂预订都是典型场景。介于两者之间的任务，现代框架允许你把 Function Calling 步骤组织成一张带显式状态的图，这通常是最易维护的折中。</p>
-<hr>
-<h2 id="2-代码生成">2. 代码生成</h2>
-<p>代码是 LLM 最明显地从&quot;有趣 demo&quot;变成&quot;必备工具&quot;的领域。GitHub 公开数据显示 Copilot 用户接受约三分之一的建议，在基准任务上提速约 55%。技术配方很直接：在代码上预训练，在指令上微调，用<strong>运行</strong>结果评估，再加一个自我修复回路。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig3_code_generation.png" alt="代码生成流水线与 HumanEval pass@1" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="21-流水线">2.1 流水线</h3>
-<p>现代代码-LLM 流水线五段：自然语言<strong>意图</strong>、被增强的<strong>上下文</strong>（已打开文件、仓库符号、测试桩、检索到的 API 文档）、在代码上训练的<strong>解码器</strong>、编译并跑单测的<strong>执行器</strong>、把失败信息回喂给模型的<strong>自我修复</strong>。修复回路是把 65% pass@1 抬到 85% pass@5 的关键。AlphaCode、Reflexion、Code Llama Instruct 都用了某个版本的它。</p>
-<h3 id="22-模型与基准">2.2 模型与基准</h3>
-<p>标准基准是 <strong>HumanEval</strong>（Chen et al., <a href="https://arxiv.org/abs/2107.03374" target="_blank" rel="noopener noreferrer">arXiv:2107.03374 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-, 2021）：164 道手写 Python 题，靠执行打分。<em>pass@k</em> 是 $k$ 个采样中至少一个通过全部单测的概率；$\mathrm{pass}@1$ 是最严格的单次成功率。两点警示：HumanEval 是单文件、纯 Python、题目极短，会<strong>高估</strong>真实工程性能；它已经被严重数据污染，2024 年以后的分数应交叉对比 MBPP、LiveCodeBench、SWE-bench Verified 或 CRUXEval。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoTokenizer</span><span class="p">,</span> <span class="n">AutoModelForCausalLM</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CodeLlamaInstruct</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Code Llama 7B-Instruct 的极简包装。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;codellama/CodeLlama-7b-Instruct-hf&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tok</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">model_name</span><span class="p">,</span> <span class="n">torch_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">device_map</span><span class="o">=</span><span class="s2">&#34;auto&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instruction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&#34;&lt;s&gt;[INST] </span><span class="si">{</span><span class="n">instruction</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2"> [/INST]&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="o">**</span><span class="n">ids</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">max_new_tokens</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">temperature</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">top_p</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">do_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&#34;[/INST]&#34;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>2025 年的场景判断：纯 Python 任务，DeepSeek-Coder-V2、Qwen2.5-Coder、GPT-4o 处于第一梯队；要做仓库级 PR 任务，SWE-bench Verified 是比 HumanEval 靠谱得多的代理指标，且榜单完全不同——Claude 3.5/3.7 Sonnet、GPT-4o 与 Devin 类执行 Agent 领先，常常是较弱基模 + 强执行 Agent 的组合。</p>
-<hr>
-<h2 id="3-长上下文建模">3. 长上下文建模</h2>
-<p>标准自注意力在时间和显存上都是 $O(n^2)$。把上下文从 4K 翻到 8K 几乎无感；从 32K 翻到 128K 就是显存悬崖。突破它有几条互补的路子，通常组合使用。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig4_long_context.png" alt="长上下文注意力掩码" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li><strong>滑动窗口</strong>（Longformer，<a href="https://arxiv.org/abs/2004.05150" target="_blank" rel="noopener noreferrer">Beltagy et al., 2020 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-）— 每个 query 只看最近 $w$ 个 key，开销降到 $O(nw)$。捕捉局部结构，靠堆叠多层把远端信息逐层传播。</li>
-<li><strong>稀疏 + 全局 token</strong>（BigBird、Longformer-global）— 步长稀疏注意力 + 几个被所有 query 看到的&quot;全局&quot; token。问答场景中，问题 token 必须看到全文时尤其有用。</li>
-<li><strong>Infini-attention</strong>（<a href="https://arxiv.org/abs/2404.07143" target="_blank" rel="noopener noreferrer">Munkhdalai et al., 2024 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-）— 用一个小局部窗口保证精度，外加一个<strong>压缩记忆</strong>汇总更早的内容。显存有界，等效上下文无界。</li>
-<li><strong>位置编码外推</strong> — RoPE base scaling、NTK-aware 插值、YaRN、LongRoPE — 通过重参数化旋转频率，把在 4K 训练的模型扩到 128K，几乎不需要微调。</li>
-<li><strong>参数高效长上下文微调</strong> — LongLoRA 把 shifted sparse attention 与 LoRA 结合，让 7B 模型在两张 A100 上扩到 100K。</li>
-</ul>
-<p>实际工程中，现代长上下文 LLM 通常组合：预训练阶段使用 RoPE 扩展、内核里使用滑动窗口或 GQA、再在长文档混合数据上继续训练。推理时 FlashAttention-2/3 与 PagedAttention（vLLM）控制常数项。</p>
-<hr>
-<h2 id="4-推理模型">4. 推理模型</h2>
-<p>2024–2025 年 NLP 的拐点是<strong>测试时算力</strong>：不再单纯把基模做大，而是让它在回答前<strong>想得更久</strong>。OpenAI 的 o1（2024-09）和 DeepSeek-R1（<a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener noreferrer">arXiv:2501.12948 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-, 2025-01）都走这条路：先内部生成一段 chain-of-thought，打分、必要时回滚，最终只把答案返回给用户。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig5_reasoning_models.png" alt="推理模型——CoT 与测试时扩展" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>驱动收益的两个想法。第一，<strong>过程监督</strong>：训练一个奖励模型给<strong>中间步骤</strong>而非最终答案打分（Lightman et al., <em>Let&rsquo;s Verify Step by Step</em>, 2023）。第二，<strong>可验证任务上的结果型 RL</strong>：数学和代码这种成功可被自动判定的领域，可以用验证器作为奖励做大规模 RL。DeepSeek-R1 的 &ldquo;R1-Zero&rdquo; 配方进一步证明：在足够强的基模上，纯 RL（没有 SFT）就能涌现出推理能力，包括&quot;啊哈时刻&quot;和自我纠错。</p>
-<p>代价。推理模型慢、token 贵——一道 AIME 题可以消耗 1 万到 10 万推理 token。它们还<strong>隐藏 CoT</strong>（o1 对隐藏推理 token 也计费），带来新的评估与信任问题。2025 年正确的设计模式是<strong>路由</strong>：简单 query 发给快模型（GPT-4o、Claude Haiku），重推理 query 发给 o1 / R1 / Claude Sonnet thinking 模式。代价-质量差距常常是 10–50 倍。</p>
-<hr>
-<h2 id="5-安全对齐与幻觉">5. 安全、对齐与幻觉</h2>
-<p>一个有用但不安全的模型无法上线。一个安全但不有用的模型还不如没有。对齐就是工程化地命中这条狭窄走廊的学科。</p>
-<h3 id="51-幻觉的分类">5.1 幻觉的分类</h3>
-<p>幻觉不是单一失败模式。一个有用的划分（Huang et al., <em>Survey of Hallucination</em>, 2023）：</p>
-<ul>
-<li><strong>事实性</strong>：与可验证事实不符（&ldquo;居里夫人获得过菲尔兹奖&rdquo;）。</li>
-<li><strong>忠实性</strong>：与<strong>给定上下文</strong>不符——RAG 与摘要场景的核心问题（&ldquo;合同写的是 30 天付款&rdquo;，但合同其实写的是 60 天）。</li>
-<li><strong>逻辑/算术</strong>：推理步骤无效，但流畅得像那么回事。</li>
-<li><strong>自一致性</strong>：同一对话里前后矛盾。</li>
-</ul>
-<p>缓解手段是叠加的：<strong>RAG</strong> 解决事实性（第 10 章）、<strong>约束解码 + JSON schema</strong> 保证结构忠实、<strong>自一致性多采样 + 多数投票</strong>对算术、<strong>过程监督 + 推理模型</strong>对逻辑、<strong>强制引用</strong> prompting 提升可核查性、<strong>弃权训练</strong>（学会说&quot;我不知道&quot;）作为最后防线。</p>
-<h3 id="52-对齐--rlhfdpoconstitutional-ai">5.2 对齐 — RLHF、DPO、Constitutional AI</h3>
-<p>主流对齐配方仍是三段：在示范上 SFT，在偏好对上训奖励模型，再用 PPO 对奖励做 RL。<strong>DPO</strong>（Rafailov et al., 2023）把后两步坍缩成一个有监督损失，简单且便宜，目前是开源生态的事实默认。<strong>Constitutional AI</strong>（Bai et al., Anthropic, 2022）用一份&quot;宪法&quot;规则让模型自我批判，把大规模安全微调中的人工标注大幅替换成模型生成，让安全调优可扩展。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GuardedLLM</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;用输入 + 输出安全分类器包裹任意 chat 函数。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">,</span> <span class="n">in_filter</span><span class="p">,</span> <span class="n">out_filter</span><span class="p">,</span> <span class="n">refusal</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;抱歉，无法协助这一请求。&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outf</span> <span class="o">=</span> <span class="n">llm</span><span class="p">,</span> <span class="n">in_filter</span><span class="p">,</span> <span class="n">out_filter</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">refusal</span> <span class="o">=</span> <span class="n">refusal</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">chat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inf</span><span class="p">(</span><span class="n">user_msg</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;label&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&#34;unsafe&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">refusal</span>
-</span></span><span class="line"><span class="cl">        <span class="n">reply</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="p">(</span><span class="n">user_msg</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outf</span><span class="p">(</span><span class="n">reply</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&#34;label&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&#34;unsafe&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">refusal</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">reply</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>生产环境里，输入过滤器主要拦截越狱与 prompt injection（特别是来自 RAG 上下文的注入，目前是头号攻击向量）；输出过滤器拦截 PII、毒性、违规内容。两个过滤器本身都是小分类器（Llama-Guard-3、ShieldGemma、OpenAI Moderation），比让主模型自己当警察便宜也更可控。</p>
-<hr>
-<h2 id="6-评估">6. 评估</h2>
-<p>基准是我们最少地骗自己的方式。三个轴都重要，多数团队在其中两个上投入不足。</p>
-<table>
-  <thead>
-      <tr>
-          <th>轴</th>
-          <th>公开基准</th>
-          <th>实际衡量的内容</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>能力</td>
-          <td>MMLU、GPQA-Diamond、GSM8K、MATH、HumanEval、MBPP、SWE-bench、MT-Bench、Arena-Hard、C-Eval</td>
-          <td>知识 + 推理 + 生成，普遍存在数据污染</td>
-      </tr>
-      <tr>
-          <td>安全</td>
-          <td>TruthfulQA、ToxiGen、HarmBench、JailbreakBench、BBQ</td>
-          <td>拒答行为、偏见、越狱鲁棒性</td>
-      </tr>
-      <tr>
-          <td>效率</td>
-          <td>MLPerf-Inference、vLLM bench、MMLU-Pro tokens/answer</td>
-          <td>吞吐、p50/p95 延迟、每百万 token 成本</td>
-      </tr>
-  </tbody>
-</table>
-<p>三个值得养成的习惯。<strong>建立私有评测集</strong>：从真实用户中抽 100–500 条，这是和上线效果最相关的数字。<strong>用成对比较</strong>（CoT-as-judge 加定期人工抽检）——绝对分数会漂移，成对胜率不会。<strong>逐版本回归</strong>（<code>lm-evaluation-harness</code>、<code>evalplus</code>、<code>inspect_ai</code>）——私有评测掉 2 分应阻塞发布，哪怕 MMLU 涨了。</p>
-<hr>
-<h2 id="7-生产部署">7. 生产部署</h2>
-<p>这是漂亮 Notebook 撞上现实的地方。我们要勾勒的参考栈——前端 FastAPI、中段 vLLM、外层 Docker + K8s、全链路 Prometheus 监控——是 2025 年大多数生产团队的同款，剩下的只是 Triton vs. TGI vs. TensorRT-LLM 的口味之争。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig6_production_deploy.png" alt="生产部署栈" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="71-推理层">7.1 推理层</h3>
-<p>服务上线就别用 <code>transformers.generate</code> 了。原型可以，生产灾难：没有连续批处理、没有 PagedAttention、KV-cache 管理粗糙。请用 <strong>vLLM</strong>（开源默认）、<strong>TensorRT-LLM</strong>（NVIDIA，H100 上最快）或 <strong>TGI</strong>（Hugging Face，运维最简单）。三者都实现了连续批处理、分页 KV-cache、前缀缓存与投机解码。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># vLLM 当库使用——生产部署通常直接 `vllm serve`。</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">vllm</span> <span class="kn">import</span> <span class="n">LLM</span><span class="p">,</span> <span class="n">SamplingParams</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">llm</span> <span class="o">=</span> <span class="n">LLM</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;meta-llama/Meta-Llama-3.1-8B-Instruct&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">dtype</span><span class="o">=</span><span class="s2">&#34;bfloat16&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">max_model_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">gpu_memory_utilization</span><span class="o">=</span><span class="mf">0.92</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">enable_prefix_caching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">params</span> <span class="o">=</span> <span class="n">SamplingParams</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">top_p</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">max_tokens</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">out</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">([</span><span class="s2">&#34;用两句话解释 LoRA。&#34;</span><span class="p">],</span> <span class="n">params</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="72-api-层">7.2 API 层</h3>
-<p>FastAPI 是阻力最小的路径：异步、pydantic 校验、自动 OpenAPI、SSE 流式开箱即用。不那么显然但很重要的部分是<strong>请求卫生</strong>——严格输入限制、请求 ID、结构化日志，以及 GPU 池打满时的兜底路径。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">fastapi</span> <span class="kn">import</span> <span class="n">FastAPI</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">fastapi.responses</span> <span class="kn">import</span> <span class="n">StreamingResponse</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">asyncio</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">uuid</span><span class="o">,</span> <span class="nn">logging</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&#34;nlp-api&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&#34;NLP Service&#34;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&#34;1.0&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ChatRequest</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">max_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">2048</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">async</span> <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 替换为真实的 vLLM 异步生成器。</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">tok</span> <span class="ow">in</span> <span class="n">prompt</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.02</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">yield</span> <span class="sa">f</span><span class="s2">&#34;data: </span><span class="si">{</span><span class="n">tok</span><span class="si">}</span><span class="s2"> </span><span class="se">\n\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">yield</span> <span class="s2">&#34;data: [DONE]</span><span class="se">\n\n</span><span class="s2">&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nd">@app.post</span><span class="p">(</span><span class="s2">&#34;/v1/chat&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">async</span> <span class="k">def</span> <span class="nf">chat</span><span class="p">(</span><span class="n">req</span><span class="p">:</span> <span class="n">ChatRequest</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">rid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">try</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">req</span><span class="o">.</span><span class="n">stream</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                <span class="n">_stream</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">temperature</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                <span class="n">media_type</span><span class="o">=</span><span class="s2">&#34;text/event-stream&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;X-Request-Id&#34;</span><span class="p">:</span> <span class="n">rid</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 非流式分支……</span>
-</span></span><span class="line"><span class="cl">        <span class="n">reply</span> <span class="o">=</span> <span class="s2">&#34;stub&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;id&#34;</span><span class="p">:</span> <span class="n">rid</span><span class="p">,</span> <span class="s2">&#34;reply&#34;</span><span class="p">:</span> <span class="n">reply</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&#34;rid=</span><span class="si">%s</span><span class="s2"> failed: </span><span class="si">%s</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">rid</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="s2">&#34;internal error&#34;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
-</span></span><span class="line"><span class="cl">    <span class="k">finally</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&#34;rid=</span><span class="si">%s</span><span class="s2"> latency_ms=</span><span class="si">%.1f</span><span class="s2">&#34;</span><span class="p">,</span> <span class="n">rid</span><span class="p">,</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nd">@app.get</span><span class="p">(</span><span class="s2">&#34;/healthz&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">async</span> <span class="k">def</span> <span class="nf">health</span><span class="p">():</span> <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;status&#34;</span><span class="p">:</span> <span class="s2">&#34;ok&#34;</span><span class="p">}</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="73-容器化">7.3 容器化</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">ENV</span> <span class="nv">PYTHONUNBUFFERED</span><span class="o">=</span><span class="m">1</span> <span class="nv">PIP_NO_CACHE_DIR</span><span class="o">=</span><span class="m">1</span>
-</span></span><span class="line"><span class="cl"><span class="k">RUN</span> apt-get update <span class="o">&amp;&amp;</span> apt-get install -y --no-install-recommends <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>        python3.11 python3-pip git <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /app</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> requirements.txt .<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip3 install --upgrade pip <span class="o">&amp;&amp;</span> pip3 install -r requirements.txt<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">COPY</span> app/ ./app/<span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">EXPOSE</span><span class="s"> 8000</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">HEALTHCHECK --interval=30s --timeout=5s </span>--start-period<span class="o">=</span>60s --retries<span class="o">=</span><span class="m">3</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  CMD curl -fsS http://localhost:8000/healthz <span class="o">||</span> <span class="nb">exit</span> <span class="m">1</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">CMD</span> <span class="p">[</span><span class="s2">&#34;uvicorn&#34;</span><span class="p">,</span> <span class="s2">&#34;app.main:app&#34;</span><span class="p">,</span> <span class="s2">&#34;--host&#34;</span><span class="p">,</span> <span class="s2">&#34;0.0.0.0&#34;</span><span class="p">,</span> <span class="s2">&#34;--port&#34;</span><span class="p">,</span> <span class="s2">&#34;8000&#34;</span><span class="p">,</span> <span class="s2">&#34;--workers&#34;</span><span class="p">,</span> <span class="s2">&#34;1&#34;</span><span class="p">]</span><span class="err">
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>K8s 部署时把 Pod 调度到带 <code>nvidia.com/gpu: 1</code> 的节点，CPU/内存请求收紧，<code>livenessProbe</code> 探 <code>/healthz</code>，<code>readinessProbe</code> 仅在模型加载完成后才转 ready（最常见的部署 bug 是在 30–90 秒预热期间就接流量）。</p>
-<h3 id="74-可观测性与-slo">7.4 可观测性与 SLO</h3>
-<p>度量不到的就修不好。最小可用埋点：</p>
-<ul>
-<li><strong>指标</strong>（Prometheus + Grafana）：QPS、p50/p95/p99 延迟、GPU 利用率、显存、队列深度、缓存命中率、tokens/s。</li>
-<li><strong>追踪</strong>（OpenTelemetry）：每个请求一条 span，子 span 覆盖检索、生成、后处理。</li>
-<li><strong>日志</strong>（Loki / ELK）：结构化 JSON，每条带请求 ID。</li>
-<li><strong>错误</strong>（Sentry）：按异常类聚合，速率突增报警。</li>
-</ul>
-<p>7-8B 模型在单张 A100 80GB + vLLM + bf16 上的合理上线目标：聚合吞吐 <strong>~1500-2500 tok/s/GPU</strong>、<strong>p95 首 token &lt; 300 ms</strong>、<strong>p95 token 间 &lt; 80 ms</strong>、<strong>~30 并发流</strong>。量化到 4-bit AWQ 通常把吞吐再翻一倍，代价是大多数基准上 1–2 分；用私有评测确认是否可接受再切。</p>
-<hr>
-<h2 id="8-常见问题">8. 常见问题</h2>
-<p><strong>Function Calling、ReAct、图框架怎么选？</strong> 单工具、确定性调用：Function Calling。多步、需要分支重试与中间检查：ReAct 或 LangGraph 这类图框架。如果你发现自己在 ReAct 的字符串上手写状态机，就该切到图——它把控制流变得显式且可测。</p>
-<p><strong>开源模型还是托管 API？</strong> 托管 API 在上线速度、能力上限、低请求量成本上占优。开源自托管在数据主权、微调自由度、高吞吐稳态成本上占优（7-13B 模型在自有硬件上的盈亏平衡点大约是 5000 万–1 亿 tokens/天）。</p>
-<p><strong>真的需要推理模型吗？</strong> 日常聊天、摘要、分类、短代码：不需要，快模型便宜 10-50 倍且够用。竞赛数学、复杂代码、多跳调研、任何&quot;系统 2&quot;任务：需要，差距是质的。按 query 路由就好。</p>
-<p><strong>我的 Agent 死循环了。</strong> 几乎一定是这三种之一：(1) 工具描述歧义，模型反复试错工具；(2) 你忘了 <code>Final Answer</code> 哨兵；(3) 观察过长，把原始目标挤出了上下文。给迭代设上限、给每一步加日志、把观察裁剪到只剩相关字段。</p>
-<p><strong>最便宜的扩上下文方式是什么？</strong> 如果能微调：RoPE base scaling + 一次小 LongLoRA。如果不能：分块 + RAG（第 10 章）。真正的 100 万 token 上下文很少是正确答案——检索更便宜、更可调试，通常也更准确。</p>
-<hr>
-<h2 id="系列收官">系列收官</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig7_series_journey.png" alt="12 章 NLP 旅程" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>我们从空白符分词开始，最后停在能让推理 Agent 流式吐 token、藏在负载均衡器后面的服务。回头看这张地图，能看到四道弧：</p>
-<ul>
-<li><strong>基础</strong>（第 1-3 章）——文本变成向量，序列变成隐状态。</li>
-<li><strong>Transformer</strong>（第 4-6 章）——注意力替代循环，预训练分裂成 BERT 式理解与 GPT 式生成。</li>
-<li><strong>适配</strong>（第 7-9 章）——prompting、PEFT 与 LLM 内部机制，把预训练模型变成可塑造的工具。</li>
-<li><strong>应用</strong>（第 10-12 章）——RAG 把模型锚到知识，多模态突破纯文本天花板，Agent + 生产工程把整条链路闭环成可部署系统。</li>
-</ul>
-<p>如果整套系列只让你带走三件事，我希望是这三件。<strong>架构没有数据和目标重要</strong>——Transformer 已是底牌，差异化在预训练数据混合、指令数据与评估上。<strong>工程纪律胜过模型规模</strong>——一个带 RAG、评测和护栏的精心 8B 部署，会稳定打败一个糙做的 70B 服务。<strong>前沿移动很快，但基本功稳定</strong>——embedding、注意力、微调、检索、对齐与服务，到 2027 年仍是正确的词汇表，只不过具体模型名字会换一轮。</p>
-<p>谢谢你读完十二章。现在去构建些什么吧。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Yao et al., <strong>ReAct: Synergizing Reasoning and Acting in Language Models</strong>, ICLR 2023, <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener noreferrer">arXiv:2210.03629 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Schick et al., <strong>Toolformer: Language Models Can Teach Themselves to Use Tools</strong>, NeurIPS 2023, <a href="https://arxiv.org/abs/2302.04761" target="_blank" rel="noopener noreferrer">arXiv:2302.04761 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Roziere et al., <strong>Code Llama: Open Foundation Models for Code</strong>, Meta AI, 2023, <a href="https://arxiv.org/abs/2308.12950" target="_blank" rel="noopener noreferrer">arXiv:2308.12950 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Chen et al., <strong>Evaluating Large Language Models Trained on Code (HumanEval / Codex)</strong>, 2021, <a href="https://arxiv.org/abs/2107.03374" target="_blank" rel="noopener noreferrer">arXiv:2107.03374 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Beltagy et al., <strong>Longformer: The Long-Document Transformer</strong>, 2020, <a href="https://arxiv.org/abs/2004.05150" target="_blank" rel="noopener noreferrer">arXiv:2004.05150 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Munkhdalai et al., <strong>Leave No Context Behind: Efficient Infinite Context Transformers with Infini-attention</strong>, 2024, <a href="https://arxiv.org/abs/2404.07143" target="_blank" rel="noopener noreferrer">arXiv:2404.07143 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Chen et al., <strong>LongLoRA: Efficient Fine-tuning of Long-Context LLMs</strong>, ICLR 2024, <a href="https://arxiv.org/abs/2309.12307" target="_blank" rel="noopener noreferrer">arXiv:2309.12307 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Lightman et al., <strong>Let&rsquo;s Verify Step by Step</strong>, 2023, <a href="https://arxiv.org/abs/2305.20050" target="_blank" rel="noopener noreferrer">arXiv:2305.20050 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>OpenAI, <strong>Learning to Reason with LLMs (o1 system card)</strong>, 2024.</li>
-<li>DeepSeek-AI, <strong>DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL</strong>, 2025, <a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener noreferrer">arXiv:2501.12948 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Rafailov et al., <strong>Direct Preference Optimization</strong>, NeurIPS 2023, <a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener noreferrer">arXiv:2305.18290 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Bai et al., <strong>Constitutional AI: Harmlessness from AI Feedback</strong>, Anthropic, 2022, <a href="https://arxiv.org/abs/2212.08073" target="_blank" rel="noopener noreferrer">arXiv:2212.08073 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Kwon et al., <strong>Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM)</strong>, SOSP 2023, <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener noreferrer">arXiv:2309.06180 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Dao, <strong>FlashAttention-2</strong>, 2023, <a href="https://arxiv.org/abs/2307.08691" target="_blank" rel="noopener noreferrer">arXiv:2307.08691 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>部分</th>
-          <th>主题</th>
-          <th>链接</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>10</td>
-          <td>RAG 与知识增强系统</td>
-          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%8d%81-RAG%e4%b8%8e%e7%9f%a5%e8%af%86%e5%a2%9e%e5%bc%ba%e7%b3%bb%e7%bb%9f/">&lt;&ndash; 阅读</a>
-</td>
-      </tr>
-      <tr>
-          <td>11</td>
-          <td>多模态大模型</td>
-          <td><a href="/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%8d%81%e4%b8%80-%e5%a4%9a%e6%a8%a1%e6%80%81%e5%a4%a7%e6%a8%a1%e5%9e%8b/">&lt;&ndash; 上一篇</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>12</strong></td>
-          <td><strong>前沿技术与实战应用（本文）</strong></td>
-          <td>—</td>
-      </tr>
-  </tbody>
-</table>
-<p>系列完结。感谢一路同行。</p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-agent-与工具调用">1. Agent 与工具调用</a>
-      <ul>
-        <li><a href="#11-function-calling--协议本身">1.1 Function Calling — 协议本身</a></li>
-        <li><a href="#12-react--推理与行动的循环">1.2 ReAct — 推理与行动的循环</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-代码生成">2. 代码生成</a>
-      <ul>
-        <li><a href="#21-流水线">2.1 流水线</a></li>
-        <li><a href="#22-模型与基准">2.2 模型与基准</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-长上下文建模">3. 长上下文建模</a></li>
-    <li><a href="#4-推理模型">4. 推理模型</a></li>
-    <li><a href="#5-安全对齐与幻觉">5. 安全、对齐与幻觉</a>
-      <ul>
-        <li><a href="#51-幻觉的分类">5.1 幻觉的分类</a></li>
-        <li><a href="#52-对齐--rlhfdpoconstitutional-ai">5.2 对齐 — RLHF、DPO、Constitutional AI</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-评估">6. 评估</a></li>
-    <li><a href="#7-生产部署">7. 生产部署</a>
-      <ul>
-        <li><a href="#71-推理层">7.1 推理层</a></li>
-        <li><a href="#72-api-层">7.2 API 层</a></li>
-        <li><a href="#73-容器化">7.3 容器化</a></li>
-        <li><a href="#74-可观测性与-slo">7.4 可观测性与 SLO</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-常见问题">8. 常见问题</a></li>
-    <li><a href="#系列收官">系列收官</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">自然语言处理</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>16 min</strong></div>
-      <div class="row"><span>Word count</span><strong>7600</strong></div>
-      <div class="row"><span>Published</span><strong>Nov 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>自然语言处理（十二）：前沿技术与实战应用 · Chen Kai Blog</title>
+<meta name=description content="系列收官：Agent 与工具调用（Function Calling、ReAct）、代码生成（Code Llama、Codex）、长上下文（Longformer、Infini-attention）、推理模型（o1、R1）、安全对齐、评估体系，以及基于 FastAPI + vLLM + Docker 的生产级部署。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/><meta property="og:type" content="article"><meta property="og:title" content="自然语言处理（十二）：前沿技术与实战应用"><meta property="og:description" content="系列收官：Agent 与工具调用（Function Calling、ReAct）、代码生成（Code Llama、Codex）、长上下文（Longformer、Infini-attention）、推理模型（o1、R1）、安全对齐、评估体系，以及基于 FastAPI + vLLM + Docker 的生产级部署。"><meta property="og:url" content="https://www.chenk.top/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>自然语言处理</a>
+· Chapter 12</div><h1>自然语言处理（十二）：前沿技术与实战应用</h1><p class=deck>系列收官：Agent 与工具调用（Function Calling、ReAct）、代码生成（Code Llama、Codex）、长上下文（Longformer、Infini-attention）、推理模型（o1、R1）、安全对齐、评估体系，以及基于 FastAPI + vLLM + Docker 的生产级部署。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-11-25>November 25, 2025</time> · 16 min read · 7550 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/nlp/ class=tag>#NLP</a><a href=/zh/tags/llm/ class=tag>#LLM</a><a href=/zh/tags/agent/ class=tag>#Agent</a><a href=/zh/tags/%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90/ class=tag>#代码生成</a></div></div></header><div class=prose><p>我们用了十一章，从原始文本一路爬到多模态基础模型。这第十二章既站在前沿，也站在跑道上：研究在这里不再是论文，而是一个服务——一个能调用工具、写代码并自我修复、做百步推理、吞下 20 万 token 合同、并以 p95 &lt; 300 ms 的延迟支撑上千并发的 LLM。</p><p>能力的扩张带来新的失败模式。模型会自信地胡说，会在被诱导时输出有害内容，会泄露训练数据，会在部署粗糙时烧掉惊人的预算。所以这一章分成两半。前半部分——Agent、代码生成、长上下文、推理模型——是模型能力的前沿。后半部分——安全、评估、部署——是把这些前沿放进生产环境而不烧用户和预算所必须的工程。</p><h2 id=你将学到什么>你将学到什么</h2><ul><li><strong>Agent</strong>：Function Calling 协议与 ReAct 推理-行动循环，附可运行的 Python 实现。</li><li><strong>代码生成</strong>：Codex / Code Llama / DeepSeek-Coder 在 HumanEval 上的实际位置，以及自我修复回路是如何工作的。</li><li><strong>长上下文</strong>：滑动窗口、稀疏 + 全局、Infini-attention 三类注意力掩码，及其取舍。</li><li><strong>推理模型</strong>：o1 与 DeepSeek-R1 如何用测试时算力换取准确率，CoT 为什么要被策略化。</li><li><strong>安全</strong>：幻觉分类、RLHF / DPO / Constitutional AI 三种主流对齐路线、护栏的工程做法。</li><li><strong>评估</strong>：能力 / 安全 / 效率三轴基准，以及它们各自不能告诉你什么。</li><li><strong>生产部署</strong>：FastAPI + vLLM + Docker 参考栈、可观测性以及具体的延迟目标。</li></ul><h2 id=前置知识>前置知识</h2><ul><li>本系列前十一章，尤其是第 4 章（Transformer）、第 6 章（GPT）、第 8 章（PEFT）、第 9 章（LLM 内部）和第 10 章（RAG）。</li><li>Python、基本的 asyncio、Docker 容器的大致形状。</li><li>熟悉一点强化学习对理解对齐部分有帮助；详细版见 <a href=/en/reinforcement-learning-12-rlhf-and-llm-applications/>RL 第 12 章 — RLHF 与 LLM 应用</a>
+。</li></ul><hr><h2 id=1-agent-与工具调用>1. Agent 与工具调用</h2><p>继 instruction tuning 之后，最大的能力跃迁是教模型<strong>调用函数</strong>。一个普通 LLM 是一个被冻结的近似器：训练时不知道的东西，它就永远不知道。一个具备 Agent 能力的 LLM 是一个控制器，可以向外部世界询问事实、运行代码、查询数据库，然后继续生成。这把系统从"聪明的自动补全"变成了"可编程的执行器"。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig1_agent_architecture.png alt="ReAct Agent 架构" loading=lazy decoding=async></figure></p><h3 id=11-function-calling--协议本身>1.1 Function Calling — 协议本身</h3><p>Function Calling 由 OpenAI 在 2023 年中推出，如今已成为 Claude、Gemini、Llama-3、Qwen 的通用能力。它是叠加在 chat completion 之上的一个<strong>类型化协议</strong>：应用以 JSON Schema 声明工具，模型被训练成"要么直接回答，要么发出一个结构化的工具调用"。五个阶段，没有魔法：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig2_tool_use_pipeline.png alt="Function Calling 流水线" loading=lazy decoding=async></figure></p><ol><li><strong>Schema 声明</strong>：应用为每个工具注册名称、说明、参数 JSON Schema。</li><li><strong>路由</strong>：模型读用户消息，决定回答还是调用。</li><li><strong>参数生成</strong>：约束解码产出符合 schema 的 JSON。</li><li><strong>执行</strong>：函数由<strong>应用</strong>而非模型在沙箱中运行。</li><li><strong>结果回灌</strong>：执行结果作为 <code>tool</code> 消息追加到对话，模型据此组织最终答复。</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>openai</span> <span class=kn>import</span> <span class=n>OpenAI</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>TOOLS</span> <span class=o>=</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;function&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;function&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;get_weather&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;查询指定城市的当前天气，返回摄氏度温度与简短状态。&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;city&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;城市英文名&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;unit&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>,</span> <span class=s2>&#34;enum&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;celsius&#34;</span><span class=p>,</span> <span class=s2>&#34;fahrenheit&#34;</span><span class=p>],</span> <span class=s2>&#34;default&#34;</span><span class=p>:</span> <span class=s2>&#34;celsius&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;city&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>}]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_weather</span><span class=p>(</span><span class=n>city</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>unit</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;celsius&#34;</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 真实实现会调用天气 API。</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;city&#34;</span><span class=p>:</span> <span class=n>city</span><span class=p>,</span> <span class=s2>&#34;temp&#34;</span><span class=p>:</span> <span class=mi>25</span><span class=p>,</span> <span class=s2>&#34;unit&#34;</span><span class=p>:</span> <span class=n>unit</span><span class=p>,</span> <span class=s2>&#34;condition&#34;</span><span class=p>:</span> <span class=s2>&#34;sunny&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>chat</span><span class=p>(</span><span class=n>user_msg</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>user_msg</span><span class=p>}]</span>
+</span></span><span class=line><span class=cl>    <span class=n>resp</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt-4o-mini&#34;</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span> <span class=n>tools</span><span class=o>=</span><span class=n>TOOLS</span><span class=p>,</span> <span class=n>tool_choice</span><span class=o>=</span><span class=s2>&#34;auto&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>msg</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>msg</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>msg</span><span class=o>.</span><span class=n>tool_calls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>call</span> <span class=ow>in</span> <span class=n>msg</span><span class=o>.</span><span class=n>tool_calls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>args</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>call</span><span class=o>.</span><span class=n>function</span><span class=o>.</span><span class=n>arguments</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>result</span> <span class=o>=</span> <span class=n>get_weather</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;tool&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;tool_call_id&#34;</span><span class=p>:</span> <span class=n>call</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=n>ensure_ascii</span><span class=o>=</span><span class=kc>False</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span><span class=n>model</span><span class=o>=</span><span class=s2>&#34;gpt-4o-mini&#34;</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>resp</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span><span class=o>.</span><span class=n>content</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>msg</span><span class=o>.</span><span class=n>content</span>
+</span></span></code></pre></td></tr></table></div></div><p>三个常见错误。第一，<strong>让模型自己决定</strong>是否调用（<code>tool_choice="auto"</code>）；强行调用会得到稀奇古怪的参数。第二，<strong>永远要沙箱执行</strong>——模型完全可能产出 <code>delete_all_users()</code> 调用，只要你的 schema 允许它。第三，工具描述本身就是 prompt：要不断改写直到模型每次都能挑对工具。</p><h3 id=12-react--推理与行动的循环>1.2 ReAct — 推理与行动的循环</h3><p>Function Calling 是单轮接口。<strong>ReAct</strong>（Yao et al., ICLR 2023, <a href=https://arxiv.org/abs/2210.03629 target=_blank rel="noopener noreferrer">arXiv:2210.03629 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+）把它推广为 <code>Thought -> Action -> Observation</code> 的迭代循环，让模型可以分解、分支、重新规划。这是 LangChain、AutoGPT、OpenAI Assistants、Claude tool-use 模式以及 2025 年大多数生产级 Agent 的架构骨架。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>re</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>dataclasses</span> <span class=kn>import</span> <span class=n>dataclass</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>typing</span> <span class=kn>import</span> <span class=n>Callable</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@dataclass</span>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Tool</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>name</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>description</span><span class=p>:</span> <span class=nb>str</span>
+</span></span><span class=line><span class=cl>    <span class=n>fn</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>REACT_PROMPT</span> <span class=o>=</span> <span class=s2>&#34;&#34;&#34;你是一个谨慎的推理 Agent，可以使用以下工具：
+</span></span></span><span class=line><span class=cl><span class=s2></span><span class=si>{tool_block}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>每一轮严格按下面的格式输出：
+</span></span></span><span class=line><span class=cl><span class=s2>Thought: &lt;一句话推理&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>Action: &lt;工具名&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>Action Input: &lt;单行参数&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>完成时改用：
+</span></span></span><span class=line><span class=cl><span class=s2>Thought: &lt;推理&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>Action: Final Answer
+</span></span></span><span class=line><span class=cl><span class=s2>Action Input: &lt;给用户的最终回答&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>Question: </span><span class=si>{question}</span><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2></span><span class=si>{scratchpad}</span><span class=s2>&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ReActAgent</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>llm</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>],</span> <span class=n>tools</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Tool</span><span class=p>],</span> <span class=n>max_steps</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>llm</span> <span class=o>=</span> <span class=n>llm</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tools</span> <span class=o>=</span> <span class=p>{</span><span class=n>t</span><span class=o>.</span><span class=n>name</span><span class=p>:</span> <span class=n>t</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>tools</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_steps</span> <span class=o>=</span> <span class=n>max_steps</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_render_tools</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=s2>&#34;</span><span class=se>\n</span><span class=s2>&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;- </span><span class=si>{</span><span class=n>t</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>t</span><span class=o>.</span><span class=n>description</span><span class=si>}</span><span class=s2>&#34;</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>tools</span><span class=o>.</span><span class=n>values</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_parse</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>txt</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>m</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>search</span><span class=p>(</span><span class=sa>r</span><span class=s2>&#34;Action:\s*(.+?)\s*\nAction Input:\s*(.+)&#34;</span><span class=p>,</span> <span class=n>txt</span><span class=p>,</span> <span class=n>re</span><span class=o>.</span><span class=n>S</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=n>m</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;无法解析模型输出:</span><span class=se>\n</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>m</span><span class=o>.</span><span class=n>group</span><span class=p>(</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>(),</span> <span class=n>m</span><span class=o>.</span><span class=n>group</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>run</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>question</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>scratch</span> <span class=o>=</span> <span class=s2>&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>max_steps</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>prompt</span> <span class=o>=</span> <span class=n>REACT_PROMPT</span><span class=o>.</span><span class=n>format</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>tool_block</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>_render_tools</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                <span class=n>question</span><span class=o>=</span><span class=n>question</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>scratchpad</span><span class=o>=</span><span class=n>scratch</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=p>(</span><span class=n>prompt</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>action</span><span class=p>,</span> <span class=n>action_input</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_parse</span><span class=p>(</span><span class=n>out</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>except</span> <span class=ne>ValueError</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;[第 </span><span class=si>{</span><span class=n>step</span><span class=si>}</span><span class=s2> 步格式错误]</span><span class=se>\n</span><span class=si>{</span><span class=n>out</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>action</span> <span class=o>==</span> <span class=s2>&#34;Final Answer&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=n>action_input</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>action</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>tools</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>obs</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;未知工具 &#39;</span><span class=si>{</span><span class=n>action</span><span class=si>}</span><span class=s2>&#39;，可用：</span><span class=si>{</span><span class=nb>list</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>tools</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>obs</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tools</span><span class=p>[</span><span class=n>action</span><span class=p>]</span><span class=o>.</span><span class=n>fn</span><span class=p>(</span><span class=n>action_input</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>scratch</span> <span class=o>+=</span> <span class=sa>f</span><span class=s2>&#34;</span><span class=se>\n</span><span class=si>{</span><span class=n>out</span><span class=si>}</span><span class=se>\n</span><span class=s2>Observation: </span><span class=si>{</span><span class=n>obs</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=s2>&#34;[到达最大步数] &#34;</span> <span class=o>+</span> <span class=n>scratch</span><span class=p>[</span><span class=o>-</span><span class=mi>500</span><span class=p>:]</span>
+</span></span></code></pre></td></tr></table></div></div><p>什么时候用什么？<strong>Function Calling</strong> 是默认选择：结构化、prompt 短、单轮往返便宜。<strong>ReAct</strong> 在需要多步规划、需要在中间观察上分支、或需要从工具失败中恢复时才值得它的开销——研究综述、数据分析、多跳问答、复杂预订都是典型场景。介于两者之间的任务，现代框架允许你把 Function Calling 步骤组织成一张带显式状态的图，这通常是最易维护的折中。</p><hr><h2 id=2-代码生成>2. 代码生成</h2><p>代码是 LLM 最明显地从"有趣 demo"变成"必备工具"的领域。GitHub 公开数据显示 Copilot 用户接受约三分之一的建议，在基准任务上提速约 55%。技术配方很直接：在代码上预训练，在指令上微调，用<strong>运行</strong>结果评估，再加一个自我修复回路。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig3_code_generation.png alt="代码生成流水线与 HumanEval pass@1" loading=lazy decoding=async></figure></p><h3 id=21-流水线>2.1 流水线</h3><p>现代代码-LLM 流水线五段：自然语言<strong>意图</strong>、被增强的<strong>上下文</strong>（已打开文件、仓库符号、测试桩、检索到的 API 文档）、在代码上训练的<strong>解码器</strong>、编译并跑单测的<strong>执行器</strong>、把失败信息回喂给模型的<strong>自我修复</strong>。修复回路是把 65% pass@1 抬到 85% pass@5 的关键。AlphaCode、Reflexion、Code Llama Instruct 都用了某个版本的它。</p><h3 id=22-模型与基准>2.2 模型与基准</h3><p>标准基准是 <strong>HumanEval</strong>（Chen et al., <a href=https://arxiv.org/abs/2107.03374 target=_blank rel="noopener noreferrer">arXiv:2107.03374 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+, 2021）：164 道手写 Python 题，靠执行打分。<em>pass@k</em> 是 $k$ 个采样中至少一个通过全部单测的概率；$\mathrm{pass}@1$ 是最严格的单次成功率。两点警示：HumanEval 是单文件、纯 Python、题目极短，会<strong>高估</strong>真实工程性能；它已经被严重数据污染，2024 年以后的分数应交叉对比 MBPP、LiveCodeBench、SWE-bench Verified 或 CRUXEval。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=n>AutoTokenizer</span><span class=p>,</span> <span class=n>AutoModelForCausalLM</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>CodeLlamaInstruct</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Code Llama 7B-Instruct 的极简包装。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>model_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;codellama/CodeLlama-7b-Instruct-hf&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tok</span> <span class=o>=</span> <span class=n>AutoTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>model_name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=n>AutoModelForCausalLM</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>model_name</span><span class=p>,</span> <span class=n>torch_dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>float16</span><span class=p>,</span> <span class=n>device_map</span><span class=o>=</span><span class=s2>&#34;auto&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>generate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instruction</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_new_tokens</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>512</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>prompt</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&#34;&lt;s&gt;[INST] </span><span class=si>{</span><span class=n>instruction</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=si>}</span><span class=s2> [/INST]&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>ids</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tok</span><span class=p>(</span><span class=n>prompt</span><span class=p>,</span> <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>torch</span><span class=o>.</span><span class=n>no_grad</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>out</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>generate</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=o>**</span><span class=n>ids</span><span class=p>,</span> <span class=n>max_new_tokens</span><span class=o>=</span><span class=n>max_new_tokens</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>temperature</span><span class=o>=</span><span class=mf>0.2</span><span class=p>,</span> <span class=n>top_p</span><span class=o>=</span><span class=mf>0.95</span><span class=p>,</span> <span class=n>do_sample</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tok</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>out</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>skip_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>text</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>&#34;[/INST]&#34;</span><span class=p>)[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><p>2025 年的场景判断：纯 Python 任务，DeepSeek-Coder-V2、Qwen2.5-Coder、GPT-4o 处于第一梯队；要做仓库级 PR 任务，SWE-bench Verified 是比 HumanEval 靠谱得多的代理指标，且榜单完全不同——Claude 3.5/3.7 Sonnet、GPT-4o 与 Devin 类执行 Agent 领先，常常是较弱基模 + 强执行 Agent 的组合。</p><hr><h2 id=3-长上下文建模>3. 长上下文建模</h2><p>标准自注意力在时间和显存上都是 $O(n^2)$。把上下文从 4K 翻到 8K 几乎无感；从 32K 翻到 128K 就是显存悬崖。突破它有几条互补的路子，通常组合使用。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig4_long_context.png alt=长上下文注意力掩码 loading=lazy decoding=async></figure></p><ul><li><strong>滑动窗口</strong>（Longformer，<a href=https://arxiv.org/abs/2004.05150 target=_blank rel="noopener noreferrer">Beltagy et al., 2020 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+）— 每个 query 只看最近 $w$ 个 key，开销降到 $O(nw)$。捕捉局部结构，靠堆叠多层把远端信息逐层传播。</li><li><strong>稀疏 + 全局 token</strong>（BigBird、Longformer-global）— 步长稀疏注意力 + 几个被所有 query 看到的"全局" token。问答场景中，问题 token 必须看到全文时尤其有用。</li><li><strong>Infini-attention</strong>（<a href=https://arxiv.org/abs/2404.07143 target=_blank rel="noopener noreferrer">Munkhdalai et al., 2024 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+）— 用一个小局部窗口保证精度，外加一个<strong>压缩记忆</strong>汇总更早的内容。显存有界，等效上下文无界。</li><li><strong>位置编码外推</strong> — RoPE base scaling、NTK-aware 插值、YaRN、LongRoPE — 通过重参数化旋转频率，把在 4K 训练的模型扩到 128K，几乎不需要微调。</li><li><strong>参数高效长上下文微调</strong> — LongLoRA 把 shifted sparse attention 与 LoRA 结合，让 7B 模型在两张 A100 上扩到 100K。</li></ul><p>实际工程中，现代长上下文 LLM 通常组合：预训练阶段使用 RoPE 扩展、内核里使用滑动窗口或 GQA、再在长文档混合数据上继续训练。推理时 FlashAttention-2/3 与 PagedAttention（vLLM）控制常数项。</p><hr><h2 id=4-推理模型>4. 推理模型</h2><p>2024–2025 年 NLP 的拐点是<strong>测试时算力</strong>：不再单纯把基模做大，而是让它在回答前<strong>想得更久</strong>。OpenAI 的 o1（2024-09）和 DeepSeek-R1（<a href=https://arxiv.org/abs/2501.12948 target=_blank rel="noopener noreferrer">arXiv:2501.12948 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+, 2025-01）都走这条路：先内部生成一段 chain-of-thought，打分、必要时回滚，最终只把答案返回给用户。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig5_reasoning_models.png alt="推理模型——CoT 与测试时扩展" loading=lazy decoding=async></figure></p><p>驱动收益的两个想法。第一，<strong>过程监督</strong>：训练一个奖励模型给<strong>中间步骤</strong>而非最终答案打分（Lightman et al., <em>Let&rsquo;s Verify Step by Step</em>, 2023）。第二，<strong>可验证任务上的结果型 RL</strong>：数学和代码这种成功可被自动判定的领域，可以用验证器作为奖励做大规模 RL。DeepSeek-R1 的 &ldquo;R1-Zero&rdquo; 配方进一步证明：在足够强的基模上，纯 RL（没有 SFT）就能涌现出推理能力，包括"啊哈时刻"和自我纠错。</p><p>代价。推理模型慢、token 贵——一道 AIME 题可以消耗 1 万到 10 万推理 token。它们还<strong>隐藏 CoT</strong>（o1 对隐藏推理 token 也计费），带来新的评估与信任问题。2025 年正确的设计模式是<strong>路由</strong>：简单 query 发给快模型（GPT-4o、Claude Haiku），重推理 query 发给 o1 / R1 / Claude Sonnet thinking 模式。代价-质量差距常常是 10–50 倍。</p><hr><h2 id=5-安全对齐与幻觉>5. 安全、对齐与幻觉</h2><p>一个有用但不安全的模型无法上线。一个安全但不有用的模型还不如没有。对齐就是工程化地命中这条狭窄走廊的学科。</p><h3 id=51-幻觉的分类>5.1 幻觉的分类</h3><p>幻觉不是单一失败模式。一个有用的划分（Huang et al., <em>Survey of Hallucination</em>, 2023）：</p><ul><li><strong>事实性</strong>：与可验证事实不符（&ldquo;居里夫人获得过菲尔兹奖&rdquo;）。</li><li><strong>忠实性</strong>：与<strong>给定上下文</strong>不符——RAG 与摘要场景的核心问题（&ldquo;合同写的是 30 天付款&rdquo;，但合同其实写的是 60 天）。</li><li><strong>逻辑/算术</strong>：推理步骤无效，但流畅得像那么回事。</li><li><strong>自一致性</strong>：同一对话里前后矛盾。</li></ul><p>缓解手段是叠加的：<strong>RAG</strong> 解决事实性（第 10 章）、<strong>约束解码 + JSON schema</strong> 保证结构忠实、<strong>自一致性多采样 + 多数投票</strong>对算术、<strong>过程监督 + 推理模型</strong>对逻辑、<strong>强制引用</strong> prompting 提升可核查性、<strong>弃权训练</strong>（学会说"我不知道"）作为最后防线。</p><h3 id=52-对齐--rlhfdpoconstitutional-ai>5.2 对齐 — RLHF、DPO、Constitutional AI</h3><p>主流对齐配方仍是三段：在示范上 SFT，在偏好对上训奖励模型，再用 PPO 对奖励做 RL。<strong>DPO</strong>（Rafailov et al., 2023）把后两步坍缩成一个有监督损失，简单且便宜，目前是开源生态的事实默认。<strong>Constitutional AI</strong>（Bai et al., Anthropic, 2022）用一份"宪法"规则让模型自我批判，把大规模安全微调中的人工标注大幅替换成模型生成，让安全调优可扩展。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>GuardedLLM</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;用输入 + 输出安全分类器包裹任意 chat 函数。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>llm</span><span class=p>,</span> <span class=n>in_filter</span><span class=p>,</span> <span class=n>out_filter</span><span class=p>,</span> <span class=n>refusal</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;抱歉，无法协助这一请求。&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>inf</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>outf</span> <span class=o>=</span> <span class=n>llm</span><span class=p>,</span> <span class=n>in_filter</span><span class=p>,</span> <span class=n>out_filter</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>refusal</span> <span class=o>=</span> <span class=n>refusal</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>chat</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>user_msg</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>inf</span><span class=p>(</span><span class=n>user_msg</span><span class=p>)</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;label&#34;</span><span class=p>)</span> <span class=o>==</span> <span class=s2>&#34;unsafe&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>refusal</span>
+</span></span><span class=line><span class=cl>        <span class=n>reply</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>llm</span><span class=p>(</span><span class=n>user_msg</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>outf</span><span class=p>(</span><span class=n>reply</span><span class=p>)</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&#34;label&#34;</span><span class=p>)</span> <span class=o>==</span> <span class=s2>&#34;unsafe&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>refusal</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>reply</span>
+</span></span></code></pre></td></tr></table></div></div><p>生产环境里，输入过滤器主要拦截越狱与 prompt injection（特别是来自 RAG 上下文的注入，目前是头号攻击向量）；输出过滤器拦截 PII、毒性、违规内容。两个过滤器本身都是小分类器（Llama-Guard-3、ShieldGemma、OpenAI Moderation），比让主模型自己当警察便宜也更可控。</p><hr><h2 id=6-评估>6. 评估</h2><p>基准是我们最少地骗自己的方式。三个轴都重要，多数团队在其中两个上投入不足。</p><table><thead><tr><th>轴</th><th>公开基准</th><th>实际衡量的内容</th></tr></thead><tbody><tr><td>能力</td><td>MMLU、GPQA-Diamond、GSM8K、MATH、HumanEval、MBPP、SWE-bench、MT-Bench、Arena-Hard、C-Eval</td><td>知识 + 推理 + 生成，普遍存在数据污染</td></tr><tr><td>安全</td><td>TruthfulQA、ToxiGen、HarmBench、JailbreakBench、BBQ</td><td>拒答行为、偏见、越狱鲁棒性</td></tr><tr><td>效率</td><td>MLPerf-Inference、vLLM bench、MMLU-Pro tokens/answer</td><td>吞吐、p50/p95 延迟、每百万 token 成本</td></tr></tbody></table><p>三个值得养成的习惯。<strong>建立私有评测集</strong>：从真实用户中抽 100–500 条，这是和上线效果最相关的数字。<strong>用成对比较</strong>（CoT-as-judge 加定期人工抽检）——绝对分数会漂移，成对胜率不会。<strong>逐版本回归</strong>（<code>lm-evaluation-harness</code>、<code>evalplus</code>、<code>inspect_ai</code>）——私有评测掉 2 分应阻塞发布，哪怕 MMLU 涨了。</p><hr><h2 id=7-生产部署>7. 生产部署</h2><p>这是漂亮 Notebook 撞上现实的地方。我们要勾勒的参考栈——前端 FastAPI、中段 vLLM、外层 Docker + K8s、全链路 Prometheus 监控——是 2025 年大多数生产团队的同款，剩下的只是 Triton vs. TGI vs. TensorRT-LLM 的口味之争。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig6_production_deploy.png alt=生产部署栈 loading=lazy decoding=async></figure></p><h3 id=71-推理层>7.1 推理层</h3><p>服务上线就别用 <code>transformers.generate</code> 了。原型可以，生产灾难：没有连续批处理、没有 PagedAttention、KV-cache 管理粗糙。请用 <strong>vLLM</strong>（开源默认）、<strong>TensorRT-LLM</strong>（NVIDIA，H100 上最快）或 <strong>TGI</strong>（Hugging Face，运维最简单）。三者都实现了连续批处理、分页 KV-cache、前缀缓存与投机解码。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># vLLM 当库使用——生产部署通常直接 `vllm serve`。</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>vllm</span> <span class=kn>import</span> <span class=n>LLM</span><span class=p>,</span> <span class=n>SamplingParams</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>llm</span> <span class=o>=</span> <span class=n>LLM</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;meta-llama/Meta-Llama-3.1-8B-Instruct&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>dtype</span><span class=o>=</span><span class=s2>&#34;bfloat16&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_model_len</span><span class=o>=</span><span class=mi>8192</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>gpu_memory_utilization</span><span class=o>=</span><span class=mf>0.92</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>enable_prefix_caching</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>params</span> <span class=o>=</span> <span class=n>SamplingParams</span><span class=p>(</span><span class=n>temperature</span><span class=o>=</span><span class=mf>0.7</span><span class=p>,</span> <span class=n>top_p</span><span class=o>=</span><span class=mf>0.95</span><span class=p>,</span> <span class=n>max_tokens</span><span class=o>=</span><span class=mi>512</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>out</span> <span class=o>=</span> <span class=n>llm</span><span class=o>.</span><span class=n>generate</span><span class=p>([</span><span class=s2>&#34;用两句话解释 LoRA。&#34;</span><span class=p>],</span> <span class=n>params</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>out</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>outputs</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>text</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=72-api-层>7.2 API 层</h3><p>FastAPI 是阻力最小的路径：异步、pydantic 校验、自动 OpenAPI、SSE 流式开箱即用。不那么显然但很重要的部分是<strong>请求卫生</strong>——严格输入限制、请求 ID、结构化日志，以及 GPU 池打满时的兜底路径。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>fastapi</span> <span class=kn>import</span> <span class=n>FastAPI</span><span class=p>,</span> <span class=n>HTTPException</span><span class=p>,</span> <span class=n>Request</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>fastapi.responses</span> <span class=kn>import</span> <span class=n>StreamingResponse</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>pydantic</span> <span class=kn>import</span> <span class=n>BaseModel</span><span class=p>,</span> <span class=n>Field</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>asyncio</span><span class=o>,</span> <span class=nn>time</span><span class=o>,</span> <span class=nn>uuid</span><span class=o>,</span> <span class=nn>logging</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>logger</span> <span class=o>=</span> <span class=n>logging</span><span class=o>.</span><span class=n>getLogger</span><span class=p>(</span><span class=s2>&#34;nlp-api&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>app</span> <span class=o>=</span> <span class=n>FastAPI</span><span class=p>(</span><span class=n>title</span><span class=o>=</span><span class=s2>&#34;NLP Service&#34;</span><span class=p>,</span> <span class=n>version</span><span class=o>=</span><span class=s2>&#34;1.0&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ChatRequest</span><span class=p>(</span><span class=n>BaseModel</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>message</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>Field</span><span class=p>(</span><span class=n>min_length</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>8000</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_tokens</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>Field</span><span class=p>(</span><span class=mi>256</span><span class=p>,</span> <span class=n>ge</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>le</span><span class=o>=</span><span class=mi>2048</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>temperature</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>Field</span><span class=p>(</span><span class=mf>0.7</span><span class=p>,</span> <span class=n>ge</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>le</span><span class=o>=</span><span class=mf>2.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>_stream</span><span class=p>(</span><span class=n>prompt</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_tokens</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>temperature</span><span class=p>:</span> <span class=nb>float</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 替换为真实的 vLLM 异步生成器。</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>tok</span> <span class=ow>in</span> <span class=n>prompt</span><span class=o>.</span><span class=n>split</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=k>await</span> <span class=n>asyncio</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mf>0.02</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>yield</span> <span class=sa>f</span><span class=s2>&#34;data: </span><span class=si>{</span><span class=n>tok</span><span class=si>}</span><span class=s2> </span><span class=se>\n\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>yield</span> <span class=s2>&#34;data: [DONE]</span><span class=se>\n\n</span><span class=s2>&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.post</span><span class=p>(</span><span class=s2>&#34;/v1/chat&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>chat</span><span class=p>(</span><span class=n>req</span><span class=p>:</span> <span class=n>ChatRequest</span><span class=p>,</span> <span class=n>request</span><span class=p>:</span> <span class=n>Request</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>rid</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=n>t0</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>req</span><span class=o>.</span><span class=n>stream</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>StreamingResponse</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                <span class=n>_stream</span><span class=p>(</span><span class=n>req</span><span class=o>.</span><span class=n>message</span><span class=p>,</span> <span class=n>req</span><span class=o>.</span><span class=n>max_tokens</span><span class=p>,</span> <span class=n>req</span><span class=o>.</span><span class=n>temperature</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                <span class=n>media_type</span><span class=o>=</span><span class=s2>&#34;text/event-stream&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>headers</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;X-Request-Id&#34;</span><span class=p>:</span> <span class=n>rid</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 非流式分支……</span>
+</span></span><span class=line><span class=cl>        <span class=n>reply</span> <span class=o>=</span> <span class=s2>&#34;stub&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;id&#34;</span><span class=p>:</span> <span class=n>rid</span><span class=p>,</span> <span class=s2>&#34;reply&#34;</span><span class=p>:</span> <span class=n>reply</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>exc</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>logger</span><span class=o>.</span><span class=n>exception</span><span class=p>(</span><span class=s2>&#34;rid=</span><span class=si>%s</span><span class=s2> failed: </span><span class=si>%s</span><span class=s2>&#34;</span><span class=p>,</span> <span class=n>rid</span><span class=p>,</span> <span class=n>exc</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span> <span class=n>HTTPException</span><span class=p>(</span><span class=mi>500</span><span class=p>,</span> <span class=s2>&#34;internal error&#34;</span><span class=p>)</span> <span class=kn>from</span> <span class=nn>exc</span>
+</span></span><span class=line><span class=cl>    <span class=k>finally</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&#34;rid=</span><span class=si>%s</span><span class=s2> latency_ms=</span><span class=si>%.1f</span><span class=s2>&#34;</span><span class=p>,</span> <span class=n>rid</span><span class=p>,</span> <span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>perf_counter</span><span class=p>()</span> <span class=o>-</span> <span class=n>t0</span><span class=p>)</span> <span class=o>*</span> <span class=mi>1000</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@app.get</span><span class=p>(</span><span class=s2>&#34;/healthz&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>async</span> <span class=k>def</span> <span class=nf>health</span><span class=p>():</span> <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;status&#34;</span><span class=p>:</span> <span class=s2>&#34;ok&#34;</span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=73-容器化>7.3 容器化</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENV</span> <span class=nv>PYTHONUNBUFFERED</span><span class=o>=</span><span class=m>1</span> <span class=nv>PIP_NO_CACHE_DIR</span><span class=o>=</span><span class=m>1</span>
+</span></span><span class=line><span class=cl><span class=k>RUN</span> apt-get update <span class=o>&amp;&amp;</span> apt-get install -y --no-install-recommends <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>        python3.11 python3-pip git <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    <span class=o>&amp;&amp;</span> rm -rf /var/lib/apt/lists/*<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /app</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> requirements.txt .<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip3 install --upgrade pip <span class=o>&amp;&amp;</span> pip3 install -r requirements.txt<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>COPY</span> app/ ./app/<span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>EXPOSE</span><span class=s> 8000</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>HEALTHCHECK --interval=30s --timeout=5s </span>--start-period<span class=o>=</span>60s --retries<span class=o>=</span><span class=m>3</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  CMD curl -fsS http://localhost:8000/healthz <span class=o>||</span> <span class=nb>exit</span> <span class=m>1</span><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err>
+</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>CMD</span> <span class=p>[</span><span class=s2>&#34;uvicorn&#34;</span><span class=p>,</span> <span class=s2>&#34;app.main:app&#34;</span><span class=p>,</span> <span class=s2>&#34;--host&#34;</span><span class=p>,</span> <span class=s2>&#34;0.0.0.0&#34;</span><span class=p>,</span> <span class=s2>&#34;--port&#34;</span><span class=p>,</span> <span class=s2>&#34;8000&#34;</span><span class=p>,</span> <span class=s2>&#34;--workers&#34;</span><span class=p>,</span> <span class=s2>&#34;1&#34;</span><span class=p>]</span><span class=err>
+</span></span></span></code></pre></td></tr></table></div></div><p>K8s 部署时把 Pod 调度到带 <code>nvidia.com/gpu: 1</code> 的节点，CPU/内存请求收紧，<code>livenessProbe</code> 探 <code>/healthz</code>，<code>readinessProbe</code> 仅在模型加载完成后才转 ready（最常见的部署 bug 是在 30–90 秒预热期间就接流量）。</p><h3 id=74-可观测性与-slo>7.4 可观测性与 SLO</h3><p>度量不到的就修不好。最小可用埋点：</p><ul><li><strong>指标</strong>（Prometheus + Grafana）：QPS、p50/p95/p99 延迟、GPU 利用率、显存、队列深度、缓存命中率、tokens/s。</li><li><strong>追踪</strong>（OpenTelemetry）：每个请求一条 span，子 span 覆盖检索、生成、后处理。</li><li><strong>日志</strong>（Loki / ELK）：结构化 JSON，每条带请求 ID。</li><li><strong>错误</strong>（Sentry）：按异常类聚合，速率突增报警。</li></ul><p>7-8B 模型在单张 A100 80GB + vLLM + bf16 上的合理上线目标：聚合吞吐 <strong>~1500-2500 tok/s/GPU</strong>、<strong>p95 首 token &lt; 300 ms</strong>、<strong>p95 token 间 &lt; 80 ms</strong>、<strong>~30 并发流</strong>。量化到 4-bit AWQ 通常把吞吐再翻一倍，代价是大多数基准上 1–2 分；用私有评测确认是否可接受再切。</p><hr><h2 id=8-常见问题>8. 常见问题</h2><p><strong>Function Calling、ReAct、图框架怎么选？</strong> 单工具、确定性调用：Function Calling。多步、需要分支重试与中间检查：ReAct 或 LangGraph 这类图框架。如果你发现自己在 ReAct 的字符串上手写状态机，就该切到图——它把控制流变得显式且可测。</p><p><strong>开源模型还是托管 API？</strong> 托管 API 在上线速度、能力上限、低请求量成本上占优。开源自托管在数据主权、微调自由度、高吞吐稳态成本上占优（7-13B 模型在自有硬件上的盈亏平衡点大约是 5000 万–1 亿 tokens/天）。</p><p><strong>真的需要推理模型吗？</strong> 日常聊天、摘要、分类、短代码：不需要，快模型便宜 10-50 倍且够用。竞赛数学、复杂代码、多跳调研、任何"系统 2"任务：需要，差距是质的。按 query 路由就好。</p><p><strong>我的 Agent 死循环了。</strong> 几乎一定是这三种之一：(1) 工具描述歧义，模型反复试错工具；(2) 你忘了 <code>Final Answer</code> 哨兵；(3) 观察过长，把原始目标挤出了上下文。给迭代设上限、给每一步加日志、把观察裁剪到只剩相关字段。</p><p><strong>最便宜的扩上下文方式是什么？</strong> 如果能微调：RoPE base scaling + 一次小 LongLoRA。如果不能：分块 + RAG（第 10 章）。真正的 100 万 token 上下文很少是正确答案——检索更便宜、更可调试，通常也更准确。</p><hr><h2 id=系列收官>系列收官</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/nlp/12-%E5%89%8D%E6%B2%BF%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%AE%9E%E6%88%98%E5%BA%94%E7%94%A8/fig7_series_journey.png alt="12 章 NLP 旅程" loading=lazy decoding=async></figure></p><p>我们从空白符分词开始，最后停在能让推理 Agent 流式吐 token、藏在负载均衡器后面的服务。回头看这张地图，能看到四道弧：</p><ul><li><strong>基础</strong>（第 1-3 章）——文本变成向量，序列变成隐状态。</li><li><strong>Transformer</strong>（第 4-6 章）——注意力替代循环，预训练分裂成 BERT 式理解与 GPT 式生成。</li><li><strong>适配</strong>（第 7-9 章）——prompting、PEFT 与 LLM 内部机制，把预训练模型变成可塑造的工具。</li><li><strong>应用</strong>（第 10-12 章）——RAG 把模型锚到知识，多模态突破纯文本天花板，Agent + 生产工程把整条链路闭环成可部署系统。</li></ul><p>如果整套系列只让你带走三件事，我希望是这三件。<strong>架构没有数据和目标重要</strong>——Transformer 已是底牌，差异化在预训练数据混合、指令数据与评估上。<strong>工程纪律胜过模型规模</strong>——一个带 RAG、评测和护栏的精心 8B 部署，会稳定打败一个糙做的 70B 服务。<strong>前沿移动很快，但基本功稳定</strong>——embedding、注意力、微调、检索、对齐与服务，到 2027 年仍是正确的词汇表，只不过具体模型名字会换一轮。</p><p>谢谢你读完十二章。现在去构建些什么吧。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Yao et al., <strong>ReAct: Synergizing Reasoning and Acting in Language Models</strong>, ICLR 2023, <a href=https://arxiv.org/abs/2210.03629 target=_blank rel="noopener noreferrer">arXiv:2210.03629 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Schick et al., <strong>Toolformer: Language Models Can Teach Themselves to Use Tools</strong>, NeurIPS 2023, <a href=https://arxiv.org/abs/2302.04761 target=_blank rel="noopener noreferrer">arXiv:2302.04761 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Roziere et al., <strong>Code Llama: Open Foundation Models for Code</strong>, Meta AI, 2023, <a href=https://arxiv.org/abs/2308.12950 target=_blank rel="noopener noreferrer">arXiv:2308.12950 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Chen et al., <strong>Evaluating Large Language Models Trained on Code (HumanEval / Codex)</strong>, 2021, <a href=https://arxiv.org/abs/2107.03374 target=_blank rel="noopener noreferrer">arXiv:2107.03374 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Beltagy et al., <strong>Longformer: The Long-Document Transformer</strong>, 2020, <a href=https://arxiv.org/abs/2004.05150 target=_blank rel="noopener noreferrer">arXiv:2004.05150 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Munkhdalai et al., <strong>Leave No Context Behind: Efficient Infinite Context Transformers with Infini-attention</strong>, 2024, <a href=https://arxiv.org/abs/2404.07143 target=_blank rel="noopener noreferrer">arXiv:2404.07143 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Chen et al., <strong>LongLoRA: Efficient Fine-tuning of Long-Context LLMs</strong>, ICLR 2024, <a href=https://arxiv.org/abs/2309.12307 target=_blank rel="noopener noreferrer">arXiv:2309.12307 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Lightman et al., <strong>Let&rsquo;s Verify Step by Step</strong>, 2023, <a href=https://arxiv.org/abs/2305.20050 target=_blank rel="noopener noreferrer">arXiv:2305.20050 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>OpenAI, <strong>Learning to Reason with LLMs (o1 system card)</strong>, 2024.</li><li>DeepSeek-AI, <strong>DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL</strong>, 2025, <a href=https://arxiv.org/abs/2501.12948 target=_blank rel="noopener noreferrer">arXiv:2501.12948 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Rafailov et al., <strong>Direct Preference Optimization</strong>, NeurIPS 2023, <a href=https://arxiv.org/abs/2305.18290 target=_blank rel="noopener noreferrer">arXiv:2305.18290 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Bai et al., <strong>Constitutional AI: Harmlessness from AI Feedback</strong>, Anthropic, 2022, <a href=https://arxiv.org/abs/2212.08073 target=_blank rel="noopener noreferrer">arXiv:2212.08073 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Kwon et al., <strong>Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM)</strong>, SOSP 2023, <a href=https://arxiv.org/abs/2309.06180 target=_blank rel="noopener noreferrer">arXiv:2309.06180 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Dao, <strong>FlashAttention-2</strong>, 2023, <a href=https://arxiv.org/abs/2307.08691 target=_blank rel="noopener noreferrer">arXiv:2307.08691 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li></ul><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>部分</th><th>主题</th><th>链接</th></tr></thead><tbody><tr><td>10</td><td>RAG 与知识增强系统</td><td><a href=/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%8d%81-RAG%e4%b8%8e%e7%9f%a5%e8%af%86%e5%a2%9e%e5%bc%ba%e7%b3%bb%e7%bb%9f/>&lt;&ndash; 阅读</a></td></tr><tr><td>11</td><td>多模态大模型</td><td><a href=/zh/%e8%87%aa%e7%84%b6%e8%af%ad%e8%a8%80%e5%a4%84%e7%90%86-%e5%8d%81%e4%b8%80-%e5%a4%9a%e6%a8%a1%e6%80%81%e5%a4%a7%e6%a8%a1%e5%9e%8b/>&lt;&ndash; 上一篇</a></td></tr><tr><td><strong>12</strong></td><td><strong>前沿技术与实战应用（本文）</strong></td><td>—</td></tr></tbody></table><p>系列完结。感谢一路同行。</p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-agent-与工具调用>1. Agent 与工具调用</a><ul><li><a href=#11-function-calling--协议本身>1.1 Function Calling — 协议本身</a></li><li><a href=#12-react--推理与行动的循环>1.2 ReAct — 推理与行动的循环</a></li></ul></li><li><a href=#2-代码生成>2. 代码生成</a><ul><li><a href=#21-流水线>2.1 流水线</a></li><li><a href=#22-模型与基准>2.2 模型与基准</a></li></ul></li><li><a href=#3-长上下文建模>3. 长上下文建模</a></li><li><a href=#4-推理模型>4. 推理模型</a></li><li><a href=#5-安全对齐与幻觉>5. 安全、对齐与幻觉</a><ul><li><a href=#51-幻觉的分类>5.1 幻觉的分类</a></li><li><a href=#52-对齐--rlhfdpoconstitutional-ai>5.2 对齐 — RLHF、DPO、Constitutional AI</a></li></ul></li><li><a href=#6-评估>6. 评估</a></li><li><a href=#7-生产部署>7. 生产部署</a><ul><li><a href=#71-推理层>7.1 推理层</a></li><li><a href=#72-api-层>7.2 API 层</a></li><li><a href=#73-容器化>7.3 容器化</a></li><li><a href=#74-可观测性与-slo>7.4 可观测性与 SLO</a></li></ul></li><li><a href=#8-常见问题>8. 常见问题</a></li><li><a href=#系列收官>系列收官</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>16 min</strong></div><div class=row><span>Word count</span><strong>7550</strong></div><div class=row><span>Published</span><strong>Nov 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

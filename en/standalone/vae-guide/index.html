@@ -1,825 +1,316 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting · Chen Kai Blog</title>
-<meta name="description" content="Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/standalone/vae-guide/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/vae-guide/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting">
-<meta property="og:description" content="Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline.">
-<meta property="og:url" content="https://www.chenk.top/en/standalone/vae-guide/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
-        
-      </div>
-      <h1>Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting</h1>
-      <p class="deck">Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-08-26">August 26, 2023</time> · 13 min read · 2700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/ml/" class="tag">#ML</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/generative-models/" class="tag">#Generative Models</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>A plain autoencoder compresses and reconstructs. A variational autoencoder learns something far more useful: a smooth, structured latent space you can <em>sample</em> from to generate genuinely new data. That single change — making the encoder output a <em>distribution</em> instead of a vector — turns the network from a fancy compressor into a generative model with a tractable likelihood lower bound.</p>
-<p>This guide walks the full path: why autoencoders fail at generation, how the ELBO derivation gets you to the loss function, why the reparameterization trick is the trick that makes everything trainable, a complete PyTorch implementation, and a tour of every common failure mode with concrete fixes.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>Why an autoencoder&rsquo;s latent space is unusable for sampling, and what VAEs change</li>
-<li>The ELBO objective: how reconstruction and KL fall out of a single likelihood bound</li>
-<li>The reparameterization trick: why naive sampling breaks gradients, and how <code>mu + sigma * eps</code> fixes it</li>
-<li>A complete PyTorch implementation: encoder, decoder, loss, training loop, sampling, interpolation</li>
-<li>Failure modes you <em>will</em> hit: posterior collapse, blurry samples, NaN gradients — with diagnostic and fix</li>
-<li>Useful variants: beta-VAE, conditional VAE, hierarchical VAE</li>
-<li>When to reach for a VAE versus a GAN or diffusion model</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>PyTorch basics (<code>nn.Module</code>, forward/backward, optimizers)</li>
-<li>Probability foundations (mean, variance, the Gaussian density)</li>
-<li>Some experience training neural networks end-to-end</li>
-</ul>
-<hr>
-<h1 id="why-vaes-matter-autoencoders-versus-generative-models">Why VAEs matter: autoencoders versus generative models</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig1_vae_architecture.png" alt="VAE architecture: encoder produces (mu, sigma), reparameterized sample feeds the decoder, KL keeps q close to the prior" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="the-autoencoder-baseline">The autoencoder baseline</h2>
-<p>An autoencoder pairs an encoder $f_\phi$ with a decoder $g_\theta$. It learns to compress input $x$ into a code $z = f_\phi(x)$ and then reconstruct $\hat{x} = g_\theta(z)$. The training objective is just reconstruction error:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting · Chen Kai Blog</title>
+<meta name=description content="Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/standalone/vae-guide/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/standalone/vae-guide/><meta property="og:type" content="article"><meta property="og:title" content="Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting"><meta property="og:description" content="Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline."><meta property="og:url" content="https://www.chenk.top/en/standalone/vae-guide/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Standalone</a></div><h1>Variational Autoencoder (VAE): From Intuition to Implementation and Troubleshooting</h1><p class=deck>Build a VAE from scratch in PyTorch. Covers the ELBO objective, reparameterization trick, posterior collapse fixes, beta-VAE, and a complete training pipeline.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-08-26>August 26, 2023</time> · 13 min read · 2691 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/ml/ class=tag>#ML</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/generative-models/ class=tag>#Generative Models</a></div></div></header><div class=prose><p>A plain autoencoder compresses and reconstructs. A variational autoencoder learns something far more useful: a smooth, structured latent space you can <em>sample</em> from to generate genuinely new data. That single change — making the encoder output a <em>distribution</em> instead of a vector — turns the network from a fancy compressor into a generative model with a tractable likelihood lower bound.</p><p>This guide walks the full path: why autoencoders fail at generation, how the ELBO derivation gets you to the loss function, why the reparameterization trick is the trick that makes everything trainable, a complete PyTorch implementation, and a tour of every common failure mode with concrete fixes.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>Why an autoencoder&rsquo;s latent space is unusable for sampling, and what VAEs change</li><li>The ELBO objective: how reconstruction and KL fall out of a single likelihood bound</li><li>The reparameterization trick: why naive sampling breaks gradients, and how <code>mu + sigma * eps</code> fixes it</li><li>A complete PyTorch implementation: encoder, decoder, loss, training loop, sampling, interpolation</li><li>Failure modes you <em>will</em> hit: posterior collapse, blurry samples, NaN gradients — with diagnostic and fix</li><li>Useful variants: beta-VAE, conditional VAE, hierarchical VAE</li><li>When to reach for a VAE versus a GAN or diffusion model</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>PyTorch basics (<code>nn.Module</code>, forward/backward, optimizers)</li><li>Probability foundations (mean, variance, the Gaussian density)</li><li>Some experience training neural networks end-to-end</li></ul><hr><h1 id=why-vaes-matter-autoencoders-versus-generative-models>Why VAEs matter: autoencoders versus generative models</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig1_vae_architecture.png alt="VAE architecture: encoder produces (mu, sigma), reparameterized sample feeds the decoder, KL keeps q close to the prior" loading=lazy decoding=async></figure></p><h2 id=the-autoencoder-baseline>The autoencoder baseline</h2><p>An autoencoder pairs an encoder $f_\phi$ with a decoder $g_\theta$. It learns to compress input $x$ into a code $z = f_\phi(x)$ and then reconstruct $\hat{x} = g_\theta(z)$. The training objective is just reconstruction error:</p>$$
 \mathcal{L}_{\text{AE}}(x) = \|x - g_\theta(f_\phi(x))\|^2.
-$$<p>This works fine for compression and denoising, but it gives you a latent space that is <em>deterministic</em> and <em>unstructured</em>. Concretely:</p>
-<ul>
-<li><strong>You cannot sample.</strong> The decoder has only ever seen codes that the encoder produced. A random $z$ drawn from anywhere in the space will likely fall in a hole the decoder never visited and produce garbage.</li>
-<li><strong>Interpolation is brittle.</strong> Two visually similar inputs can land at distant points; two distant inputs can land near each other. A straight line in latent space passes through nonsense.</li>
-<li><strong>There is no probabilistic interpretation.</strong> No prior, no likelihood, no way to talk about how <em>likely</em> a generated sample is.</li>
-</ul>
-<h2 id="what-vaes-change-a-probabilistic-latent">What VAEs change: a probabilistic latent</h2>
-<p>A VAE replaces the deterministic encoding with a <em>distribution</em>. The encoder outputs the parameters of a Gaussian:</p>
-$$
+$$<p>This works fine for compression and denoising, but it gives you a latent space that is <em>deterministic</em> and <em>unstructured</em>. Concretely:</p><ul><li><strong>You cannot sample.</strong> The decoder has only ever seen codes that the encoder produced. A random $z$ drawn from anywhere in the space will likely fall in a hole the decoder never visited and produce garbage.</li><li><strong>Interpolation is brittle.</strong> Two visually similar inputs can land at distant points; two distant inputs can land near each other. A straight line in latent space passes through nonsense.</li><li><strong>There is no probabilistic interpretation.</strong> No prior, no likelihood, no way to talk about how <em>likely</em> a generated sample is.</li></ul><h2 id=what-vaes-change-a-probabilistic-latent>What VAEs change: a probabilistic latent</h2><p>A VAE replaces the deterministic encoding with a <em>distribution</em>. The encoder outputs the parameters of a Gaussian:</p>$$
 q_\phi(z \mid x) = \mathcal{N}\!\left(\mu_\phi(x),\, \sigma^2_\phi(x)\, I\right).
-$$<p>The decoder defines a likelihood $p_\theta(x \mid z)$, and we impose a fixed prior $p(z) = \mathcal{N}(0, I)$.</p>
-<p>Three benefits flow from this single change:</p>
-<ol>
-<li><strong>Sampling works.</strong> Draw $z \sim p(z)$, feed it to the decoder, get a fresh $\hat{x}$.</li>
-<li><strong>Interpolation is smooth.</strong> Encoder distributions for similar inputs <em>overlap</em>, so straight lines through latent space yield gradual morphs.</li>
-<li><strong>Structure is enforced.</strong> The KL term in the loss (next section) actively pushes the aggregated posterior toward the prior, filling the space evenly.</li>
-</ol>
-<h1 id="the-elbo-objective-where-the-loss-comes-from">The ELBO objective: where the loss comes from</h1>
-<h2 id="deriving-the-bound">Deriving the bound</h2>
-<p>We want to maximize the data log-likelihood $\log p_\theta(x)$, but it involves an intractable integral over $z$. The trick is to introduce the variational posterior $q_\phi(z \mid x)$ and apply Jensen&rsquo;s inequality:</p>
-$$
+$$<p>The decoder defines a likelihood $p_\theta(x \mid z)$, and we impose a fixed prior $p(z) = \mathcal{N}(0, I)$.</p><p>Three benefits flow from this single change:</p><ol><li><strong>Sampling works.</strong> Draw $z \sim p(z)$, feed it to the decoder, get a fresh $\hat{x}$.</li><li><strong>Interpolation is smooth.</strong> Encoder distributions for similar inputs <em>overlap</em>, so straight lines through latent space yield gradual morphs.</li><li><strong>Structure is enforced.</strong> The KL term in the loss (next section) actively pushes the aggregated posterior toward the prior, filling the space evenly.</li></ol><h1 id=the-elbo-objective-where-the-loss-comes-from>The ELBO objective: where the loss comes from</h1><h2 id=deriving-the-bound>Deriving the bound</h2><p>We want to maximize the data log-likelihood $\log p_\theta(x)$, but it involves an intractable integral over $z$. The trick is to introduce the variational posterior $q_\phi(z \mid x)$ and apply Jensen&rsquo;s inequality:</p>$$
 \log p_\theta(x) \;\geq\; \mathbb{E}_{q_\phi(z\mid x)}\!\left[\log p_\theta(x \mid z)\right] - D_{\mathrm{KL}}\!\left(q_\phi(z\mid x)\,\|\,p(z)\right).
-$$<p>This right-hand side is the <strong>Evidence Lower BOund (ELBO)</strong>. Maximizing it does two things at once:</p>
-<ul>
-<li><strong>Reconstruction term</strong> $\mathbb{E}_{q_\phi}[\log p_\theta(x \mid z)]$: the decoder must explain $x$ well from a code sampled by the encoder.</li>
-<li><strong>KL term</strong> $D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z))$: the encoder cannot wander wherever it likes; it must stay close to the prior.</li>
-</ul>
-<p>In code, we minimize the negative ELBO. With a Gaussian encoder and a standard normal prior, the KL term has a closed form per dimension:</p>
-$$
+$$<p>This right-hand side is the <strong>Evidence Lower BOund (ELBO)</strong>. Maximizing it does two things at once:</p><ul><li><strong>Reconstruction term</strong> $\mathbb{E}_{q_\phi}[\log p_\theta(x \mid z)]$: the decoder must explain $x$ well from a code sampled by the encoder.</li><li><strong>KL term</strong> $D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z))$: the encoder cannot wander wherever it likes; it must stay close to the prior.</li></ul><p>In code, we minimize the negative ELBO. With a Gaussian encoder and a standard normal prior, the KL term has a closed form per dimension:</p>$$
 D_{\mathrm{KL}}\!\left(\mathcal{N}(\mu, \sigma^2)\,\|\,\mathcal{N}(0,1)\right)
 = \tfrac{1}{2}\!\left(\mu^2 + \sigma^2 - \log \sigma^2 - 1\right).
-$$<h2 id="why-the-kl-term-is-load-bearing">Why the KL term is load-bearing</h2>
-<p>Without KL regularization, two pathologies appear immediately:</p>
-<ul>
-<li><strong>Spike-and-gap latent.</strong> The encoder collapses each $x$ onto an isolated point with tiny variance. The space is a constellation of needles in vacuum — beautiful for reconstruction, useless for generation.</li>
-<li><strong>Decoder ignores $z$.</strong> With a powerful decoder you also see the opposite extreme (called <em>posterior collapse</em>, discussed below).</li>
-</ul>
-<p>The KL term forces $q_\phi(z\mid x)$ for <em>different</em> inputs to overlap and to cover the prior. That overlap is what makes interpolation smooth and what makes the prior usable as a sampler.</p>
-<h1 id="the-reparameterization-trick">The reparameterization trick</h1>
-<h2 id="the-problem-gradients-cant-pass-through-a-sample">The problem: gradients can&rsquo;t pass through a sample</h2>
-<p>To estimate the reconstruction term we need to draw $z \sim q_\phi(z \mid x)$ and run the decoder. But sampling is a stochastic node — backpropagation cannot pass a gradient through &ldquo;draw a random number.&rdquo; If we naively sample, $\nabla_\phi$ for the encoder is undefined.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig2_reparameterization.png" alt="Naive sampling versus the reparameterized version: random epsilon is moved outside the parameter graph so gradients flow through mu and sigma" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="the-fix-move-randomness-outside-the-parameter-path">The fix: move randomness outside the parameter path</h2>
-<p>Rewrite the sample as a deterministic function of the parameters and an <em>external</em> noise source:</p>
-$$
+$$<h2 id=why-the-kl-term-is-load-bearing>Why the KL term is load-bearing</h2><p>Without KL regularization, two pathologies appear immediately:</p><ul><li><strong>Spike-and-gap latent.</strong> The encoder collapses each $x$ onto an isolated point with tiny variance. The space is a constellation of needles in vacuum — beautiful for reconstruction, useless for generation.</li><li><strong>Decoder ignores $z$.</strong> With a powerful decoder you also see the opposite extreme (called <em>posterior collapse</em>, discussed below).</li></ul><p>The KL term forces $q_\phi(z\mid x)$ for <em>different</em> inputs to overlap and to cover the prior. That overlap is what makes interpolation smooth and what makes the prior usable as a sampler.</p><h1 id=the-reparameterization-trick>The reparameterization trick</h1><h2 id=the-problem-gradients-cant-pass-through-a-sample>The problem: gradients can&rsquo;t pass through a sample</h2><p>To estimate the reconstruction term we need to draw $z \sim q_\phi(z \mid x)$ and run the decoder. But sampling is a stochastic node — backpropagation cannot pass a gradient through &ldquo;draw a random number.&rdquo; If we naively sample, $\nabla_\phi$ for the encoder is undefined.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig2_reparameterization.png alt="Naive sampling versus the reparameterized version: random epsilon is moved outside the parameter graph so gradients flow through mu and sigma" loading=lazy decoding=async></figure></p><h2 id=the-fix-move-randomness-outside-the-parameter-path>The fix: move randomness outside the parameter path</h2><p>Rewrite the sample as a deterministic function of the parameters and an <em>external</em> noise source:</p>$$
 z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \qquad \epsilon \sim \mathcal{N}(0, I).
-$$<p>Now $\epsilon$ has no parameters, and the path from $\phi$ to $z$ is fully differentiable. Gradients flow cleanly through $\mu$ and $\sigma$.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Sample z ~ N(mu, sigma^2) in a differentiable way.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Args:
-</span></span></span><span class="line"><span class="cl"><span class="s2">        mu:     (B, latent_dim) encoder mean
-</span></span></span><span class="line"><span class="cl"><span class="s2">        logvar: (B, latent_dim) encoder log-variance
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Returns:
-</span></span></span><span class="line"><span class="cl"><span class="s2">        z:      (B, latent_dim) sample
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">eps</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Why predict <code>logvar</code> instead of <code>sigma</code>?</strong> Two reasons, both about numerical safety:</p>
-<ul>
-<li><code>logvar</code> is unconstrained — any real number is valid. Predicting <code>sigma</code> directly forces you to enforce $\sigma > 0$ (e.g., <code>softplus</code>), which is one more thing to get wrong.</li>
-<li>The closed-form KL involves $\log \sigma^2$. Predicting it directly avoids <code>log(exp(...))</code> round-trips that can underflow.</li>
-</ul>
-<h1 id="complete-pytorch-implementation">Complete PyTorch implementation</h1>
-<p>The model below is the canonical &ldquo;MNIST VAE&rdquo;: fully connected encoder/decoder, 20-D latent, Bernoulli decoder. It is deliberately small so you can read it end-to-end.</p>
-<h2 id="network-architecture">Network architecture</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">latent_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span>       <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span>     <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_logvar</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_logvar</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">latent_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">output_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc4</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc3</span><span class="p">(</span><span class="n">z</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc4</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>   <span class="c1"># pixel probabilities in [0, 1]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">VAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">latent_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">latent_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Decoder</span><span class="p">(</span><span class="n">latent_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z</span>          <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="loss-function">Loss function</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">vae_loss</span><span class="p">(</span><span class="n">recon_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Negative ELBO = reconstruction + beta * KL.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    Returns the *summed* loss over the batch (not the mean) because the KL
-</span></span></span><span class="line"><span class="cl"><span class="s2">    closed form is also a sum. Divide by the batch size when logging if you
-</span></span></span><span class="line"><span class="cl"><span class="s2">    want a per-image number.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># Bernoulli reconstruction (good for binarized MNIST).</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># Use F.mse_loss(reduction=&#39;sum&#39;) for continuous-valued data.</span>
-</span></span><span class="line"><span class="cl">    <span class="n">recon</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">recon_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;sum&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># KL(N(mu, sigma^2) || N(0, I)) summed over batch and latent dims.</span>
-</span></span><span class="line"><span class="cl">    <span class="n">kl</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">recon</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">kl</span><span class="p">,</span> <span class="n">recon</span><span class="p">,</span> <span class="n">kl</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Returning the two terms separately is worth the extra line: monitoring them is the single most useful debugging tool you have.</p>
-<h2 id="training-loop">Training loop</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_vae</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">              <span class="n">warmup_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># KL annealing: ramp beta from 0 to 1 over the warmup window.</span>
-</span></span><span class="line"><span class="cl">        <span class="n">beta</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">epoch</span> <span class="o">/</span> <span class="n">warmup_epochs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">ep_total</span> <span class="o">=</span> <span class="n">ep_recon</span> <span class="o">=</span> <span class="n">ep_kl</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">recon_x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="p">,</span> <span class="n">recon</span><span class="p">,</span> <span class="n">kl</span> <span class="o">=</span> <span class="n">vae_loss</span><span class="p">(</span><span class="n">recon_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">ep_total</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ep_recon</span> <span class="o">+=</span> <span class="n">recon</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ep_kl</span>    <span class="o">+=</span> <span class="n">kl</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  beta=</span><span class="si">{</span><span class="n">beta</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  &#34;</span>
-</span></span><span class="line"><span class="cl">              <span class="sa">f</span><span class="s2">&#34;loss=</span><span class="si">{</span><span class="n">ep_total</span><span class="o">/</span><span class="n">n</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  recon=</span><span class="si">{</span><span class="n">ep_recon</span><span class="o">/</span><span class="n">n</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  &#34;</span>
-</span></span><span class="line"><span class="cl">              <span class="sa">f</span><span class="s2">&#34;kl=</span><span class="si">{</span><span class="n">ep_kl</span><span class="o">/</span><span class="n">n</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Three things in this loop are not optional in practice: gradient clipping, KL annealing, and logging the two loss terms separately. You can guess why after reading the next section.</p>
-<h1 id="failure-modes-you-will-actually-hit">Failure modes you will actually hit</h1>
-<p>These are the four pathologies almost everyone runs into. Each entry gives the symptoms, the root cause, and concrete code-level fixes.</p>
-<h2 id="failure-1-posterior-collapse">Failure 1: posterior collapse</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig6_posterior_collapse.png" alt="Per-dimension KL for a healthy VAE versus a collapsed one, plus the blurry mean image the decoder spits out when collapse happens" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Symptoms.</strong> The KL term drops to near zero in the first few epochs and never recovers. Reconstructions look like the <em>average</em> training image regardless of input. Latent traversal produces no visible change.</p>
-<p><strong>Root cause.</strong> The decoder is powerful enough to reconstruct from $\mu$ alone, or the prior pressure overwhelms the reconstruction signal early in training. The encoder discovers it can satisfy the KL term cheaply by setting $\mu \approx 0,\ \sigma \approx 1$ for every input — i.e., ignoring $x$.</p>
-<p><strong>Fixes that work, in order of how often they&rsquo;re enough:</strong></p>
-<ol>
-<li><strong>KL annealing.</strong> Start at $\beta = 0$ and ramp linearly to 1 over the first 10–20 epochs (the loop above does this). Lets reconstruction get a foothold before KL bites.</li>
-<li><strong>Free bits.</strong> Stop penalizing dimensions whose KL is already small enough — this prevents the optimizer from killing them entirely.
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">kl_per_dim</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl"><span class="n">kl_loss</span>    <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">kl_per_dim</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">free_bits</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div></li>
-<li><strong>Weaken the decoder.</strong> Smaller hidden dim, dropout, or for autoregressive decoders skip the autoregressive shortcut for the first few epochs.</li>
-</ol>
-<h2 id="failure-2-poor-sample-quality">Failure 2: poor sample quality</h2>
-<p><strong>Symptoms.</strong> Reconstructions of training data look fine, but samples drawn as $z \sim \mathcal{N}(0, I)$ are noisy or unrealistic.</p>
-<p><strong>Root cause.</strong> The aggregated posterior $\frac{1}{N}\sum_i q_\phi(z\mid x_i)$ does not match the prior $p(z)$. There are &ldquo;holes&rdquo; in the prior that the decoder never trained on.</p>
-<p><strong>Fixes:</strong> raise $\beta$ (1.5–4 is common); enlarge the latent ($20 \to 64$); train longer; switch to a stronger decoder (convolutional for images). If you still need photorealism, this is the failure mode that tells you to consider a GAN or diffusion model instead.</p>
-<h2 id="failure-3-blurry-reconstructions">Failure 3: blurry reconstructions</h2>
-<p><strong>Symptoms.</strong> Reconstructions are recognizable but smooth and detail-poor; loss plateaus high.</p>
-<p><strong>Root cause.</strong> Pixel-independent likelihoods (Bernoulli or Gaussian per pixel) penalize <em>only</em> per-pixel error, so the optimum is the conditional mean. That mean is intrinsically blurry under uncertainty.</p>
-<p><strong>Fixes:</strong> add a perceptual loss (VGG features, LPIPS); switch to a discretized mixture of logistics for natural images; or move to a hierarchical VAE that uses higher-level latents for global structure and lower-level ones for detail.</p>
-<h2 id="failure-4-nan-losses-and-exploding-gradients">Failure 4: NaN losses and exploding gradients</h2>
-<p><strong>Symptoms.</strong> Loss becomes <code>NaN</code> after a few hundred steps, or grad norm spikes by orders of magnitude.</p>
-<p><strong>Root cause.</strong> Almost always one of: unbounded <code>logvar</code> causing <code>exp</code> overflow in the KL; pixel values outside <code>[0, 1]</code> for BCE; learning rate too high; or batch where the reparameterized $\sigma$ underflows.</p>
-<p><strong>Fixes:</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">logvar</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">logvar</span><span class="p">,</span> <span class="nb">min</span><span class="o">=-</span><span class="mi">10</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>        <span class="c1"># bound exp(logvar)</span>
-</span></span><span class="line"><span class="cl"><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># use AdamW with lr ~1e-3 to 3e-4 and weight_decay ~1e-5</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h1 id="useful-variants">Useful variants</h1>
-<h2 id="beta-vae-explicit-disentanglement">Beta-VAE: explicit disentanglement</h2>
-<p>Push $\beta$ above 1 to bias the model toward latent dimensions that capture <em>independent</em> factors of variation. The ELBO becomes</p>
-$$
+$$<p>Now $\epsilon$ has no parameters, and the path from $\phi$ to $z$ is fully differentiable. Gradients flow cleanly through $\mu$ and $\sigma$.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>reparameterize</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Sample z ~ N(mu, sigma^2) in a differentiable way.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Args:
+</span></span></span><span class=line><span class=cl><span class=s2>        mu:     (B, latent_dim) encoder mean
+</span></span></span><span class=line><span class=cl><span class=s2>        logvar: (B, latent_dim) encoder log-variance
+</span></span></span><span class=line><span class=cl><span class=s2>    Returns:
+</span></span></span><span class=line><span class=cl><span class=s2>        z:      (B, latent_dim) sample
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>logvar</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>eps</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>std</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>mu</span> <span class=o>+</span> <span class=n>std</span> <span class=o>*</span> <span class=n>eps</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Why predict <code>logvar</code> instead of <code>sigma</code>?</strong> Two reasons, both about numerical safety:</p><ul><li><code>logvar</code> is unconstrained — any real number is valid. Predicting <code>sigma</code> directly forces you to enforce $\sigma > 0$ (e.g., <code>softplus</code>), which is one more thing to get wrong.</li><li>The closed-form KL involves $\log \sigma^2$. Predicting it directly avoids <code>log(exp(...))</code> round-trips that can underflow.</li></ul><h1 id=complete-pytorch-implementation>Complete PyTorch implementation</h1><p>The model below is the canonical &ldquo;MNIST VAE&rdquo;: fully connected encoder/decoder, 20-D latent, Bernoulli decoder. It is deliberately small so you can read it end-to-end.</p><h2 id=network-architecture>Network architecture</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Encoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_dim</span><span class=o>=</span><span class=mi>784</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span> <span class=n>latent_dim</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc1</span>       <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>input_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc_mu</span>     <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>latent_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc_logvar</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>latent_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fc1</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc_mu</span><span class=p>(</span><span class=n>h</span><span class=p>),</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc_logvar</span><span class=p>(</span><span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Decoder</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>latent_dim</span><span class=o>=</span><span class=mi>20</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span> <span class=n>output_dim</span><span class=o>=</span><span class=mi>784</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc3</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>latent_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc4</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=n>output_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>z</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>relu</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fc3</span><span class=p>(</span><span class=n>z</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>sigmoid</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fc4</span><span class=p>(</span><span class=n>h</span><span class=p>))</span>   <span class=c1># pixel probabilities in [0, 1]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>VAE</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_dim</span><span class=o>=</span><span class=mi>784</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span> <span class=n>latent_dim</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>Encoder</span><span class=p>(</span><span class=n>input_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>,</span> <span class=n>latent_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span> <span class=o>=</span> <span class=n>Decoder</span><span class=p>(</span><span class=n>latent_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>,</span> <span class=n>input_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>reparameterize</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>std</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>logvar</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>mu</span> <span class=o>+</span> <span class=n>std</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>std</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span>          <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>reparameterize</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span><span class=p>(</span><span class=n>z</span><span class=p>),</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=loss-function>Loss function</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>vae_loss</span><span class=p>(</span><span class=n>recon_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>,</span> <span class=n>beta</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Negative ELBO = reconstruction + beta * KL.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    Returns the *summed* loss over the batch (not the mean) because the KL
+</span></span></span><span class=line><span class=cl><span class=s2>    closed form is also a sum. Divide by the batch size when logging if you
+</span></span></span><span class=line><span class=cl><span class=s2>    want a per-image number.
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Bernoulli reconstruction (good for binarized MNIST).</span>
+</span></span><span class=line><span class=cl>    <span class=c1># Use F.mse_loss(reduction=&#39;sum&#39;) for continuous-valued data.</span>
+</span></span><span class=line><span class=cl>    <span class=n>recon</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>binary_cross_entropy</span><span class=p>(</span><span class=n>recon_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>reduction</span><span class=o>=</span><span class=s2>&#34;sum&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># KL(N(mu, sigma^2) || N(0, I)) summed over batch and latent dims.</span>
+</span></span><span class=line><span class=cl>    <span class=n>kl</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>logvar</span> <span class=o>-</span> <span class=n>mu</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o>-</span> <span class=n>logvar</span><span class=o>.</span><span class=n>exp</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>recon</span> <span class=o>+</span> <span class=n>beta</span> <span class=o>*</span> <span class=n>kl</span><span class=p>,</span> <span class=n>recon</span><span class=p>,</span> <span class=n>kl</span>
+</span></span></code></pre></td></tr></table></div></div><p>Returning the two terms separately is worth the extra line: monitoring them is the single most useful debugging tool you have.</p><h2 id=training-loop>Training loop</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_vae</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>loader</span><span class=p>,</span> <span class=n>optimizer</span><span class=p>,</span> <span class=n>epochs</span><span class=o>=</span><span class=mi>20</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>              <span class=n>warmup_epochs</span><span class=o>=</span><span class=mi>10</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>epochs</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># KL annealing: ramp beta from 0 to 1 over the warmup window.</span>
+</span></span><span class=line><span class=cl>        <span class=n>beta</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=mf>1.0</span><span class=p>,</span> <span class=n>epoch</span> <span class=o>/</span> <span class=n>warmup_epochs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>ep_total</span> <span class=o>=</span> <span class=n>ep_recon</span> <span class=o>=</span> <span class=n>ep_kl</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>784</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>recon_x</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span> <span class=o>=</span> <span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=p>,</span> <span class=n>recon</span><span class=p>,</span> <span class=n>kl</span> <span class=o>=</span> <span class=n>vae_loss</span><span class=p>(</span><span class=n>recon_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>,</span> <span class=n>beta</span><span class=o>=</span><span class=n>beta</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>ep_total</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>ep_recon</span> <span class=o>+=</span> <span class=n>recon</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>ep_kl</span>    <span class=o>+=</span> <span class=n>kl</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>n</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>loader</span><span class=o>.</span><span class=n>dataset</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;epoch </span><span class=si>{</span><span class=n>epoch</span><span class=si>:</span><span class=s2>3d</span><span class=si>}</span><span class=s2>  beta=</span><span class=si>{</span><span class=n>beta</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>              <span class=sa>f</span><span class=s2>&#34;loss=</span><span class=si>{</span><span class=n>ep_total</span><span class=o>/</span><span class=n>n</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>  recon=</span><span class=si>{</span><span class=n>ep_recon</span><span class=o>/</span><span class=n>n</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>              <span class=sa>f</span><span class=s2>&#34;kl=</span><span class=si>{</span><span class=n>ep_kl</span><span class=o>/</span><span class=n>n</span><span class=si>:</span><span class=s2>.2f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Three things in this loop are not optional in practice: gradient clipping, KL annealing, and logging the two loss terms separately. You can guess why after reading the next section.</p><h1 id=failure-modes-you-will-actually-hit>Failure modes you will actually hit</h1><p>These are the four pathologies almost everyone runs into. Each entry gives the symptoms, the root cause, and concrete code-level fixes.</p><h2 id=failure-1-posterior-collapse>Failure 1: posterior collapse</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig6_posterior_collapse.png alt="Per-dimension KL for a healthy VAE versus a collapsed one, plus the blurry mean image the decoder spits out when collapse happens" loading=lazy decoding=async></figure></p><p><strong>Symptoms.</strong> The KL term drops to near zero in the first few epochs and never recovers. Reconstructions look like the <em>average</em> training image regardless of input. Latent traversal produces no visible change.</p><p><strong>Root cause.</strong> The decoder is powerful enough to reconstruct from $\mu$ alone, or the prior pressure overwhelms the reconstruction signal early in training. The encoder discovers it can satisfy the KL term cheaply by setting $\mu \approx 0,\ \sigma \approx 1$ for every input — i.e., ignoring $x$.</p><p><strong>Fixes that work, in order of how often they&rsquo;re enough:</strong></p><ol><li><strong>KL annealing.</strong> Start at $\beta = 0$ and ramp linearly to 1 over the first 10–20 epochs (the loop above does this). Lets reconstruction get a foothold before KL bites.</li><li><strong>Free bits.</strong> Stop penalizing dimensions whose KL is already small enough — this prevents the optimizer from killing them entirely.<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>kl_per_dim</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>logvar</span> <span class=o>-</span> <span class=n>mu</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o>-</span> <span class=n>logvar</span><span class=o>.</span><span class=n>exp</span><span class=p>())</span>
+</span></span><span class=line><span class=cl><span class=n>kl_loss</span>    <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>clamp</span><span class=p>(</span><span class=n>kl_per_dim</span><span class=p>,</span> <span class=nb>min</span><span class=o>=</span><span class=n>free_bits</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div></li><li><strong>Weaken the decoder.</strong> Smaller hidden dim, dropout, or for autoregressive decoders skip the autoregressive shortcut for the first few epochs.</li></ol><h2 id=failure-2-poor-sample-quality>Failure 2: poor sample quality</h2><p><strong>Symptoms.</strong> Reconstructions of training data look fine, but samples drawn as $z \sim \mathcal{N}(0, I)$ are noisy or unrealistic.</p><p><strong>Root cause.</strong> The aggregated posterior $\frac{1}{N}\sum_i q_\phi(z\mid x_i)$ does not match the prior $p(z)$. There are &ldquo;holes&rdquo; in the prior that the decoder never trained on.</p><p><strong>Fixes:</strong> raise $\beta$ (1.5–4 is common); enlarge the latent ($20 \to 64$); train longer; switch to a stronger decoder (convolutional for images). If you still need photorealism, this is the failure mode that tells you to consider a GAN or diffusion model instead.</p><h2 id=failure-3-blurry-reconstructions>Failure 3: blurry reconstructions</h2><p><strong>Symptoms.</strong> Reconstructions are recognizable but smooth and detail-poor; loss plateaus high.</p><p><strong>Root cause.</strong> Pixel-independent likelihoods (Bernoulli or Gaussian per pixel) penalize <em>only</em> per-pixel error, so the optimum is the conditional mean. That mean is intrinsically blurry under uncertainty.</p><p><strong>Fixes:</strong> add a perceptual loss (VGG features, LPIPS); switch to a discretized mixture of logistics for natural images; or move to a hierarchical VAE that uses higher-level latents for global structure and lower-level ones for detail.</p><h2 id=failure-4-nan-losses-and-exploding-gradients>Failure 4: NaN losses and exploding gradients</h2><p><strong>Symptoms.</strong> Loss becomes <code>NaN</code> after a few hundred steps, or grad norm spikes by orders of magnitude.</p><p><strong>Root cause.</strong> Almost always one of: unbounded <code>logvar</code> causing <code>exp</code> overflow in the KL; pixel values outside <code>[0, 1]</code> for BCE; learning rate too high; or batch where the reparameterized $\sigma$ underflows.</p><p><strong>Fixes:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>logvar</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>clamp</span><span class=p>(</span><span class=n>logvar</span><span class=p>,</span> <span class=nb>min</span><span class=o>=-</span><span class=mi>10</span><span class=p>,</span> <span class=nb>max</span><span class=o>=</span><span class=mi>10</span><span class=p>)</span>        <span class=c1># bound exp(logvar)</span>
+</span></span><span class=line><span class=cl><span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># use AdamW with lr ~1e-3 to 3e-4 and weight_decay ~1e-5</span>
+</span></span></code></pre></td></tr></table></div></div><h1 id=useful-variants>Useful variants</h1><h2 id=beta-vae-explicit-disentanglement>Beta-VAE: explicit disentanglement</h2><p>Push $\beta$ above 1 to bias the model toward latent dimensions that capture <em>independent</em> factors of variation. The ELBO becomes</p>$$
 \mathcal{L} = \mathbb{E}_{q_\phi}[\log p_\theta(x\mid z)] - \beta \cdot D_{\mathrm{KL}}(q_\phi(z\mid x)\,\|\,p(z)),
-$$<p>with $\beta \in [2, 10]$ typical for disentanglement experiments. The trade-off is exactly what you&rsquo;d expect: reconstruction degrades as $\beta$ rises.</p>
-<h2 id="conditional-vae-control-what-gets-generated">Conditional VAE: control what gets generated</h2>
-<p>Condition both encoder and decoder on a label $y$ (digit class, attribute vector, anything):</p>
-$$
+$$<p>with $\beta \in [2, 10]$ typical for disentanglement experiments. The trade-off is exactly what you&rsquo;d expect: reconstruction degrades as $\beta$ rises.</p><h2 id=conditional-vae-control-what-gets-generated>Conditional VAE: control what gets generated</h2><p>Condition both encoder and decoder on a label $y$ (digit class, attribute vector, anything):</p>$$
 q_\phi(z \mid x, y), \qquad p_\theta(x \mid z, y).
-$$<p>In code, just concatenate a one-hot $y$ into the encoder input and into $z$ before the decoder. To generate a specific class, sample $z \sim \mathcal{N}(0, I)$ and feed it together with the desired label.</p>
-<h2 id="hierarchical-vae-latents-at-multiple-scales">Hierarchical VAE: latents at multiple scales</h2>
-<p>Stack latents $z_1, z_2, \ldots, z_L$ with $z_{l-1}$ generated conditional on $z_l$. The lower latents capture local detail, the higher ones capture global semantics. Modern variants (NVAE, Very Deep VAE) close most of the sample-quality gap with diffusion using exactly this idea.</p>
-<h1 id="practical-tips">Practical tips</h1>
-<h2 id="1-normalize-your-inputs-to-match-your-likelihood">1. Normalize your inputs to match your likelihood</h2>
-<p>BCE expects pixels in $[0, 1]$; Gaussian likelihoods (MSE) work better with zero-centered inputs.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># MNIST: ToTensor() already gives [0, 1]</span>
-</span></span><span class="line"><span class="cl"><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Continuous data: standardize to [-1, 1]</span>
-</span></span><span class="line"><span class="cl"><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
-</span></span><span class="line"><span class="cl">    <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">    <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">]),</span>
-</span></span><span class="line"><span class="cl"><span class="p">])</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="2-start-small-with-the-latent">2. Start small with the latent</h2>
-<p><code>latent_dim = 20</code> is a reasonable default for MNIST-scale data. Too small bottlenecks reconstruction; too large invites posterior collapse and slows training.</p>
-<h2 id="3-always-log-reconstruction-and-kl-separately">3. Always log reconstruction and KL separately</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig5_elbo_decomposition.png" alt="ELBO decomposition over training: KL annealing makes the KL term ramp in cleanly while reconstruction comes down" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A healthy run shows reconstruction dropping monotonically and KL stabilizing at a non-trivial value (a few nats per active dimension). If KL flatlines at zero you are in posterior collapse; if it explodes, your reconstruction term is being ignored.</p>
-<h2 id="4-visualize-the-latent-space">4. Visualize the latent space</h2>
-<p>For a 2-D latent (or after PCA/t-SNE), plot $\mu(x)$ colored by class. You should see overlapping but distinguishable clusters that roughly cover the prior.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig3_latent_scatter.png" alt="VAE latent space on MNIST: ten classes form smooth, overlapping clusters that fill the prior" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">plot_latent_space</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">mus</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mu</span><span class="o">.</span><span class="n">cpu</span><span class="p">());</span> <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">mus</span>    <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">mus</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">mus</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mus</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&#34;tab10&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">();</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&#34;VAE latent (2D)&#34;</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="5-sample-and-walk-between-samples">5. Sample, and walk between samples</h2>
-<p>Two utilities you will reach for constantly:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">sample_vae</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">fc_mu</span><span class="o">.</span><span class="n">out_features</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">mu1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x1</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">mu2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x2</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">z</span>  <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ts</span><span class="p">)</span> <span class="o">*</span> <span class="n">mu1</span> <span class="o">+</span> <span class="n">ts</span> <span class="o">*</span> <span class="n">mu2</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>A clean interpolation is the single most convincing visual proof that your VAE is actually working.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig4_latent_interpolation.png" alt="Latent interpolation: a straight line from one digit&rsquo;s encoding to another, decoded at every step" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h1 id="vae-versus-the-alternatives">VAE versus the alternatives</h1>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig7_model_comparison.png" alt="Latent geometry comparison and a five-axis capability profile across AE, VAE and GAN" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<table>
-  <thead>
-      <tr>
-          <th>Model</th>
-          <th>Latent space</th>
-          <th>Training</th>
-          <th>Sample quality</th>
-          <th>Interpretability</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>VAE</strong></td>
-          <td>Explicit, smooth</td>
-          <td>Stable (ELBO)</td>
-          <td>Decent, slightly blurry</td>
-          <td>High (often disentangled)</td>
-      </tr>
-      <tr>
-          <td><strong>GAN</strong></td>
-          <td>Implicit</td>
-          <td>Unstable (adversarial)</td>
-          <td>Sharp, photorealistic</td>
-          <td>Low (mode collapse common)</td>
-      </tr>
-      <tr>
-          <td><strong>Diffusion</strong></td>
-          <td>Implicit (per step)</td>
-          <td>Stable (denoising)</td>
-          <td>State of the art</td>
-          <td>Medium (iterative sampling)</td>
-      </tr>
-      <tr>
-          <td><strong>Autoregressive</strong></td>
-          <td>None</td>
-          <td>Stable (likelihood)</td>
-          <td>High but slow</td>
-          <td>Low (sequential generation)</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>Reach for a VAE when</strong> you need an explicit latent representation for downstream tasks, want stable training without adversarial dynamics, or care about disentanglement.</p>
-<p><strong>Pick something else when</strong> photorealism is the goal (use a GAN or diffusion model), or you only need likelihoods on sequences (use an autoregressive model).</p>
-<h1 id="summary-vae-in-five-steps">Summary: VAE in five steps</h1>
-<ol>
-<li><strong>Encoder</strong> outputs $\mu_\phi(x)$ and $\log \sigma^2_\phi(x)$, not a single deterministic code.</li>
-<li><strong>Reparameterize:</strong> $z = \mu + \sigma \odot \epsilon$ with $\epsilon \sim \mathcal{N}(0, I)$ — gradients now flow.</li>
-<li><strong>Decoder</strong> reconstructs $\hat{x}$ from $z$.</li>
-<li><strong>Loss = negative ELBO:</strong> reconstruction + $\beta$ · KL.</li>
-<li><strong>Generate:</strong> $z \sim \mathcal{N}(0, I) \to$ decoder $\to \hat{x}$.</li>
-</ol>
-<p><strong>Hyperparameters that matter most:</strong> latent dimension (start at 20), $\beta$ (default 1.0, raise for disentanglement), learning rate (1e-3 with Adam, with KL annealing over 10–20 epochs and grad clipping at 1.0).</p>
-<p><strong>Pitfalls to expect:</strong> posterior collapse (use KL annealing or free bits), blurry samples (raise latent dim or add perceptual loss), NaN losses (clamp <code>logvar</code>, clip grads).</p>
-<h1 id="references">References</h1>
-<ul>
-<li>Kingma, D.P. &amp; Welling, M. (2013). <a href="https://arxiv.org/abs/1312.6114" target="_blank" rel="noopener noreferrer"><em>Auto-Encoding Variational Bayes</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. The original VAE paper.</li>
-<li>Higgins, I. et al. (2017). <a href="https://openreview.net/forum?id=Sy2fzU9gl" target="_blank" rel="noopener noreferrer"><em>beta-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Doersch, C. (2016). <a href="https://arxiv.org/abs/1606.05908" target="_blank" rel="noopener noreferrer"><em>Tutorial on Variational Autoencoders</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. Excellent step-by-step derivation.</li>
-<li>Sohn, K., Lee, H. &amp; Yan, X. (2015). <a href="https://papers.nips.cc/paper/2015/hash/8d55a249e6baa5c06772297520da2051-Abstract.html" target="_blank" rel="noopener noreferrer"><em>Learning Structured Output Representation using Deep Conditional Generative Models</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. The CVAE paper.</li>
-<li>Vahdat, A. &amp; Kautz, J. (2020). <a href="https://arxiv.org/abs/2007.03898" target="_blank" rel="noopener noreferrer"><em>NVAE: A Deep Hierarchical Variational Autoencoder</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. Hierarchical VAE that competes with GANs on sample quality.</li>
-<li>Kingma, D.P. &amp; Welling, M. (2019). <a href="https://arxiv.org/abs/1906.02691" target="_blank" rel="noopener noreferrer"><em>An Introduction to Variational Autoencoders</em> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-. Comprehensive monograph.</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#the-autoencoder-baseline">The autoencoder baseline</a></li>
-    <li><a href="#what-vaes-change-a-probabilistic-latent">What VAEs change: a probabilistic latent</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#deriving-the-bound">Deriving the bound</a></li>
-    <li><a href="#why-the-kl-term-is-load-bearing">Why the KL term is load-bearing</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#the-problem-gradients-cant-pass-through-a-sample">The problem: gradients can&rsquo;t pass through a sample</a></li>
-    <li><a href="#the-fix-move-randomness-outside-the-parameter-path">The fix: move randomness outside the parameter path</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#network-architecture">Network architecture</a></li>
-    <li><a href="#loss-function">Loss function</a></li>
-    <li><a href="#training-loop">Training loop</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#failure-1-posterior-collapse">Failure 1: posterior collapse</a></li>
-    <li><a href="#failure-2-poor-sample-quality">Failure 2: poor sample quality</a></li>
-    <li><a href="#failure-3-blurry-reconstructions">Failure 3: blurry reconstructions</a></li>
-    <li><a href="#failure-4-nan-losses-and-exploding-gradients">Failure 4: NaN losses and exploding gradients</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#beta-vae-explicit-disentanglement">Beta-VAE: explicit disentanglement</a></li>
-    <li><a href="#conditional-vae-control-what-gets-generated">Conditional VAE: control what gets generated</a></li>
-    <li><a href="#hierarchical-vae-latents-at-multiple-scales">Hierarchical VAE: latents at multiple scales</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#1-normalize-your-inputs-to-match-your-likelihood">1. Normalize your inputs to match your likelihood</a></li>
-    <li><a href="#2-start-small-with-the-latent">2. Start small with the latent</a></li>
-    <li><a href="#3-always-log-reconstruction-and-kl-separately">3. Always log reconstruction and KL separately</a></li>
-    <li><a href="#4-visualize-the-latent-space">4. Visualize the latent space</a></li>
-    <li><a href="#5-sample-and-walk-between-samples">5. Sample, and walk between samples</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2700</strong></div>
-      <div class="row"><span>Published</span><strong>Aug 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>In code, just concatenate a one-hot $y$ into the encoder input and into $z$ before the decoder. To generate a specific class, sample $z \sim \mathcal{N}(0, I)$ and feed it together with the desired label.</p><h2 id=hierarchical-vae-latents-at-multiple-scales>Hierarchical VAE: latents at multiple scales</h2><p>Stack latents $z_1, z_2, \ldots, z_L$ with $z_{l-1}$ generated conditional on $z_l$. The lower latents capture local detail, the higher ones capture global semantics. Modern variants (NVAE, Very Deep VAE) close most of the sample-quality gap with diffusion using exactly this idea.</p><h1 id=practical-tips>Practical tips</h1><h2 id=1-normalize-your-inputs-to-match-your-likelihood>1. Normalize your inputs to match your likelihood</h2><p>BCE expects pixels in $[0, 1]$; Gaussian likelihoods (MSE) work better with zero-centered inputs.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># MNIST: ToTensor() already gives [0, 1]</span>
+</span></span><span class=line><span class=cl><span class=n>transform</span> <span class=o>=</span> <span class=n>transforms</span><span class=o>.</span><span class=n>ToTensor</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Continuous data: standardize to [-1, 1]</span>
+</span></span><span class=line><span class=cl><span class=n>transform</span> <span class=o>=</span> <span class=n>transforms</span><span class=o>.</span><span class=n>Compose</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>    <span class=n>transforms</span><span class=o>.</span><span class=n>ToTensor</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>    <span class=n>transforms</span><span class=o>.</span><span class=n>Normalize</span><span class=p>(</span><span class=n>mean</span><span class=o>=</span><span class=p>[</span><span class=mf>0.5</span><span class=p>],</span> <span class=n>std</span><span class=o>=</span><span class=p>[</span><span class=mf>0.5</span><span class=p>]),</span>
+</span></span><span class=line><span class=cl><span class=p>])</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=2-start-small-with-the-latent>2. Start small with the latent</h2><p><code>latent_dim = 20</code> is a reasonable default for MNIST-scale data. Too small bottlenecks reconstruction; too large invites posterior collapse and slows training.</p><h2 id=3-always-log-reconstruction-and-kl-separately>3. Always log reconstruction and KL separately</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig5_elbo_decomposition.png alt="ELBO decomposition over training: KL annealing makes the KL term ramp in cleanly while reconstruction comes down" loading=lazy decoding=async></figure></p><p>A healthy run shows reconstruction dropping monotonically and KL stabilizing at a non-trivial value (a few nats per active dimension). If KL flatlines at zero you are in posterior collapse; if it explodes, your reconstruction term is being ignored.</p><h2 id=4-visualize-the-latent-space>4. Visualize the latent space</h2><p>For a 2-D latent (or after PCA/t-SNE), plot $\mu(x)$ colored by class. You should see overlapping but distinguishable clusters that roughly cover the prior.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig3_latent_scatter.png alt="VAE latent space on MNIST: ten classes form smooth, overlapping clusters that fill the prior" loading=lazy decoding=async></figure></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>matplotlib.pyplot</span> <span class=k>as</span> <span class=nn>plt</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>plot_latent_space</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>loader</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>mus</span><span class=p>,</span> <span class=n>labels</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>mu</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>784</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>mus</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>mu</span><span class=o>.</span><span class=n>cpu</span><span class=p>());</span> <span class=n>labels</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>mus</span>    <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>(</span><span class=n>mus</span><span class=p>)</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>labels</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>(</span><span class=n>labels</span><span class=p>)</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>plt</span><span class=o>.</span><span class=n>scatter</span><span class=p>(</span><span class=n>mus</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>],</span> <span class=n>mus</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>],</span> <span class=n>c</span><span class=o>=</span><span class=n>labels</span><span class=p>,</span> <span class=n>cmap</span><span class=o>=</span><span class=s2>&#34;tab10&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=n>s</span><span class=o>=</span><span class=mi>8</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.7</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>plt</span><span class=o>.</span><span class=n>colorbar</span><span class=p>();</span> <span class=n>plt</span><span class=o>.</span><span class=n>title</span><span class=p>(</span><span class=s2>&#34;VAE latent (2D)&#34;</span><span class=p>);</span> <span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=5-sample-and-walk-between-samples>5. Sample, and walk between samples</h2><p>Two utilities you will reach for constantly:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>sample_vae</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>model</span><span class=o>.</span><span class=n>encoder</span><span class=o>.</span><span class=n>fc_mu</span><span class=o>.</span><span class=n>out_features</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>model</span><span class=o>.</span><span class=n>decoder</span><span class=p>(</span><span class=n>z</span><span class=p>)</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>28</span><span class=p>,</span> <span class=mi>28</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>interpolate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>,</span> <span class=n>steps</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>mu1</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x1</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>mu2</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x2</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=n>ts</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>steps</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>device</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span>  <span class=o>=</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>ts</span><span class=p>)</span> <span class=o>*</span> <span class=n>mu1</span> <span class=o>+</span> <span class=n>ts</span> <span class=o>*</span> <span class=n>mu2</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>model</span><span class=o>.</span><span class=n>decoder</span><span class=p>(</span><span class=n>z</span><span class=p>)</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>28</span><span class=p>,</span> <span class=mi>28</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>A clean interpolation is the single most convincing visual proof that your VAE is actually working.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig4_latent_interpolation.png alt="Latent interpolation: a straight line from one digit&rsquo;s encoding to another, decoded at every step" loading=lazy decoding=async></figure></p><h1 id=vae-versus-the-alternatives>VAE versus the alternatives</h1><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/vae-guide/fig7_model_comparison.png alt="Latent geometry comparison and a five-axis capability profile across AE, VAE and GAN" loading=lazy decoding=async></figure></p><table><thead><tr><th>Model</th><th>Latent space</th><th>Training</th><th>Sample quality</th><th>Interpretability</th></tr></thead><tbody><tr><td><strong>VAE</strong></td><td>Explicit, smooth</td><td>Stable (ELBO)</td><td>Decent, slightly blurry</td><td>High (often disentangled)</td></tr><tr><td><strong>GAN</strong></td><td>Implicit</td><td>Unstable (adversarial)</td><td>Sharp, photorealistic</td><td>Low (mode collapse common)</td></tr><tr><td><strong>Diffusion</strong></td><td>Implicit (per step)</td><td>Stable (denoising)</td><td>State of the art</td><td>Medium (iterative sampling)</td></tr><tr><td><strong>Autoregressive</strong></td><td>None</td><td>Stable (likelihood)</td><td>High but slow</td><td>Low (sequential generation)</td></tr></tbody></table><p><strong>Reach for a VAE when</strong> you need an explicit latent representation for downstream tasks, want stable training without adversarial dynamics, or care about disentanglement.</p><p><strong>Pick something else when</strong> photorealism is the goal (use a GAN or diffusion model), or you only need likelihoods on sequences (use an autoregressive model).</p><h1 id=summary-vae-in-five-steps>Summary: VAE in five steps</h1><ol><li><strong>Encoder</strong> outputs $\mu_\phi(x)$ and $\log \sigma^2_\phi(x)$, not a single deterministic code.</li><li><strong>Reparameterize:</strong> $z = \mu + \sigma \odot \epsilon$ with $\epsilon \sim \mathcal{N}(0, I)$ — gradients now flow.</li><li><strong>Decoder</strong> reconstructs $\hat{x}$ from $z$.</li><li><strong>Loss = negative ELBO:</strong> reconstruction + $\beta$ · KL.</li><li><strong>Generate:</strong> $z \sim \mathcal{N}(0, I) \to$ decoder $\to \hat{x}$.</li></ol><p><strong>Hyperparameters that matter most:</strong> latent dimension (start at 20), $\beta$ (default 1.0, raise for disentanglement), learning rate (1e-3 with Adam, with KL annealing over 10–20 epochs and grad clipping at 1.0).</p><p><strong>Pitfalls to expect:</strong> posterior collapse (use KL annealing or free bits), blurry samples (raise latent dim or add perceptual loss), NaN losses (clamp <code>logvar</code>, clip grads).</p><h1 id=references>References</h1><ul><li>Kingma, D.P. & Welling, M. (2013). <a href=https://arxiv.org/abs/1312.6114 target=_blank rel="noopener noreferrer"><em>Auto-Encoding Variational Bayes</em> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. The original VAE paper.</li><li>Higgins, I. et al. (2017). <a href="https://openreview.net/forum?id=Sy2fzU9gl" target=_blank rel="noopener noreferrer"><em>beta-VAE: Learning Basic Visual Concepts with a Constrained Variational Framework</em> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Doersch, C. (2016). <a href=https://arxiv.org/abs/1606.05908 target=_blank rel="noopener noreferrer"><em>Tutorial on Variational Autoencoders</em> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. Excellent step-by-step derivation.</li><li>Sohn, K., Lee, H. & Yan, X. (2015). <a href=https://papers.nips.cc/paper/2015/hash/8d55a249e6baa5c06772297520da2051-Abstract.html target=_blank rel="noopener noreferrer"><em>Learning Structured Output Representation using Deep Conditional Generative Models</em> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. The CVAE paper.</li><li>Vahdat, A. & Kautz, J. (2020). <a href=https://arxiv.org/abs/2007.03898 target=_blank rel="noopener noreferrer"><em>NVAE: A Deep Hierarchical Variational Autoencoder</em> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. Hierarchical VAE that competes with GANs on sample quality.</li><li>Kingma, D.P. & Welling, M. (2019). <a href=https://arxiv.org/abs/1906.02691 target=_blank rel="noopener noreferrer"><em>An Introduction to Variational Autoencoders</em> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+. Comprehensive monograph.</li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li></ul><ul><li><a href=#the-autoencoder-baseline>The autoencoder baseline</a></li><li><a href=#what-vaes-change-a-probabilistic-latent>What VAEs change: a probabilistic latent</a></li></ul><ul><li><a href=#deriving-the-bound>Deriving the bound</a></li><li><a href=#why-the-kl-term-is-load-bearing>Why the KL term is load-bearing</a></li></ul><ul><li><a href=#the-problem-gradients-cant-pass-through-a-sample>The problem: gradients can&rsquo;t pass through a sample</a></li><li><a href=#the-fix-move-randomness-outside-the-parameter-path>The fix: move randomness outside the parameter path</a></li></ul><ul><li><a href=#network-architecture>Network architecture</a></li><li><a href=#loss-function>Loss function</a></li><li><a href=#training-loop>Training loop</a></li></ul><ul><li><a href=#failure-1-posterior-collapse>Failure 1: posterior collapse</a></li><li><a href=#failure-2-poor-sample-quality>Failure 2: poor sample quality</a></li><li><a href=#failure-3-blurry-reconstructions>Failure 3: blurry reconstructions</a></li><li><a href=#failure-4-nan-losses-and-exploding-gradients>Failure 4: NaN losses and exploding gradients</a></li></ul><ul><li><a href=#beta-vae-explicit-disentanglement>Beta-VAE: explicit disentanglement</a></li><li><a href=#conditional-vae-control-what-gets-generated>Conditional VAE: control what gets generated</a></li><li><a href=#hierarchical-vae-latents-at-multiple-scales>Hierarchical VAE: latents at multiple scales</a></li></ul><ul><li><a href=#1-normalize-your-inputs-to-match-your-likelihood>1. Normalize your inputs to match your likelihood</a></li><li><a href=#2-start-small-with-the-latent>2. Start small with the latent</a></li><li><a href=#3-always-log-reconstruction-and-kl-separately>3. Always log reconstruction and KL separately</a></li><li><a href=#4-visualize-the-latent-space>4. Visualize the latent space</a></li><li><a href=#5-sample-and-walk-between-samples>5. Sample, and walk between samples</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>13 min</strong></div><div class=row><span>Word count</span><strong>2691</strong></div><div class=row><span>Published</span><strong>Aug 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

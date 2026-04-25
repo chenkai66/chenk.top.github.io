@@ -1,631 +1,107 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>ML Math Derivations (19): Neural Networks and Backpropagation · Chen Kai Blog</title>
-<meta name="description" content="How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He).">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/19-neural-networks-and-backpropagation/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/19-neural-networks-and-backpropagation/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="ML Math Derivations (19): Neural Networks and Backpropagation">
-<meta property="og:description" content="How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He).">
-<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/19-neural-networks-and-backpropagation/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
-         · Chapter 19
-      </div>
-      <h1>ML Math Derivations (19): Neural Networks and Backpropagation</h1>
-      <p class="deck">How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He).</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-07">February 7, 2026</time> · 12 min read · 2400 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a><a href="/en/tags/neural-networks/" class="tag">#Neural Networks</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/backpropagation/" class="tag">#Backpropagation</a><a href="/en/tags/vanishing-gradients/" class="tag">#Vanishing Gradients</a><a href="/en/tags/weight-initialization/" class="tag">#Weight Initialization</a><a href="/en/tags/mathematical-derivations/" class="tag">#Mathematical Derivations</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="what-this-article-covers">What This Article Covers</h2>
-<p>A single perceptron cannot solve XOR. Stack enough of them with nonlinear activations and you obtain a <em>universal function approximator</em>. The remaining question is how such a network learns from data. The answer — <strong>backpropagation</strong>, an efficient application of the chain rule that recycles intermediate results during a single backward sweep — is the engine behind every deep learning library written in the last forty years. Understanding it mathematically reveals two further truths: why deep networks suffer from vanishing or exploding gradients, and why the choice of weight initialization is much less arbitrary than it first appears.</p>
-<p><strong>What you will learn:</strong></p>
-<ol>
-<li>The perceptron: model, learning rule, and convergence theorem.</li>
-<li>Forward propagation in matrix form for multilayer networks.</li>
-<li>Backpropagation: deriving the chain rule layer by layer and storing the right quantities.</li>
-<li>Why vanishing and exploding gradients arise (and how to read them from a single product of Jacobians).</li>
-<li>Xavier and He initialization: variance-preservation derivations and when each one applies.</li>
-</ol>
-<p><strong>Prerequisites:</strong> calculus (chain rule, partial derivatives), linear algebra (matrix multiplication), and basic probability.</p>
-<hr>
-<h2 id="1-the-perceptron-where-it-all-starts">1. The Perceptron: Where It All Starts</h2>
-<h3 id="11-model">1.1 Model</h3>
-<p>Given an input $\mathbf{x}\in\mathbb{R}^d$, weights $\mathbf{w}\in\mathbb{R}^d$, and bias $b\in\mathbb{R}$, the perceptron computes</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>ML Math Derivations (19): Neural Networks and Backpropagation · Chen Kai Blog</title>
+<meta name=description content="How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He)."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/ml-math-derivations/19-neural-networks-and-backpropagation/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/ml-math-derivations/19-neural-networks-and-backpropagation/><meta property="og:type" content="article"><meta property="og:title" content="ML Math Derivations (19): Neural Networks and Backpropagation"><meta property="og:description" content="How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He)."><meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/19-neural-networks-and-backpropagation/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Ml mathematical derivations</a>
+· Chapter 19</div><h1>ML Math Derivations (19): Neural Networks and Backpropagation</h1><p class=deck>How does a neural network learn? This article derives forward propagation, the chain rule mechanics of backpropagation, vanishing/exploding gradients, and initialization strategies (Xavier, He).</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-07>February 7, 2026</time> · 12 min read · 2361 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/machine-learning/ class=tag>#Machine Learning</a><a href=/en/tags/neural-networks/ class=tag>#Neural Networks</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/backpropagation/ class=tag>#Backpropagation</a><a href=/en/tags/vanishing-gradients/ class=tag>#Vanishing Gradients</a><a href=/en/tags/weight-initialization/ class=tag>#Weight Initialization</a><a href=/en/tags/mathematical-derivations/ class=tag>#Mathematical Derivations</a></div></div></header><div class=prose><h2 id=what-this-article-covers>What This Article Covers</h2><p>A single perceptron cannot solve XOR. Stack enough of them with nonlinear activations and you obtain a <em>universal function approximator</em>. The remaining question is how such a network learns from data. The answer — <strong>backpropagation</strong>, an efficient application of the chain rule that recycles intermediate results during a single backward sweep — is the engine behind every deep learning library written in the last forty years. Understanding it mathematically reveals two further truths: why deep networks suffer from vanishing or exploding gradients, and why the choice of weight initialization is much less arbitrary than it first appears.</p><p><strong>What you will learn:</strong></p><ol><li>The perceptron: model, learning rule, and convergence theorem.</li><li>Forward propagation in matrix form for multilayer networks.</li><li>Backpropagation: deriving the chain rule layer by layer and storing the right quantities.</li><li>Why vanishing and exploding gradients arise (and how to read them from a single product of Jacobians).</li><li>Xavier and He initialization: variance-preservation derivations and when each one applies.</li></ol><p><strong>Prerequisites:</strong> calculus (chain rule, partial derivatives), linear algebra (matrix multiplication), and basic probability.</p><hr><h2 id=1-the-perceptron-where-it-all-starts>1. The Perceptron: Where It All Starts</h2><h3 id=11-model>1.1 Model</h3><p>Given an input $\mathbf{x}\in\mathbb{R}^d$, weights $\mathbf{w}\in\mathbb{R}^d$, and bias $b\in\mathbb{R}$, the perceptron computes</p>$$
 z = \mathbf{w}^{T}\mathbf{x} + b, \qquad \hat{y} = \operatorname{sign}(z) = \begin{cases} +1 & z \geq 0,\\ -1 & z < 0.\end{cases}
-$$<p>Geometrically, the equation $\mathbf{w}^{T}\mathbf{x} + b = 0$ defines a hyperplane that splits the input space into two half-spaces, and $\hat y$ records which side the point falls on.</p>
-<h3 id="12-learning-algorithm">1.2 Learning Algorithm</h3>
-<p>For a misclassified point $(\mathbf{x}_i, y_i)$ — meaning $y_i(\mathbf{w}^{T}\mathbf{x}_i + b) \leq 0$ — Rosenblatt&rsquo;s update is</p>
-$$
+$$<p>Geometrically, the equation $\mathbf{w}^{T}\mathbf{x} + b = 0$ defines a hyperplane that splits the input space into two half-spaces, and $\hat y$ records which side the point falls on.</p><h3 id=12-learning-algorithm>1.2 Learning Algorithm</h3><p>For a misclassified point $(\mathbf{x}_i, y_i)$ — meaning $y_i(\mathbf{w}^{T}\mathbf{x}_i + b) \leq 0$ — Rosenblatt&rsquo;s update is</p>$$
 \mathbf{w} \leftarrow \mathbf{w} + \eta\, y_i\, \mathbf{x}_i, \qquad b \leftarrow b + \eta\, y_i.
-$$<p>Equivalently, this is stochastic subgradient descent on the <em>perceptron loss</em> $\sum_{i \in M} -y_i(\mathbf{w}^{T}\mathbf{x}_i + b)$, where $M$ is the set of currently misclassified points.</p>
-<h3 id="13-convergence-theorem">1.3 Convergence Theorem</h3>
-<p><strong>Theorem (Novikoff, 1962).</strong> If the data is linearly separable — i.e. there exist $\mathbf{w}^{*}$ and $\gamma > 0$ such that $y_i\,\mathbf{w}^{*\,T}\mathbf{x}_i \geq \gamma$ for all $i$ — then the perceptron converges in at most</p>
-$$
+$$<p>Equivalently, this is stochastic subgradient descent on the <em>perceptron loss</em> $\sum_{i \in M} -y_i(\mathbf{w}^{T}\mathbf{x}_i + b)$, where $M$ is the set of currently misclassified points.</p><h3 id=13-convergence-theorem>1.3 Convergence Theorem</h3><p><strong>Theorem (Novikoff, 1962).</strong> If the data is linearly separable — i.e. there exist $\mathbf{w}^{*}$ and $\gamma > 0$ such that $y_i\,\mathbf{w}^{*\,T}\mathbf{x}_i \geq \gamma$ for all $i$ — then the perceptron converges in at most</p>$$
 \frac{\|\mathbf{w}^{*}\|^{2}\, R^{2}}{\gamma^{2}} \qquad \text{updates,}
-$$<p>where $R = \max_i \|\mathbf{x}_i\|$. The proof bounds $\mathbf{w}_k^{T}\mathbf{w}^{*}$ from below (it grows at least linearly in $k$) and $\|\mathbf{w}_k\|$ from above (it grows at most like $\sqrt{k}$); combining them gives a finite cap on $k$.</p>
-<h3 id="14-the-xor-problem">1.4 The XOR Problem</h3>
-<p>The four points $(0,0)\!\to\!0$, $(0,1)\!\to\!1$, $(1,0)\!\to\!1$, $(1,1)\!\to\!0$ are <em>not</em> linearly separable: no single hyperplane separates the diagonal pairs. Minsky and Papert&rsquo;s 1969 observation of this fact stalled connectionist research for more than a decade, until multilayer networks made the problem trivially solvable — by drawing two hyperplanes, then combining them.</p>
-<hr>
-<h2 id="2-multilayer-networks-and-forward-propagation">2. Multilayer Networks and Forward Propagation</h2>
-<h3 id="21-architecture">2.1 Architecture</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig1_mlp_architecture.png" alt="Multilayer perceptron architecture" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A feedforward network is a chain of affine maps interleaved with element-wise nonlinearities:</p>
-<ul>
-<li><strong>Input layer:</strong> $\mathbf{h}^{(0)} = \mathbf{x}\in\mathbb{R}^{d_0}$.</li>
-<li><strong>Hidden layers:</strong> $\mathbf{h}^{(l)}\in\mathbb{R}^{d_l}$ for $l = 1, \ldots, L-1$.</li>
-<li><strong>Output layer:</strong> $\mathbf{h}^{(L)} = \hat{\mathbf{y}}\in\mathbb{R}^{d_L}$.</li>
-</ul>
-<h3 id="22-forward-pass-matrix-form">2.2 Forward Pass (Matrix Form)</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig2_forward_propagation.png" alt="Forward propagation flow" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>At layer $l$,</p>
-$$
+$$<p>where $R = \max_i \|\mathbf{x}_i\|$. The proof bounds $\mathbf{w}_k^{T}\mathbf{w}^{*}$ from below (it grows at least linearly in $k$) and $\|\mathbf{w}_k\|$ from above (it grows at most like $\sqrt{k}$); combining them gives a finite cap on $k$.</p><h3 id=14-the-xor-problem>1.4 The XOR Problem</h3><p>The four points $(0,0)\!\to\!0$, $(0,1)\!\to\!1$, $(1,0)\!\to\!1$, $(1,1)\!\to\!0$ are <em>not</em> linearly separable: no single hyperplane separates the diagonal pairs. Minsky and Papert&rsquo;s 1969 observation of this fact stalled connectionist research for more than a decade, until multilayer networks made the problem trivially solvable — by drawing two hyperplanes, then combining them.</p><hr><h2 id=2-multilayer-networks-and-forward-propagation>2. Multilayer Networks and Forward Propagation</h2><h3 id=21-architecture>2.1 Architecture</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig1_mlp_architecture.png alt="Multilayer perceptron architecture" loading=lazy decoding=async></figure></p><p>A feedforward network is a chain of affine maps interleaved with element-wise nonlinearities:</p><ul><li><strong>Input layer:</strong> $\mathbf{h}^{(0)} = \mathbf{x}\in\mathbb{R}^{d_0}$.</li><li><strong>Hidden layers:</strong> $\mathbf{h}^{(l)}\in\mathbb{R}^{d_l}$ for $l = 1, \ldots, L-1$.</li><li><strong>Output layer:</strong> $\mathbf{h}^{(L)} = \hat{\mathbf{y}}\in\mathbb{R}^{d_L}$.</li></ul><h3 id=22-forward-pass-matrix-form>2.2 Forward Pass (Matrix Form)</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig2_forward_propagation.png alt="Forward propagation flow" loading=lazy decoding=async></figure></p><p>At layer $l$,</p>$$
 \mathbf{z}^{(l)} = \mathbf{W}^{(l)}\,\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)}, \tag{1}
 $$$$
 \mathbf{h}^{(l)} = \sigma\!\left(\mathbf{z}^{(l)}\right), \tag{2}
-$$<p>with $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$ and $\mathbf{b}^{(l)}\in\mathbb{R}^{d_l}$. During the forward pass we <strong>cache</strong> $\mathbf{h}^{(l-1)}$ and $\mathbf{z}^{(l)}$ at every layer; backpropagation will need them.</p>
-<h3 id="23-activation-functions">2.3 Activation Functions</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig4_activations.png" alt="Activation functions and their derivatives" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<table>
-  <thead>
-      <tr>
-          <th>Function</th>
-          <th>Formula</th>
-          <th>Derivative</th>
-          <th>Notes</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Sigmoid</td>
-          <td>$\sigma(z) = \dfrac{1}{1+e^{-z}}$</td>
-          <td>$\sigma(z)\bigl(1-\sigma(z)\bigr)$</td>
-          <td>Output in $(0,1)$; saturates and so vanishes the gradient.</td>
-      </tr>
-      <tr>
-          <td>Tanh</td>
-          <td>$\tanh(z)$</td>
-          <td>$1 - \tanh^{2}(z)$</td>
-          <td>Zero-centred — better than sigmoid, but still saturates.</td>
-      </tr>
-      <tr>
-          <td>ReLU</td>
-          <td>$\max(0, z)$</td>
-          <td>$\mathbb{1}[z > 0]$</td>
-          <td>No vanishing for $z>0$; can produce <em>dead neurons</em>.</td>
-      </tr>
-      <tr>
-          <td>Leaky ReLU</td>
-          <td>$\max(\alpha z, z)$, $\alpha\!\approx\!0.01$</td>
-          <td>$1$ or $\alpha$</td>
-          <td>Fixes dead ReLU.</td>
-      </tr>
-      <tr>
-          <td>GELU</td>
-          <td>$z\,\Phi(z)$</td>
-          <td>smooth, bell-shaped near $0$</td>
-          <td>Default in Transformers.</td>
-      </tr>
-      <tr>
-          <td>Swish</td>
-          <td>$z\,\sigma(z)$</td>
-          <td>$\sigma(z) + z\,\sigma(z)(1-\sigma(z))$</td>
-          <td>Self-gated, smooth.</td>
-      </tr>
-  </tbody>
-</table>
-<p>The right panel of the figure makes one fact obvious: sigmoid&rsquo;s derivative never exceeds $0.25$, while ReLU&rsquo;s is exactly $1$ in the active region. That single difference governs much of what follows.</p>
-<h3 id="24-universal-approximation-theorem">2.4 Universal Approximation Theorem</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig5_universal_approx.png" alt="Universal approximation: a 1-hidden-layer ReLU MLP fits diverse targets" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Theorem (Cybenko 1989; Hornik 1991).</strong> For any continuous $f$ on a compact subset of $\mathbb{R}^d$ and any $\varepsilon > 0$, there exists a single-hidden-layer network</p>
-$$
+$$<p>with $\mathbf{W}^{(l)}\in\mathbb{R}^{d_l\times d_{l-1}}$ and $\mathbf{b}^{(l)}\in\mathbb{R}^{d_l}$. During the forward pass we <strong>cache</strong> $\mathbf{h}^{(l-1)}$ and $\mathbf{z}^{(l)}$ at every layer; backpropagation will need them.</p><h3 id=23-activation-functions>2.3 Activation Functions</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig4_activations.png alt="Activation functions and their derivatives" loading=lazy decoding=async></figure></p><table><thead><tr><th>Function</th><th>Formula</th><th>Derivative</th><th>Notes</th></tr></thead><tbody><tr><td>Sigmoid</td><td>$\sigma(z) = \dfrac{1}{1+e^{-z}}$</td><td>$\sigma(z)\bigl(1-\sigma(z)\bigr)$</td><td>Output in $(0,1)$; saturates and so vanishes the gradient.</td></tr><tr><td>Tanh</td><td>$\tanh(z)$</td><td>$1 - \tanh^{2}(z)$</td><td>Zero-centred — better than sigmoid, but still saturates.</td></tr><tr><td>ReLU</td><td>$\max(0, z)$</td><td>$\mathbb{1}[z > 0]$</td><td>No vanishing for $z>0$; can produce <em>dead neurons</em>.</td></tr><tr><td>Leaky ReLU</td><td>$\max(\alpha z, z)$, $\alpha\!\approx\!0.01$</td><td>$1$ or $\alpha$</td><td>Fixes dead ReLU.</td></tr><tr><td>GELU</td><td>$z\,\Phi(z)$</td><td>smooth, bell-shaped near $0$</td><td>Default in Transformers.</td></tr><tr><td>Swish</td><td>$z\,\sigma(z)$</td><td>$\sigma(z) + z\,\sigma(z)(1-\sigma(z))$</td><td>Self-gated, smooth.</td></tr></tbody></table><p>The right panel of the figure makes one fact obvious: sigmoid&rsquo;s derivative never exceeds $0.25$, while ReLU&rsquo;s is exactly $1$ in the active region. That single difference governs much of what follows.</p><h3 id=24-universal-approximation-theorem>2.4 Universal Approximation Theorem</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig5_universal_approx.png alt="Universal approximation: a 1-hidden-layer ReLU MLP fits diverse targets" loading=lazy decoding=async></figure></p><p><strong>Theorem (Cybenko 1989; Hornik 1991).</strong> For any continuous $f$ on a compact subset of $\mathbb{R}^d$ and any $\varepsilon > 0$, there exists a single-hidden-layer network</p>$$
 g(\mathbf{x}) = \sum_{j=1}^{M} v_j\, \sigma\!\left(\mathbf{w}_j^{T}\mathbf{x} + b_j\right)
-$$<p>with $\|f - g\|_\infty < \varepsilon$. The figure above shows the theorem in action: a tiny 64-unit ReLU MLP comfortably fits a smooth wave, an absolute value, and even a discontinuous step function.</p>
-<p><strong>Caveat.</strong> The theorem is an <em>existence</em> result: it does not bound how large $M$ must be, nor does it guarantee that gradient descent will find a good $g$. In practice, <strong>depth is exponentially more efficient than width</strong> — a depth-$L$ network can express functions that would require a width $\Omega(2^{L})$ in a shallow one (Telgarsky, 2016).</p>
-<hr>
-<h2 id="3-backpropagation-the-chain-rule-at-scale">3. Backpropagation: The Chain Rule at Scale</h2>
-<h3 id="31-loss-functions">3.1 Loss Functions</h3>
-<p>For regression we typically use mean-squared error,</p>
-$$
+$$<p>with $\|f - g\|_\infty < \varepsilon$. The figure above shows the theorem in action: a tiny 64-unit ReLU MLP comfortably fits a smooth wave, an absolute value, and even a discontinuous step function.</p><p><strong>Caveat.</strong> The theorem is an <em>existence</em> result: it does not bound how large $M$ must be, nor does it guarantee that gradient descent will find a good $g$. In practice, <strong>depth is exponentially more efficient than width</strong> — a depth-$L$ network can express functions that would require a width $\Omega(2^{L})$ in a shallow one (Telgarsky, 2016).</p><hr><h2 id=3-backpropagation-the-chain-rule-at-scale>3. Backpropagation: The Chain Rule at Scale</h2><h3 id=31-loss-functions>3.1 Loss Functions</h3><p>For regression we typically use mean-squared error,</p>$$
 \mathcal{L} = \tfrac{1}{2}\,\bigl\|\hat{\mathbf{y}} - \mathbf{y}\bigr\|^{2},
-$$<p>while for classification we use cross-entropy on top of softmax,</p>
-$$
+$$<p>while for classification we use cross-entropy on top of softmax,</p>$$
 \mathcal{L} = -\sum_{c} y_c \log \hat{y}_c, \qquad \hat{\mathbf{y}} = \operatorname{softmax}(\mathbf{z}^{(L)}).
-$$<h3 id="32-the-key-idea">3.2 The Key Idea</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig3_backprop_chain.png" alt="Backpropagation gradient flow" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>We need $\partial\mathcal{L}/\partial\mathbf{W}^{(l)}$ and $\partial\mathcal{L}/\partial\mathbf{b}^{(l)}$ for every layer. A naive approach would re-traverse the network for each parameter, costing $\mathcal{O}(P^2)$ for $P$ parameters. Backpropagation exploits the fact that <em>every gradient shares the same suffix path through the network</em>: by computing one <strong>error signal</strong> per layer in a single right-to-left sweep, all parameter gradients fall out by simple outer products. The cost drops to $\mathcal{O}(P)$.</p>
-<h3 id="33-deriving-the-error-signal">3.3 Deriving the Error Signal</h3>
-<p>Define the error signal at layer $l$:</p>
-$$
+$$<h3 id=32-the-key-idea>3.2 The Key Idea</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig3_backprop_chain.png alt="Backpropagation gradient flow" loading=lazy decoding=async></figure></p><p>We need $\partial\mathcal{L}/\partial\mathbf{W}^{(l)}$ and $\partial\mathcal{L}/\partial\mathbf{b}^{(l)}$ for every layer. A naive approach would re-traverse the network for each parameter, costing $\mathcal{O}(P^2)$ for $P$ parameters. Backpropagation exploits the fact that <em>every gradient shares the same suffix path through the network</em>: by computing one <strong>error signal</strong> per layer in a single right-to-left sweep, all parameter gradients fall out by simple outer products. The cost drops to $\mathcal{O}(P)$.</p><h3 id=33-deriving-the-error-signal>3.3 Deriving the Error Signal</h3><p>Define the error signal at layer $l$:</p>$$
 \boldsymbol{\delta}^{(l)} \;=\; \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}. \tag{3}
-$$<p><strong>Output layer ($l = L$, softmax + cross-entropy).</strong> A short calculation (multiplying by $\partial\hat{\mathbf{y}}/\partial \mathbf{z}^{(L)}$ and using $\sum_c y_c = 1$) collapses to</p>
-$$
+$$<p><strong>Output layer ($l = L$, softmax + cross-entropy).</strong> A short calculation (multiplying by $\partial\hat{\mathbf{y}}/\partial \mathbf{z}^{(L)}$ and using $\sum_c y_c = 1$) collapses to</p>$$
 \boldsymbol{\delta}^{(L)} \;=\; \hat{\mathbf{y}} - \mathbf{y}. \tag{4}
-$$<p>This algebraic miracle is one of the main reasons softmax + cross-entropy is the default classification head: the gradient is <em>prediction minus target</em>, full stop.</p>
-<p><strong>Hidden layers (backward recursion).</strong> For $l < L$ apply the chain rule through $\mathbf{z}^{(l+1)} = \mathbf{W}^{(l+1)}\sigma(\mathbf{z}^{(l)}) + \mathbf{b}^{(l+1)}$:</p>
-$$
+$$<p>This algebraic miracle is one of the main reasons softmax + cross-entropy is the default classification head: the gradient is <em>prediction minus target</em>, full stop.</p><p><strong>Hidden layers (backward recursion).</strong> For $l < L$ apply the chain rule through $\mathbf{z}^{(l+1)} = \mathbf{W}^{(l+1)}\sigma(\mathbf{z}^{(l)}) + \mathbf{b}^{(l+1)}$:</p>$$
 \boldsymbol{\delta}^{(l)} \;=\; \bigl(\mathbf{W}^{(l+1)\,T}\boldsymbol{\delta}^{(l+1)}\bigr) \,\odot\, \sigma'\!\left(\mathbf{z}^{(l)}\right). \tag{5}
-$$<p>In words: take the error from the layer above, push it back through the transposed weight matrix, then <em>gate</em> it element-wise by the local activation derivative.</p>
-<h3 id="34-parameter-gradients">3.4 Parameter Gradients</h3>
-<p>Once the $\boldsymbol{\delta}^{(l)}$&rsquo;s are in hand the parameter gradients are immediate:</p>
-$$
+$$<p>In words: take the error from the layer above, push it back through the transposed weight matrix, then <em>gate</em> it element-wise by the local activation derivative.</p><h3 id=34-parameter-gradients>3.4 Parameter Gradients</h3><p>Once the $\boldsymbol{\delta}^{(l)}$&rsquo;s are in hand the parameter gradients are immediate:</p>$$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}\, \mathbf{h}^{(l-1)\,T}, \tag{6}
 $$$$
 \frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} \;=\; \boldsymbol{\delta}^{(l)}. \tag{7}
-$$<p>Each weight gradient is the <strong>outer product</strong> of the error signal at the layer&rsquo;s output with the activations that arrived at its input — a quantity we already cached during the forward pass.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">backprop</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span><span class="p">,</span> <span class="n">activations</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;One forward + one backward pass for a feedforward network.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># Forward pass — store activations and pre-activations.</span>
-</span></span><span class="line"><span class="cl">    <span class="n">h</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="n">z</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z_l</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">@</span> <span class="n">h</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">biases</span><span class="p">[</span><span class="n">l</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z_l</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">activations</span><span class="p">[</span><span class="n">l</span><span class="p">](</span><span class="n">z_l</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># Backward pass — assumes softmax + cross-entropy at the output.</span>
-</span></span><span class="line"><span class="cl">    <span class="n">delta</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span>
-</span></span><span class="line"><span class="cl">    <span class="n">grad_W</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="n">grad_b</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">grad_W</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">@</span> <span class="n">h</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-</span></span><span class="line"><span class="cl">        <span class="n">grad_b</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">delta</span><span class="p">)</span> <span class="o">*</span> <span class="n">activations</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">deriv</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">grad_W</span><span class="p">,</span> <span class="n">grad_b</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The whole algorithm is essentially three lines: one outer product, one sum, one transposed matrix–vector product gated by an activation derivative. Modern autograd engines automate the bookkeeping but execute exactly this recursion under the hood.</p>
-<hr>
-<h2 id="4-vanishing-and-exploding-gradients">4. Vanishing and Exploding Gradients</h2>
-<h3 id="41-the-vanishing-gradient-problem">4.1 The Vanishing Gradient Problem</h3>
-<p>Iterating equation (5) from layer $L$ down to layer $1$ shows that the gradient at layer $1$ is a <em>product</em> of $L-1$ Jacobian-like factors:</p>
-$$
+$$<p>Each weight gradient is the <strong>outer product</strong> of the error signal at the layer&rsquo;s output with the activations that arrived at its input — a quantity we already cached during the forward pass.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>backprop</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>weights</span><span class=p>,</span> <span class=n>biases</span><span class=p>,</span> <span class=n>activations</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;One forward + one backward pass for a feedforward network.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>L</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>weights</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Forward pass — store activations and pre-activations.</span>
+</span></span><span class=line><span class=cl>    <span class=n>h</span> <span class=o>=</span> <span class=p>[</span><span class=n>X</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=n>z</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>l</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>L</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>z_l</span> <span class=o>=</span> <span class=n>weights</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>@</span> <span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>+</span> <span class=n>biases</span><span class=p>[</span><span class=n>l</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>z_l</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>activations</span><span class=p>[</span><span class=n>l</span><span class=p>](</span><span class=n>z_l</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Backward pass — assumes softmax + cross-entropy at the output.</span>
+</span></span><span class=line><span class=cl>    <span class=n>delta</span> <span class=o>=</span> <span class=n>h</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>y</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_W</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=n>grad_b</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>L</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>l</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>L</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad_W</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>=</span> <span class=n>delta</span> <span class=o>@</span> <span class=n>h</span><span class=p>[</span><span class=n>l</span><span class=p>]</span><span class=o>.</span><span class=n>T</span>
+</span></span><span class=line><span class=cl>        <span class=n>grad_b</span><span class=p>[</span><span class=n>l</span><span class=p>]</span> <span class=o>=</span> <span class=n>delta</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>l</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>delta</span> <span class=o>=</span> <span class=p>(</span><span class=n>weights</span><span class=p>[</span><span class=n>l</span><span class=p>]</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>delta</span><span class=p>)</span> <span class=o>*</span> <span class=n>activations</span><span class=p>[</span><span class=n>l</span><span class=p>]</span><span class=o>.</span><span class=n>deriv</span><span class=p>(</span><span class=n>z</span><span class=p>[</span><span class=n>l</span> <span class=o>-</span> <span class=mi>1</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>grad_W</span><span class=p>,</span> <span class=n>grad_b</span>
+</span></span></code></pre></td></tr></table></div></div><p>The whole algorithm is essentially three lines: one outer product, one sum, one transposed matrix–vector product gated by an activation derivative. Modern autograd engines automate the bookkeeping but execute exactly this recursion under the hood.</p><hr><h2 id=4-vanishing-and-exploding-gradients>4. Vanishing and Exploding Gradients</h2><h3 id=41-the-vanishing-gradient-problem>4.1 The Vanishing Gradient Problem</h3><p>Iterating equation (5) from layer $L$ down to layer $1$ shows that the gradient at layer $1$ is a <em>product</em> of $L-1$ Jacobian-like factors:</p>$$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(1)}} \;\propto\; \prod_{l=2}^{L} \Bigl[\mathbf{W}^{(l)\,T}\, \operatorname{diag}\bigl(\sigma'(\mathbf{z}^{(l-1)})\bigr)\Bigr].
-$$<p>For sigmoid, $\sigma'(z)\leq 0.25$. If each weight matrix has spectral norm near $1$, the magnitude of the gradient at layer $1$ is roughly $0.25^{L-1}$. At depth $L=20$ that is about $3.6\times 10^{-12}$ — gradient updates are numerically zero, and the early layers stop learning.</p>
-<h3 id="42-the-exploding-gradient-problem">4.2 The Exploding Gradient Problem</h3>
-<p>Reverse the inequality: if the spectral norms of the weight matrices exceed $1$ and the activation derivatives are not strongly contracting, the same product <em>grows</em> exponentially. Numerical overflow follows in a few hundred steps. RNNs are notorious for this because the same weight matrix is multiplied $T$ times in unrolled time.</p>
-<h3 id="43-reading-the-curves">4.3 Reading the Curves</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig6_vanishing_exploding.png" alt="Vanishing vs. exploding gradients across depth" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The figure reproduces the effect numerically: a unit gradient signal is back-propagated through random networks of increasing depth. Sigmoid (Xavier-initialized) decays by orders of magnitude per layer; ReLU with He initialization stays close to the healthy regime; ReLU with no rescaling explodes by similar factors. The y-axis is logarithmic — every grid line is a factor of ten.</p>
-<h3 id="44-solutions">4.4 Solutions</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Problem</th>
-          <th>Solution</th>
-          <th>How it helps</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Vanishing</td>
-          <td>ReLU activation</td>
-          <td>$\sigma'(z) = 1$ for $z>0$, no exponential decay.</td>
-      </tr>
-      <tr>
-          <td>Vanishing</td>
-          <td>Residual connections</td>
-          <td>$\mathbf{h}^{(l)} = \mathbf{h}^{(l-1)} + F(\mathbf{h}^{(l-1)})$ — the gradient has an <em>identity</em> path that bypasses the nonlinearities.</td>
-      </tr>
-      <tr>
-          <td>Vanishing</td>
-          <td>Batch normalization</td>
-          <td>Stabilises activation distributions layer by layer.</td>
-      </tr>
-      <tr>
-          <td>Exploding</td>
-          <td>Gradient clipping</td>
-          <td>Rescale $\mathbf{g}\!\leftarrow\!(c/\|\mathbf{g}\|)\,\mathbf{g}$ when $\|\mathbf{g}\| > c$.</td>
-      </tr>
-      <tr>
-          <td>Both</td>
-          <td>Proper initialization</td>
-          <td>Keep the variance of activations and gradients stable across layers (next section).</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="5-weight-initialization-strategies">5. Weight Initialization Strategies</h2>
-<h3 id="51-why-initialization-matters">5.1 Why Initialization Matters</h3>
-<ul>
-<li><strong>All zeros.</strong> Every neuron in a layer computes the same function and receives the same gradient; the network cannot break symmetry.</li>
-<li><strong>Too large.</strong> Pre-activations land in the saturating tails of the activation; gradients vanish.</li>
-<li><strong>Too small.</strong> Activations collapse toward zero; the signal disappears as it propagates forward.</li>
-</ul>
-<p>The goal is therefore to <em>preserve the variance of activations and gradients across layers</em>. The right scale is determined by the layer&rsquo;s fan-in and the activation function.</p>
-<h3 id="52-xavier-glorot-initialization">5.2 Xavier (Glorot) Initialization</h3>
-<p>Consider a single neuron in layer $l$ with fan-in $n_{\text{in}}$ and fan-out $n_{\text{out}}$:</p>
-$$
+$$<p>For sigmoid, $\sigma'(z)\leq 0.25$. If each weight matrix has spectral norm near $1$, the magnitude of the gradient at layer $1$ is roughly $0.25^{L-1}$. At depth $L=20$ that is about $3.6\times 10^{-12}$ — gradient updates are numerically zero, and the early layers stop learning.</p><h3 id=42-the-exploding-gradient-problem>4.2 The Exploding Gradient Problem</h3><p>Reverse the inequality: if the spectral norms of the weight matrices exceed $1$ and the activation derivatives are not strongly contracting, the same product <em>grows</em> exponentially. Numerical overflow follows in a few hundred steps. RNNs are notorious for this because the same weight matrix is multiplied $T$ times in unrolled time.</p><h3 id=43-reading-the-curves>4.3 Reading the Curves</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig6_vanishing_exploding.png alt="Vanishing vs. exploding gradients across depth" loading=lazy decoding=async></figure></p><p>The figure reproduces the effect numerically: a unit gradient signal is back-propagated through random networks of increasing depth. Sigmoid (Xavier-initialized) decays by orders of magnitude per layer; ReLU with He initialization stays close to the healthy regime; ReLU with no rescaling explodes by similar factors. The y-axis is logarithmic — every grid line is a factor of ten.</p><h3 id=44-solutions>4.4 Solutions</h3><table><thead><tr><th>Problem</th><th>Solution</th><th>How it helps</th></tr></thead><tbody><tr><td>Vanishing</td><td>ReLU activation</td><td>$\sigma'(z) = 1$ for $z>0$, no exponential decay.</td></tr><tr><td>Vanishing</td><td>Residual connections</td><td>$\mathbf{h}^{(l)} = \mathbf{h}^{(l-1)} + F(\mathbf{h}^{(l-1)})$ — the gradient has an <em>identity</em> path that bypasses the nonlinearities.</td></tr><tr><td>Vanishing</td><td>Batch normalization</td><td>Stabilises activation distributions layer by layer.</td></tr><tr><td>Exploding</td><td>Gradient clipping</td><td>Rescale $\mathbf{g}\!\leftarrow\!(c/\|\mathbf{g}\|)\,\mathbf{g}$ when $\|\mathbf{g}\| > c$.</td></tr><tr><td>Both</td><td>Proper initialization</td><td>Keep the variance of activations and gradients stable across layers (next section).</td></tr></tbody></table><hr><h2 id=5-weight-initialization-strategies>5. Weight Initialization Strategies</h2><h3 id=51-why-initialization-matters>5.1 Why Initialization Matters</h3><ul><li><strong>All zeros.</strong> Every neuron in a layer computes the same function and receives the same gradient; the network cannot break symmetry.</li><li><strong>Too large.</strong> Pre-activations land in the saturating tails of the activation; gradients vanish.</li><li><strong>Too small.</strong> Activations collapse toward zero; the signal disappears as it propagates forward.</li></ul><p>The goal is therefore to <em>preserve the variance of activations and gradients across layers</em>. The right scale is determined by the layer&rsquo;s fan-in and the activation function.</p><h3 id=52-xavier-glorot-initialization>5.2 Xavier (Glorot) Initialization</h3><p>Consider a single neuron in layer $l$ with fan-in $n_{\text{in}}$ and fan-out $n_{\text{out}}$:</p>$$
 z_j = \sum_{i=1}^{n_{\text{in}}} w_{ji}\, h_i.
-$$<p>If $w_{ji}$ and $h_i$ are independent with zero mean,</p>
-$$
+$$<p>If $w_{ji}$ and $h_i$ are independent with zero mean,</p>$$
 \operatorname{Var}(z_j) = n_{\text{in}}\cdot \operatorname{Var}(w)\cdot \operatorname{Var}(h).
-$$<p>Demanding $\operatorname{Var}(z) = \operatorname{Var}(h)$ on the <em>forward</em> pass gives $\operatorname{Var}(w) = 1/n_{\text{in}}$; the same analysis on the <em>backward</em> pass yields $\operatorname{Var}(w) = 1/n_{\text{out}}$. Glorot and Bengio (2010) compromise:</p>
-$$
+$$<p>Demanding $\operatorname{Var}(z) = \operatorname{Var}(h)$ on the <em>forward</em> pass gives $\operatorname{Var}(w) = 1/n_{\text{in}}$; the same analysis on the <em>backward</em> pass yields $\operatorname{Var}(w) = 1/n_{\text{out}}$. Glorot and Bengio (2010) compromise:</p>$$
 \operatorname{Var}(w) = \frac{2}{n_{\text{in}} + n_{\text{out}}}, \qquad w \sim \mathcal{U}\!\left(-\sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}},\; \sqrt{\tfrac{6}{n_{\text{in}}+n_{\text{out}}}}\right). \tag{8}
-$$<p>Best for <strong>sigmoid and tanh</strong> activations.</p>
-<h3 id="53-he-initialization">5.3 He Initialization</h3>
-<p>For ReLU, half of the units are zeroed out in expectation, halving the variance contribution of $h$. He et al. (2015) therefore scale up by a factor of two:</p>
-$$
+$$<p>Best for <strong>sigmoid and tanh</strong> activations.</p><h3 id=53-he-initialization>5.3 He Initialization</h3><p>For ReLU, half of the units are zeroed out in expectation, halving the variance contribution of $h$. He et al. (2015) therefore scale up by a factor of two:</p>$$
 \operatorname{Var}(w) = \frac{2}{n_{\text{in}}}, \qquad w \sim \mathcal{N}\!\left(0,\, \tfrac{2}{n_{\text{in}}}\right). \tag{9}
-$$<p>Best for <strong>ReLU and its variants</strong>.</p>
-<h3 id="54-summary-table">5.4 Summary Table</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Activation</th>
-          <th>Initialization</th>
-          <th>$\operatorname{Var}(w)$</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Sigmoid / Tanh</td>
-          <td>Xavier</td>
-          <td>$\dfrac{2}{n_{\text{in}} + n_{\text{out}}}$</td>
-      </tr>
-      <tr>
-          <td>ReLU</td>
-          <td>He</td>
-          <td>$\dfrac{2}{n_{\text{in}}}$</td>
-      </tr>
-      <tr>
-          <td>Leaky ReLU ($\alpha$)</td>
-          <td>He (modified)</td>
-          <td>$\dfrac{2}{(1 + \alpha^{2})\, n_{\text{in}}}$</td>
-      </tr>
-  </tbody>
-</table>
-<p>The middle column of the gradient figure above is a direct experimental confirmation: the green curve (ReLU + He) is the only one that stays near order $1$ regardless of depth.</p>
-<hr>
-<h2 id="6-the-loss-landscape">6. The Loss Landscape</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig7_loss_landscape.png" alt="Non-convex loss landscape with a SGD trajectory" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Even a tiny network has a loss surface that is sharply non-convex: two deep basins, a saddle, and a small ridge. The figure traces SGD from a poor initialization. Two qualitative facts deserve emphasis:</p>
-<ol>
-<li><strong>Most local minima are good enough.</strong> As networks become wider, the minima of the empirical loss tend to lie in flat basins of comparable depth (Choromanska et al., 2015). The intuition that we must find the <em>global</em> minimum is a holdover from convex optimization that does not transfer.</li>
-<li><strong>Saddle points dominate critical points in high dimensions.</strong> In $\mathbb{R}^d$, the probability that all $d$ Hessian eigenvalues have the same sign at a random critical point is exponentially small. SGD&rsquo;s noise actively helps escape these saddles (Dauphin et al., 2014).</li>
-</ol>
-<p>These two observations explain why simple first-order methods continue to dominate deep learning despite the lack of convexity guarantees.</p>
-<hr>
-<h2 id="7-exercises">7. Exercises</h2>
-<p><strong>Exercise 1 — Chain rule.</strong> For $y = \sigma(wx + b)$ with $\sigma(z) = 1/(1+e^{-z})$, find $\partial y/\partial w$.</p>
-<blockquote>
-<p><strong>Solution.</strong> $\partial y/\partial w = \sigma'(z)\,x = \sigma(z)\bigl(1 - \sigma(z)\bigr)\,x$.</p>
-</blockquote>
-<p><strong>Exercise 2 — Vanishing gradient.</strong> Why does sigmoid cause vanishing gradients but ReLU does not?</p>
-<blockquote>
-<p><strong>Solution.</strong> $\sigma'(z)\leq 0.25$ uniformly, so over $L$ layers the gradient is multiplied by at most $0.25^{L}$, which decays exponentially. ReLU has $\sigma'(z) = 1$ in the active region, so no exponential decay occurs.</p>
-</blockquote>
-<p><strong>Exercise 3 — Batch normalization.</strong> How does BatchNorm help training?</p>
-<blockquote>
-<p><strong>Solution.</strong> It re-centres and re-scales each layer&rsquo;s pre-activations to roughly zero mean and unit variance. This stabilises gradient magnitudes, allowing larger learning rates, and the mini-batch noise acts as a mild regularizer.</p>
-</blockquote>
-<p><strong>Exercise 4 — Dropout at test time.</strong> Training uses dropout with $p = 0.5$. What changes at test time?</p>
-<blockquote>
-<p><strong>Solution.</strong> Keep all neurons active and multiply weights by $(1 - p) = 0.5$ to preserve the expected output. Most modern libraries use <em>inverted dropout</em>: divide activations by $(1-p)$ during training so test-time inference needs no adjustment.</p>
-</blockquote>
-<p><strong>Exercise 5 — Xavier.</strong> Why does Xavier use $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$?</p>
-<blockquote>
-<p><strong>Solution.</strong> Variance preservation on the forward pass requires $n_{\text{in}}\operatorname{Var}(w) = 1$; preservation on the backward pass requires $n_{\text{out}}\operatorname{Var}(w) = 1$. The harmonic-style compromise $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$ approximately satisfies both.</p>
-</blockquote>
-<hr>
-<h2 id="references">References</h2>
-<p>[1] Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. <em>Psychological Review</em>, 65(6), 386–408.</p>
-<p>[2] Rumelhart, D. E., Hinton, G. E., &amp; Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature</em>, 323(6088), 533–536.</p>
-<p>[3] Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems</em>, 2(4), 303–314.</p>
-<p>[4] Hornik, K. (1991). Approximation capabilities of multilayer feedforward networks. <em>Neural Networks</em>, 4(2), 251–257.</p>
-<p>[5] Glorot, X., &amp; Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. <em>AISTATS</em>, 249–256.</p>
-<p>[6] He, K., Zhang, X., Ren, S., &amp; Sun, J. (2015). Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification. <em>ICCV</em>, 1026–1034.</p>
-<p>[7] Ioffe, S., &amp; Szegedy, C. (2015). Batch normalization: Accelerating deep network training by reducing internal covariate shift. <em>ICML</em>, 448–456.</p>
-<p>[8] Dauphin, Y., Pascanu, R., Gulcehre, C., Cho, K., Ganguli, S., &amp; Bengio, Y. (2014). Identifying and attacking the saddle point problem in high-dimensional non-convex optimization. <em>NeurIPS</em>.</p>
-<p>[9] Choromanska, A., Henaff, M., Mathieu, M., Ben Arous, G., &amp; LeCun, Y. (2015). The loss surfaces of multilayer networks. <em>AISTATS</em>.</p>
-<p>[10] Telgarsky, M. (2016). Benefits of depth in neural networks. <em>COLT</em>.</p>
-<p>[11] Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>. MIT Press. Ch. 6.</p>
-<hr>
-<p><em>This is Part 19 of the <a href="/tags/Mathematical-Derivations/">ML Mathematical Derivations</a>
- series. Next: <a href="/en/Machine-Learning-Mathematical-Derivations-20-Regularization-and-Model-Selection/">Part 20 — Regularization and Model Selection</a>
-. Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-18-Clustering-Algorithms/">Part 18 — Clustering Algorithms</a>
-.</em></p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-this-article-covers">What This Article Covers</a></li>
-    <li><a href="#1-the-perceptron-where-it-all-starts">1. The Perceptron: Where It All Starts</a>
-      <ul>
-        <li><a href="#11-model">1.1 Model</a></li>
-        <li><a href="#12-learning-algorithm">1.2 Learning Algorithm</a></li>
-        <li><a href="#13-convergence-theorem">1.3 Convergence Theorem</a></li>
-        <li><a href="#14-the-xor-problem">1.4 The XOR Problem</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-multilayer-networks-and-forward-propagation">2. Multilayer Networks and Forward Propagation</a>
-      <ul>
-        <li><a href="#21-architecture">2.1 Architecture</a></li>
-        <li><a href="#22-forward-pass-matrix-form">2.2 Forward Pass (Matrix Form)</a></li>
-        <li><a href="#23-activation-functions">2.3 Activation Functions</a></li>
-        <li><a href="#24-universal-approximation-theorem">2.4 Universal Approximation Theorem</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-backpropagation-the-chain-rule-at-scale">3. Backpropagation: The Chain Rule at Scale</a>
-      <ul>
-        <li><a href="#31-loss-functions">3.1 Loss Functions</a></li>
-        <li><a href="#32-the-key-idea">3.2 The Key Idea</a></li>
-        <li><a href="#33-deriving-the-error-signal">3.3 Deriving the Error Signal</a></li>
-        <li><a href="#34-parameter-gradients">3.4 Parameter Gradients</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-vanishing-and-exploding-gradients">4. Vanishing and Exploding Gradients</a>
-      <ul>
-        <li><a href="#41-the-vanishing-gradient-problem">4.1 The Vanishing Gradient Problem</a></li>
-        <li><a href="#42-the-exploding-gradient-problem">4.2 The Exploding Gradient Problem</a></li>
-        <li><a href="#43-reading-the-curves">4.3 Reading the Curves</a></li>
-        <li><a href="#44-solutions">4.4 Solutions</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-weight-initialization-strategies">5. Weight Initialization Strategies</a>
-      <ul>
-        <li><a href="#51-why-initialization-matters">5.1 Why Initialization Matters</a></li>
-        <li><a href="#52-xavier-glorot-initialization">5.2 Xavier (Glorot) Initialization</a></li>
-        <li><a href="#53-he-initialization">5.3 He Initialization</a></li>
-        <li><a href="#54-summary-table">5.4 Summary Table</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-the-loss-landscape">6. The Loss Landscape</a></li>
-    <li><a href="#7-exercises">7. Exercises</a></li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>12 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2400</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>Best for <strong>ReLU and its variants</strong>.</p><h3 id=54-summary-table>5.4 Summary Table</h3><table><thead><tr><th>Activation</th><th>Initialization</th><th>$\operatorname{Var}(w)$</th></tr></thead><tbody><tr><td>Sigmoid / Tanh</td><td>Xavier</td><td>$\dfrac{2}{n_{\text{in}} + n_{\text{out}}}$</td></tr><tr><td>ReLU</td><td>He</td><td>$\dfrac{2}{n_{\text{in}}}$</td></tr><tr><td>Leaky ReLU ($\alpha$)</td><td>He (modified)</td><td>$\dfrac{2}{(1 + \alpha^{2})\, n_{\text{in}}}$</td></tr></tbody></table><p>The middle column of the gradient figure above is a direct experimental confirmation: the green curve (ReLU + He) is the only one that stays near order $1$ regardless of depth.</p><hr><h2 id=6-the-loss-landscape>6. The Loss Landscape</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/19-Neural-Networks-and-Backpropagation/fig7_loss_landscape.png alt="Non-convex loss landscape with a SGD trajectory" loading=lazy decoding=async></figure></p><p>Even a tiny network has a loss surface that is sharply non-convex: two deep basins, a saddle, and a small ridge. The figure traces SGD from a poor initialization. Two qualitative facts deserve emphasis:</p><ol><li><strong>Most local minima are good enough.</strong> As networks become wider, the minima of the empirical loss tend to lie in flat basins of comparable depth (Choromanska et al., 2015). The intuition that we must find the <em>global</em> minimum is a holdover from convex optimization that does not transfer.</li><li><strong>Saddle points dominate critical points in high dimensions.</strong> In $\mathbb{R}^d$, the probability that all $d$ Hessian eigenvalues have the same sign at a random critical point is exponentially small. SGD&rsquo;s noise actively helps escape these saddles (Dauphin et al., 2014).</li></ol><p>These two observations explain why simple first-order methods continue to dominate deep learning despite the lack of convexity guarantees.</p><hr><h2 id=7-exercises>7. Exercises</h2><p><strong>Exercise 1 — Chain rule.</strong> For $y = \sigma(wx + b)$ with $\sigma(z) = 1/(1+e^{-z})$, find $\partial y/\partial w$.</p><blockquote><p><strong>Solution.</strong> $\partial y/\partial w = \sigma'(z)\,x = \sigma(z)\bigl(1 - \sigma(z)\bigr)\,x$.</p></blockquote><p><strong>Exercise 2 — Vanishing gradient.</strong> Why does sigmoid cause vanishing gradients but ReLU does not?</p><blockquote><p><strong>Solution.</strong> $\sigma'(z)\leq 0.25$ uniformly, so over $L$ layers the gradient is multiplied by at most $0.25^{L}$, which decays exponentially. ReLU has $\sigma'(z) = 1$ in the active region, so no exponential decay occurs.</p></blockquote><p><strong>Exercise 3 — Batch normalization.</strong> How does BatchNorm help training?</p><blockquote><p><strong>Solution.</strong> It re-centres and re-scales each layer&rsquo;s pre-activations to roughly zero mean and unit variance. This stabilises gradient magnitudes, allowing larger learning rates, and the mini-batch noise acts as a mild regularizer.</p></blockquote><p><strong>Exercise 4 — Dropout at test time.</strong> Training uses dropout with $p = 0.5$. What changes at test time?</p><blockquote><p><strong>Solution.</strong> Keep all neurons active and multiply weights by $(1 - p) = 0.5$ to preserve the expected output. Most modern libraries use <em>inverted dropout</em>: divide activations by $(1-p)$ during training so test-time inference needs no adjustment.</p></blockquote><p><strong>Exercise 5 — Xavier.</strong> Why does Xavier use $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$?</p><blockquote><p><strong>Solution.</strong> Variance preservation on the forward pass requires $n_{\text{in}}\operatorname{Var}(w) = 1$; preservation on the backward pass requires $n_{\text{out}}\operatorname{Var}(w) = 1$. The harmonic-style compromise $\operatorname{Var}(w) = 2/(n_{\text{in}} + n_{\text{out}})$ approximately satisfies both.</p></blockquote><hr><h2 id=references>References</h2><p>[1] Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. <em>Psychological Review</em>, 65(6), 386–408.</p><p>[2] Rumelhart, D. E., Hinton, G. E., & Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature</em>, 323(6088), 533–536.</p><p>[3] Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems</em>, 2(4), 303–314.</p><p>[4] Hornik, K. (1991). Approximation capabilities of multilayer feedforward networks. <em>Neural Networks</em>, 4(2), 251–257.</p><p>[5] Glorot, X., & Bengio, Y. (2010). Understanding the difficulty of training deep feedforward neural networks. <em>AISTATS</em>, 249–256.</p><p>[6] He, K., Zhang, X., Ren, S., & Sun, J. (2015). Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification. <em>ICCV</em>, 1026–1034.</p><p>[7] Ioffe, S., & Szegedy, C. (2015). Batch normalization: Accelerating deep network training by reducing internal covariate shift. <em>ICML</em>, 448–456.</p><p>[8] Dauphin, Y., Pascanu, R., Gulcehre, C., Cho, K., Ganguli, S., & Bengio, Y. (2014). Identifying and attacking the saddle point problem in high-dimensional non-convex optimization. <em>NeurIPS</em>.</p><p>[9] Choromanska, A., Henaff, M., Mathieu, M., Ben Arous, G., & LeCun, Y. (2015). The loss surfaces of multilayer networks. <em>AISTATS</em>.</p><p>[10] Telgarsky, M. (2016). Benefits of depth in neural networks. <em>COLT</em>.</p><p>[11] Goodfellow, I., Bengio, Y., & Courville, A. (2016). <em>Deep Learning</em>. MIT Press. Ch. 6.</p><hr><p><em>This is Part 19 of the <a href=/tags/Mathematical-Derivations/>ML Mathematical Derivations</a>
+series. Next: <a href=/en/Machine-Learning-Mathematical-Derivations-20-Regularization-and-Model-Selection/>Part 20 — Regularization and Model Selection</a>
+. Previous: <a href=/en/Machine-Learning-Mathematical-Derivations-18-Clustering-Algorithms/>Part 18 — Clustering Algorithms</a>
+.</em></p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-this-article-covers>What This Article Covers</a></li><li><a href=#1-the-perceptron-where-it-all-starts>1. The Perceptron: Where It All Starts</a><ul><li><a href=#11-model>1.1 Model</a></li><li><a href=#12-learning-algorithm>1.2 Learning Algorithm</a></li><li><a href=#13-convergence-theorem>1.3 Convergence Theorem</a></li><li><a href=#14-the-xor-problem>1.4 The XOR Problem</a></li></ul></li><li><a href=#2-multilayer-networks-and-forward-propagation>2. Multilayer Networks and Forward Propagation</a><ul><li><a href=#21-architecture>2.1 Architecture</a></li><li><a href=#22-forward-pass-matrix-form>2.2 Forward Pass (Matrix Form)</a></li><li><a href=#23-activation-functions>2.3 Activation Functions</a></li><li><a href=#24-universal-approximation-theorem>2.4 Universal Approximation Theorem</a></li></ul></li><li><a href=#3-backpropagation-the-chain-rule-at-scale>3. Backpropagation: The Chain Rule at Scale</a><ul><li><a href=#31-loss-functions>3.1 Loss Functions</a></li><li><a href=#32-the-key-idea>3.2 The Key Idea</a></li><li><a href=#33-deriving-the-error-signal>3.3 Deriving the Error Signal</a></li><li><a href=#34-parameter-gradients>3.4 Parameter Gradients</a></li></ul></li><li><a href=#4-vanishing-and-exploding-gradients>4. Vanishing and Exploding Gradients</a><ul><li><a href=#41-the-vanishing-gradient-problem>4.1 The Vanishing Gradient Problem</a></li><li><a href=#42-the-exploding-gradient-problem>4.2 The Exploding Gradient Problem</a></li><li><a href=#43-reading-the-curves>4.3 Reading the Curves</a></li><li><a href=#44-solutions>4.4 Solutions</a></li></ul></li><li><a href=#5-weight-initialization-strategies>5. Weight Initialization Strategies</a><ul><li><a href=#51-why-initialization-matters>5.1 Why Initialization Matters</a></li><li><a href=#52-xavier-glorot-initialization>5.2 Xavier (Glorot) Initialization</a></li><li><a href=#53-he-initialization>5.3 He Initialization</a></li><li><a href=#54-summary-table>5.4 Summary Table</a></li></ul></li><li><a href=#6-the-loss-landscape>6. The Loss Landscape</a></li><li><a href=#7-exercises>7. Exercises</a></li><li><a href=#references>References</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>12 min</strong></div><div class=row><span>Word count</span><strong>2361</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

@@ -1,780 +1,401 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search · Chen Kai Blog</title>
-<meta name="description" content="From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search">
-<meta property="og:description" content="From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku.">
-<meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Reinforcement Learning</a>
-         · Chapter 8
-      </div>
-      <h1>Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search</h1>
-      <p class="deck">From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-09-05">September 5, 2025</time> · 15 min read · 3000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/reinforcement-learning/" class="tag">#Reinforcement Learning</a><a href="/en/tags/alphago/" class="tag">#AlphaGo</a><a href="/en/tags/mcts/" class="tag">#MCTS</a><a href="/en/tags/alphazero/" class="tag">#AlphaZero</a><a href="/en/tags/muzero/" class="tag">#MuZero</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>In March 2016, AlphaGo defeated world Go champion Lee Sedol 4–1 in Seoul. The result was not just a sporting upset; it was the moment a 60-year programme in artificial intelligence — beating the world&rsquo;s best at Go — concluded a full decade ahead of most published predictions. Go has roughly $10^{170}$ legal positions, more than the number of atoms in the observable universe. No amount of brute-force search will ever crack it. AlphaGo&rsquo;s victory came from a different idea: let a deep network supply the <em>intuition</em> about which moves look promising, and let Monte Carlo Tree Search (MCTS) supply the <em>deliberation</em> that verifies and sharpens that intuition.</p>
-<p>Eighteen months later, AlphaGo Zero learned the game from nothing but the rules and three days of self-play, and crushed the Lee-Sedol version 100–0. AlphaZero generalised the same recipe to chess and shogi. MuZero went further and learned the rules themselves. This chapter traces the full evolution — the algorithm, the mathematics, and a working implementation you can actually train.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li><strong>MCTS Foundations</strong>: the four-phase loop, UCT exploration–exploitation balance, asymptotic optimality</li>
-<li><strong>AlphaGo (2016)</strong>: three-stage training (SL policy, RL policy, value network) and how MCTS fuses them</li>
-<li><strong>AlphaGo Zero (2017)</strong>: self-play from scratch, a single dual-head network, no rollouts</li>
-<li><strong>AlphaZero (2017)</strong>: the same algorithm applied to chess, shogi, and Go</li>
-<li><strong>MuZero (2019)</strong>: planning in a <em>learned</em> latent space without environment rules</li>
-<li><strong>Complete code</strong>: AlphaZero for Gomoku — environment, network, MCTS, and self-play loop</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Deep RL fundamentals (policy gradients, value functions) — see <a href="/en/reinforcement-learning-3-policy-gradient-and-actor-critic/">Part 3</a>
-</li>
-<li>Convolutional neural networks</li>
-<li>Game trees are helpful but not assumed</li>
-</ul>
-<hr>
-<h2 id="1-monte-carlo-tree-search">1. Monte Carlo Tree Search</h2>
-<p>Classical game-tree search (minimax + alpha–beta) needs an evaluation function and a manageable branching factor. Chess has both. Go has neither: branching factor around 250, no concise evaluation function, no useful heuristics. MCTS sidesteps this by <em>sampling</em> rather than enumerating, and by <em>focusing</em> its samples on the most promising parts of the tree.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig1_mcts_four_phases.png" alt="MCTS Four Phases" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A single MCTS <em>simulation</em> repeats four phases:</p>
-<ol>
-<li><strong>Selection</strong> — starting from the root, walk down the tree by repeatedly choosing the child that maximises a search criterion (UCT, below). Stop on reaching a node that has at least one untried action — a <em>leaf</em> of the current tree, not necessarily of the game.</li>
-<li><strong>Expansion</strong> — pick one untried action at the leaf and add the resulting state as a new child.</li>
-<li><strong>Simulation (rollout)</strong> — from the new child, play the game out to a terminal state using a fast policy: random in vanilla MCTS, a small network in classical AlphaGo, replaced entirely by a value network in AlphaGo Zero.</li>
-<li><strong>Backpropagation</strong> — propagate the outcome up the path, incrementing visit counts $N$ and accumulating values $W$ at every node touched.</li>
-</ol>
-<p>After a fixed simulation budget (AlphaGo Zero uses 800 per move), the algorithm returns the action whose root child has the most visits — <em>not</em> the highest mean value. Visit count is a more robust statistic because it integrates the search&rsquo;s own self-correction.</p>
-<h3 id="11-uct-balancing-exploration-and-exploitation">1.1 UCT: balancing exploration and exploitation</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig2_ucb_exploration.png" alt="UCB1 Exploration and Exploitation" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The selection rule is the <em>Upper Confidence bound for Trees</em> (UCT), Kocsis &amp; Szepesvári (2006). At a node $s$, choose the child action $a$ that maximises</p>
-$$\text{UCT}(s, a) = \underbrace{\frac{W(s, a)}{N(s, a)}}_{\text{exploitation}} \;+\; \underbrace{c \sqrt{\frac{\ln N(s)}{N(s, a)}}}_{\text{exploration}}.$$<p>The first term is the empirical mean value — a node that has won often gets visited more. The second is an Auer–Cesa-Bianchi–Fischer confidence bound: small visit counts inflate it, encouraging the search to <em>try</em> less-visited children. As $N(s,a) \to \infty$ the bonus shrinks, and the rule converges to greedy exploitation. UCT is <strong>asymptotically optimal</strong>: in the limit of infinite simulations the visit distribution concentrates on the optimal action.</p>
-<p>In AlphaGo&rsquo;s PUCT variant the bonus is also weighted by the network&rsquo;s prior $p(a\mid s)$:</p>
-$$\text{PUCT}(s, a) = Q(s, a) \;+\; c_{\text{puct}} \cdot p(a \mid s) \cdot \frac{\sqrt{N(s)}}{1 + N(s, a)}.$$<p>The prior tells the search <em>where to look first</em>; the visit count tells it <em>where to stop looking</em>.</p>
-<hr>
-<h2 id="2-alphago-2016-networks-meet-search">2. AlphaGo (2016): Networks Meet Search</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig3_alphago_architecture.png" alt="AlphaGo Architecture" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The original AlphaGo trained in three stages:</p>
-<p><strong>Stage 1 — Supervised policy $p_\sigma$.</strong> A 13-layer CNN was trained on 30 million positions from KGS expert games to predict the human move. It reached 57% top-1 accuracy and was the first big jump over prior work (~44%).</p>
-<p><strong>Stage 2 — RL policy $p_\rho$.</strong> Initialise $p_\rho \leftarrow p_\sigma$, then improve via REINFORCE-style self-play against an opponent randomly sampled from earlier checkpoints. The RL policy beat the SL policy 80% of the time. <em>But</em> — and this is the surprise — using $p_\rho$ inside MCTS hurt: it had collapsed onto a few stylistic preferences and lost the diversity that gives the search useful priors. Production AlphaGo therefore used $p_\sigma$ for priors.</p>
-<p><strong>Stage 3 — Value network $v_\theta$.</strong> A separate CNN was regressed on game outcomes. To avoid overfitting from highly correlated within-game positions, only <em>one</em> position per self-play game was used, yielding 30 M independent (state, outcome) pairs.</p>
-<p>At play time, MCTS combined the two networks. The leaf evaluation mixed the value-network estimate with a fast random rollout:</p>
-$$V(s_L) \;=\; (1 - \lambda)\, v_\theta(s_L) \;+\; \lambda\, z_L, \qquad \lambda = 0.5.$$<p>Why mix at all? In 2016 the value network was strong but not perfect — rollouts averaged out its systematic errors. By 2017 networks had improved enough that the rollout term hurt more than it helped, and AlphaGo Zero dropped it entirely.</p>
-<hr>
-<h2 id="3-alphago-zero-2017-tabula-rasa">3. AlphaGo Zero (2017): Tabula Rasa</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig4_zero_self_play_loop.png" alt="AlphaGo Zero Self-Play Loop" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>AlphaGo Zero is the same idea, <em>simpler</em>. Three changes — each of which would have looked dangerous on its own:</p>
-<ol>
-<li><strong>No human data.</strong> The agent starts from random initialisation and learns from self-play only. Every previous move-prediction system above 50% accuracy was thrown away.</li>
-<li><strong>Single dual-head network</strong> $f_\theta(s) = (\mathbf{p}, v)$. One residual tower with two heads — a policy head outputting a distribution over moves and a scalar value head — replaces the policy and value networks of AlphaGo.</li>
-<li><strong>No rollouts.</strong> The leaf is evaluated <em>only</em> by the value head. The fast rollout policy is gone.</li>
-</ol>
-<p>The training loop is a tight closed cycle (see figure):</p>
-<ol>
-<li><strong>Self-play.</strong> The current best network plays against itself with MCTS (800 simulations per move), producing trajectories of $(s_t, \boldsymbol{\pi}_t, z_T)$ where $\boldsymbol{\pi}_t$ is the <em>MCTS visit-count distribution</em> (a sharper, slower target than the raw network policy) and $z_T \in \{-1, +1\}$ is the final game result from the player-to-move&rsquo;s perspective.</li>
-<li><strong>Train.</strong> Update $\theta$ by minimising $\mathcal{L}(\theta) \;=\; (z - v)^2 \;-\; \boldsymbol{\pi}^\top \log \mathbf{p} \;+\; c\,\|\theta\|^2,$ a squared-error value loss, a cross-entropy policy loss, and weight decay.</li>
-<li><strong>Evaluate.</strong> A new network challenges the current best. Only if it wins more than 55% of 400 games does it become the new generator of self-play games.</li>
-</ol>
-<p>The genius is in the <em>labels</em>. The MCTS visit distribution $\boldsymbol{\pi}$ is <em>strictly better than the raw network policy that produced it</em> — search has refined the priors. Training $\mathbf{p}$ to imitate $\boldsymbol{\pi}$ distils the search&rsquo;s improvement back into the network. This is policy iteration where the policy improvement step is MCTS itself. Each new network plays self-play that yields targets a little stronger than itself. The process bootstraps without external supervision because the <em>opponent improves at the same rate as the learner</em> — automatic curriculum learning.</p>
-<p>After <strong>3 days</strong> of training on 4 TPUs, AlphaGo Zero defeated the Lee-Sedol AlphaGo 100–0. After 40 days it surpassed AlphaGo Master, the version that had beaten Ke Jie.</p>
-<hr>
-<h2 id="4-alphazero-and-muzero">4. AlphaZero and MuZero</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig5_evolution_timeline.png" alt="Algorithm Evolution Timeline" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>AlphaZero</strong> (Dec 2017) showed that the AlphaGo Zero algorithm was not Go-specific. With only the game-specific state encoding swapped out — and a few tweaks: no win-rate gating between generations, draws allowed (chess has many) — the same code beat Stockfish 8 in chess (28 wins, 0 losses, 72 draws) and Elmo in shogi after roughly <strong>9 hours</strong> of training on TPUs. It also beat AlphaGo Zero at Go.</p>
-<p><strong>MuZero</strong> (Nov 2019) went one step further: drop the requirement that the agent know the rules of the game. MuZero learns three functions jointly:</p>
-<ul>
-<li><strong>Representation</strong> $h_\theta : o_{\le t} \mapsto s_t^0$ — encodes observation history into an initial hidden state.</li>
-<li><strong>Dynamics</strong> $g_\theta : (s_t^k, a_{t+k}) \mapsto (s_t^{k+1}, r_t^{k+1})$ — predicts next hidden state and reward.</li>
-<li><strong>Prediction</strong> $f_\theta : s_t^k \mapsto (\mathbf{p}_t^k, v_t^k)$ — predicts policy and value.</li>
-</ul>
-<p>MCTS unfolds entirely in <strong>latent space</strong>. There is no environment simulator inside the search — only the learned dynamics function. The hidden state is not required to reconstruct the observation; it only has to be useful for predicting <em>reward, value, and policy</em>. With this looser objective, MuZero matches AlphaZero on board games and surpasses model-free methods (R2D2, Ape-X) on Atari, where no rule-based simulator exists.</p>
-<h3 id="41-elo-over-time">4.1 Elo over time</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig6_elo_progression.png" alt="Elo Progression" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The left panel compares peak Elo across the family. The right panel shows Zero&rsquo;s training trajectory: it surpasses the Lee-Sedol version after 3 days, AlphaGo Master after about 21 days, and saturates near 5200 Elo. For context, 9-dan human professionals are around 3500–3700.</p>
-<h3 id="42-how-much-does-search-actually-help">4.2 How much does search actually help?</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig7_search_vs_strength.png" alt="Search Budget vs Strength" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Search and the network are complementary — the network produces priors; search refines them. The left panel shows that doubling MCTS simulations adds roughly constant Elo (a logarithmic relationship), with no plateau in sight up to 12 800 simulations. The right panel shows the multiplicative gain from neural priors: vanilla MCTS with random rollouts saturates much earlier than MCTS guided by a network. Each component is needed; neither alone is competitive.</p>
-<hr>
-<h2 id="5-complete-implementation-alphazero-for-gomoku">5. Complete Implementation: AlphaZero for Gomoku</h2>
-<p>Gomoku (&ldquo;five in a row&rdquo;) on a 9×9 board is a useful test bed: rules fit in 30 lines, branching factor is around 60, and decent play emerges from a few thousand self-play games on a single GPU.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">  1
-</span><span class="lnt">  2
-</span><span class="lnt">  3
-</span><span class="lnt">  4
-</span><span class="lnt">  5
-</span><span class="lnt">  6
-</span><span class="lnt">  7
-</span><span class="lnt">  8
-</span><span class="lnt">  9
-</span><span class="lnt"> 10
-</span><span class="lnt"> 11
-</span><span class="lnt"> 12
-</span><span class="lnt"> 13
-</span><span class="lnt"> 14
-</span><span class="lnt"> 15
-</span><span class="lnt"> 16
-</span><span class="lnt"> 17
-</span><span class="lnt"> 18
-</span><span class="lnt"> 19
-</span><span class="lnt"> 20
-</span><span class="lnt"> 21
-</span><span class="lnt"> 22
-</span><span class="lnt"> 23
-</span><span class="lnt"> 24
-</span><span class="lnt"> 25
-</span><span class="lnt"> 26
-</span><span class="lnt"> 27
-</span><span class="lnt"> 28
-</span><span class="lnt"> 29
-</span><span class="lnt"> 30
-</span><span class="lnt"> 31
-</span><span class="lnt"> 32
-</span><span class="lnt"> 33
-</span><span class="lnt"> 34
-</span><span class="lnt"> 35
-</span><span class="lnt"> 36
-</span><span class="lnt"> 37
-</span><span class="lnt"> 38
-</span><span class="lnt"> 39
-</span><span class="lnt"> 40
-</span><span class="lnt"> 41
-</span><span class="lnt"> 42
-</span><span class="lnt"> 43
-</span><span class="lnt"> 44
-</span><span class="lnt"> 45
-</span><span class="lnt"> 46
-</span><span class="lnt"> 47
-</span><span class="lnt"> 48
-</span><span class="lnt"> 49
-</span><span class="lnt"> 50
-</span><span class="lnt"> 51
-</span><span class="lnt"> 52
-</span><span class="lnt"> 53
-</span><span class="lnt"> 54
-</span><span class="lnt"> 55
-</span><span class="lnt"> 56
-</span><span class="lnt"> 57
-</span><span class="lnt"> 58
-</span><span class="lnt"> 59
-</span><span class="lnt"> 60
-</span><span class="lnt"> 61
-</span><span class="lnt"> 62
-</span><span class="lnt"> 63
-</span><span class="lnt"> 64
-</span><span class="lnt"> 65
-</span><span class="lnt"> 66
-</span><span class="lnt"> 67
-</span><span class="lnt"> 68
-</span><span class="lnt"> 69
-</span><span class="lnt"> 70
-</span><span class="lnt"> 71
-</span><span class="lnt"> 72
-</span><span class="lnt"> 73
-</span><span class="lnt"> 74
-</span><span class="lnt"> 75
-</span><span class="lnt"> 76
-</span><span class="lnt"> 77
-</span><span class="lnt"> 78
-</span><span class="lnt"> 79
-</span><span class="lnt"> 80
-</span><span class="lnt"> 81
-</span><span class="lnt"> 82
-</span><span class="lnt"> 83
-</span><span class="lnt"> 84
-</span><span class="lnt"> 85
-</span><span class="lnt"> 86
-</span><span class="lnt"> 87
-</span><span class="lnt"> 88
-</span><span class="lnt"> 89
-</span><span class="lnt"> 90
-</span><span class="lnt"> 91
-</span><span class="lnt"> 92
-</span><span class="lnt"> 93
-</span><span class="lnt"> 94
-</span><span class="lnt"> 95
-</span><span class="lnt"> 96
-</span><span class="lnt"> 97
-</span><span class="lnt"> 98
-</span><span class="lnt"> 99
-</span><span class="lnt">100
-</span><span class="lnt">101
-</span><span class="lnt">102
-</span><span class="lnt">103
-</span><span class="lnt">104
-</span><span class="lnt">105
-</span><span class="lnt">106
-</span><span class="lnt">107
-</span><span class="lnt">108
-</span><span class="lnt">109
-</span><span class="lnt">110
-</span><span class="lnt">111
-</span><span class="lnt">112
-</span><span class="lnt">113
-</span><span class="lnt">114
-</span><span class="lnt">115
-</span><span class="lnt">116
-</span><span class="lnt">117
-</span><span class="lnt">118
-</span><span class="lnt">119
-</span><span class="lnt">120
-</span><span class="lnt">121
-</span><span class="lnt">122
-</span><span class="lnt">123
-</span><span class="lnt">124
-</span><span class="lnt">125
-</span><span class="lnt">126
-</span><span class="lnt">127
-</span><span class="lnt">128
-</span><span class="lnt">129
-</span><span class="lnt">130
-</span><span class="lnt">131
-</span><span class="lnt">132
-</span><span class="lnt">133
-</span><span class="lnt">134
-</span><span class="lnt">135
-</span><span class="lnt">136
-</span><span class="lnt">137
-</span><span class="lnt">138
-</span><span class="lnt">139
-</span><span class="lnt">140
-</span><span class="lnt">141
-</span><span class="lnt">142
-</span><span class="lnt">143
-</span><span class="lnt">144
-</span><span class="lnt">145
-</span><span class="lnt">146
-</span><span class="lnt">147
-</span><span class="lnt">148
-</span><span class="lnt">149
-</span><span class="lnt">150
-</span><span class="lnt">151
-</span><span class="lnt">152
-</span><span class="lnt">153
-</span><span class="lnt">154
-</span><span class="lnt">155
-</span><span class="lnt">156
-</span><span class="lnt">157
-</span><span class="lnt">158
-</span><span class="lnt">159
-</span><span class="lnt">160
-</span><span class="lnt">161
-</span><span class="lnt">162
-</span><span class="lnt">163
-</span><span class="lnt">164
-</span><span class="lnt">165
-</span><span class="lnt">166
-</span><span class="lnt">167
-</span><span class="lnt">168
-</span><span class="lnt">169
-</span><span class="lnt">170
-</span><span class="lnt">171
-</span><span class="lnt">172
-</span><span class="lnt">173
-</span><span class="lnt">174
-</span><span class="lnt">175
-</span><span class="lnt">176
-</span><span class="lnt">177
-</span><span class="lnt">178
-</span><span class="lnt">179
-</span><span class="lnt">180
-</span><span class="lnt">181
-</span><span class="lnt">182
-</span><span class="lnt">183
-</span><span class="lnt">184
-</span><span class="lnt">185
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">random</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">GomokuEnv</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">9</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">current_player</span> <span class="o">=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">winner</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 3-channel state: own stones, opponent stones, side-to-move plane</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_player</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">==</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">current_player</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_player</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">state</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">legal_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="p">[</span><span class="n">action</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_player</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_win</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">winner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_player</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_state</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">winner</span><span class="p">,</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">legal_actions</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_state</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">current_player</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_state</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_check_win</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_move</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">directions</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">        <span class="n">player</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="p">[</span><span class="n">last_move</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">dr</span><span class="p">,</span> <span class="n">dc</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">sign</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">last_move</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">dr</span><span class="p">,</span> <span class="n">last_move</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">dc</span>
-</span></span><span class="line"><span class="cl">                <span class="k">while</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
-</span></span><span class="line"><span class="cl">                       <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">==</span> <span class="n">player</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">r</span> <span class="o">+=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">dr</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">c</span> <span class="o">+=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">dc</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">return</span> <span class="kc">True</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PolicyValueNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Tiny dual-head network: a shared CNN trunk + policy head + value head.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">board_size</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">channels</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">board_size</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">shared</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">policy_head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">board_size</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">board_size</span> <span class="o">**</span> <span class="mi">2</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">value_head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">board_size</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">shared</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># log-softmax for numerically stable cross-entropy with MCTS targets</span>
-</span></span><span class="line"><span class="cl">        <span class="n">policy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">policy_head</span><span class="p">(</span><span class="n">shared</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_head</span><span class="p">(</span><span class="n">shared</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">policy</span><span class="p">,</span> <span class="n">value</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MCTSNode</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prior</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">prior</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="p">{}</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">value_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="k">else</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">select_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c_puct</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># PUCT: Q + c * P * sqrt(parent N) / (1 + child N)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best_score</span><span class="p">,</span> <span class="n">best_action</span><span class="p">,</span> <span class="n">best_child</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">action</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">u</span> <span class="o">=</span> <span class="n">c_puct</span> <span class="o">*</span> <span class="n">child</span><span class="o">.</span><span class="n">prior</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">child</span><span class="o">.</span><span class="n">visit_count</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">score</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">value</span><span class="p">()</span> <span class="o">+</span> <span class="n">u</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">best_score</span><span class="p">,</span> <span class="n">best_action</span><span class="p">,</span> <span class="n">best_child</span> <span class="o">=</span> <span class="n">score</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">child</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">best_action</span><span class="p">,</span> <span class="n">best_child</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="p">,</span> <span class="n">priors</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">action</span><span class="p">,</span> <span class="n">prior</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actions</span><span class="p">,</span> <span class="n">priors</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">action</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">action</span><span class="p">]</span> <span class="o">=</span> <span class="n">MCTSNode</span><span class="p">(</span><span class="n">prior</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">backup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># value is from the perspective of the player-to-move at this node</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="o">+=</span> <span class="mi">1</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">value_sum</span> <span class="o">+=</span> <span class="n">value</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># flip sign: parent&#39;s perspective is the opponent&#39;s</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">backup</span><span class="p">(</span><span class="o">-</span><span class="n">value</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MCTS</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">num_simulations</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">c_puct</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_sims</span> <span class="o">=</span> <span class="n">num_simulations</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">c_puct</span> <span class="o">=</span> <span class="n">c_puct</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">root</span> <span class="o">=</span> <span class="n">MCTSNode</span><span class="p">(</span><span class="n">prior</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Initialise root with network priors over legal actions</span>
-</span></span><span class="line"><span class="cl">        <span class="n">state</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">legal</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">legal_actions</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">log_probs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">action_probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">probs</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">env</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">legal</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="n">action_probs</span> <span class="o">/=</span> <span class="n">action_probs</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">root</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">legal</span><span class="p">,</span> <span class="n">action_probs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sims</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">node</span> <span class="o">=</span> <span class="n">root</span>
-</span></span><span class="line"><span class="cl">            <span class="n">env_copy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy_env</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1"># Selection: walk down until we hit an unexpanded node or terminal</span>
-</span></span><span class="line"><span class="cl">            <span class="k">while</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">action</span><span class="p">,</span> <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">select_child</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c_puct</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">env_copy</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1"># Expansion + evaluation</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="ow">not</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">state</span> <span class="o">=</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="n">legal</span> <span class="o">=</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">legal_actions</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="n">log_probs</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">                <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="n">ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">probs</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">legal</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">                <span class="n">ap</span> <span class="o">/=</span> <span class="n">ap</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="n">node</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">legal</span><span class="p">,</span> <span class="n">ap</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">v</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="c1"># Terminal: ground-truth outcome from the leaf player&#39;s view</span>
-</span></span><span class="line"><span class="cl">                <span class="n">v</span> <span class="o">=</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">winner</span> <span class="o">*</span> <span class="n">env_copy</span><span class="o">.</span><span class="n">current_player</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1"># Backup along the visited path (sign flips at each level)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">n</span><span class="o">.</span><span class="n">backup</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">v</span> <span class="o">=</span> <span class="o">-</span><span class="n">v</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Return visit-count distribution as the MCTS-improved policy</span>
-</span></span><span class="line"><span class="cl">        <span class="n">visits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">size</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">action</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">visits</span><span class="p">[</span><span class="n">action</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">env</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">action</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">visit_count</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">visits</span> <span class="o">/</span> <span class="n">visits</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_copy_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">new</span> <span class="o">=</span> <span class="n">GomokuEnv</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">new</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">new</span><span class="o">.</span><span class="n">current_player</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">current_player</span>
-</span></span><span class="line"><span class="cl">        <span class="n">new</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">done</span>
-</span></span><span class="line"><span class="cl">        <span class="n">new</span><span class="o">.</span><span class="n">winner</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">winner</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">new</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The training loop generates self-play games, stores $(s_t, \boldsymbol{\pi}_t, z_T)$ triples, and trains the network with the AlphaGo Zero loss. On a 9×9 board with 400 simulations, the network reaches non-trivial play (beats random + greedy heuristics) after roughly 50 self-play iterations on a single consumer GPU. Two practical tips: (i) inject Dirichlet noise into the root priors during self-play to keep exploration alive; (ii) use a <em>temperature</em> on the visit distribution — temperature 1 for the first ~10 moves of self-play, then near-greedy — which stops the data being collected from a single deterministic line of play.</p>
-<hr>
-<h2 id="frequently-asked-questions">Frequently Asked Questions</h2>
-<h3 id="why-does-alphago-zero-not-need-rollouts">Why does AlphaGo Zero not need rollouts?</h3>
-<p>By 2017 deeper residual networks, more self-play data, and a unified policy/value head produced a value function that was on average more accurate than mixing the network with noisy random rollouts. The DeepMind ablations are explicit: pure value evaluation beat the mixture, so the rollout was dropped.</p>
-<h3 id="can-self-play-get-stuck-in-a-degenerate-equilibrium">Can self-play get stuck in a degenerate equilibrium?</h3>
-<p>For two-player zero-sum perfect-information games, <em>fictitious self-play</em> converges to a Nash equilibrium (Brown, 1951; Heinrich &amp; Silver, 2016). MCTS adds optimistic exploration on top, which prevents premature mode collapse. In imperfect-information games (poker) or cooperative games this is not guaranteed and a population of opponents (PSRO, AlphaStar&rsquo;s league) is needed.</p>
-<h3 id="why-use-the-visit-count-distribution-as-the-policy-target-not-the-empirical-q">Why use the <em>visit-count</em> distribution as the policy target, not the empirical $Q$?</h3>
-<p>Visit counts are robust: a child with very few visits can have a noisy mean $Q$, but cannot have many visits unless the search consistently chose it. Cross-entropy against $\boldsymbol{\pi}$ also gives a meaningful gradient even for actions the search rarely tried, which a hard argmax target would not.</p>
-<h3 id="can-mcts-handle-continuous-action-spaces">Can MCTS handle continuous action spaces?</h3>
-<p>Not directly — UCT and PUCT assume a finite action set. Extensions like <em>Progressive Widening</em> gradually add sampled actions as a node is visited more often, and recent work (e.g., Sampled MuZero, 2021) handles continuous and structured action spaces. For pure continuous control, model-free methods such as SAC and PPO remain more practical.</p>
-<h3 id="why-800-simulations-per-move-could-you-train-with-1">Why 800 simulations per move? Could you train with 1?</h3>
-<p>You can. With 1 simulation per move the visit-count target <em>is</em> the network policy, no improvement happens, and training stalls. At 800 simulations the search target is meaningfully sharper than the network — that gap is what the network learns from. Diminishing returns kick in around the low thousands; AlphaZero used 800 for Go and chess, MuZero kept the same number.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Silver et al., <strong>Mastering the game of Go with deep neural networks and tree search</strong>, <em>Nature</em> 529, 2016.</li>
-<li>Silver et al., <strong>Mastering the game of Go without human knowledge</strong>, <em>Nature</em> 550, 2017 (AlphaGo Zero).</li>
-<li>Silver et al., <strong>A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play</strong>, <em>Science</em> 362, 2018 (AlphaZero).</li>
-<li>Schrittwieser et al., <strong>Mastering Atari, Go, chess and shogi by planning with a learned model</strong>, <em>Nature</em> 588, 2020 (MuZero).</li>
-<li>Kocsis &amp; Szepesvári, <strong>Bandit based Monte-Carlo Planning</strong>, <em>ECML</em> 2006 (UCT).</li>
-<li>Auer, Cesa-Bianchi &amp; Fischer, <strong>Finite-time Analysis of the Multiarmed Bandit Problem</strong>, <em>Machine Learning</em> 47, 2002 (UCB1).</li>
-<li>Browne et al., <strong>A Survey of Monte Carlo Tree Search Methods</strong>, <em>IEEE TCIAIG</em> 4, 2012.</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<ul>
-<li><strong>Previous</strong>: <a href="/en/reinforcement-learning-7-imitation-learning/">Part 7 — Imitation Learning</a>
-</li>
-<li><strong>Next</strong>: <a href="/en/reinforcement-learning-9-multi-agent-rl/">Part 9 — Multi-Agent RL</a>
-</li>
-<li><a href="/tags/Reinforcement-Learning/">View all 12 parts in the RL series</a>
-</li>
-</ul>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/"><span class="title">Reinforcement Learning (7): Imitation Learning and Inverse RL</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/"><span class="title">Reinforcement Learning (9): Multi-Agent Reinforcement Learning</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-monte-carlo-tree-search">1. Monte Carlo Tree Search</a>
-      <ul>
-        <li><a href="#11-uct-balancing-exploration-and-exploitation">1.1 UCT: balancing exploration and exploitation</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-alphago-2016-networks-meet-search">2. AlphaGo (2016): Networks Meet Search</a></li>
-    <li><a href="#3-alphago-zero-2017-tabula-rasa">3. AlphaGo Zero (2017): Tabula Rasa</a></li>
-    <li><a href="#4-alphazero-and-muzero">4. AlphaZero and MuZero</a>
-      <ul>
-        <li><a href="#41-elo-over-time">4.1 Elo over time</a></li>
-        <li><a href="#42-how-much-does-search-actually-help">4.2 How much does search actually help?</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-complete-implementation-alphazero-for-gomoku">5. Complete Implementation: AlphaZero for Gomoku</a></li>
-    <li><a href="#frequently-asked-questions">Frequently Asked Questions</a>
-      <ul>
-        <li><a href="#why-does-alphago-zero-not-need-rollouts">Why does AlphaGo Zero not need rollouts?</a></li>
-        <li><a href="#can-self-play-get-stuck-in-a-degenerate-equilibrium">Can self-play get stuck in a degenerate equilibrium?</a></li>
-        <li><a href="#why-use-the-visit-count-distribution-as-the-policy-target-not-the-empirical-q">Why use the <em>visit-count</em> distribution as the policy target, not the empirical ?</a></li>
-        <li><a href="#can-mcts-handle-continuous-action-spaces">Can MCTS handle continuous action spaces?</a></li>
-        <li><a href="#why-800-simulations-per-move-could-you-train-with-1">Why 800 simulations per move? Could you train with 1?</a></li>
-      </ul>
-    </li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Reinforcement Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>15 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3000</strong></div>
-      <div class="row"><span>Published</span><strong>Sep 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search · Chen Kai Blog</title>
+<meta name=description content="From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/><meta property="og:type" content="article"><meta property="og:title" content="Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search"><meta property="og:description" content="From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku."><meta property="og:url" content="https://www.chenk.top/en/reinforcement-learning/08-alphago-and-mcts/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Reinforcement Learning</a>
+· Chapter 8</div><h1>Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search</h1><p class=deck>From MCTS to AlphaGo, AlphaGo Zero, AlphaZero, and MuZero. Understand UCT exploration-exploitation, self-play training, and planning with learned models. Includes a complete AlphaZero implementation for Gomoku.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-09-05>September 5, 2025</time> · 15 min read · 2983 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/reinforcement-learning/ class=tag>#Reinforcement Learning</a><a href=/en/tags/alphago/ class=tag>#AlphaGo</a><a href=/en/tags/mcts/ class=tag>#MCTS</a><a href=/en/tags/alphazero/ class=tag>#AlphaZero</a><a href=/en/tags/muzero/ class=tag>#MuZero</a></div></div></header><div class=prose><p>In March 2016, AlphaGo defeated world Go champion Lee Sedol 4–1 in Seoul. The result was not just a sporting upset; it was the moment a 60-year programme in artificial intelligence — beating the world&rsquo;s best at Go — concluded a full decade ahead of most published predictions. Go has roughly $10^{170}$ legal positions, more than the number of atoms in the observable universe. No amount of brute-force search will ever crack it. AlphaGo&rsquo;s victory came from a different idea: let a deep network supply the <em>intuition</em> about which moves look promising, and let Monte Carlo Tree Search (MCTS) supply the <em>deliberation</em> that verifies and sharpens that intuition.</p><p>Eighteen months later, AlphaGo Zero learned the game from nothing but the rules and three days of self-play, and crushed the Lee-Sedol version 100–0. AlphaZero generalised the same recipe to chess and shogi. MuZero went further and learned the rules themselves. This chapter traces the full evolution — the algorithm, the mathematics, and a working implementation you can actually train.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li><strong>MCTS Foundations</strong>: the four-phase loop, UCT exploration–exploitation balance, asymptotic optimality</li><li><strong>AlphaGo (2016)</strong>: three-stage training (SL policy, RL policy, value network) and how MCTS fuses them</li><li><strong>AlphaGo Zero (2017)</strong>: self-play from scratch, a single dual-head network, no rollouts</li><li><strong>AlphaZero (2017)</strong>: the same algorithm applied to chess, shogi, and Go</li><li><strong>MuZero (2019)</strong>: planning in a <em>learned</em> latent space without environment rules</li><li><strong>Complete code</strong>: AlphaZero for Gomoku — environment, network, MCTS, and self-play loop</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Deep RL fundamentals (policy gradients, value functions) — see <a href=/en/reinforcement-learning-3-policy-gradient-and-actor-critic/>Part 3</a></li><li>Convolutional neural networks</li><li>Game trees are helpful but not assumed</li></ul><hr><h2 id=1-monte-carlo-tree-search>1. Monte Carlo Tree Search</h2><p>Classical game-tree search (minimax + alpha–beta) needs an evaluation function and a manageable branching factor. Chess has both. Go has neither: branching factor around 250, no concise evaluation function, no useful heuristics. MCTS sidesteps this by <em>sampling</em> rather than enumerating, and by <em>focusing</em> its samples on the most promising parts of the tree.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig1_mcts_four_phases.png alt="MCTS Four Phases" loading=lazy decoding=async></figure></p><p>A single MCTS <em>simulation</em> repeats four phases:</p><ol><li><strong>Selection</strong> — starting from the root, walk down the tree by repeatedly choosing the child that maximises a search criterion (UCT, below). Stop on reaching a node that has at least one untried action — a <em>leaf</em> of the current tree, not necessarily of the game.</li><li><strong>Expansion</strong> — pick one untried action at the leaf and add the resulting state as a new child.</li><li><strong>Simulation (rollout)</strong> — from the new child, play the game out to a terminal state using a fast policy: random in vanilla MCTS, a small network in classical AlphaGo, replaced entirely by a value network in AlphaGo Zero.</li><li><strong>Backpropagation</strong> — propagate the outcome up the path, incrementing visit counts $N$ and accumulating values $W$ at every node touched.</li></ol><p>After a fixed simulation budget (AlphaGo Zero uses 800 per move), the algorithm returns the action whose root child has the most visits — <em>not</em> the highest mean value. Visit count is a more robust statistic because it integrates the search&rsquo;s own self-correction.</p><h3 id=11-uct-balancing-exploration-and-exploitation>1.1 UCT: balancing exploration and exploitation</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig2_ucb_exploration.png alt="UCB1 Exploration and Exploitation" loading=lazy decoding=async></figure></p><p>The selection rule is the <em>Upper Confidence bound for Trees</em> (UCT), Kocsis & Szepesvári (2006). At a node $s$, choose the child action $a$ that maximises</p>$$\text{UCT}(s, a) = \underbrace{\frac{W(s, a)}{N(s, a)}}_{\text{exploitation}} \;+\; \underbrace{c \sqrt{\frac{\ln N(s)}{N(s, a)}}}_{\text{exploration}}.$$<p>The first term is the empirical mean value — a node that has won often gets visited more. The second is an Auer–Cesa-Bianchi–Fischer confidence bound: small visit counts inflate it, encouraging the search to <em>try</em> less-visited children. As $N(s,a) \to \infty$ the bonus shrinks, and the rule converges to greedy exploitation. UCT is <strong>asymptotically optimal</strong>: in the limit of infinite simulations the visit distribution concentrates on the optimal action.</p><p>In AlphaGo&rsquo;s PUCT variant the bonus is also weighted by the network&rsquo;s prior $p(a\mid s)$:</p>$$\text{PUCT}(s, a) = Q(s, a) \;+\; c_{\text{puct}} \cdot p(a \mid s) \cdot \frac{\sqrt{N(s)}}{1 + N(s, a)}.$$<p>The prior tells the search <em>where to look first</em>; the visit count tells it <em>where to stop looking</em>.</p><hr><h2 id=2-alphago-2016-networks-meet-search>2. AlphaGo (2016): Networks Meet Search</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig3_alphago_architecture.png alt="AlphaGo Architecture" loading=lazy decoding=async></figure></p><p>The original AlphaGo trained in three stages:</p><p><strong>Stage 1 — Supervised policy $p_\sigma$.</strong> A 13-layer CNN was trained on 30 million positions from KGS expert games to predict the human move. It reached 57% top-1 accuracy and was the first big jump over prior work (~44%).</p><p><strong>Stage 2 — RL policy $p_\rho$.</strong> Initialise $p_\rho \leftarrow p_\sigma$, then improve via REINFORCE-style self-play against an opponent randomly sampled from earlier checkpoints. The RL policy beat the SL policy 80% of the time. <em>But</em> — and this is the surprise — using $p_\rho$ inside MCTS hurt: it had collapsed onto a few stylistic preferences and lost the diversity that gives the search useful priors. Production AlphaGo therefore used $p_\sigma$ for priors.</p><p><strong>Stage 3 — Value network $v_\theta$.</strong> A separate CNN was regressed on game outcomes. To avoid overfitting from highly correlated within-game positions, only <em>one</em> position per self-play game was used, yielding 30 M independent (state, outcome) pairs.</p><p>At play time, MCTS combined the two networks. The leaf evaluation mixed the value-network estimate with a fast random rollout:</p>$$V(s_L) \;=\; (1 - \lambda)\, v_\theta(s_L) \;+\; \lambda\, z_L, \qquad \lambda = 0.5.$$<p>Why mix at all? In 2016 the value network was strong but not perfect — rollouts averaged out its systematic errors. By 2017 networks had improved enough that the rollout term hurt more than it helped, and AlphaGo Zero dropped it entirely.</p><hr><h2 id=3-alphago-zero-2017-tabula-rasa>3. AlphaGo Zero (2017): Tabula Rasa</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig4_zero_self_play_loop.png alt="AlphaGo Zero Self-Play Loop" loading=lazy decoding=async></figure></p><p>AlphaGo Zero is the same idea, <em>simpler</em>. Three changes — each of which would have looked dangerous on its own:</p><ol><li><strong>No human data.</strong> The agent starts from random initialisation and learns from self-play only. Every previous move-prediction system above 50% accuracy was thrown away.</li><li><strong>Single dual-head network</strong> $f_\theta(s) = (\mathbf{p}, v)$. One residual tower with two heads — a policy head outputting a distribution over moves and a scalar value head — replaces the policy and value networks of AlphaGo.</li><li><strong>No rollouts.</strong> The leaf is evaluated <em>only</em> by the value head. The fast rollout policy is gone.</li></ol><p>The training loop is a tight closed cycle (see figure):</p><ol><li><strong>Self-play.</strong> The current best network plays against itself with MCTS (800 simulations per move), producing trajectories of $(s_t, \boldsymbol{\pi}_t, z_T)$ where $\boldsymbol{\pi}_t$ is the <em>MCTS visit-count distribution</em> (a sharper, slower target than the raw network policy) and $z_T \in \{-1, +1\}$ is the final game result from the player-to-move&rsquo;s perspective.</li><li><strong>Train.</strong> Update $\theta$ by minimising $\mathcal{L}(\theta) \;=\; (z - v)^2 \;-\; \boldsymbol{\pi}^\top \log \mathbf{p} \;+\; c\,\|\theta\|^2,$ a squared-error value loss, a cross-entropy policy loss, and weight decay.</li><li><strong>Evaluate.</strong> A new network challenges the current best. Only if it wins more than 55% of 400 games does it become the new generator of self-play games.</li></ol><p>The genius is in the <em>labels</em>. The MCTS visit distribution $\boldsymbol{\pi}$ is <em>strictly better than the raw network policy that produced it</em> — search has refined the priors. Training $\mathbf{p}$ to imitate $\boldsymbol{\pi}$ distils the search&rsquo;s improvement back into the network. This is policy iteration where the policy improvement step is MCTS itself. Each new network plays self-play that yields targets a little stronger than itself. The process bootstraps without external supervision because the <em>opponent improves at the same rate as the learner</em> — automatic curriculum learning.</p><p>After <strong>3 days</strong> of training on 4 TPUs, AlphaGo Zero defeated the Lee-Sedol AlphaGo 100–0. After 40 days it surpassed AlphaGo Master, the version that had beaten Ke Jie.</p><hr><h2 id=4-alphazero-and-muzero>4. AlphaZero and MuZero</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig5_evolution_timeline.png alt="Algorithm Evolution Timeline" loading=lazy decoding=async></figure></p><p><strong>AlphaZero</strong> (Dec 2017) showed that the AlphaGo Zero algorithm was not Go-specific. With only the game-specific state encoding swapped out — and a few tweaks: no win-rate gating between generations, draws allowed (chess has many) — the same code beat Stockfish 8 in chess (28 wins, 0 losses, 72 draws) and Elmo in shogi after roughly <strong>9 hours</strong> of training on TPUs. It also beat AlphaGo Zero at Go.</p><p><strong>MuZero</strong> (Nov 2019) went one step further: drop the requirement that the agent know the rules of the game. MuZero learns three functions jointly:</p><ul><li><strong>Representation</strong> $h_\theta : o_{\le t} \mapsto s_t^0$ — encodes observation history into an initial hidden state.</li><li><strong>Dynamics</strong> $g_\theta : (s_t^k, a_{t+k}) \mapsto (s_t^{k+1}, r_t^{k+1})$ — predicts next hidden state and reward.</li><li><strong>Prediction</strong> $f_\theta : s_t^k \mapsto (\mathbf{p}_t^k, v_t^k)$ — predicts policy and value.</li></ul><p>MCTS unfolds entirely in <strong>latent space</strong>. There is no environment simulator inside the search — only the learned dynamics function. The hidden state is not required to reconstruct the observation; it only has to be useful for predicting <em>reward, value, and policy</em>. With this looser objective, MuZero matches AlphaZero on board games and surpasses model-free methods (R2D2, Ape-X) on Atari, where no rule-based simulator exists.</p><h3 id=41-elo-over-time>4.1 Elo over time</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig6_elo_progression.png alt="Elo Progression" loading=lazy decoding=async></figure></p><p>The left panel compares peak Elo across the family. The right panel shows Zero&rsquo;s training trajectory: it surpasses the Lee-Sedol version after 3 days, AlphaGo Master after about 21 days, and saturates near 5200 Elo. For context, 9-dan human professionals are around 3500–3700.</p><h3 id=42-how-much-does-search-actually-help>4.2 How much does search actually help?</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/reinforcement-learning/08-alphago-and-mcts/fig7_search_vs_strength.png alt="Search Budget vs Strength" loading=lazy decoding=async></figure></p><p>Search and the network are complementary — the network produces priors; search refines them. The left panel shows that doubling MCTS simulations adds roughly constant Elo (a logarithmic relationship), with no plateau in sight up to 12 800 simulations. The right panel shows the multiplicative gain from neural priors: vanilla MCTS with random rollouts saturates much earlier than MCTS guided by a network. Each component is needed; neither alone is competitive.</p><hr><h2 id=5-complete-implementation-alphazero-for-gomoku>5. Complete Implementation: AlphaZero for Gomoku</h2><p>Gomoku (&ldquo;five in a row&rdquo;) on a 9×9 board is a useful test bed: rules fit in 30 lines, branching factor is around 60, and decent play emerges from a few thousand self-play games on a single GPU.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>deque</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>random</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>GomokuEnv</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>size</span><span class=o>=</span><span class=mi>9</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>size</span> <span class=o>=</span> <span class=n>size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>reset</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>reset</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>board</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=p>),</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>current_player</span> <span class=o>=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>done</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>winner</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_state</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_state</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 3-channel state: own stones, opponent stones, side-to-move plane</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=mi>3</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=p>),</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>float32</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>board</span> <span class=o>==</span> <span class=bp>self</span><span class=o>.</span><span class=n>current_player</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>board</span> <span class=o>==</span> <span class=o>-</span><span class=bp>self</span><span class=o>.</span><span class=n>current_player</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>current_player</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>state</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>legal_actions</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>list</span><span class=p>(</span><span class=nb>zip</span><span class=p>(</span><span class=o>*</span><span class=n>np</span><span class=o>.</span><span class=n>where</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>board</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>step</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>action</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>board</span><span class=p>[</span><span class=n>action</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>current_player</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_check_win</span><span class=p>(</span><span class=n>action</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>done</span> <span class=o>=</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>winner</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>current_player</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_state</span><span class=p>(),</span> <span class=bp>self</span><span class=o>.</span><span class=n>winner</span><span class=p>,</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>legal_actions</span><span class=p>())</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>done</span> <span class=o>=</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_state</span><span class=p>(),</span> <span class=mi>0</span><span class=p>,</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>current_player</span> <span class=o>*=</span> <span class=o>-</span><span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_state</span><span class=p>(),</span> <span class=mi>0</span><span class=p>,</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_check_win</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>last_move</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>directions</span> <span class=o>=</span> <span class=p>[(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>        <span class=n>player</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>board</span><span class=p>[</span><span class=n>last_move</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>dr</span><span class=p>,</span> <span class=n>dc</span> <span class=ow>in</span> <span class=n>directions</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>count</span> <span class=o>=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>sign</span> <span class=ow>in</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>                <span class=n>r</span><span class=p>,</span> <span class=n>c</span> <span class=o>=</span> <span class=n>last_move</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=n>sign</span> <span class=o>*</span> <span class=n>dr</span><span class=p>,</span> <span class=n>last_move</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>+</span> <span class=n>sign</span> <span class=o>*</span> <span class=n>dc</span>
+</span></span><span class=line><span class=cl>                <span class=k>while</span> <span class=p>(</span><span class=mi>0</span> <span class=o>&lt;=</span> <span class=n>r</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span> <span class=ow>and</span> <span class=mi>0</span> <span class=o>&lt;=</span> <span class=n>c</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span>
+</span></span><span class=line><span class=cl>                       <span class=ow>and</span> <span class=bp>self</span><span class=o>.</span><span class=n>board</span><span class=p>[</span><span class=n>r</span><span class=p>,</span> <span class=n>c</span><span class=p>]</span> <span class=o>==</span> <span class=n>player</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                    <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>                    <span class=n>r</span> <span class=o>+=</span> <span class=n>sign</span> <span class=o>*</span> <span class=n>dr</span>
+</span></span><span class=line><span class=cl>                    <span class=n>c</span> <span class=o>+=</span> <span class=n>sign</span> <span class=o>*</span> <span class=n>dc</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>count</span> <span class=o>&gt;=</span> <span class=mi>5</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>return</span> <span class=kc>True</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PolicyValueNet</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Tiny dual-head network: a shared CNN trunk + policy head + value head.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>board_size</span><span class=o>=</span><span class=mi>9</span><span class=p>,</span> <span class=n>channels</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>size</span> <span class=o>=</span> <span class=n>board_size</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>shared</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=n>channels</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>channels</span><span class=p>,</span> <span class=n>channels</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>channels</span><span class=p>,</span> <span class=n>channels</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>padding</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>policy_head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>channels</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>board_size</span> <span class=o>**</span> <span class=mi>2</span><span class=p>,</span> <span class=n>board_size</span> <span class=o>**</span> <span class=mi>2</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>value_head</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Conv2d</span><span class=p>(</span><span class=n>channels</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>board_size</span> <span class=o>**</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>64</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Tanh</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>shared</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>shared</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># log-softmax for numerically stable cross-entropy with MCTS targets</span>
+</span></span><span class=line><span class=cl>        <span class=n>policy</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>log_softmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>policy_head</span><span class=p>(</span><span class=n>shared</span><span class=p>),</span> <span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>value</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>value_head</span><span class=p>(</span><span class=n>shared</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>policy</span><span class=p>,</span> <span class=n>value</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MCTSNode</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>prior</span><span class=p>,</span> <span class=n>parent</span><span class=o>=</span><span class=kc>None</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>prior</span> <span class=o>=</span> <span class=n>prior</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>parent</span> <span class=o>=</span> <span class=n>parent</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>children</span> <span class=o>=</span> <span class=p>{}</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>visit_count</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>value_sum</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>value</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>value_sum</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>visit_count</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>visit_count</span> <span class=k>else</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>select_child</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>c_puct</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># PUCT: Q + c * P * sqrt(parent N) / (1 + child N)</span>
+</span></span><span class=line><span class=cl>        <span class=n>best_score</span><span class=p>,</span> <span class=n>best_action</span><span class=p>,</span> <span class=n>best_child</span> <span class=o>=</span> <span class=o>-</span><span class=nb>float</span><span class=p>(</span><span class=s1>&#39;inf&#39;</span><span class=p>),</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>action</span><span class=p>,</span> <span class=n>child</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>children</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>u</span> <span class=o>=</span> <span class=n>c_puct</span> <span class=o>*</span> <span class=n>child</span><span class=o>.</span><span class=n>prior</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>visit_count</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>child</span><span class=o>.</span><span class=n>visit_count</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>score</span> <span class=o>=</span> <span class=n>child</span><span class=o>.</span><span class=n>value</span><span class=p>()</span> <span class=o>+</span> <span class=n>u</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>score</span> <span class=o>&gt;</span> <span class=n>best_score</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>best_score</span><span class=p>,</span> <span class=n>best_action</span><span class=p>,</span> <span class=n>best_child</span> <span class=o>=</span> <span class=n>score</span><span class=p>,</span> <span class=n>action</span><span class=p>,</span> <span class=n>child</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>best_action</span><span class=p>,</span> <span class=n>best_child</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>expand</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>actions</span><span class=p>,</span> <span class=n>priors</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>action</span><span class=p>,</span> <span class=n>prior</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>actions</span><span class=p>,</span> <span class=n>priors</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>action</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>children</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>children</span><span class=p>[</span><span class=n>action</span><span class=p>]</span> <span class=o>=</span> <span class=n>MCTSNode</span><span class=p>(</span><span class=n>prior</span><span class=p>,</span> <span class=n>parent</span><span class=o>=</span><span class=bp>self</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>backup</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>value</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=c1># value is from the perspective of the player-to-move at this node</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>visit_count</span> <span class=o>+=</span> <span class=mi>1</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>value_sum</span> <span class=o>+=</span> <span class=n>value</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>parent</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># flip sign: parent&#39;s perspective is the opponent&#39;s</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>parent</span><span class=o>.</span><span class=n>backup</span><span class=p>(</span><span class=o>-</span><span class=n>value</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MCTS</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>model</span><span class=p>,</span> <span class=n>num_simulations</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span> <span class=n>c_puct</span><span class=o>=</span><span class=mf>1.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=n>model</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>num_sims</span> <span class=o>=</span> <span class=n>num_simulations</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>c_puct</span> <span class=o>=</span> <span class=n>c_puct</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>search</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>root</span> <span class=o>=</span> <span class=n>MCTSNode</span><span class=p>(</span><span class=n>prior</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Initialise root with network priors over legal actions</span>
+</span></span><span class=line><span class=cl>        <span class=n>state</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>get_state</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>legal</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>legal_actions</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>log_probs</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>state</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=n>probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_probs</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>action_probs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>probs</span><span class=p>[</span><span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>env</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>]]</span> <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>legal</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=n>action_probs</span> <span class=o>/=</span> <span class=n>action_probs</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>root</span><span class=o>.</span><span class=n>expand</span><span class=p>(</span><span class=n>legal</span><span class=p>,</span> <span class=n>action_probs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_sims</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>node</span> <span class=o>=</span> <span class=n>root</span>
+</span></span><span class=line><span class=cl>            <span class=n>env_copy</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_copy_env</span><span class=p>(</span><span class=n>env</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>path</span> <span class=o>=</span> <span class=p>[</span><span class=n>node</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># Selection: walk down until we hit an unexpanded node or terminal</span>
+</span></span><span class=line><span class=cl>            <span class=k>while</span> <span class=n>node</span><span class=o>.</span><span class=n>children</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>done</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>action</span><span class=p>,</span> <span class=n>node</span> <span class=o>=</span> <span class=n>node</span><span class=o>.</span><span class=n>select_child</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>c_puct</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>path</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>node</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>env_copy</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>action</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># Expansion + evaluation</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=ow>not</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>done</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>state</span> <span class=o>=</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>get_state</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=n>legal</span> <span class=o>=</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>legal_actions</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=n>log_probs</span><span class=p>,</span> <span class=n>value</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>torch</span><span class=o>.</span><span class=n>FloatTensor</span><span class=p>(</span><span class=n>state</span><span class=p>)</span><span class=o>.</span><span class=n>unsqueeze</span><span class=p>(</span><span class=mi>0</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>                <span class=n>probs</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>log_probs</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=n>ap</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>probs</span><span class=p>[</span><span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>]]</span> <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>legal</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>                <span class=n>ap</span> <span class=o>/=</span> <span class=n>ap</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=n>node</span><span class=o>.</span><span class=n>expand</span><span class=p>(</span><span class=n>legal</span><span class=p>,</span> <span class=n>ap</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>v</span> <span class=o>=</span> <span class=n>value</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=c1># Terminal: ground-truth outcome from the leaf player&#39;s view</span>
+</span></span><span class=line><span class=cl>                <span class=n>v</span> <span class=o>=</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>winner</span> <span class=o>*</span> <span class=n>env_copy</span><span class=o>.</span><span class=n>current_player</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># Backup along the visited path (sign flips at each level)</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=nb>reversed</span><span class=p>(</span><span class=n>path</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>n</span><span class=o>.</span><span class=n>backup</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>v</span> <span class=o>=</span> <span class=o>-</span><span class=n>v</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Return visit-count distribution as the MCTS-improved policy</span>
+</span></span><span class=line><span class=cl>        <span class=n>visits</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>env</span><span class=o>.</span><span class=n>size</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>action</span><span class=p>,</span> <span class=n>child</span> <span class=ow>in</span> <span class=n>root</span><span class=o>.</span><span class=n>children</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>visits</span><span class=p>[</span><span class=n>action</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>env</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=n>action</span><span class=p>[</span><span class=mi>1</span><span class=p>]]</span> <span class=o>=</span> <span class=n>child</span><span class=o>.</span><span class=n>visit_count</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>visits</span> <span class=o>/</span> <span class=n>visits</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_copy_env</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>env</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>new</span> <span class=o>=</span> <span class=n>GomokuEnv</span><span class=p>(</span><span class=n>env</span><span class=o>.</span><span class=n>size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>new</span><span class=o>.</span><span class=n>board</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>board</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>new</span><span class=o>.</span><span class=n>current_player</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>current_player</span>
+</span></span><span class=line><span class=cl>        <span class=n>new</span><span class=o>.</span><span class=n>done</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>done</span>
+</span></span><span class=line><span class=cl>        <span class=n>new</span><span class=o>.</span><span class=n>winner</span> <span class=o>=</span> <span class=n>env</span><span class=o>.</span><span class=n>winner</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>new</span>
+</span></span></code></pre></td></tr></table></div></div><p>The training loop generates self-play games, stores $(s_t, \boldsymbol{\pi}_t, z_T)$ triples, and trains the network with the AlphaGo Zero loss. On a 9×9 board with 400 simulations, the network reaches non-trivial play (beats random + greedy heuristics) after roughly 50 self-play iterations on a single consumer GPU. Two practical tips: (i) inject Dirichlet noise into the root priors during self-play to keep exploration alive; (ii) use a <em>temperature</em> on the visit distribution — temperature 1 for the first ~10 moves of self-play, then near-greedy — which stops the data being collected from a single deterministic line of play.</p><hr><h2 id=frequently-asked-questions>Frequently Asked Questions</h2><h3 id=why-does-alphago-zero-not-need-rollouts>Why does AlphaGo Zero not need rollouts?</h3><p>By 2017 deeper residual networks, more self-play data, and a unified policy/value head produced a value function that was on average more accurate than mixing the network with noisy random rollouts. The DeepMind ablations are explicit: pure value evaluation beat the mixture, so the rollout was dropped.</p><h3 id=can-self-play-get-stuck-in-a-degenerate-equilibrium>Can self-play get stuck in a degenerate equilibrium?</h3><p>For two-player zero-sum perfect-information games, <em>fictitious self-play</em> converges to a Nash equilibrium (Brown, 1951; Heinrich & Silver, 2016). MCTS adds optimistic exploration on top, which prevents premature mode collapse. In imperfect-information games (poker) or cooperative games this is not guaranteed and a population of opponents (PSRO, AlphaStar&rsquo;s league) is needed.</p><h3 id=why-use-the-visit-count-distribution-as-the-policy-target-not-the-empirical-q>Why use the <em>visit-count</em> distribution as the policy target, not the empirical $Q$?</h3><p>Visit counts are robust: a child with very few visits can have a noisy mean $Q$, but cannot have many visits unless the search consistently chose it. Cross-entropy against $\boldsymbol{\pi}$ also gives a meaningful gradient even for actions the search rarely tried, which a hard argmax target would not.</p><h3 id=can-mcts-handle-continuous-action-spaces>Can MCTS handle continuous action spaces?</h3><p>Not directly — UCT and PUCT assume a finite action set. Extensions like <em>Progressive Widening</em> gradually add sampled actions as a node is visited more often, and recent work (e.g., Sampled MuZero, 2021) handles continuous and structured action spaces. For pure continuous control, model-free methods such as SAC and PPO remain more practical.</p><h3 id=why-800-simulations-per-move-could-you-train-with-1>Why 800 simulations per move? Could you train with 1?</h3><p>You can. With 1 simulation per move the visit-count target <em>is</em> the network policy, no improvement happens, and training stalls. At 800 simulations the search target is meaningfully sharper than the network — that gap is what the network learns from. Diminishing returns kick in around the low thousands; AlphaZero used 800 for Go and chess, MuZero kept the same number.</p><hr><h2 id=references>References</h2><ul><li>Silver et al., <strong>Mastering the game of Go with deep neural networks and tree search</strong>, <em>Nature</em> 529, 2016.</li><li>Silver et al., <strong>Mastering the game of Go without human knowledge</strong>, <em>Nature</em> 550, 2017 (AlphaGo Zero).</li><li>Silver et al., <strong>A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play</strong>, <em>Science</em> 362, 2018 (AlphaZero).</li><li>Schrittwieser et al., <strong>Mastering Atari, Go, chess and shogi by planning with a learned model</strong>, <em>Nature</em> 588, 2020 (MuZero).</li><li>Kocsis & Szepesvári, <strong>Bandit based Monte-Carlo Planning</strong>, <em>ECML</em> 2006 (UCT).</li><li>Auer, Cesa-Bianchi & Fischer, <strong>Finite-time Analysis of the Multiarmed Bandit Problem</strong>, <em>Machine Learning</em> 47, 2002 (UCB1).</li><li>Browne et al., <strong>A Survey of Monte Carlo Tree Search Methods</strong>, <em>IEEE TCIAIG</em> 4, 2012.</li></ul><hr><h2 id=series-navigation>Series Navigation</h2><ul><li><strong>Previous</strong>: <a href=/en/reinforcement-learning-7-imitation-learning/>Part 7 — Imitation Learning</a></li><li><strong>Next</strong>: <a href=/en/reinforcement-learning-9-multi-agent-rl/>Part 9 — Multi-Agent RL</a></li><li><a href=/tags/Reinforcement-Learning/>View all 12 parts in the RL series</a></li></ul></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/><span class=title>Reinforcement Learning (7): Imitation Learning and Inverse RL</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/><span class=title>Reinforcement Learning (9): Multi-Agent Reinforcement Learning</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-monte-carlo-tree-search>1. Monte Carlo Tree Search</a><ul><li><a href=#11-uct-balancing-exploration-and-exploitation>1.1 UCT: balancing exploration and exploitation</a></li></ul></li><li><a href=#2-alphago-2016-networks-meet-search>2. AlphaGo (2016): Networks Meet Search</a></li><li><a href=#3-alphago-zero-2017-tabula-rasa>3. AlphaGo Zero (2017): Tabula Rasa</a></li><li><a href=#4-alphazero-and-muzero>4. AlphaZero and MuZero</a><ul><li><a href=#41-elo-over-time>4.1 Elo over time</a></li><li><a href=#42-how-much-does-search-actually-help>4.2 How much does search actually help?</a></li></ul></li><li><a href=#5-complete-implementation-alphazero-for-gomoku>5. Complete Implementation: AlphaZero for Gomoku</a></li><li><a href=#frequently-asked-questions>Frequently Asked Questions</a><ul><li><a href=#why-does-alphago-zero-not-need-rollouts>Why does AlphaGo Zero not need rollouts?</a></li><li><a href=#can-self-play-get-stuck-in-a-degenerate-equilibrium>Can self-play get stuck in a degenerate equilibrium?</a></li><li><a href=#why-use-the-visit-count-distribution-as-the-policy-target-not-the-empirical-q>Why use the <em>visit-count</em> distribution as the policy target, not the empirical ?</a></li><li><a href=#can-mcts-handle-continuous-action-spaces>Can MCTS handle continuous action spaces?</a></li><li><a href=#why-800-simulations-per-move-could-you-train-with-1>Why 800 simulations per move? Could you train with 1?</a></li></ul></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Reinforcement Learning</a>
+<span class=count>6</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/07-imitation-learning/><span class=chapter-num>07</span>
+<span class=chapter-title>Reinforcement Learning (7): Imitation Learning and Inverse RL</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>08</span>
+<span class=chapter-title>Reinforcement Learning (8): AlphaGo and Monte Carlo Tree Search</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/09-multi-agent-rl/><span class=chapter-num>09</span>
+<span class=chapter-title>Reinforcement Learning (9): Multi-Agent Reinforcement Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/10-offline-reinforcement-learning/><span class=chapter-num>10</span>
+<span class=chapter-title>Reinforcement Learning (10): Offline Reinforcement Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/11-hierarchical-and-meta-rl/><span class=chapter-num>11</span>
+<span class=chapter-title>Reinforcement Learning (11): Hierarchical RL and Meta-Learning</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/reinforcement-learning/12-rlhf-and-llm-applications/><span class=chapter-num>12</span>
+<span class=chapter-title>Reinforcement Learning (12): RLHF and LLM Applications</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>15 min</strong></div><div class=row><span>Word count</span><strong>2983</strong></div><div class=row><span>Published</span><strong>Sep 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

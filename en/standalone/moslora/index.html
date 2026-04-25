@@ -1,601 +1,124 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation · Chen Kai Blog</title>
-<meta name="description" content="MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/standalone/moslora/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/moslora/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation">
-<meta property="og:description" content="MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips.">
-<meta property="og:url" content="https://www.chenk.top/en/standalone/moslora/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
-        
-      </div>
-      <h1>MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation</h1>
-      <p class="deck">MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-10-12">October 12, 2024</time> · 13 min read · 2800 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/llm/" class="tag">#LLM</a><a href="/en/tags/peft/" class="tag">#PEFT</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>LoRA is the default tool for adapting a frozen base model: cheap, stable, mergeable, and good enough for most single-task settings. But the moment your fine-tuning data is genuinely heterogeneous &ndash; code mixed with math, instruction following mixed with creative writing, several domains in one adapter &ndash; a single low-rank subspace starts to feel cramped. You can grow $r$, but cost grows with it and you still get <em>one</em> subspace, just a fatter one.</p>
-<p><a href="https://arxiv.org/abs/2406.11909" target="_blank" rel="noopener noreferrer"><strong>MoSLoRA</strong> <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- (Wu, Huang and Wei, 2024) takes a different turn. Instead of one rank-$r$ pair $(B, A)$ it uses $k$ rank-$r$ pairs and lets a tiny <strong>mixer matrix</strong> decide how to combine them. The decomposition rewrites cleanly as a single $B\, W\, A$ product, so the mergeability that made LoRA deployable is preserved, and the extra parameter cost is essentially the $k\times k$ mixer. This post walks through why a single subspace is a real bottleneck, how the mixer changes the geometry of the update, where MoSLoRA actually moves the needle, and how to tune it without overfitting the mixer.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>Why &ldquo;just increase $r$&rdquo; is <em>not</em> the right fix when adaptations are heterogeneous</li>
-<li>MoSLoRA&rsquo;s core idea: mixture of low-rank subspaces with a $k\times k$ mixer</li>
-<li>Mixer design choices: global weights, input-dependent gating, structured variants</li>
-<li>Parameter-count and inference-overhead trade-offs vs LoRA / LoRA-MoE / Full FT</li>
-<li>When MoSLoRA pays off (and when vanilla LoRA is enough)</li>
-<li>Practical tuning tips and a clean PyTorch sketch</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Comfortable with LoRA (low-rank adaptation) and the standard Transformer block</li>
-<li>Basic PEFT vocabulary (Adapters, Prefix-Tuning, BitFit)</li>
-<li>Light familiarity with Mixture-of-Experts routing</li>
-</ul>
-<hr>
-<h2 id="1-lora-recap-why-low-rank-updates-work-and-where-they-dont">1. LoRA recap: why low-rank updates work, and where they don&rsquo;t</h2>
-<p>Take any linear projection $W \in \mathbb{R}^{d_{out}\times d_{in}}$ inside a Transformer (Q/K/V/O or up/down/gate of the MLP). LoRA freezes $W_0$ and learns the update $\Delta W$ in factorised form:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation · Chen Kai Blog</title>
+<meta name=description content="MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/standalone/moslora/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/standalone/moslora/><meta property="og:type" content="article"><meta property="og:title" content="MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation"><meta property="og:description" content="MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips."><meta property="og:url" content="https://www.chenk.top/en/standalone/moslora/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Standalone</a></div><h1>MoSLoRA: Mixture-of-Subspaces in Low-Rank Adaptation</h1><p class=deck>MoSLoRA boosts LoRA expressivity by mixing multiple low-rank subspaces with a lightweight mixer. Covers when vanilla LoRA fails, mixer design choices, and tuning tips.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-10-12>October 12, 2024</time> · 13 min read · 2743 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/llm/ class=tag>#LLM</a><a href=/en/tags/peft/ class=tag>#PEFT</a></div></div></header><div class=prose><p>LoRA is the default tool for adapting a frozen base model: cheap, stable, mergeable, and good enough for most single-task settings. But the moment your fine-tuning data is genuinely heterogeneous &ndash; code mixed with math, instruction following mixed with creative writing, several domains in one adapter &ndash; a single low-rank subspace starts to feel cramped. You can grow $r$, but cost grows with it and you still get <em>one</em> subspace, just a fatter one.</p><p><a href=https://arxiv.org/abs/2406.11909 target=_blank rel="noopener noreferrer"><strong>MoSLoRA</strong> <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+(Wu, Huang and Wei, 2024) takes a different turn. Instead of one rank-$r$ pair $(B, A)$ it uses $k$ rank-$r$ pairs and lets a tiny <strong>mixer matrix</strong> decide how to combine them. The decomposition rewrites cleanly as a single $B\, W\, A$ product, so the mergeability that made LoRA deployable is preserved, and the extra parameter cost is essentially the $k\times k$ mixer. This post walks through why a single subspace is a real bottleneck, how the mixer changes the geometry of the update, where MoSLoRA actually moves the needle, and how to tune it without overfitting the mixer.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>Why &ldquo;just increase $r$&rdquo; is <em>not</em> the right fix when adaptations are heterogeneous</li><li>MoSLoRA&rsquo;s core idea: mixture of low-rank subspaces with a $k\times k$ mixer</li><li>Mixer design choices: global weights, input-dependent gating, structured variants</li><li>Parameter-count and inference-overhead trade-offs vs LoRA / LoRA-MoE / Full FT</li><li>When MoSLoRA pays off (and when vanilla LoRA is enough)</li><li>Practical tuning tips and a clean PyTorch sketch</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Comfortable with LoRA (low-rank adaptation) and the standard Transformer block</li><li>Basic PEFT vocabulary (Adapters, Prefix-Tuning, BitFit)</li><li>Light familiarity with Mixture-of-Experts routing</li></ul><hr><h2 id=1-lora-recap-why-low-rank-updates-work-and-where-they-dont>1. LoRA recap: why low-rank updates work, and where they don&rsquo;t</h2><p>Take any linear projection $W \in \mathbb{R}^{d_{out}\times d_{in}}$ inside a Transformer (Q/K/V/O or up/down/gate of the MLP). LoRA freezes $W_0$ and learns the update $\Delta W$ in factorised form:</p>$$
 W \;=\; W_0 \;+\; \Delta W,
 \qquad
 \Delta W \;=\; \frac{\alpha}{r}\, B\, A,
 \qquad
 B \in \mathbb{R}^{d_{out}\times r},\;
 A \in \mathbb{R}^{r\times d_{in}}.
-$$<p>With $r \ll \min(d_{in}, d_{out})$ the trainable cost drops from $d_{in}\!\cdot\!d_{out}$ to $r(d_{in}+d_{out})$, often $0.1\%$&ndash;$1\%$ of full FT. Initialising $B = 0$ ensures the adapted model starts identical to the base, and at inference the merged $W_0 + \frac{\alpha}{r} B A$ has the same shape as $W_0$ &ndash; so deployment is exactly as cheap as the base model.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig1_lora_recap.png" alt="LoRA recap: one frozen base &#43; one low-rank update" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The strong assumption baked into LoRA is that <strong>one</strong> rank-$r$ subspace is the right shape for the update. For narrow tasks this is empirically fine. For broad ones it is not, because:</p>
-<ul>
-<li>The optimal $\Delta W$ may be <em>low-rank within each task</em> but <em>high-rank across tasks</em> &ndash; different sub-skills push the weights in genuinely different directions.</li>
-<li>A single subspace forces all those directions to share one $A$ and one $B$. Gradients from one task tend to overwrite useful directions learned for another.</li>
-<li>The fix of &ldquo;just increase $r$&rdquo; gives you a fatter subspace, but the optimum may still want a <strong>structured</strong> combination of several thin subspaces, not one thick one.</li>
-</ul>
-<p>This is the gap MoSLoRA targets.</p>
-<h2 id="2-why-just-increase-r-is-not-always-the-right-fix">2. Why &ldquo;just increase $r$&rdquo; is not always the right fix</h2>
-<p>Increasing $r$ does increase capacity, but it has costs that compound at scale:</p>
-<ul>
-<li><strong>Parameters and memory</strong>: $r(d_{in}+d_{out})$ is linear in $r$; doubling $r$ doubles the adapter footprint per layer.</li>
-<li><strong>Diminishing returns</strong>: empirically, accuracy curves flatten quickly past $r=8$&ndash;$16$ on many tasks.</li>
-<li><strong>Single-direction bias</strong>: a fatter subspace is still one subspace. If the loss surface is <em>piecewise low-rank</em> (different inputs want different directions), you waste capacity on dimensions that one direction needs but another doesn&rsquo;t.</li>
-</ul>
-<p>What you actually want is <strong>structured capacity</strong>: a small set of distinct rank-$r$ subspaces that the model can selectively combine. That is exactly what MoSLoRA provides, and at marginal extra cost.</p>
-<h2 id="3-core-idea-of-moslora-mixture-of-subspaces-written-as-b-w-a">3. Core idea of MoSLoRA: mixture of subspaces, written as $B\, W\, A$</h2>
-<p>MoSLoRA factorises the update through a learnable <strong>mixer</strong>:</p>
-$$
+$$<p>With $r \ll \min(d_{in}, d_{out})$ the trainable cost drops from $d_{in}\!\cdot\!d_{out}$ to $r(d_{in}+d_{out})$, often $0.1\%$&ndash;$1\%$ of full FT. Initialising $B = 0$ ensures the adapted model starts identical to the base, and at inference the merged $W_0 + \frac{\alpha}{r} B A$ has the same shape as $W_0$ &ndash; so deployment is exactly as cheap as the base model.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig1_lora_recap.png alt="LoRA recap: one frozen base + one low-rank update" loading=lazy decoding=async></figure></p><p>The strong assumption baked into LoRA is that <strong>one</strong> rank-$r$ subspace is the right shape for the update. For narrow tasks this is empirically fine. For broad ones it is not, because:</p><ul><li>The optimal $\Delta W$ may be <em>low-rank within each task</em> but <em>high-rank across tasks</em> &ndash; different sub-skills push the weights in genuinely different directions.</li><li>A single subspace forces all those directions to share one $A$ and one $B$. Gradients from one task tend to overwrite useful directions learned for another.</li><li>The fix of &ldquo;just increase $r$&rdquo; gives you a fatter subspace, but the optimum may still want a <strong>structured</strong> combination of several thin subspaces, not one thick one.</li></ul><p>This is the gap MoSLoRA targets.</p><h2 id=2-why-just-increase-r-is-not-always-the-right-fix>2. Why &ldquo;just increase $r$&rdquo; is not always the right fix</h2><p>Increasing $r$ does increase capacity, but it has costs that compound at scale:</p><ul><li><strong>Parameters and memory</strong>: $r(d_{in}+d_{out})$ is linear in $r$; doubling $r$ doubles the adapter footprint per layer.</li><li><strong>Diminishing returns</strong>: empirically, accuracy curves flatten quickly past $r=8$&ndash;$16$ on many tasks.</li><li><strong>Single-direction bias</strong>: a fatter subspace is still one subspace. If the loss surface is <em>piecewise low-rank</em> (different inputs want different directions), you waste capacity on dimensions that one direction needs but another doesn&rsquo;t.</li></ul><p>What you actually want is <strong>structured capacity</strong>: a small set of distinct rank-$r$ subspaces that the model can selectively combine. That is exactly what MoSLoRA provides, and at marginal extra cost.</p><h2 id=3-core-idea-of-moslora-mixture-of-subspaces-written-as-b-w-a>3. Core idea of MoSLoRA: mixture of subspaces, written as $B\, W\, A$</h2><p>MoSLoRA factorises the update through a learnable <strong>mixer</strong>:</p>$$
 \Delta W
 \;=\;
 \sum_{i=1}^{k} W_{ii}\, B_i\, A_i
 \;=\;
 B\, W\, A,
-$$<p>where $A \in \mathbb{R}^{kr\times d_{in}}$ stacks the $k$ &ldquo;down&rdquo; maps, $B \in \mathbb{R}^{d_{out}\times kr}$ stacks the $k$ &ldquo;up&rdquo; maps, and $W \in \mathbb{R}^{kr\times kr}$ is the <strong>mixer</strong>. The diagonal of $W$ recovers a sum of independent LoRAs; the off-diagonal entries let the model <strong>mix</strong> subspaces &ndash; the up-projection of subspace $i$ can be paired with the down-projection of subspace $j$. This is the source of the extra expressivity.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig2_subspace_mixing.png" alt="MoSLoRA architecture: k low-rank subspaces with a learnable mixer" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A few properties drop out of this form:</p>
-<ul>
-<li><strong>No router, no top-$k$, no load balancing</strong>: every subspace contributes on every token. Training is as smooth as plain LoRA.</li>
-<li><strong>Mergeable at inference</strong>: $B W A$ is a single matrix product, so $W_0 + \frac{\alpha}{r} B W A$ collapses back into a single dense weight at deployment time &ndash; exactly like LoRA. This is the property that LoRA-MoE designs typically lose.</li>
-<li><strong>Cheap extra cost</strong>: with $k$ subspaces of rank $r$, parameters become $kr(d_{in}+d_{out}) + (kr)^2$. The $(kr)^2$ mixer is the only new term, and for typical $k=4, r=8$ it is $1024$ scalars per adapted projection &ndash; negligible.</li>
-</ul>
-<p>Think of each $(B_i, A_i)$ as a &ldquo;dial&rdquo; pointing in some direction of weight space. The mixer learns <em>how loud each dial should be</em>, and crucially also <em>how dials can interact</em>. With $k=1$ MoSLoRA reduces to LoRA. With $k>1$ and a non-diagonal $W$ you get a strictly richer family of updates at the same per-token compute.</p>
-<h3 id="what-subspace-means-here">What &ldquo;subspace&rdquo; means here</h3>
-<p>Each pair $(B_i, A_i)$ defines a rank-$r$ subspace of update directions in $\mathbb{R}^{d_{out}\times d_{in}}$. The collection $\{(B_i, A_i)\}_{i=1}^{k}$ spans a union of $k$ such subspaces; the mixer turns that union into a parameterised manifold of rank-$kr$ updates with structure. The structure is what matters: an unstructured rank-$kr$ LoRA would have $kr(d_{in}+d_{out})$ parameters but no inductive bias toward &ldquo;few interpretable directions&rdquo;. MoSLoRA keeps the inductive bias <em>and</em> adds the manifold.</p>
-<h2 id="4-how-this-differs-from-lora-moe-and-classical-moe-routing">4. How this differs from LoRA-MoE and classical MoE routing</h2>
-<p>It is tempting to read MoSLoRA as &ldquo;LoRA-MoE without the gate&rdquo;. That comparison is useful but slightly off. Classical MoE adds:</p>
-<ul>
-<li>An explicit <strong>router</strong> producing per-token expert assignments</li>
-<li><strong>Top-$k$</strong> sparsity to keep compute bounded</li>
-<li><strong>Load-balancing losses</strong> so experts don&rsquo;t collapse</li>
-<li>A non-trivial inference graph &ndash; the active experts depend on the token, so you cannot pre-merge weights</li>
-</ul>
-<p>LoRA-MoE inherits most of these constraints: experts (the LoRAs) are routed, only a subset is active per token, and the merged-weight optimisation that makes LoRA deployable is gone.</p>
-<p>MoSLoRA flips the design choice. There is no routing; all $k$ subspaces always contribute; the mixer is a <em>learned linear combiner</em>, not a <em>discrete selector</em>. The trade-off is intentional:</p>
-<ul>
-<li>You give up the conditional sparsity that lets MoE scale to dozens of experts.</li>
-<li>You get back smooth optimisation, mergeable weights, and a model that behaves operationally like LoRA.</li>
-</ul>
-<p>For the regime LoRA is used in &ndash; one base model, a handful of adapters, deployable at base-model cost &ndash; this is the right trade.</p>
-<h2 id="5-mixer-design-choices">5. Mixer design choices</h2>
-<p>The matrix $W$ has several useful variants. The paper&rsquo;s default is the simplest one; the others are worth knowing because they cover most of the design space you&rsquo;ll encounter in follow-up work.</p>
-<h3 id="global-mixer-default">Global mixer (default)</h3>
-<p>A single $W \in \mathbb{R}^{kr\times kr}$ per adapted projection, learned end-to-end. No input dependency. Cheap, stable, mergeable. Initialise $W$ near the identity so MoSLoRA at step 0 behaves like a sum of independent LoRAs.</p>
-<h3 id="input-dependent-gating">Input-dependent gating</h3>
-<p>Replace $W$ with $W(x) = g(x) \in \mathbb{R}^{k\times k}$ produced by a small projection of the pooled hidden state. Same idea as soft-MoE: every input gets its own combination weights. More expressive but:</p>
-<ul>
-<li>the merged inference shortcut is lost (since $W$ now depends on $x$)</li>
-<li>the gate can overfit on small datasets</li>
-</ul>
-<p>Use it when the task distribution is genuinely multi-modal <em>and</em> you have enough data.</p>
-<h3 id="layer--or-projection-conditioned-mixers">Layer- or projection-conditioned mixers</h3>
-<p>Use a different $W$ per Transformer layer or per projection (Q/K/V/O/MLP). The cost is still tiny but the inductive bias is stronger: low layers can learn one mixing pattern, late layers another. This often gives the best stability/expressivity trade in practice.</p>
-<h3 id="structured--low-rank-mixers">Structured / low-rank mixers</h3>
-<p>For very large $k$, replace the dense $W$ by a low-rank or block-diagonal matrix to keep $(kr)^2$ from growing. Rarely needed at the $k\le 8$ scale most papers operate in.</p>
-<h2 id="6-parameter-count-and-compute-overhead">6. Parameter count and compute overhead</h2>
-<p>Per adapted projection of shape $d_{out}\times d_{in}$ with $k$ subspaces of rank $r$:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Quantity</th>
-          <th>LoRA</th>
-          <th>MoSLoRA</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Trainable params</td>
-          <td>$r(d_{in}+d_{out})$</td>
-          <td>$k r(d_{in}+d_{out}) + (kr)^2$</td>
-      </tr>
-      <tr>
-          <td>Forward FLOPs (per tok)</td>
-          <td>$r(d_{in}+d_{out})$</td>
-          <td>$kr(d_{in}+d_{out}) + (kr)^2$</td>
-      </tr>
-      <tr>
-          <td>Mergeable at inference</td>
-          <td>yes</td>
-          <td>yes (global mixer); no (input-dependent gate)</td>
-      </tr>
-      <tr>
-          <td>Routing / load balance</td>
-          <td>none</td>
-          <td>none</td>
-      </tr>
-  </tbody>
-</table>
-<p>For $d_{in}=d_{out}=4096$, $r=8$, $k=4$: LoRA is $\approx 65$K params per projection; MoSLoRA is $\approx 263$K + $1024$ mixer scalars. Across all attention + MLP projections of an 8B model this is still under $1\%$ of total parameters.</p>
-<p>The point is that the mixer cost is asymptotically free: $(kr)^2$ is dwarfed by $kr(d_{in}+d_{out})$ as soon as $kr \ll d_{in}$, which is the regime you want to be in anyway.</p>
-<h2 id="7-empirical-behaviour-where-the-gap-actually-shows-up">7. Empirical behaviour: where the gap actually shows up</h2>
-<p>The headline finding in the paper, and the consistent pattern in follow-up work, is that MoSLoRA gives a small-to-moderate but <em>consistent</em> lift over LoRA across heterogeneous benchmarks, while staying inside the LoRA cost envelope.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig3_downstream_perf.png" alt="Downstream accuracy: MoSLoRA vs LoRA across heterogeneous tasks" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Two patterns are worth internalising:</p>
-<ol>
-<li><strong>The gap widens as the task distribution gets more heterogeneous.</strong> Single-domain reasoning benchmarks see modest gains. Instruction-tuning mixtures and multi-skill suites see larger gains. This matches the intuition: one subspace is enough for one direction; many subspaces start to pay when there are many directions.</li>
-<li><strong>Increasing $k$ helps more than increasing $r$ when you&rsquo;re already at $r=8$ or higher.</strong> The Pareto frontier in the parameter-vs-accuracy plot bends &ndash; adding subspaces moves you up faster than adding rank.</li>
-</ol>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig4_param_efficiency.png" alt="Parameter efficiency: MoSLoRA shifts the Pareto frontier upward" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The geometric picture for why this works is the cleanest mental model:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig5_subspace_visualisation.png" alt="One fat subspace vs many slim subspaces" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>One LoRA is a single elongated direction; targets that lie off that direction can only be approximated, with residual error proportional to their angle off the subspace. MoSLoRA places several slim subspaces at different angles and lets the mixer combine them; the reachable set is a structured <em>union</em> of subspaces, not a single fat one.</p>
-<h2 id="8-when-moslora-helps----and-when-lora-is-enough">8. When MoSLoRA helps &ndash; and when LoRA is enough</h2>
-<p>MoSLoRA pays off when at least one of the following is true:</p>
-<ul>
-<li>The fine-tuning data spans multiple sub-skills or domains (instruction tuning, multi-domain adaptation, multimodal instruction following).</li>
-<li>You have already tried larger $r$ on LoRA and seen accuracy plateau.</li>
-<li>You need the deployment properties of LoRA (mergeable, no routing) but want more capacity than vanilla LoRA can give without going to LoRA-MoE.</li>
-</ul>
-<p>It is <em>not</em> worth the extra moving parts when:</p>
-<ul>
-<li>The task is narrow and homogeneous and LoRA at moderate $r$ already matches full FT.</li>
-<li>Your dataset is small relative to the adapter size; the mixer can overfit.</li>
-<li>You need the maximum capacity possible and can afford a real MoE; LoRA-MoE or full sparse MoE will give you more headroom.</li>
-</ul>
-<h2 id="9-practical-tuning-tips">9. Practical tuning tips</h2>
-<p>A short list of high-signal knobs from the paper and from practice:</p>
-<ul>
-<li><strong>Start small.</strong> $k=2$&ndash;$4$, $r=8$ is a strong default. Going to $k=8$ helps only on very heterogeneous data.</li>
-<li><strong>Initialise the mixer near identity.</strong> $W \leftarrow I + \varepsilon \cdot \text{Gaussian}$ keeps the model close to a sum-of-LoRAs at step 0 and lets the off-diagonal terms grow only when they help. Random Gaussian init for $W$ tends to slow convergence.</li>
-<li><strong>Attach to attention first, then MLP.</strong> Q/K/V/O is the highest-leverage placement. Add the MLP up/gate/down projections only if you still see headroom.</li>
-<li><strong>Use a slightly smaller $\alpha/r$ scale than for LoRA.</strong> With $k$ subspaces summing into the update, the effective gain is $k\times$ larger; halving $\alpha$ is a safe starting point.</li>
-<li><strong>Watch the mixer&rsquo;s spectrum.</strong> If $W$&rsquo;s singular values collapse to one direction, the model is effectively running as plain LoRA &ndash; you&rsquo;ve over-regularised or given the mixer too little learning rate.</li>
-<li><strong>Keep the global mixer unless you really need input-dependent gating.</strong> The static mixer is mergeable and rarely the bottleneck; the dynamic gate is harder to train and breaks mergeability.</li>
-</ul>
-<h2 id="10-implementation-sketch-pytorch">10. Implementation sketch (PyTorch)</h2>
-<p>A minimal, faithful implementation &ndash; a drop-in for <code>nn.Linear</code> that adds the MoSLoRA update on the forward pass:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">MoSLoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;y = x W0^T + (alpha / r) * x A^T W^T B^T.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">16.0</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>                <span class="c1"># frozen</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">            <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">d_in</span>  <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">in_features</span>
-</span></span><span class="line"><span class="cl">        <span class="n">d_out</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">out_features</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">r</span><span class="p">,</span> <span class="n">k</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">r</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Stacked low-rank factors:  A in (k*r, d_in),  B in (d_out, k*r)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">d_in</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d_out</span><span class="p">,</span> <span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">))</span>   <span class="c1"># init zero</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">5</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Mixer:  W in (k*r, k*r), initialised near identity</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">k</span> <span class="o">*</span> <span class="n">r</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># base path</span>
-</span></span><span class="line"><span class="cl">        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># adapter path: x -&gt; A^T -&gt; W^T -&gt; B^T</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="o">.</span><span class="n">T</span>          <span class="c1"># (..., k*r)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">T</span>          <span class="c1"># (..., k*r)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">T</span>          <span class="c1"># (..., d_out)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">y</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">h</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Fold MoSLoRA into the base weight for inference.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">)</span>   <span class="c1"># (d_out, d_in)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># zero out the adapter so further forward passes don&#39;t double-apply</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">eye_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Three details worth noting:</p>
-<ol>
-<li><code>B</code> is initialised to zero so the model starts identical to the base, exactly as in LoRA.</li>
-<li><code>W</code> starts near identity so MoSLoRA at step 0 behaves like a sum of $k$ independent LoRAs; off-diagonal mixing emerges during training.</li>
-<li><code>merge()</code> collapses everything into a single dense <code>Linear</code>. This is the property that makes MoSLoRA deployable in production with zero inference overhead.</li>
-</ol>
-<h2 id="11-comparison-lora-vs-moslora-vs-lora-moe-vs-full-ft">11. Comparison: LoRA vs MoSLoRA vs LoRA-MoE vs Full FT</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Method</th>
-          <th>Trainable params</th>
-          <th>Expressivity</th>
-          <th>Inference cost</th>
-          <th>Best for</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Full FT</strong></td>
-          <td>100%</td>
-          <td>Highest</td>
-          <td>Baseline (1x)</td>
-          <td>Single homogeneous task, no deployment constraints</td>
-      </tr>
-      <tr>
-          <td><strong>LoRA</strong></td>
-          <td>$\sim 0.1$&ndash;$1$%</td>
-          <td>Medium</td>
-          <td>$\approx 1$x (mergeable)</td>
-          <td>Single or narrow task distribution</td>
-      </tr>
-      <tr>
-          <td><strong>MoSLoRA</strong></td>
-          <td>$\sim 0.5$&ndash;$3$%</td>
-          <td>High</td>
-          <td>$\approx 1$x (mergeable)</td>
-          <td>Heterogeneous multi-task / multi-domain, LoRA-style deployment</td>
-      </tr>
-      <tr>
-          <td><strong>LoRA-MoE</strong></td>
-          <td>$\sim 1$&ndash;$5$%</td>
-          <td>High (sparse)</td>
-          <td>$> 1$x, not mergeable</td>
-          <td>Maximum capacity, willing to give up mergeable inference</td>
-      </tr>
-  </tbody>
-</table>
-<p>The key insight is that MoSLoRA sits between LoRA and full FT <em>on the same axis as LoRA</em>: same deployment story, more capacity. LoRA-MoE moves you onto a different axis with different operational properties.</p>
-<h2 id="12-when-moslora-matters-most">12. When MoSLoRA matters most</h2>
-<ul>
-<li><strong>Instruction tuning across diverse task families.</strong> Code, math, reasoning, creativity push the weights in different directions; one subspace cannot serve all of them well.</li>
-<li><strong>Multi-domain adaptation (finance + medical + legal).</strong> Each domain wants its own small set of update directions; the mixer effectively learns a soft per-domain combination without an explicit router.</li>
-<li><strong>Continual / additive adaptation.</strong> New subspaces can be introduced for new tasks without touching the existing ones, giving a modular path to capacity expansion. (This goes beyond the original paper but is a natural extension that several follow-ups have explored.)</li>
-</ul>
-<h2 id="takeaway">Takeaway</h2>
-<p>MoSLoRA is best read as a <strong>structured capacity upgrade</strong> for LoRA, not as a slimmer MoE:</p>
-<ul>
-<li>LoRA: one rank-$r$ subspace, one direction in weight space.</li>
-<li>MoSLoRA: $k$ rank-$r$ subspaces $+$ a tiny $kr \times kr$ mixer, mergeable into a single dense weight at inference.</li>
-</ul>
-<p>The mixer is what makes the design work: it gives you a structured manifold of rank-$kr$ updates with the same operational footprint as LoRA, and avoids every hard part of MoE &ndash; no router, no top-$k$, no load balancing, no broken mergeability. For practitioners running heterogeneous fine-tuning workloads who don&rsquo;t want to take the operational hit of LoRA-MoE, it is currently the most pragmatic capacity-vs-deployability trade in the LoRA family.</p>
-<h2 id="references">References</h2>
-<ul>
-<li>Wu, T., Huang, S. and Wei, F., 2024. <strong>Mixture-of-Subspaces in Low-Rank Adaptation</strong>. arXiv:2406.11909. <a href="https://arxiv.org/abs/2406.11909" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- <a href="https://github.com/wutaiqiang/MoSLoRA" target="_blank" rel="noopener noreferrer">[code] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hu, E.J., Shen, Y., Wallis, P., et al., 2022. <strong>LoRA: Low-Rank Adaptation of Large Language Models</strong>. ICLR 2022. <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Fedus, W., Zoph, B. and Shazeer, N., 2022. <strong>Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</strong>. JMLR. <a href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Zadouri, T., Ustun, A., Ahmadian, A., et al., 2024. <strong>Pushing Mixture of Experts to the Limit: Extremely Parameter Efficient MoE for Instruction Tuning</strong>. arXiv:2309.05444. <a href="https://arxiv.org/abs/2309.05444" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Liu, S.Y., Wang, C.Y., Yin, H., et al., 2024. <strong>DoRA: Weight-Decomposed Low-Rank Adaptation</strong>. ICML 2024. <a href="https://arxiv.org/abs/2402.09353" target="_blank" rel="noopener noreferrer">[paper] <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-lora-recap-why-low-rank-updates-work-and-where-they-dont">1. LoRA recap: why low-rank updates work, and where they don&rsquo;t</a></li>
-    <li><a href="#2-why-just-increase-r-is-not-always-the-right-fix">2. Why &ldquo;just increase &rdquo; is not always the right fix</a></li>
-    <li><a href="#3-core-idea-of-moslora-mixture-of-subspaces-written-as-b-w-a">3. Core idea of MoSLoRA: mixture of subspaces, written as </a>
-      <ul>
-        <li><a href="#what-subspace-means-here">What &ldquo;subspace&rdquo; means here</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-how-this-differs-from-lora-moe-and-classical-moe-routing">4. How this differs from LoRA-MoE and classical MoE routing</a></li>
-    <li><a href="#5-mixer-design-choices">5. Mixer design choices</a>
-      <ul>
-        <li><a href="#global-mixer-default">Global mixer (default)</a></li>
-        <li><a href="#input-dependent-gating">Input-dependent gating</a></li>
-        <li><a href="#layer--or-projection-conditioned-mixers">Layer- or projection-conditioned mixers</a></li>
-        <li><a href="#structured--low-rank-mixers">Structured / low-rank mixers</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-parameter-count-and-compute-overhead">6. Parameter count and compute overhead</a></li>
-    <li><a href="#7-empirical-behaviour-where-the-gap-actually-shows-up">7. Empirical behaviour: where the gap actually shows up</a></li>
-    <li><a href="#8-when-moslora-helps----and-when-lora-is-enough">8. When MoSLoRA helps &ndash; and when LoRA is enough</a></li>
-    <li><a href="#9-practical-tuning-tips">9. Practical tuning tips</a></li>
-    <li><a href="#10-implementation-sketch-pytorch">10. Implementation sketch (PyTorch)</a></li>
-    <li><a href="#11-comparison-lora-vs-moslora-vs-lora-moe-vs-full-ft">11. Comparison: LoRA vs MoSLoRA vs LoRA-MoE vs Full FT</a></li>
-    <li><a href="#12-when-moslora-matters-most">12. When MoSLoRA matters most</a></li>
-    <li><a href="#takeaway">Takeaway</a></li>
-    <li><a href="#references">References</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2800</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>where $A \in \mathbb{R}^{kr\times d_{in}}$ stacks the $k$ &ldquo;down&rdquo; maps, $B \in \mathbb{R}^{d_{out}\times kr}$ stacks the $k$ &ldquo;up&rdquo; maps, and $W \in \mathbb{R}^{kr\times kr}$ is the <strong>mixer</strong>. The diagonal of $W$ recovers a sum of independent LoRAs; the off-diagonal entries let the model <strong>mix</strong> subspaces &ndash; the up-projection of subspace $i$ can be paired with the down-projection of subspace $j$. This is the source of the extra expressivity.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig2_subspace_mixing.png alt="MoSLoRA architecture: k low-rank subspaces with a learnable mixer" loading=lazy decoding=async></figure></p><p>A few properties drop out of this form:</p><ul><li><strong>No router, no top-$k$, no load balancing</strong>: every subspace contributes on every token. Training is as smooth as plain LoRA.</li><li><strong>Mergeable at inference</strong>: $B W A$ is a single matrix product, so $W_0 + \frac{\alpha}{r} B W A$ collapses back into a single dense weight at deployment time &ndash; exactly like LoRA. This is the property that LoRA-MoE designs typically lose.</li><li><strong>Cheap extra cost</strong>: with $k$ subspaces of rank $r$, parameters become $kr(d_{in}+d_{out}) + (kr)^2$. The $(kr)^2$ mixer is the only new term, and for typical $k=4, r=8$ it is $1024$ scalars per adapted projection &ndash; negligible.</li></ul><p>Think of each $(B_i, A_i)$ as a &ldquo;dial&rdquo; pointing in some direction of weight space. The mixer learns <em>how loud each dial should be</em>, and crucially also <em>how dials can interact</em>. With $k=1$ MoSLoRA reduces to LoRA. With $k>1$ and a non-diagonal $W$ you get a strictly richer family of updates at the same per-token compute.</p><h3 id=what-subspace-means-here>What &ldquo;subspace&rdquo; means here</h3><p>Each pair $(B_i, A_i)$ defines a rank-$r$ subspace of update directions in $\mathbb{R}^{d_{out}\times d_{in}}$. The collection $\{(B_i, A_i)\}_{i=1}^{k}$ spans a union of $k$ such subspaces; the mixer turns that union into a parameterised manifold of rank-$kr$ updates with structure. The structure is what matters: an unstructured rank-$kr$ LoRA would have $kr(d_{in}+d_{out})$ parameters but no inductive bias toward &ldquo;few interpretable directions&rdquo;. MoSLoRA keeps the inductive bias <em>and</em> adds the manifold.</p><h2 id=4-how-this-differs-from-lora-moe-and-classical-moe-routing>4. How this differs from LoRA-MoE and classical MoE routing</h2><p>It is tempting to read MoSLoRA as &ldquo;LoRA-MoE without the gate&rdquo;. That comparison is useful but slightly off. Classical MoE adds:</p><ul><li>An explicit <strong>router</strong> producing per-token expert assignments</li><li><strong>Top-$k$</strong> sparsity to keep compute bounded</li><li><strong>Load-balancing losses</strong> so experts don&rsquo;t collapse</li><li>A non-trivial inference graph &ndash; the active experts depend on the token, so you cannot pre-merge weights</li></ul><p>LoRA-MoE inherits most of these constraints: experts (the LoRAs) are routed, only a subset is active per token, and the merged-weight optimisation that makes LoRA deployable is gone.</p><p>MoSLoRA flips the design choice. There is no routing; all $k$ subspaces always contribute; the mixer is a <em>learned linear combiner</em>, not a <em>discrete selector</em>. The trade-off is intentional:</p><ul><li>You give up the conditional sparsity that lets MoE scale to dozens of experts.</li><li>You get back smooth optimisation, mergeable weights, and a model that behaves operationally like LoRA.</li></ul><p>For the regime LoRA is used in &ndash; one base model, a handful of adapters, deployable at base-model cost &ndash; this is the right trade.</p><h2 id=5-mixer-design-choices>5. Mixer design choices</h2><p>The matrix $W$ has several useful variants. The paper&rsquo;s default is the simplest one; the others are worth knowing because they cover most of the design space you&rsquo;ll encounter in follow-up work.</p><h3 id=global-mixer-default>Global mixer (default)</h3><p>A single $W \in \mathbb{R}^{kr\times kr}$ per adapted projection, learned end-to-end. No input dependency. Cheap, stable, mergeable. Initialise $W$ near the identity so MoSLoRA at step 0 behaves like a sum of independent LoRAs.</p><h3 id=input-dependent-gating>Input-dependent gating</h3><p>Replace $W$ with $W(x) = g(x) \in \mathbb{R}^{k\times k}$ produced by a small projection of the pooled hidden state. Same idea as soft-MoE: every input gets its own combination weights. More expressive but:</p><ul><li>the merged inference shortcut is lost (since $W$ now depends on $x$)</li><li>the gate can overfit on small datasets</li></ul><p>Use it when the task distribution is genuinely multi-modal <em>and</em> you have enough data.</p><h3 id=layer--or-projection-conditioned-mixers>Layer- or projection-conditioned mixers</h3><p>Use a different $W$ per Transformer layer or per projection (Q/K/V/O/MLP). The cost is still tiny but the inductive bias is stronger: low layers can learn one mixing pattern, late layers another. This often gives the best stability/expressivity trade in practice.</p><h3 id=structured--low-rank-mixers>Structured / low-rank mixers</h3><p>For very large $k$, replace the dense $W$ by a low-rank or block-diagonal matrix to keep $(kr)^2$ from growing. Rarely needed at the $k\le 8$ scale most papers operate in.</p><h2 id=6-parameter-count-and-compute-overhead>6. Parameter count and compute overhead</h2><p>Per adapted projection of shape $d_{out}\times d_{in}$ with $k$ subspaces of rank $r$:</p><table><thead><tr><th>Quantity</th><th>LoRA</th><th>MoSLoRA</th></tr></thead><tbody><tr><td>Trainable params</td><td>$r(d_{in}+d_{out})$</td><td>$k r(d_{in}+d_{out}) + (kr)^2$</td></tr><tr><td>Forward FLOPs (per tok)</td><td>$r(d_{in}+d_{out})$</td><td>$kr(d_{in}+d_{out}) + (kr)^2$</td></tr><tr><td>Mergeable at inference</td><td>yes</td><td>yes (global mixer); no (input-dependent gate)</td></tr><tr><td>Routing / load balance</td><td>none</td><td>none</td></tr></tbody></table><p>For $d_{in}=d_{out}=4096$, $r=8$, $k=4$: LoRA is $\approx 65$K params per projection; MoSLoRA is $\approx 263$K + $1024$ mixer scalars. Across all attention + MLP projections of an 8B model this is still under $1\%$ of total parameters.</p><p>The point is that the mixer cost is asymptotically free: $(kr)^2$ is dwarfed by $kr(d_{in}+d_{out})$ as soon as $kr \ll d_{in}$, which is the regime you want to be in anyway.</p><h2 id=7-empirical-behaviour-where-the-gap-actually-shows-up>7. Empirical behaviour: where the gap actually shows up</h2><p>The headline finding in the paper, and the consistent pattern in follow-up work, is that MoSLoRA gives a small-to-moderate but <em>consistent</em> lift over LoRA across heterogeneous benchmarks, while staying inside the LoRA cost envelope.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig3_downstream_perf.png alt="Downstream accuracy: MoSLoRA vs LoRA across heterogeneous tasks" loading=lazy decoding=async></figure></p><p>Two patterns are worth internalising:</p><ol><li><strong>The gap widens as the task distribution gets more heterogeneous.</strong> Single-domain reasoning benchmarks see modest gains. Instruction-tuning mixtures and multi-skill suites see larger gains. This matches the intuition: one subspace is enough for one direction; many subspaces start to pay when there are many directions.</li><li><strong>Increasing $k$ helps more than increasing $r$ when you&rsquo;re already at $r=8$ or higher.</strong> The Pareto frontier in the parameter-vs-accuracy plot bends &ndash; adding subspaces moves you up faster than adding rank.</li></ol><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig4_param_efficiency.png alt="Parameter efficiency: MoSLoRA shifts the Pareto frontier upward" loading=lazy decoding=async></figure></p><p>The geometric picture for why this works is the cleanest mental model:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/moslora/fig5_subspace_visualisation.png alt="One fat subspace vs many slim subspaces" loading=lazy decoding=async></figure></p><p>One LoRA is a single elongated direction; targets that lie off that direction can only be approximated, with residual error proportional to their angle off the subspace. MoSLoRA places several slim subspaces at different angles and lets the mixer combine them; the reachable set is a structured <em>union</em> of subspaces, not a single fat one.</p><h2 id=8-when-moslora-helps----and-when-lora-is-enough>8. When MoSLoRA helps &ndash; and when LoRA is enough</h2><p>MoSLoRA pays off when at least one of the following is true:</p><ul><li>The fine-tuning data spans multiple sub-skills or domains (instruction tuning, multi-domain adaptation, multimodal instruction following).</li><li>You have already tried larger $r$ on LoRA and seen accuracy plateau.</li><li>You need the deployment properties of LoRA (mergeable, no routing) but want more capacity than vanilla LoRA can give without going to LoRA-MoE.</li></ul><p>It is <em>not</em> worth the extra moving parts when:</p><ul><li>The task is narrow and homogeneous and LoRA at moderate $r$ already matches full FT.</li><li>Your dataset is small relative to the adapter size; the mixer can overfit.</li><li>You need the maximum capacity possible and can afford a real MoE; LoRA-MoE or full sparse MoE will give you more headroom.</li></ul><h2 id=9-practical-tuning-tips>9. Practical tuning tips</h2><p>A short list of high-signal knobs from the paper and from practice:</p><ul><li><strong>Start small.</strong> $k=2$&ndash;$4$, $r=8$ is a strong default. Going to $k=8$ helps only on very heterogeneous data.</li><li><strong>Initialise the mixer near identity.</strong> $W \leftarrow I + \varepsilon \cdot \text{Gaussian}$ keeps the model close to a sum-of-LoRAs at step 0 and lets the off-diagonal terms grow only when they help. Random Gaussian init for $W$ tends to slow convergence.</li><li><strong>Attach to attention first, then MLP.</strong> Q/K/V/O is the highest-leverage placement. Add the MLP up/gate/down projections only if you still see headroom.</li><li><strong>Use a slightly smaller $\alpha/r$ scale than for LoRA.</strong> With $k$ subspaces summing into the update, the effective gain is $k\times$ larger; halving $\alpha$ is a safe starting point.</li><li><strong>Watch the mixer&rsquo;s spectrum.</strong> If $W$&rsquo;s singular values collapse to one direction, the model is effectively running as plain LoRA &ndash; you&rsquo;ve over-regularised or given the mixer too little learning rate.</li><li><strong>Keep the global mixer unless you really need input-dependent gating.</strong> The static mixer is mergeable and rarely the bottleneck; the dynamic gate is harder to train and breaks mergeability.</li></ul><h2 id=10-implementation-sketch-pytorch>10. Implementation sketch (PyTorch)</h2><p>A minimal, faithful implementation &ndash; a drop-in for <code>nn.Linear</code> that adds the MoSLoRA update on the forward pass:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>MoSLoRALinear</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;y = x W0^T + (alpha / r) * x A^T W^T B^T.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>,</span> <span class=n>r</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>16.0</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span> <span class=o>=</span> <span class=n>base</span>                <span class=c1># frozen</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>            <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span> <span class=o>=</span> <span class=kc>False</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>d_in</span>  <span class=o>=</span> <span class=n>base</span><span class=o>.</span><span class=n>in_features</span>
+</span></span><span class=line><span class=cl>        <span class=n>d_out</span> <span class=o>=</span> <span class=n>base</span><span class=o>.</span><span class=n>out_features</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>r</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span> <span class=o>=</span> <span class=n>r</span><span class=p>,</span> <span class=n>k</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scale</span> <span class=o>=</span> <span class=n>alpha</span> <span class=o>/</span> <span class=n>r</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Stacked low-rank factors:  A in (k*r, d_in),  B in (d_out, k*r)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>A</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>,</span> <span class=n>d_in</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>B</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>d_out</span><span class=p>,</span> <span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>))</span>   <span class=c1># init zero</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>kaiming_uniform_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>,</span> <span class=n>a</span><span class=o>=</span><span class=mi>5</span> <span class=o>**</span> <span class=mf>0.5</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Mixer:  W in (k*r, k*r), initialised near identity</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Parameter</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>)</span> <span class=o>+</span> <span class=mf>0.01</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>,</span> <span class=n>k</span> <span class=o>*</span> <span class=n>r</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=c1># base path</span>
+</span></span><span class=line><span class=cl>        <span class=n>y</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># adapter path: x -&gt; A^T -&gt; W^T -&gt; B^T</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>x</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=o>.</span><span class=n>T</span>          <span class=c1># (..., k*r)</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=o>.</span><span class=n>T</span>          <span class=c1># (..., k*r)</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>B</span><span class=o>.</span><span class=n>T</span>          <span class=c1># (..., d_out)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>y</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>scale</span> <span class=o>*</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>merge</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Fold MoSLoRA into the base weight for inference.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>delta</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scale</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>B</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>W</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>A</span><span class=p>)</span>   <span class=c1># (d_out, d_in)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>base</span><span class=o>.</span><span class=n>weight</span><span class=o>.</span><span class=n>add_</span><span class=p>(</span><span class=n>delta</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># zero out the adapter so further forward passes don&#39;t double-apply</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>B</span><span class=o>.</span><span class=n>zero_</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>nn</span><span class=o>.</span><span class=n>init</span><span class=o>.</span><span class=n>eye_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Three details worth noting:</p><ol><li><code>B</code> is initialised to zero so the model starts identical to the base, exactly as in LoRA.</li><li><code>W</code> starts near identity so MoSLoRA at step 0 behaves like a sum of $k$ independent LoRAs; off-diagonal mixing emerges during training.</li><li><code>merge()</code> collapses everything into a single dense <code>Linear</code>. This is the property that makes MoSLoRA deployable in production with zero inference overhead.</li></ol><h2 id=11-comparison-lora-vs-moslora-vs-lora-moe-vs-full-ft>11. Comparison: LoRA vs MoSLoRA vs LoRA-MoE vs Full FT</h2><table><thead><tr><th>Method</th><th>Trainable params</th><th>Expressivity</th><th>Inference cost</th><th>Best for</th></tr></thead><tbody><tr><td><strong>Full FT</strong></td><td>100%</td><td>Highest</td><td>Baseline (1x)</td><td>Single homogeneous task, no deployment constraints</td></tr><tr><td><strong>LoRA</strong></td><td>$\sim 0.1$&ndash;$1$%</td><td>Medium</td><td>$\approx 1$x (mergeable)</td><td>Single or narrow task distribution</td></tr><tr><td><strong>MoSLoRA</strong></td><td>$\sim 0.5$&ndash;$3$%</td><td>High</td><td>$\approx 1$x (mergeable)</td><td>Heterogeneous multi-task / multi-domain, LoRA-style deployment</td></tr><tr><td><strong>LoRA-MoE</strong></td><td>$\sim 1$&ndash;$5$%</td><td>High (sparse)</td><td>$> 1$x, not mergeable</td><td>Maximum capacity, willing to give up mergeable inference</td></tr></tbody></table><p>The key insight is that MoSLoRA sits between LoRA and full FT <em>on the same axis as LoRA</em>: same deployment story, more capacity. LoRA-MoE moves you onto a different axis with different operational properties.</p><h2 id=12-when-moslora-matters-most>12. When MoSLoRA matters most</h2><ul><li><strong>Instruction tuning across diverse task families.</strong> Code, math, reasoning, creativity push the weights in different directions; one subspace cannot serve all of them well.</li><li><strong>Multi-domain adaptation (finance + medical + legal).</strong> Each domain wants its own small set of update directions; the mixer effectively learns a soft per-domain combination without an explicit router.</li><li><strong>Continual / additive adaptation.</strong> New subspaces can be introduced for new tasks without touching the existing ones, giving a modular path to capacity expansion. (This goes beyond the original paper but is a natural extension that several follow-ups have explored.)</li></ul><h2 id=takeaway>Takeaway</h2><p>MoSLoRA is best read as a <strong>structured capacity upgrade</strong> for LoRA, not as a slimmer MoE:</p><ul><li>LoRA: one rank-$r$ subspace, one direction in weight space.</li><li>MoSLoRA: $k$ rank-$r$ subspaces $+$ a tiny $kr \times kr$ mixer, mergeable into a single dense weight at inference.</li></ul><p>The mixer is what makes the design work: it gives you a structured manifold of rank-$kr$ updates with the same operational footprint as LoRA, and avoids every hard part of MoE &ndash; no router, no top-$k$, no load balancing, no broken mergeability. For practitioners running heterogeneous fine-tuning workloads who don&rsquo;t want to take the operational hit of LoRA-MoE, it is currently the most pragmatic capacity-vs-deployability trade in the LoRA family.</p><h2 id=references>References</h2><ul><li>Wu, T., Huang, S. and Wei, F., 2024. <strong>Mixture-of-Subspaces in Low-Rank Adaptation</strong>. arXiv:2406.11909. <a href=https://arxiv.org/abs/2406.11909 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+<a href=https://github.com/wutaiqiang/MoSLoRA target=_blank rel="noopener noreferrer">[code] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hu, E.J., Shen, Y., Wallis, P., et al., 2022. <strong>LoRA: Low-Rank Adaptation of Large Language Models</strong>. ICLR 2022. <a href=https://arxiv.org/abs/2106.09685 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Fedus, W., Zoph, B. and Shazeer, N., 2022. <strong>Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</strong>. JMLR. <a href=https://arxiv.org/abs/2101.03961 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Zadouri, T., Ustun, A., Ahmadian, A., et al., 2024. <strong>Pushing Mixture of Experts to the Limit: Extremely Parameter Efficient MoE for Instruction Tuning</strong>. arXiv:2309.05444. <a href=https://arxiv.org/abs/2309.05444 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Liu, S.Y., Wang, C.Y., Yin, H., et al., 2024. <strong>DoRA: Weight-Decomposed Low-Rank Adaptation</strong>. ICML 2024. <a href=https://arxiv.org/abs/2402.09353 target=_blank rel="noopener noreferrer">[paper] <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-lora-recap-why-low-rank-updates-work-and-where-they-dont>1. LoRA recap: why low-rank updates work, and where they don&rsquo;t</a></li><li><a href=#2-why-just-increase-r-is-not-always-the-right-fix>2. Why &ldquo;just increase &rdquo; is not always the right fix</a></li><li><a href=#3-core-idea-of-moslora-mixture-of-subspaces-written-as-b-w-a>3. Core idea of MoSLoRA: mixture of subspaces, written as</a><ul><li><a href=#what-subspace-means-here>What &ldquo;subspace&rdquo; means here</a></li></ul></li><li><a href=#4-how-this-differs-from-lora-moe-and-classical-moe-routing>4. How this differs from LoRA-MoE and classical MoE routing</a></li><li><a href=#5-mixer-design-choices>5. Mixer design choices</a><ul><li><a href=#global-mixer-default>Global mixer (default)</a></li><li><a href=#input-dependent-gating>Input-dependent gating</a></li><li><a href=#layer--or-projection-conditioned-mixers>Layer- or projection-conditioned mixers</a></li><li><a href=#structured--low-rank-mixers>Structured / low-rank mixers</a></li></ul></li><li><a href=#6-parameter-count-and-compute-overhead>6. Parameter count and compute overhead</a></li><li><a href=#7-empirical-behaviour-where-the-gap-actually-shows-up>7. Empirical behaviour: where the gap actually shows up</a></li><li><a href=#8-when-moslora-helps----and-when-lora-is-enough>8. When MoSLoRA helps &ndash; and when LoRA is enough</a></li><li><a href=#9-practical-tuning-tips>9. Practical tuning tips</a></li><li><a href=#10-implementation-sketch-pytorch>10. Implementation sketch (PyTorch)</a></li><li><a href=#11-comparison-lora-vs-moslora-vs-lora-moe-vs-full-ft>11. Comparison: LoRA vs MoSLoRA vs LoRA-MoE vs Full FT</a></li><li><a href=#12-when-moslora-matters-most>12. When MoSLoRA matters most</a></li><li><a href=#takeaway>Takeaway</a></li><li><a href=#references>References</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>13 min</strong></div><div class=row><span>Word count</span><strong>2743</strong></div><div class=row><span>Published</span><strong>Oct 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

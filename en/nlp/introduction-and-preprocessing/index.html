@@ -1,1200 +1,479 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>NLP Part 1: Introduction and Text Preprocessing · Chen Kai Blog</title>
-<meta name="description" content="A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/nlp/introduction-and-preprocessing/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/nlp/introduction-and-preprocessing/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="NLP Part 1: Introduction and Text Preprocessing">
-<meta property="og:description" content="A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations.">
-<meta property="og:url" content="https://www.chenk.top/en/nlp/introduction-and-preprocessing/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Natural language processing</a>
-         · Chapter 1
-      </div>
-      <h1>NLP Part 1: Introduction and Text Preprocessing</h1>
-      <p class="deck">A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-10-01">October 1, 2025</time> · 18 min read · 3700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/nlp/" class="tag">#NLP</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/text-preprocessing/" class="tag">#Text Preprocessing</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language &ndash; and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.</p>
-<p>This first article in the series does two things. First, it draws the map: where the field came from, what it covers today, and why the tools we use look the way they do. Second, it builds the foundational layer &ndash; cleaning, tokenization, normalization, and feature extraction &ndash; with code that you can lift directly into a project. By the end you will have a reusable preprocessing pipeline and, more importantly, a sense of when each step helps and when it quietly destroys signal.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig1_applications_landscape.png" alt="NLP application landscape" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>The four paradigms of NLP and the technical reason each one displaced the previous</li>
-<li>A precise vocabulary for tokenization: characters, words, subwords, and why BPE won</li>
-<li>How to build a configurable preprocessing pipeline in Python with NLTK, spaCy, and scikit-learn</li>
-<li>The math behind Bag-of-Words and TF-IDF, and how to read the resulting matrices</li>
-<li>Zipf&rsquo;s law, n-gram language models, and why one-hot vectors fail</li>
-<li>A decision table for when to apply (or skip) each preprocessing step</li>
-</ul>
-<p><strong>Prerequisites</strong>: Comfortable Python, light familiarity with NumPy and pandas, no prior NLP exposure required.</p>
-<hr>
-<h2 id="1-four-eras-of-nlp">1. Four Eras of NLP</h2>
-<p>NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you reach for the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.</p>
-<h3 id="11-symbolic-era-1950s----late-1980s">1.1 Symbolic Era (1950s &ndash; late 1980s)</h3>
-<p>Early systems treated language as a logic problem. ELIZA (1966) matched user input against hand-crafted regex patterns and rephrased the captured groups; SHRDLU (1970) parsed instructions about a blocks world using a hand-written grammar. These systems were precise within their domain and completely brittle outside it &ndash; a synonym or a typo broke them. The lesson, in hindsight, is that language has too many surface forms for any human to enumerate.</p>
-<h3 id="12-statistical-revolution-1990s">1.2 Statistical Revolution (1990s)</h3>
-<p>The turning point was the realization that you do not need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:</p>
-$$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$<p>This single formula powered IBM&rsquo;s statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.</p>
-<h3 id="13-deep-learning-era-2013----2016">1.3 Deep Learning Era (2013 &ndash; 2016)</h3>
-<p>Word2Vec (Mikolov et al., 2013) showed that a tiny neural network trained to predict context words produces vectors with a remarkable property: semantic relationships become arithmetic.</p>
-$$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$<p>For the first time, words were no longer atomic identifiers. They lived in a continuous space where similarity was a cosine away. RNNs and LSTMs followed, letting models thread context through a sequence and finally learn from order, not just bag-of-tokens counts.</p>
-<h3 id="14-transformer-revolution-2017----present">1.4 Transformer Revolution (2017 &ndash; present)</h3>
-<p>The 2017 paper &ldquo;Attention Is All You Need&rdquo; replaced recurrence with self-attention:</p>
-$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$<p>Two practical consequences mattered. First, the model is fully parallel across positions, so training scales with GPU memory rather than sequence length. Second, every token can attend directly to every other token, which finally solved the long-range dependency problem. BERT, GPT, and every modern LLM are direct descendants.</p>
-<table>
-  <thead>
-      <tr>
-          <th>Era</th>
-          <th>Years</th>
-          <th>Core idea</th>
-          <th>What broke it</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Symbolic</td>
-          <td>1950 &ndash; 1980s</td>
-          <td>Hand-written rules and grammars</td>
-          <td>Cannot enumerate surface forms</td>
-      </tr>
-      <tr>
-          <td>Statistical</td>
-          <td>1990s &ndash; 2010s</td>
-          <td>Estimate probabilities from corpora</td>
-          <td>Hand-engineered features hit a ceiling</td>
-      </tr>
-      <tr>
-          <td>Deep learning</td>
-          <td>2013 &ndash; 2016</td>
-          <td>Learn dense representations end-to-end</td>
-          <td>Recurrence is sequential, slow to train</td>
-      </tr>
-      <tr>
-          <td>Transformer</td>
-          <td>2017 &ndash; now</td>
-          <td>Self-attention over the whole sequence</td>
-          <td>(Still being explored)</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>Insight</strong>: each shift solved the previous era&rsquo;s bottleneck without throwing away the layer below. Even today, an LLM tokenizer is a statistical artifact, and your retrieval system probably uses TF-IDF as a fallback.</p>
-<hr>
-<h2 id="2-where-nlp-shows-up-today">2. Where NLP Shows Up Today</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Domain</th>
-          <th>Examples</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Text classification</strong></td>
-          <td>Sentiment, spam, intent routing</td>
-      </tr>
-      <tr>
-          <td><strong>Information extraction</strong></td>
-          <td>Named entities, relations, knowledge graphs</td>
-      </tr>
-      <tr>
-          <td><strong>Generation</strong></td>
-          <td>Translation, summarization, code</td>
-      </tr>
-      <tr>
-          <td><strong>Conversational AI</strong></td>
-          <td>ChatGPT, Claude, voice assistants</td>
-      </tr>
-      <tr>
-          <td><strong>Search and analysis</strong></td>
-          <td>Semantic search, topic modeling, RAG</td>
-      </tr>
-  </tbody>
-</table>
-<p>The figure above arranges these into six clusters. Notice that almost every cluster ultimately consumes a vector &ndash; which is exactly what preprocessing produces.</p>
-<hr>
-<h2 id="3-the-preprocessing-pipeline-at-a-glance">3. The Preprocessing Pipeline at a Glance</h2>
-<p>Before any model, raw text has to become numerical features. The standard pipeline has six stages, and each one is a deliberate choice that trades information for regularity.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig2_preprocessing_pipeline.png" alt="Text preprocessing pipeline" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<pre tabindex="0"><code>Raw text
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>NLP Part 1: Introduction and Text Preprocessing · Chen Kai Blog</title>
+<meta name=description content="A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/nlp/introduction-and-preprocessing/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/nlp/introduction-and-preprocessing/><meta property="og:type" content="article"><meta property="og:title" content="NLP Part 1: Introduction and Text Preprocessing"><meta property="og:description" content="A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations."><meta property="og:url" content="https://www.chenk.top/en/nlp/introduction-and-preprocessing/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Natural language processing</a>
+· Chapter 1</div><h1>NLP Part 1: Introduction and Text Preprocessing</h1><p class=deck>A first-principles introduction to NLP and text preprocessing. We trace the four eras of the field, build the cleaning to vectorization pipeline by hand, and unpack the math behind tokenization, TF-IDF, n-grams, and distributed representations.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-10-01>October 1, 2025</time> · 18 min read · 3681 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/nlp/ class=tag>#NLP</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/text-preprocessing/ class=tag>#Text Preprocessing</a></div></div></header><div class=prose><p>Every time you ask Claude a question, autocomplete a sentence in Gmail, or read a Google Translate page, you are touching a stack that took seventy years to assemble. Natural Language Processing is the discipline that taught machines to read, score, transform, and write human language &ndash; and the surprising thing is how much of the modern stack still rests on a small set of preprocessing primitives invented decades ago.</p><p>This first article in the series does two things. First, it draws the map: where the field came from, what it covers today, and why the tools we use look the way they do. Second, it builds the foundational layer &ndash; cleaning, tokenization, normalization, and feature extraction &ndash; with code that you can lift directly into a project. By the end you will have a reusable preprocessing pipeline and, more importantly, a sense of when each step helps and when it quietly destroys signal.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig1_applications_landscape.png alt="NLP application landscape" loading=lazy decoding=async></figure></p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>The four paradigms of NLP and the technical reason each one displaced the previous</li><li>A precise vocabulary for tokenization: characters, words, subwords, and why BPE won</li><li>How to build a configurable preprocessing pipeline in Python with NLTK, spaCy, and scikit-learn</li><li>The math behind Bag-of-Words and TF-IDF, and how to read the resulting matrices</li><li>Zipf&rsquo;s law, n-gram language models, and why one-hot vectors fail</li><li>A decision table for when to apply (or skip) each preprocessing step</li></ul><p><strong>Prerequisites</strong>: Comfortable Python, light familiarity with NumPy and pandas, no prior NLP exposure required.</p><hr><h2 id=1-four-eras-of-nlp>1. Four Eras of NLP</h2><p>NLP did not advance smoothly. It moved in jumps, each driven by a new representation of language. Knowing the sequence helps you reach for the right tool: rule systems still beat neural nets for narrow form-filling, statistical methods still drive search ranking, and embeddings dominate everything else.</p><h3 id=11-symbolic-era-1950s----late-1980s>1.1 Symbolic Era (1950s &ndash; late 1980s)</h3><p>Early systems treated language as a logic problem. ELIZA (1966) matched user input against hand-crafted regex patterns and rephrased the captured groups; SHRDLU (1970) parsed instructions about a blocks world using a hand-written grammar. These systems were precise within their domain and completely brittle outside it &ndash; a synonym or a typo broke them. The lesson, in hindsight, is that language has too many surface forms for any human to enumerate.</p><h3 id=12-statistical-revolution-1990s>1.2 Statistical Revolution (1990s)</h3><p>The turning point was the realization that you do not need to write rules; you can estimate probabilities from data. The bigram model is the canonical example:</p>$$P(w_t \mid w_{t-1}) = \frac{\text{count}(w_{t-1}, w_t)}{\text{count}(w_{t-1})}$$<p>This single formula powered IBM&rsquo;s statistical machine translation, the first viable speech recognizers, and probabilistic part-of-speech taggers. Hidden Markov Models extended the same idea to latent state, and probabilistic context-free grammars handled syntax. Features were still hand-engineered, but the rules were learned.</p><h3 id=13-deep-learning-era-2013----2016>1.3 Deep Learning Era (2013 &ndash; 2016)</h3><p>Word2Vec (Mikolov et al., 2013) showed that a tiny neural network trained to predict context words produces vectors with a remarkable property: semantic relationships become arithmetic.</p>$$\vec{\text{king}} - \vec{\text{man}} + \vec{\text{woman}} \approx \vec{\text{queen}}$$<p>For the first time, words were no longer atomic identifiers. They lived in a continuous space where similarity was a cosine away. RNNs and LSTMs followed, letting models thread context through a sequence and finally learn from order, not just bag-of-tokens counts.</p><h3 id=14-transformer-revolution-2017----present>1.4 Transformer Revolution (2017 &ndash; present)</h3><p>The 2017 paper &ldquo;Attention Is All You Need&rdquo; replaced recurrence with self-attention:</p>$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$<p>Two practical consequences mattered. First, the model is fully parallel across positions, so training scales with GPU memory rather than sequence length. Second, every token can attend directly to every other token, which finally solved the long-range dependency problem. BERT, GPT, and every modern LLM are direct descendants.</p><table><thead><tr><th>Era</th><th>Years</th><th>Core idea</th><th>What broke it</th></tr></thead><tbody><tr><td>Symbolic</td><td>1950 &ndash; 1980s</td><td>Hand-written rules and grammars</td><td>Cannot enumerate surface forms</td></tr><tr><td>Statistical</td><td>1990s &ndash; 2010s</td><td>Estimate probabilities from corpora</td><td>Hand-engineered features hit a ceiling</td></tr><tr><td>Deep learning</td><td>2013 &ndash; 2016</td><td>Learn dense representations end-to-end</td><td>Recurrence is sequential, slow to train</td></tr><tr><td>Transformer</td><td>2017 &ndash; now</td><td>Self-attention over the whole sequence</td><td>(Still being explored)</td></tr></tbody></table><p><strong>Insight</strong>: each shift solved the previous era&rsquo;s bottleneck without throwing away the layer below. Even today, an LLM tokenizer is a statistical artifact, and your retrieval system probably uses TF-IDF as a fallback.</p><hr><h2 id=2-where-nlp-shows-up-today>2. Where NLP Shows Up Today</h2><table><thead><tr><th>Domain</th><th>Examples</th></tr></thead><tbody><tr><td><strong>Text classification</strong></td><td>Sentiment, spam, intent routing</td></tr><tr><td><strong>Information extraction</strong></td><td>Named entities, relations, knowledge graphs</td></tr><tr><td><strong>Generation</strong></td><td>Translation, summarization, code</td></tr><tr><td><strong>Conversational AI</strong></td><td>ChatGPT, Claude, voice assistants</td></tr><tr><td><strong>Search and analysis</strong></td><td>Semantic search, topic modeling, RAG</td></tr></tbody></table><p>The figure above arranges these into six clusters. Notice that almost every cluster ultimately consumes a vector &ndash; which is exactly what preprocessing produces.</p><hr><h2 id=3-the-preprocessing-pipeline-at-a-glance>3. The Preprocessing Pipeline at a Glance</h2><p>Before any model, raw text has to become numerical features. The standard pipeline has six stages, and each one is a deliberate choice that trades information for regularity.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig2_preprocessing_pipeline.png alt="Text preprocessing pipeline" loading=lazy decoding=async></figure></p><pre tabindex=0><code>Raw text
   -&gt; Cleaning      (strip HTML, URLs, emails, junk characters)
   -&gt; Tokenization  (split into words / subwords)
   -&gt; Normalization (lowercase, lemmatize, optionally stem)
   -&gt; Stopword pass (drop &#34;the&#34;, &#34;is&#34;, &#34;at&#34; if they hurt)
   -&gt; Vectorization (BoW, TF-IDF, or embeddings)
   -&gt; Model
-</code></pre><p>A common mistake is to apply every step by reflex. The right framing is: each stage should remove noise that downstream cannot handle and preserve everything else. We will revisit this trade-off at every step.</p>
-<h3 id="31-environment-setup">3.1 Environment Setup</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pip install nltk spacy scikit-learn matplotlib numpy pandas beautifulsoup4
-</span></span><span class="line"><span class="cl">python -m spacy download en_core_web_sm
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">nltk</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">pkg</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;punkt&#39;</span><span class="p">,</span> <span class="s1">&#39;stopwords&#39;</span><span class="p">,</span> <span class="s1">&#39;wordnet&#39;</span><span class="p">,</span> <span class="s1">&#39;averaged_perceptron_tagger&#39;</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">nltk</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">pkg</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="4-step-1----text-cleaning">4. Step 1 &ndash; Text Cleaning</h2>
-<p>Web text comes wrapped in HTML, peppered with URLs, and littered with control characters. Cleaning removes the obvious noise without touching meaning.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">re</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">clean_text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Strip HTML, URLs, emails, non-letters; collapse whitespace.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;[^&gt;]+&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>              <span class="c1"># HTML tags</span>
-</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;http\S+|www\.\S+&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>     <span class="c1"># URLs</span>
-</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\S+@\S+&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>              <span class="c1"># emails</span>
-</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[^a-zA-Z\s]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>          <span class="c1"># keep letters and spaces</span>
-</span></span><span class="line"><span class="cl">    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>         <span class="c1"># normalize whitespace</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">text</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">raw</span> <span class="o">=</span> <span class="s2">&#34;&#34;&#34;&lt;p&gt;Check out https://example.com for info!&lt;/p&gt;
-</span></span></span><span class="line"><span class="cl"><span class="s2">Contact info@test.com. Price: $29.99&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">clean_text</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># Check out for info Contact Price</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>The aggressive cleaning trade-off</strong>. The function above also deletes digits and punctuation. That is fine for topic modeling, where numbers add noise, but it is wrong for:</p>
-<ul>
-<li><strong>Sentiment analysis</strong> &ndash; <code>!!!</code> and <code>?!</code> carry emotion.</li>
-<li><strong>Named entity recognition</strong> &ndash; &ldquo;Apple Inc.&rdquo; needs the period and the capitalization.</li>
-<li><strong>Financial NLP</strong> &ndash; <code>$29.99</code> is the actual signal you care about.</li>
-</ul>
-<p>Always tailor the regex set to the task; do not apply a one-size-fits-all cleaner.</p>
-<p><strong>Performance tip</strong>. Compile patterns once if you process millions of documents:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">HTML_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;[^&gt;]+&gt;&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">URL_RE</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;http\S+|www\.\S+&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="n">URL_RE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">HTML_RE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>For HTML in the wild (malformed tags, embedded scripts), regex is fragile. Reach for a parser:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">bs4</span> <span class="kn">import</span> <span class="n">BeautifulSoup</span>
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">html_text</span><span class="p">,</span> <span class="s1">&#39;html.parser&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="5-step-2----tokenization">5. Step 2 &ndash; Tokenization</h2>
-<p>Tokenization splits text into the atomic units a model will see. The boundary you choose &ndash; characters, words, subwords &ndash; determines vocabulary size, sequence length, and how gracefully the model handles words it has never seen.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig4_tokenization_variants.png" alt="Three tokenization strategies for the same input" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="51-word-tokenization">5.1 Word Tokenization</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Naive: breaks on contractions and punctuation</span>
-</span></span><span class="line"><span class="cl"><span class="s2">&#34;Don&#39;t split can&#39;t&#34;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># [&#34;Don&#39;t&#34;, &#39;split&#39;, &#34;can&#39;t&#34;]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.tokenize</span> <span class="kn">import</span> <span class="n">word_tokenize</span>
-</span></span><span class="line"><span class="cl"><span class="n">tokens</span> <span class="o">=</span> <span class="n">word_tokenize</span><span class="p">(</span><span class="s2">&#34;Dr. Smith earned $150,000 in 2023! Isn&#39;t that amazing?&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># [&#39;Dr.&#39;, &#39;Smith&#39;, &#39;earned&#39;, &#39;$&#39;, &#39;150,000&#39;, &#39;in&#39;, &#39;2023&#39;, &#39;!&#39;,</span>
-</span></span><span class="line"><span class="cl"><span class="c1">#  &#39;Is&#39;, &#34;n&#39;t&#34;, &#39;that&#39;, &#39;amazing&#39;, &#39;?&#39;]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>NLTK keeps <code>Dr.</code> as one token, separates punctuation, and splits the contraction <code>Isn't</code> into <code>Is</code> + <code>n't</code>. Each of those decisions is a hard-coded English convention &ndash; which is exactly why word tokenization is brittle across languages.</p>
-<h3 id="52-sentence-tokenization">5.2 Sentence Tokenization</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.tokenize</span> <span class="kn">import</span> <span class="n">sent_tokenize</span>
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;Dr. Johnson works at A.I. Corp. He earned his Ph.D. in 2010.&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">sent_tokenize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># [&#39;Dr. Johnson works at A.I. Corp.&#39;, &#39;He earned his Ph.D. in 2010.&#39;]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>NLTK&rsquo;s Punkt model learns from data which periods end sentences and which mark abbreviations.</p>
-<h3 id="53-subword-tokenization-bpe">5.3 Subword Tokenization (BPE)</h3>
-<p>Modern models &ndash; GPT, BERT, Llama, Claude &ndash; do not tokenize on words. They use <strong>subword tokenization</strong>, almost always a variant of Byte-Pair Encoding (BPE):</p>
-<ol>
-<li>Start with a vocabulary of individual characters.</li>
-<li>Count adjacent character pair frequencies across the corpus.</li>
-<li>Merge the most frequent pair into a new symbol.</li>
-<li>Repeat until the vocabulary reaches a target size (commonly 30k &ndash; 100k).</li>
-</ol>
-<pre tabindex="0"><code>Corpus: &#34;low&#34; x5, &#34;lower&#34; x2, &#34;newest&#34; x6, &#34;widest&#34; x3
+</code></pre><p>A common mistake is to apply every step by reflex. The right framing is: each stage should remove noise that downstream cannot handle and preserve everything else. We will revisit this trade-off at every step.</p><h3 id=31-environment-setup>3.1 Environment Setup</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>pip install nltk spacy scikit-learn matplotlib numpy pandas beautifulsoup4
+</span></span><span class=line><span class=cl>python -m spacy download en_core_web_sm
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>nltk</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>pkg</span> <span class=ow>in</span> <span class=p>[</span><span class=s1>&#39;punkt&#39;</span><span class=p>,</span> <span class=s1>&#39;stopwords&#39;</span><span class=p>,</span> <span class=s1>&#39;wordnet&#39;</span><span class=p>,</span> <span class=s1>&#39;averaged_perceptron_tagger&#39;</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=n>nltk</span><span class=o>.</span><span class=n>download</span><span class=p>(</span><span class=n>pkg</span><span class=p>,</span> <span class=n>quiet</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=4-step-1----text-cleaning>4. Step 1 &ndash; Text Cleaning</h2><p>Web text comes wrapped in HTML, peppered with URLs, and littered with control characters. Cleaning removes the obvious noise without touching meaning.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>re</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>clean_text</span><span class=p>(</span><span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Strip HTML, URLs, emails, non-letters; collapse whitespace.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;&lt;[^&gt;]+&gt;&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>              <span class=c1># HTML tags</span>
+</span></span><span class=line><span class=cl>    <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;http\S+|www\.\S+&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>     <span class=c1># URLs</span>
+</span></span><span class=line><span class=cl>    <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;\S+@\S+&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>              <span class=c1># emails</span>
+</span></span><span class=line><span class=cl>    <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;[^a-zA-Z\s]&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>          <span class=c1># keep letters and spaces</span>
+</span></span><span class=line><span class=cl>    <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;\s+&#39;</span><span class=p>,</span> <span class=s1>&#39; &#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>         <span class=c1># normalize whitespace</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>text</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>raw</span> <span class=o>=</span> <span class=s2>&#34;&#34;&#34;&lt;p&gt;Check out https://example.com for info!&lt;/p&gt;
+</span></span></span><span class=line><span class=cl><span class=s2>Contact info@test.com. Price: $29.99&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>clean_text</span><span class=p>(</span><span class=n>raw</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=c1># Check out for info Contact Price</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>The aggressive cleaning trade-off</strong>. The function above also deletes digits and punctuation. That is fine for topic modeling, where numbers add noise, but it is wrong for:</p><ul><li><strong>Sentiment analysis</strong> &ndash; <code>!!!</code> and <code>?!</code> carry emotion.</li><li><strong>Named entity recognition</strong> &ndash; &ldquo;Apple Inc.&rdquo; needs the period and the capitalization.</li><li><strong>Financial NLP</strong> &ndash; <code>$29.99</code> is the actual signal you care about.</li></ul><p>Always tailor the regex set to the task; do not apply a one-size-fits-all cleaner.</p><p><strong>Performance tip</strong>. Compile patterns once if you process millions of documents:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>HTML_RE</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>compile</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;&lt;[^&gt;]+&gt;&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>URL_RE</span>  <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>compile</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;http\S+|www\.\S+&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=n>URL_RE</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>HTML_RE</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p>For HTML in the wild (malformed tags, embedded scripts), regex is fragile. Reach for a parser:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>bs4</span> <span class=kn>import</span> <span class=n>BeautifulSoup</span>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=n>BeautifulSoup</span><span class=p>(</span><span class=n>html_text</span><span class=p>,</span> <span class=s1>&#39;html.parser&#39;</span><span class=p>)</span><span class=o>.</span><span class=n>get_text</span><span class=p>(</span><span class=s1>&#39; &#39;</span><span class=p>,</span> <span class=n>strip</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=5-step-2----tokenization>5. Step 2 &ndash; Tokenization</h2><p>Tokenization splits text into the atomic units a model will see. The boundary you choose &ndash; characters, words, subwords &ndash; determines vocabulary size, sequence length, and how gracefully the model handles words it has never seen.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig4_tokenization_variants.png alt="Three tokenization strategies for the same input" loading=lazy decoding=async></figure></p><h3 id=51-word-tokenization>5.1 Word Tokenization</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Naive: breaks on contractions and punctuation</span>
+</span></span><span class=line><span class=cl><span class=s2>&#34;Don&#39;t split can&#39;t&#34;</span><span class=o>.</span><span class=n>split</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=c1># [&#34;Don&#39;t&#34;, &#39;split&#39;, &#34;can&#39;t&#34;]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.tokenize</span> <span class=kn>import</span> <span class=n>word_tokenize</span>
+</span></span><span class=line><span class=cl><span class=n>tokens</span> <span class=o>=</span> <span class=n>word_tokenize</span><span class=p>(</span><span class=s2>&#34;Dr. Smith earned $150,000 in 2023! Isn&#39;t that amazing?&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># [&#39;Dr.&#39;, &#39;Smith&#39;, &#39;earned&#39;, &#39;$&#39;, &#39;150,000&#39;, &#39;in&#39;, &#39;2023&#39;, &#39;!&#39;,</span>
+</span></span><span class=line><span class=cl><span class=c1>#  &#39;Is&#39;, &#34;n&#39;t&#34;, &#39;that&#39;, &#39;amazing&#39;, &#39;?&#39;]</span>
+</span></span></code></pre></td></tr></table></div></div><p>NLTK keeps <code>Dr.</code> as one token, separates punctuation, and splits the contraction <code>Isn't</code> into <code>Is</code> + <code>n't</code>. Each of those decisions is a hard-coded English convention &ndash; which is exactly why word tokenization is brittle across languages.</p><h3 id=52-sentence-tokenization>5.2 Sentence Tokenization</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.tokenize</span> <span class=kn>import</span> <span class=n>sent_tokenize</span>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;Dr. Johnson works at A.I. Corp. He earned his Ph.D. in 2010.&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>sent_tokenize</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># [&#39;Dr. Johnson works at A.I. Corp.&#39;, &#39;He earned his Ph.D. in 2010.&#39;]</span>
+</span></span></code></pre></td></tr></table></div></div><p>NLTK&rsquo;s Punkt model learns from data which periods end sentences and which mark abbreviations.</p><h3 id=53-subword-tokenization-bpe>5.3 Subword Tokenization (BPE)</h3><p>Modern models &ndash; GPT, BERT, Llama, Claude &ndash; do not tokenize on words. They use <strong>subword tokenization</strong>, almost always a variant of Byte-Pair Encoding (BPE):</p><ol><li>Start with a vocabulary of individual characters.</li><li>Count adjacent character pair frequencies across the corpus.</li><li>Merge the most frequent pair into a new symbol.</li><li>Repeat until the vocabulary reaches a target size (commonly 30k &ndash; 100k).</li></ol><pre tabindex=0><code>Corpus: &#34;low&#34; x5, &#34;lower&#34; x2, &#34;newest&#34; x6, &#34;widest&#34; x3
 Initial:  l o w  /  l o w e r  /  n e w e s t  /  w i d e s t
 
 Merge 1: (e, s) -&gt; es        # frequent in &#34;newest&#34;, &#34;widest&#34;
 Merge 2: (es, t) -&gt; est
 Merge 3: (l, o) -&gt; lo
 ...
-</code></pre><p>Why BPE matters in practice:</p>
-<ul>
-<li><strong>Rare words decompose</strong> &ndash; <code>unbelievable</code> becomes <code>un + believ + able</code>, all of which have appeared elsewhere.</li>
-<li><strong>Vocabulary stays bounded</strong> &ndash; a 50k subword vocabulary covers any English text and most code.</li>
-<li><strong>Cross-lingual transfer</strong> &ndash; the same tokenizer handles English, French, and Mandarin if trained on a multilingual corpus.</li>
-</ul>
-<p>Here is a minimal, runnable implementation:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">get_stats</span><span class="p">(</span><span class="n">vocab</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Count frequency of adjacent symbol pairs.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">pairs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">freq</span> <span class="ow">in</span> <span class="n">vocab</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">        <span class="n">symbols</span> <span class="o">=</span> <span class="n">word</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">pairs</span><span class="p">[</span><span class="n">symbols</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">symbols</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">freq</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">pairs</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">merge_vocab</span><span class="p">(</span><span class="n">pair</span><span class="p">,</span> <span class="n">vocab</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bigram</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">replacement</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="n">w</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">bigram</span><span class="p">,</span> <span class="n">replacement</span><span class="p">):</span> <span class="n">f</span> <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">vocab</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">vocab</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;l o w &lt;/w&gt;&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;l o w e r &lt;/w&gt;&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">         <span class="s1">&#39;n e w e s t &lt;/w&gt;&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;w i d e s t &lt;/w&gt;&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">pairs</span> <span class="o">=</span> <span class="n">get_stats</span><span class="p">(</span><span class="n">vocab</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">pairs</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">break</span>
-</span></span><span class="line"><span class="cl">    <span class="n">best</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">pairs</span><span class="o">.</span><span class="n">get</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">vocab</span> <span class="o">=</span> <span class="n">merge_vocab</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">vocab</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;merge </span><span class="si">{</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">best</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">best</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>For production, use Hugging Face&rsquo;s <code>tokenizers</code> library &ndash; it ships GPT-style BPE, BERT WordPiece, and SentencePiece behind a unified API.</p>
-<hr>
-<h2 id="6-step-3----normalization">6. Step 3 &ndash; Normalization</h2>
-<p>Normalization collapses surface variants of the same word into a single form, which shrinks vocabulary and improves matching. It also throws information away, so apply it deliberately.</p>
-<h3 id="61-lowercasing">6.1 Lowercasing</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="s2">&#34;Apple Inc. sells apples in APPLE stores&#34;</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># &#34;apple inc. sells apples in apple stores&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Lowercasing helps search and topic modeling. It hurts named-entity recognition (<code>Apple</code> the company collapses with <code>apple</code> the fruit) and any task where capitalization signals emphasis.</p>
-<h3 id="62-stemming-vs-lemmatization">6.2 Stemming vs Lemmatization</h3>
-<p><strong>Stemming</strong> chops suffixes with deterministic rules. Fast, crude, sometimes wrong:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.stem</span> <span class="kn">import</span> <span class="n">PorterStemmer</span>
-</span></span><span class="line"><span class="cl"><span class="n">stemmer</span> <span class="o">=</span> <span class="n">PorterStemmer</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;running&#39;</span><span class="p">,</span> <span class="s1">&#39;easily&#39;</span><span class="p">,</span> <span class="s1">&#39;connection&#39;</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">stemmer</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">w</span><span class="p">)</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># running -&gt; run, easily -&gt; easili, connection -&gt; connect</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>easili</code> is not a word &ndash; the Porter stemmer optimizes for matching, not for legibility.</p>
-<p><strong>Lemmatization</strong> uses a dictionary plus part-of-speech information to return the actual lemma:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">spacy</span>
-</span></span><span class="line"><span class="cl"><span class="n">nlp</span> <span class="o">=</span> <span class="n">spacy</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;en_core_web_sm&#39;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">doc</span> <span class="o">=</span> <span class="n">nlp</span><span class="p">(</span><span class="s2">&#34;The geese were running and swimming better than the mice&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">doc</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">text</span><span class="si">:</span><span class="s2">10</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">lemma_</span><span class="si">:</span><span class="s2">10</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">pos_</span><span class="si">}</span><span class="s2">)&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># geese      -&gt; goose      (NOUN)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># were       -&gt; be         (AUX)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># running    -&gt; run        (VERB)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># swimming   -&gt; swim       (VERB)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># better     -&gt; well       (ADV)</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># mice       -&gt; mouse      (NOUN)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><table>
-  <thead>
-      <tr>
-          <th>Aspect</th>
-          <th>Stemming</th>
-          <th>Lemmatization</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Speed</td>
-          <td>Microseconds</td>
-          <td>Milliseconds (POS-tagged)</td>
-      </tr>
-      <tr>
-          <td>Output</td>
-          <td>May not be a real word</td>
-          <td>Always a dictionary form</td>
-      </tr>
-      <tr>
-          <td>Accuracy</td>
-          <td>Lower</td>
-          <td>Higher</td>
-      </tr>
-      <tr>
-          <td>Best for</td>
-          <td>Search and IR</td>
-          <td>NLU and QA</td>
-      </tr>
-  </tbody>
-</table>
-<p>A useful default: use lemmatization unless you are running a high-throughput retrieval system where the latency budget is tight.</p>
-<hr>
-<h2 id="7-step-4----stopwords-and-zipfs-law">7. Step 4 &ndash; Stopwords and Zipf&rsquo;s Law</h2>
-<p>Stopwords are common closed-class words such as <code>the</code>, <code>is</code>, <code>at</code> that carry little task-specific meaning. Removing them shrinks vocabulary by roughly a third and concentrates signal in content words.</p>
-<p>The reason a small set of words dominates is Zipf&rsquo;s law: in any natural-language corpus, a word&rsquo;s frequency is roughly inversely proportional to its rank.</p>
-$$f(\text{rank}) \propto \frac{1}{\text{rank}}$$<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig5_zipf_distribution.png" alt="Zipf distribution: head dominated by stopwords, long tail of rare words" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The top ten words alone often account for 25 &ndash; 30% of all tokens. That is the head of the distribution, and it is mostly stopwords. The tail &ndash; thousands of words appearing once or twice &ndash; is where most semantic content lives, but it is also where models struggle and where subword tokenization earns its keep.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.corpus</span> <span class="kn">import</span> <span class="n">stopwords</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.tokenize</span> <span class="kn">import</span> <span class="n">word_tokenize</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">stop_words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">stopwords</span><span class="o">.</span><span class="n">words</span><span class="p">(</span><span class="s1">&#39;english&#39;</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;The quick brown fox jumps over the lazy dog&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">filtered</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">word_tokenize</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span> <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stop_words</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># [&#39;quick&#39;, &#39;brown&#39;, &#39;fox&#39;, &#39;jumps&#39;, &#39;lazy&#39;, &#39;dog&#39;]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>When to remove stopwords:</p>
-<ul>
-<li><strong>Yes</strong> &ndash; bag-of-words and topic models, search indexing.</li>
-<li><strong>No</strong> &ndash; sentiment (<code>not good</code> is not the same as <code>good</code>), QA (function words carry the question), any deep model that learns to weight tokens itself.</li>
-</ul>
-<hr>
-<h2 id="8-step-5----from-tokens-to-vectors">8. Step 5 &ndash; From Tokens to Vectors</h2>
-<p>A model needs numbers. Two classical encodings &ndash; Bag-of-Words and TF-IDF &ndash; still anchor most retrieval systems and are the right baseline for any new task.</p>
-<h3 id="81-one-hot-vs-distributed-representations">8.1 One-hot vs Distributed Representations</h3>
-<p>Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector assigns each word a unique index, with a 1 in that position and 0 everywhere else. Every pair of words is orthogonal, which means the encoding carries zero similarity information.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig6_onehot_vs_distributed.png" alt="One-hot encoding loses semantics; learned embeddings recover them" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Distributed representations &ndash; which we will build in Part 2 &ndash; pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.</p>
-<h3 id="82-bag-of-words">8.2 Bag of Words</h3>
-<p>Represent each document as a vector of word counts, ignoring order:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.feature_extraction.text</span> <span class="kn">import</span> <span class="n">CountVectorizer</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;I love machine learning&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Machine learning is amazing&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;I love deep learning and machine learning&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">vectorizer</span> <span class="o">=</span> <span class="n">CountVectorizer</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">X</span> <span class="o">=</span> <span class="n">vectorizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">docs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">columns</span><span class="o">=</span><span class="n">vectorizer</span><span class="o">.</span><span class="n">get_feature_names_out</span><span class="p">()))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><pre tabindex="0"><code>   amazing  and  deep  is  learning  love  machine
+</code></pre><p>Why BPE matters in practice:</p><ul><li><strong>Rare words decompose</strong> &ndash; <code>unbelievable</code> becomes <code>un + believ + able</code>, all of which have appeared elsewhere.</li><li><strong>Vocabulary stays bounded</strong> &ndash; a 50k subword vocabulary covers any English text and most code.</li><li><strong>Cross-lingual transfer</strong> &ndash; the same tokenizer handles English, French, and Mandarin if trained on a multilingual corpus.</li></ul><p>Here is a minimal, runnable implementation:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>collections</span> <span class=kn>import</span> <span class=n>defaultdict</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>get_stats</span><span class=p>(</span><span class=n>vocab</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Count frequency of adjacent symbol pairs.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>pairs</span> <span class=o>=</span> <span class=n>defaultdict</span><span class=p>(</span><span class=nb>int</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>word</span><span class=p>,</span> <span class=n>freq</span> <span class=ow>in</span> <span class=n>vocab</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>        <span class=n>symbols</span> <span class=o>=</span> <span class=n>word</span><span class=o>.</span><span class=n>split</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>symbols</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>pairs</span><span class=p>[</span><span class=n>symbols</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>symbols</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]]</span> <span class=o>+=</span> <span class=n>freq</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>pairs</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>merge_vocab</span><span class=p>(</span><span class=n>pair</span><span class=p>,</span> <span class=n>vocab</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>bigram</span> <span class=o>=</span> <span class=s1>&#39; &#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>pair</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>replacement</span> <span class=o>=</span> <span class=s1>&#39;&#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>pair</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=n>w</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=n>bigram</span><span class=p>,</span> <span class=n>replacement</span><span class=p>):</span> <span class=n>f</span> <span class=k>for</span> <span class=n>w</span><span class=p>,</span> <span class=n>f</span> <span class=ow>in</span> <span class=n>vocab</span><span class=o>.</span><span class=n>items</span><span class=p>()}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>vocab</span> <span class=o>=</span> <span class=p>{</span><span class=s1>&#39;l o w &lt;/w&gt;&#39;</span><span class=p>:</span> <span class=mi>5</span><span class=p>,</span> <span class=s1>&#39;l o w e r &lt;/w&gt;&#39;</span><span class=p>:</span> <span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>         <span class=s1>&#39;n e w e s t &lt;/w&gt;&#39;</span><span class=p>:</span> <span class=mi>6</span><span class=p>,</span> <span class=s1>&#39;w i d e s t &lt;/w&gt;&#39;</span><span class=p>:</span> <span class=mi>3</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>step</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>pairs</span> <span class=o>=</span> <span class=n>get_stats</span><span class=p>(</span><span class=n>vocab</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=ow>not</span> <span class=n>pairs</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>break</span>
+</span></span><span class=line><span class=cl>    <span class=n>best</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>pairs</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=n>pairs</span><span class=o>.</span><span class=n>get</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>vocab</span> <span class=o>=</span> <span class=n>merge_vocab</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>vocab</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;merge </span><span class=si>{</span><span class=n>step</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>best</span><span class=si>}</span><span class=s2> -&gt; </span><span class=si>{</span><span class=s1>&#39;&#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>best</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>For production, use Hugging Face&rsquo;s <code>tokenizers</code> library &ndash; it ships GPT-style BPE, BERT WordPiece, and SentencePiece behind a unified API.</p><hr><h2 id=6-step-3----normalization>6. Step 3 &ndash; Normalization</h2><p>Normalization collapses surface variants of the same word into a single form, which shrinks vocabulary and improves matching. It also throws information away, so apply it deliberately.</p><h3 id=61-lowercasing>6.1 Lowercasing</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=s2>&#34;Apple Inc. sells apples in APPLE stores&#34;</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=c1># &#34;apple inc. sells apples in apple stores&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Lowercasing helps search and topic modeling. It hurts named-entity recognition (<code>Apple</code> the company collapses with <code>apple</code> the fruit) and any task where capitalization signals emphasis.</p><h3 id=62-stemming-vs-lemmatization>6.2 Stemming vs Lemmatization</h3><p><strong>Stemming</strong> chops suffixes with deterministic rules. Fast, crude, sometimes wrong:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.stem</span> <span class=kn>import</span> <span class=n>PorterStemmer</span>
+</span></span><span class=line><span class=cl><span class=n>stemmer</span> <span class=o>=</span> <span class=n>PorterStemmer</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=p>[</span><span class=s1>&#39;running&#39;</span><span class=p>,</span> <span class=s1>&#39;easily&#39;</span><span class=p>,</span> <span class=s1>&#39;connection&#39;</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>w</span><span class=si>}</span><span class=s2> -&gt; </span><span class=si>{</span><span class=n>stemmer</span><span class=o>.</span><span class=n>stem</span><span class=p>(</span><span class=n>w</span><span class=p>)</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># running -&gt; run, easily -&gt; easili, connection -&gt; connect</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>easili</code> is not a word &ndash; the Porter stemmer optimizes for matching, not for legibility.</p><p><strong>Lemmatization</strong> uses a dictionary plus part-of-speech information to return the actual lemma:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>spacy</span>
+</span></span><span class=line><span class=cl><span class=n>nlp</span> <span class=o>=</span> <span class=n>spacy</span><span class=o>.</span><span class=n>load</span><span class=p>(</span><span class=s1>&#39;en_core_web_sm&#39;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>doc</span> <span class=o>=</span> <span class=n>nlp</span><span class=p>(</span><span class=s2>&#34;The geese were running and swimming better than the mice&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>token</span> <span class=ow>in</span> <span class=n>doc</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>token</span><span class=o>.</span><span class=n>text</span><span class=si>:</span><span class=s2>10</span><span class=si>}</span><span class=s2> -&gt; </span><span class=si>{</span><span class=n>token</span><span class=o>.</span><span class=n>lemma_</span><span class=si>:</span><span class=s2>10</span><span class=si>}</span><span class=s2> (</span><span class=si>{</span><span class=n>token</span><span class=o>.</span><span class=n>pos_</span><span class=si>}</span><span class=s2>)&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=c1># geese      -&gt; goose      (NOUN)</span>
+</span></span><span class=line><span class=cl><span class=c1># were       -&gt; be         (AUX)</span>
+</span></span><span class=line><span class=cl><span class=c1># running    -&gt; run        (VERB)</span>
+</span></span><span class=line><span class=cl><span class=c1># swimming   -&gt; swim       (VERB)</span>
+</span></span><span class=line><span class=cl><span class=c1># better     -&gt; well       (ADV)</span>
+</span></span><span class=line><span class=cl><span class=c1># mice       -&gt; mouse      (NOUN)</span>
+</span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>Aspect</th><th>Stemming</th><th>Lemmatization</th></tr></thead><tbody><tr><td>Speed</td><td>Microseconds</td><td>Milliseconds (POS-tagged)</td></tr><tr><td>Output</td><td>May not be a real word</td><td>Always a dictionary form</td></tr><tr><td>Accuracy</td><td>Lower</td><td>Higher</td></tr><tr><td>Best for</td><td>Search and IR</td><td>NLU and QA</td></tr></tbody></table><p>A useful default: use lemmatization unless you are running a high-throughput retrieval system where the latency budget is tight.</p><hr><h2 id=7-step-4----stopwords-and-zipfs-law>7. Step 4 &ndash; Stopwords and Zipf&rsquo;s Law</h2><p>Stopwords are common closed-class words such as <code>the</code>, <code>is</code>, <code>at</code> that carry little task-specific meaning. Removing them shrinks vocabulary by roughly a third and concentrates signal in content words.</p><p>The reason a small set of words dominates is Zipf&rsquo;s law: in any natural-language corpus, a word&rsquo;s frequency is roughly inversely proportional to its rank.</p>$$f(\text{rank}) \propto \frac{1}{\text{rank}}$$<p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig5_zipf_distribution.png alt="Zipf distribution: head dominated by stopwords, long tail of rare words" loading=lazy decoding=async></figure></p><p>The top ten words alone often account for 25 &ndash; 30% of all tokens. That is the head of the distribution, and it is mostly stopwords. The tail &ndash; thousands of words appearing once or twice &ndash; is where most semantic content lives, but it is also where models struggle and where subword tokenization earns its keep.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.corpus</span> <span class=kn>import</span> <span class=n>stopwords</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.tokenize</span> <span class=kn>import</span> <span class=n>word_tokenize</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>stop_words</span> <span class=o>=</span> <span class=nb>set</span><span class=p>(</span><span class=n>stopwords</span><span class=o>.</span><span class=n>words</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;The quick brown fox jumps over the lazy dog&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>filtered</span> <span class=o>=</span> <span class=p>[</span><span class=n>w</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>word_tokenize</span><span class=p>(</span><span class=n>text</span><span class=o>.</span><span class=n>lower</span><span class=p>())</span> <span class=k>if</span> <span class=n>w</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>stop_words</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=c1># [&#39;quick&#39;, &#39;brown&#39;, &#39;fox&#39;, &#39;jumps&#39;, &#39;lazy&#39;, &#39;dog&#39;]</span>
+</span></span></code></pre></td></tr></table></div></div><p>When to remove stopwords:</p><ul><li><strong>Yes</strong> &ndash; bag-of-words and topic models, search indexing.</li><li><strong>No</strong> &ndash; sentiment (<code>not good</code> is not the same as <code>good</code>), QA (function words carry the question), any deep model that learns to weight tokens itself.</li></ul><hr><h2 id=8-step-5----from-tokens-to-vectors>8. Step 5 &ndash; From Tokens to Vectors</h2><p>A model needs numbers. Two classical encodings &ndash; Bag-of-Words and TF-IDF &ndash; still anchor most retrieval systems and are the right baseline for any new task.</p><h3 id=81-one-hot-vs-distributed-representations>8.1 One-hot vs Distributed Representations</h3><p>Before we get to BoW, it helps to see why naive encodings fail. A one-hot vector assigns each word a unique index, with a 1 in that position and 0 everywhere else. Every pair of words is orthogonal, which means the encoding carries zero similarity information.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig6_onehot_vs_distributed.png alt="One-hot encoding loses semantics; learned embeddings recover them" loading=lazy decoding=async></figure></p><p>Distributed representations &ndash; which we will build in Part 2 &ndash; pack meaning into dense vectors where related words sit near each other. BoW and TF-IDF are a halfway step: each word still gets its own dimension, but the value in that dimension is a frequency, not just a marker.</p><h3 id=82-bag-of-words>8.2 Bag of Words</h3><p>Represent each document as a vector of word counts, ignoring order:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.feature_extraction.text</span> <span class=kn>import</span> <span class=n>CountVectorizer</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pandas</span> <span class=k>as</span> <span class=nn>pd</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>docs</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;I love machine learning&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Machine learning is amazing&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;I love deep learning and machine learning&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>vectorizer</span> <span class=o>=</span> <span class=n>CountVectorizer</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>vectorizer</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>docs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>pd</span><span class=o>.</span><span class=n>DataFrame</span><span class=p>(</span><span class=n>X</span><span class=o>.</span><span class=n>toarray</span><span class=p>(),</span> <span class=n>columns</span><span class=o>=</span><span class=n>vectorizer</span><span class=o>.</span><span class=n>get_feature_names_out</span><span class=p>()))</span>
+</span></span></code></pre></td></tr></table></div></div><pre tabindex=0><code>   amazing  and  deep  is  learning  love  machine
 0        0    0     0   0         1     1        1
 1        1    0     0   1         1     0        1
 2        0    1     1   0         2     1        1
-</code></pre><p>The fatal limitation: <code>dog bites man</code> and <code>man bites dog</code> produce identical vectors. BoW discards order entirely.</p>
-<h3 id="83-tf-idf">8.3 TF-IDF</h3>
-<p>TF-IDF up-weights words that are frequent in a document but rare in the corpus &ndash; a heuristic for &ldquo;important to this document, but not generic&rdquo;:</p>
-$$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$<p>where $N$ is the number of documents and $\text{df}(t)$ is the number of documents containing term $t$. The <code>+1</code> smoothing keeps the IDF defined when a term appears in every document (or in none).</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig3_bow_vs_tfidf.png" alt="Bag of Words counts versus TF-IDF weights on the same toy corpus" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The figure above shows both matrices side by side. Notice how <code>learning</code> &ndash; present in every document &ndash; gets weighted down by TF-IDF, while a word like <code>vision</code> that is unique to one document gets lifted. That is exactly the ranking behavior you want for search.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.feature_extraction.text</span> <span class="kn">import</span> <span class="n">TfidfVectorizer</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Machine learning is a subset of artificial intelligence&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Deep learning is a subset of machine learning&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Natural language processing uses machine learning&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Computer vision uses deep learning techniques&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">tfidf</span> <span class="o">=</span> <span class="n">TfidfVectorizer</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">X</span> <span class="o">=</span> <span class="n">tfidf</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">docs</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">toarray</span><span class="p">(),</span> <span class="n">columns</span><span class="o">=</span><span class="n">tfidf</span><span class="o">.</span><span class="n">get_feature_names_out</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">doc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">docs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">top</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Doc </span><span class="si">{</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">top</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Production-grade TF-IDF</strong>. The defaults rarely survive contact with a real corpus. Tune at least these knobs:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">tfidf</span> <span class="o">=</span> <span class="n">TfidfVectorizer</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">max_features</span><span class="o">=</span><span class="mi">5_000</span><span class="p">,</span>    <span class="c1"># cap vocabulary</span>
-</span></span><span class="line"><span class="cl">    <span class="n">min_df</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>              <span class="c1"># drop hapax legomena</span>
-</span></span><span class="line"><span class="cl">    <span class="n">max_df</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>            <span class="c1"># drop terms in 80%+ of docs (effective stopwords)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>    <span class="c1"># unigrams + bigrams capture short phrases</span>
-</span></span><span class="line"><span class="cl">    <span class="n">sublinear_tf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>     <span class="c1"># log-scale TF, dampens repetition</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stop_words</span><span class="o">=</span><span class="s1">&#39;english&#39;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="9-step-6----n-gram-language-models">9. Step 6 &ndash; N-gram Language Models</h2>
-<p>Once you have tokens, you can also model how they follow each other. An n-gram model factors a sentence into a chain of conditional probabilities:</p>
-$$P(w_1, \ldots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_{t-n+1}, \ldots, w_{t-1})$$<p>A bigram model uses one word of context, a trigram uses two, and so on.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig7_ngram_language_models.png" alt="N-gram windows, the bigram formula, and the perplexity vs sparsity trade-off" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The trade-off is sharp:</p>
-<ul>
-<li><strong>Larger n</strong> captures more context, which lowers perplexity (perplexity is roughly the model&rsquo;s effective branching factor &ndash; lower is better).</li>
-<li><strong>Larger n</strong> also explodes the parameter count and starves on rare contexts. With $V$ vocabulary, a trigram model has up to $V^3$ parameters, most of which see zero training examples. This is the <strong>sparsity problem</strong>, the central pain point of statistical NLP.</li>
-</ul>
-<p>Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing probability mass to unseen n-grams. Modern neural language models sidestep the issue entirely by sharing parameters across contexts via embeddings &ndash; which is the bridge to Part 2.</p>
-<hr>
-<h2 id="10-a-reusable-preprocessing-class">10. A Reusable Preprocessing Class</h2>
-<p>Putting the steps together into something you can drop into a project:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">re</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">spacy</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.corpus</span> <span class="kn">import</span> <span class="n">stopwords</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.stem</span> <span class="kn">import</span> <span class="n">PorterStemmer</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">nltk.tokenize</span> <span class="kn">import</span> <span class="n">word_tokenize</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TextPreprocessor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Configurable English text preprocessing pipeline.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_lemmatization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">remove_stopwords</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">use_lemmatization</span> <span class="o">=</span> <span class="n">use_lemmatization</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">remove_stopwords</span> <span class="o">=</span> <span class="n">remove_stopwords</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">use_lemmatization</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">nlp</span> <span class="o">=</span> <span class="n">spacy</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;en_core_web_sm&#39;</span><span class="p">,</span> <span class="n">disable</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;parser&#39;</span><span class="p">,</span> <span class="s1">&#39;ner&#39;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">stemmer</span> <span class="o">=</span> <span class="n">PorterStemmer</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">remove_stopwords</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">stop_words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">stopwords</span><span class="o">.</span><span class="n">words</span><span class="p">(</span><span class="s1">&#39;english&#39;</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&lt;[^&gt;]+&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;http\S+|www\.\S+&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\S+@\S+&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[^a-zA-Z\s]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">tokenize_and_normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_lemmatization</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">doc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlp</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">lemma_</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">doc</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="o">.</span><span class="n">is_space</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stemmer</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">word_tokenize</span><span class="p">(</span><span class="n">text</span><span class="p">)]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_stopwords</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_words</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">tokens</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenize_and_normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clean</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">preprocess_corpus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">pre</span> <span class="o">=</span> <span class="n">TextPreprocessor</span><span class="p">(</span><span class="n">use_lemmatization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_stopwords</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">texts</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Natural Language Processing (NLP) is amazing! Visit https://example.com&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Machine learning models are trained on large datasets.&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Deep learning has revolutionized computer vision and NLP.&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">orig</span><span class="p">,</span> <span class="n">proc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">texts</span><span class="p">,</span> <span class="n">pre</span><span class="o">.</span><span class="n">preprocess_corpus</span><span class="p">(</span><span class="n">texts</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;original:  </span><span class="si">{</span><span class="n">orig</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;processed: </span><span class="si">{</span><span class="n">proc</span><span class="si">}</span><span class="se">\n</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="11-end-to-end-example-a-minimal-spam-classifier">11. End-to-End Example: a Minimal Spam Classifier</h2>
-<p>Combining everything into a working classifier. Use the SMS Spam Collection or any Kaggle spam dataset for real experiments; the snippet below is intentionally tiny so it runs anywhere.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.feature_extraction.text</span> <span class="kn">import</span> <span class="n">TfidfVectorizer</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LogisticRegression</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">texts</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Congratulations! You&#39;ve won a $1000 gift card. Call now!&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Hey, are we still meeting for dinner tonight?&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;URGENT: Your account will be closed. Click here immediately!&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Can you send me the project report by EOD?&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Get rich quick! Amazing investment opportunity!&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Don&#39;t forget to pick up milk on your way home&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;You have been selected for a free cruise. Reply YES&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Meeting moved to 3pm tomorrow in conference room B&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Lose 20 pounds in 2 weeks with this miracle pill!&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;Thanks for your help with the presentation yesterday&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># 1=spam, 0=ham</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Keep stopwords -- &#34;free&#34;, &#34;now&#34;, &#34;you&#34; are spam signals.</span>
-</span></span><span class="line"><span class="cl"><span class="n">pre</span> <span class="o">=</span> <span class="n">TextPreprocessor</span><span class="p">(</span><span class="n">use_lemmatization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_stopwords</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">processed</span> <span class="o">=</span> <span class="n">pre</span><span class="o">.</span><span class="n">preprocess_corpus</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">vectorizer</span> <span class="o">=</span> <span class="n">TfidfVectorizer</span><span class="p">(</span><span class="n">max_features</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">X</span> <span class="o">=</span> <span class="n">vectorizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">processed</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">X</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">new_msgs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;Can you review my code?&#34;</span><span class="p">,</span> <span class="s2">&#34;FREE MONEY!!! Click now!!!&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">new_vecs</span> <span class="o">=</span> <span class="n">vectorizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">pre</span><span class="o">.</span><span class="n">preprocess_corpus</span><span class="p">(</span><span class="n">new_msgs</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">new_msgs</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">new_vecs</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;[</span><span class="si">{</span><span class="s1">&#39;SPAM&#39;</span> <span class="k">if</span> <span class="n">pred</span> <span class="k">else</span> <span class="s1">&#39;HAM&#39;</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The point of the example is not the accuracy on ten samples &ndash; it is the shape of the pipeline. Swap in 5,000 SMS messages and the same code reaches roughly 97% accuracy with no further engineering. That is the strength of the classical NLP stack: short, transparent, and remarkably hard to beat without a GPU.</p>
-<hr>
-<h2 id="12-decision-table-which-steps-for-which-task">12. Decision Table: Which Steps for Which Task</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Task</th>
-          <th>Tokenization</th>
-          <th>Normalization</th>
-          <th>Stopwords</th>
-          <th>Features</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Search / IR</td>
-          <td>Word</td>
-          <td>Stem</td>
-          <td>Remove</td>
-          <td>TF-IDF</td>
-      </tr>
-      <tr>
-          <td>Sentiment</td>
-          <td>Word / subword</td>
-          <td>Lemma</td>
-          <td><strong>Keep</strong></td>
-          <td>TF-IDF or embeddings</td>
-      </tr>
-      <tr>
-          <td>Topic modeling</td>
-          <td>Word</td>
-          <td>Lemma</td>
-          <td>Remove</td>
-          <td>BoW or TF-IDF</td>
-      </tr>
-      <tr>
-          <td>Machine translation</td>
-          <td>Subword (BPE)</td>
-          <td>Minimal</td>
-          <td>Keep</td>
-          <td>Embeddings</td>
-      </tr>
-      <tr>
-          <td>NER</td>
-          <td>Word</td>
-          <td>None</td>
-          <td>Keep</td>
-          <td>Embeddings + context</td>
-      </tr>
-      <tr>
-          <td>Modern LLMs</td>
-          <td>Subword (BPE)</td>
-          <td>None</td>
-          <td>Keep</td>
-          <td>Learned embeddings</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>Rule of thumb</strong>. The more model capacity and data you have, the less preprocessing you should do. Deep models learn their own normalization; aggressive preprocessing destroys signal they could have used. Classical ML benefits from careful feature engineering; LLMs prefer raw text.</p>
-<hr>
-<h2 id="key-takeaways">Key Takeaways</h2>
-<ul>
-<li>Preprocessing is task-specific. Search wants aggressive normalization; neural models want raw text.</li>
-<li>Subword tokenization (BPE, WordPiece, SentencePiece) is the modern default because it bounds vocabulary and handles unseen words.</li>
-<li>TF-IDF remains the right baseline. If a TF-IDF + logistic regression baseline beats your fancy model, the fancy model is broken.</li>
-<li>Zipf&rsquo;s law explains why stopword removal helps classical models and why long-tail words are hard.</li>
-<li>Less is often more. Over-preprocessing hurts representation learning. Always measure.</li>
-</ul>
-<hr>
-<h2 id="further-reading">Further Reading</h2>
-<ul>
-<li><a href="https://web.stanford.edu/~jurafsky/slp3/" target="_blank" rel="noopener noreferrer">Speech and Language Processing <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- &ndash; Jurafsky and Martin, free online textbook (the canonical reference)</li>
-<li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">Attention Is All You Need <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- &ndash; the Transformer paper</li>
-<li><a href="https://arxiv.org/abs/1508.07909" target="_blank" rel="noopener noreferrer">Neural Machine Translation of Rare Words with Subword Units <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- &ndash; Sennrich et al., the BPE-for-NLP paper</li>
-<li><a href="https://spacy.io/usage/linguistic-features" target="_blank" rel="noopener noreferrer">spaCy linguistic features <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li><a href="https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction" target="_blank" rel="noopener noreferrer">scikit-learn text feature extraction <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-          <th>Link</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>1</strong></td>
-          <td><strong>Introduction and Text Preprocessing (this article)</strong></td>
-          <td></td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td>Word Embeddings and Language Models</td>
-          <td><a href="/en/nlp-word-embeddings-lm/">Read next &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td>RNN and Sequence Modeling</td>
-          <td><a href="/en/nlp-rnn-sequence-modeling/">Read &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td>Attention Mechanism and Transformer</td>
-          <td><a href="/en/nlp-attention-transformer/">Read &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td>BERT and Pretrained Models</td>
-          <td><a href="/en/nlp-bert-pretrained-models/">Read &ndash;&gt;</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td>GPT and Generative Models</td>
-          <td><a href="/en/nlp-gpt-generative-models/">Read &ndash;&gt;</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#1-four-eras-of-nlp">1. Four Eras of NLP</a>
-      <ul>
-        <li><a href="#11-symbolic-era-1950s----late-1980s">1.1 Symbolic Era (1950s &ndash; late 1980s)</a></li>
-        <li><a href="#12-statistical-revolution-1990s">1.2 Statistical Revolution (1990s)</a></li>
-        <li><a href="#13-deep-learning-era-2013----2016">1.3 Deep Learning Era (2013 &ndash; 2016)</a></li>
-        <li><a href="#14-transformer-revolution-2017----present">1.4 Transformer Revolution (2017 &ndash; present)</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-where-nlp-shows-up-today">2. Where NLP Shows Up Today</a></li>
-    <li><a href="#3-the-preprocessing-pipeline-at-a-glance">3. The Preprocessing Pipeline at a Glance</a>
-      <ul>
-        <li><a href="#31-environment-setup">3.1 Environment Setup</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-step-1----text-cleaning">4. Step 1 &ndash; Text Cleaning</a></li>
-    <li><a href="#5-step-2----tokenization">5. Step 2 &ndash; Tokenization</a>
-      <ul>
-        <li><a href="#51-word-tokenization">5.1 Word Tokenization</a></li>
-        <li><a href="#52-sentence-tokenization">5.2 Sentence Tokenization</a></li>
-        <li><a href="#53-subword-tokenization-bpe">5.3 Subword Tokenization (BPE)</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-step-3----normalization">6. Step 3 &ndash; Normalization</a>
-      <ul>
-        <li><a href="#61-lowercasing">6.1 Lowercasing</a></li>
-        <li><a href="#62-stemming-vs-lemmatization">6.2 Stemming vs Lemmatization</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-step-4----stopwords-and-zipfs-law">7. Step 4 &ndash; Stopwords and Zipf&rsquo;s Law</a></li>
-    <li><a href="#8-step-5----from-tokens-to-vectors">8. Step 5 &ndash; From Tokens to Vectors</a>
-      <ul>
-        <li><a href="#81-one-hot-vs-distributed-representations">8.1 One-hot vs Distributed Representations</a></li>
-        <li><a href="#82-bag-of-words">8.2 Bag of Words</a></li>
-        <li><a href="#83-tf-idf">8.3 TF-IDF</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-step-6----n-gram-language-models">9. Step 6 &ndash; N-gram Language Models</a></li>
-    <li><a href="#10-a-reusable-preprocessing-class">10. A Reusable Preprocessing Class</a></li>
-    <li><a href="#11-end-to-end-example-a-minimal-spam-classifier">11. End-to-End Example: a Minimal Spam Classifier</a></li>
-    <li><a href="#12-decision-table-which-steps-for-which-task">12. Decision Table: Which Steps for Which Task</a></li>
-    <li><a href="#key-takeaways">Key Takeaways</a></li>
-    <li><a href="#further-reading">Further Reading</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Natural language processing</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3700</strong></div>
-      <div class="row"><span>Published</span><strong>Oct 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>The fatal limitation: <code>dog bites man</code> and <code>man bites dog</code> produce identical vectors. BoW discards order entirely.</p><h3 id=83-tf-idf>8.3 TF-IDF</h3><p>TF-IDF up-weights words that are frequent in a document but rare in the corpus &ndash; a heuristic for &ldquo;important to this document, but not generic&rdquo;:</p>$$\text{TF-IDF}(t, d) = \text{TF}(t, d) \cdot \text{IDF}(t)$$$$\text{IDF}(t) = \log\!\frac{1 + N}{1 + \text{df}(t)} + 1$$<p>where $N$ is the number of documents and $\text{df}(t)$ is the number of documents containing term $t$. The <code>+1</code> smoothing keeps the IDF defined when a term appears in every document (or in none).</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig3_bow_vs_tfidf.png alt="Bag of Words counts versus TF-IDF weights on the same toy corpus" loading=lazy decoding=async></figure></p><p>The figure above shows both matrices side by side. Notice how <code>learning</code> &ndash; present in every document &ndash; gets weighted down by TF-IDF, while a word like <code>vision</code> that is unique to one document gets lifted. That is exactly the ranking behavior you want for search.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.feature_extraction.text</span> <span class=kn>import</span> <span class=n>TfidfVectorizer</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pandas</span> <span class=k>as</span> <span class=nn>pd</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>docs</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Machine learning is a subset of artificial intelligence&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Deep learning is a subset of machine learning&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Natural language processing uses machine learning&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Computer vision uses deep learning techniques&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tfidf</span> <span class=o>=</span> <span class=n>TfidfVectorizer</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>tfidf</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>docs</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>df</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>DataFrame</span><span class=p>(</span><span class=n>X</span><span class=o>.</span><span class=n>toarray</span><span class=p>(),</span> <span class=n>columns</span><span class=o>=</span><span class=n>tfidf</span><span class=o>.</span><span class=n>get_feature_names_out</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>doc</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>docs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>top</span> <span class=o>=</span> <span class=n>df</span><span class=o>.</span><span class=n>iloc</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=o>.</span><span class=n>sort_values</span><span class=p>(</span><span class=n>ascending</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Doc </span><span class=si>{</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=nb>dict</span><span class=p>(</span><span class=n>top</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=mi>3</span><span class=p>))</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Production-grade TF-IDF</strong>. The defaults rarely survive contact with a real corpus. Tune at least these knobs:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>tfidf</span> <span class=o>=</span> <span class=n>TfidfVectorizer</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_features</span><span class=o>=</span><span class=mi>5_000</span><span class=p>,</span>    <span class=c1># cap vocabulary</span>
+</span></span><span class=line><span class=cl>    <span class=n>min_df</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>              <span class=c1># drop hapax legomena</span>
+</span></span><span class=line><span class=cl>    <span class=n>max_df</span><span class=o>=</span><span class=mf>0.8</span><span class=p>,</span>            <span class=c1># drop terms in 80%+ of docs (effective stopwords)</span>
+</span></span><span class=line><span class=cl>    <span class=n>ngram_range</span><span class=o>=</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span>    <span class=c1># unigrams + bigrams capture short phrases</span>
+</span></span><span class=line><span class=cl>    <span class=n>sublinear_tf</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>     <span class=c1># log-scale TF, dampens repetition</span>
+</span></span><span class=line><span class=cl>    <span class=n>stop_words</span><span class=o>=</span><span class=s1>&#39;english&#39;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=9-step-6----n-gram-language-models>9. Step 6 &ndash; N-gram Language Models</h2><p>Once you have tokens, you can also model how they follow each other. An n-gram model factors a sentence into a chain of conditional probabilities:</p>$$P(w_1, \ldots, w_T) = \prod_{t=1}^{T} P(w_t \mid w_{t-n+1}, \ldots, w_{t-1})$$<p>A bigram model uses one word of context, a trigram uses two, and so on.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/nlp/introduction-and-preprocessing/fig7_ngram_language_models.png alt="N-gram windows, the bigram formula, and the perplexity vs sparsity trade-off" loading=lazy decoding=async></figure></p><p>The trade-off is sharp:</p><ul><li><strong>Larger n</strong> captures more context, which lowers perplexity (perplexity is roughly the model&rsquo;s effective branching factor &ndash; lower is better).</li><li><strong>Larger n</strong> also explodes the parameter count and starves on rare contexts. With $V$ vocabulary, a trigram model has up to $V^3$ parameters, most of which see zero training examples. This is the <strong>sparsity problem</strong>, the central pain point of statistical NLP.</li></ul><p>Smoothing techniques (Laplace, Kneser-Ney) patch the holes by redistributing probability mass to unseen n-grams. Modern neural language models sidestep the issue entirely by sharing parameters across contexts via embeddings &ndash; which is the bridge to Part 2.</p><hr><h2 id=10-a-reusable-preprocessing-class>10. A Reusable Preprocessing Class</h2><p>Putting the steps together into something you can drop into a project:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>re</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>spacy</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.corpus</span> <span class=kn>import</span> <span class=n>stopwords</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.stem</span> <span class=kn>import</span> <span class=n>PorterStemmer</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>nltk.tokenize</span> <span class=kn>import</span> <span class=n>word_tokenize</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TextPreprocessor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Configurable English text preprocessing pipeline.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>use_lemmatization</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>remove_stopwords</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>use_lemmatization</span> <span class=o>=</span> <span class=n>use_lemmatization</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>remove_stopwords</span> <span class=o>=</span> <span class=n>remove_stopwords</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>use_lemmatization</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>nlp</span> <span class=o>=</span> <span class=n>spacy</span><span class=o>.</span><span class=n>load</span><span class=p>(</span><span class=s1>&#39;en_core_web_sm&#39;</span><span class=p>,</span> <span class=n>disable</span><span class=o>=</span><span class=p>[</span><span class=s1>&#39;parser&#39;</span><span class=p>,</span> <span class=s1>&#39;ner&#39;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>stemmer</span> <span class=o>=</span> <span class=n>PorterStemmer</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>remove_stopwords</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>stop_words</span> <span class=o>=</span> <span class=nb>set</span><span class=p>(</span><span class=n>stopwords</span><span class=o>.</span><span class=n>words</span><span class=p>(</span><span class=s1>&#39;english&#39;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>clean</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=n>text</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;&lt;[^&gt;]+&gt;&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;http\S+|www\.\S+&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;\S+@\S+&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>text</span> <span class=o>=</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;[^a-zA-Z\s]&#39;</span><span class=p>,</span> <span class=s1>&#39;&#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s1>&#39;\s+&#39;</span><span class=p>,</span> <span class=s1>&#39; &#39;</span><span class=p>,</span> <span class=n>text</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>tokenize_and_normalize</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>use_lemmatization</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>doc</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>nlp</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>tokens</span> <span class=o>=</span> <span class=p>[</span><span class=n>t</span><span class=o>.</span><span class=n>lemma_</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>doc</span> <span class=k>if</span> <span class=ow>not</span> <span class=n>t</span><span class=o>.</span><span class=n>is_space</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>tokens</span> <span class=o>=</span> <span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>stemmer</span><span class=o>.</span><span class=n>stem</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>word_tokenize</span><span class=p>(</span><span class=n>text</span><span class=p>)]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>remove_stopwords</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>tokens</span> <span class=o>=</span> <span class=p>[</span><span class=n>t</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>tokens</span> <span class=k>if</span> <span class=n>t</span> <span class=ow>not</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>stop_words</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>tokens</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>preprocess</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=s1>&#39; &#39;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>tokenize_and_normalize</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>clean</span><span class=p>(</span><span class=n>text</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>preprocess_corpus</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>texts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>preprocess</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>texts</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>pre</span> <span class=o>=</span> <span class=n>TextPreprocessor</span><span class=p>(</span><span class=n>use_lemmatization</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>remove_stopwords</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>texts</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Natural Language Processing (NLP) is amazing! Visit https://example.com&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Machine learning models are trained on large datasets.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Deep learning has revolutionized computer vision and NLP.&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>orig</span><span class=p>,</span> <span class=n>proc</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>texts</span><span class=p>,</span> <span class=n>pre</span><span class=o>.</span><span class=n>preprocess_corpus</span><span class=p>(</span><span class=n>texts</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;original:  </span><span class=si>{</span><span class=n>orig</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;processed: </span><span class=si>{</span><span class=n>proc</span><span class=si>}</span><span class=se>\n</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=11-end-to-end-example-a-minimal-spam-classifier>11. End-to-End Example: a Minimal Spam Classifier</h2><p>Combining everything into a working classifier. Use the SMS Spam Collection or any Kaggle spam dataset for real experiments; the snippet below is intentionally tiny so it runs anywhere.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.feature_extraction.text</span> <span class=kn>import</span> <span class=n>TfidfVectorizer</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.linear_model</span> <span class=kn>import</span> <span class=n>LogisticRegression</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.model_selection</span> <span class=kn>import</span> <span class=n>train_test_split</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>texts</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Congratulations! You&#39;ve won a $1000 gift card. Call now!&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Hey, are we still meeting for dinner tonight?&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;URGENT: Your account will be closed. Click here immediately!&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Can you send me the project report by EOD?&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Get rich quick! Amazing investment opportunity!&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Don&#39;t forget to pick up milk on your way home&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;You have been selected for a free cruise. Reply YES&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Meeting moved to 3pm tomorrow in conference room B&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Lose 20 pounds in 2 weeks with this miracle pill!&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;Thanks for your help with the presentation yesterday&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>labels</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>])</span>  <span class=c1># 1=spam, 0=ham</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Keep stopwords -- &#34;free&#34;, &#34;now&#34;, &#34;you&#34; are spam signals.</span>
+</span></span><span class=line><span class=cl><span class=n>pre</span> <span class=o>=</span> <span class=n>TextPreprocessor</span><span class=p>(</span><span class=n>use_lemmatization</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>remove_stopwords</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>processed</span> <span class=o>=</span> <span class=n>pre</span><span class=o>.</span><span class=n>preprocess_corpus</span><span class=p>(</span><span class=n>texts</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>vectorizer</span> <span class=o>=</span> <span class=n>TfidfVectorizer</span><span class=p>(</span><span class=n>max_features</span><span class=o>=</span><span class=mi>50</span><span class=p>,</span> <span class=n>ngram_range</span><span class=o>=</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>X</span> <span class=o>=</span> <span class=n>vectorizer</span><span class=o>.</span><span class=n>fit_transform</span><span class=p>(</span><span class=n>processed</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>X_train</span><span class=p>,</span> <span class=n>X_test</span><span class=p>,</span> <span class=n>y_train</span><span class=p>,</span> <span class=n>y_test</span> <span class=o>=</span> <span class=n>train_test_split</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>X</span><span class=p>,</span> <span class=n>labels</span><span class=p>,</span> <span class=n>test_size</span><span class=o>=</span><span class=mf>0.3</span><span class=p>,</span> <span class=n>random_state</span><span class=o>=</span><span class=mi>42</span><span class=p>,</span> <span class=n>stratify</span><span class=o>=</span><span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>LogisticRegression</span><span class=p>(</span><span class=n>max_iter</span><span class=o>=</span><span class=mi>1000</span><span class=p>)</span><span class=o>.</span><span class=n>fit</span><span class=p>(</span><span class=n>X_train</span><span class=p>,</span> <span class=n>y_train</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>new_msgs</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;Can you review my code?&#34;</span><span class=p>,</span> <span class=s2>&#34;FREE MONEY!!! Click now!!!&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>new_vecs</span> <span class=o>=</span> <span class=n>vectorizer</span><span class=o>.</span><span class=n>transform</span><span class=p>(</span><span class=n>pre</span><span class=o>.</span><span class=n>preprocess_corpus</span><span class=p>(</span><span class=n>new_msgs</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>msg</span><span class=p>,</span> <span class=n>pred</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>new_msgs</span><span class=p>,</span> <span class=n>model</span><span class=o>.</span><span class=n>predict</span><span class=p>(</span><span class=n>new_vecs</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;[</span><span class=si>{</span><span class=s1>&#39;SPAM&#39;</span> <span class=k>if</span> <span class=n>pred</span> <span class=k>else</span> <span class=s1>&#39;HAM&#39;</span><span class=si>}</span><span class=s2>] </span><span class=si>{</span><span class=n>msg</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The point of the example is not the accuracy on ten samples &ndash; it is the shape of the pipeline. Swap in 5,000 SMS messages and the same code reaches roughly 97% accuracy with no further engineering. That is the strength of the classical NLP stack: short, transparent, and remarkably hard to beat without a GPU.</p><hr><h2 id=12-decision-table-which-steps-for-which-task>12. Decision Table: Which Steps for Which Task</h2><table><thead><tr><th>Task</th><th>Tokenization</th><th>Normalization</th><th>Stopwords</th><th>Features</th></tr></thead><tbody><tr><td>Search / IR</td><td>Word</td><td>Stem</td><td>Remove</td><td>TF-IDF</td></tr><tr><td>Sentiment</td><td>Word / subword</td><td>Lemma</td><td><strong>Keep</strong></td><td>TF-IDF or embeddings</td></tr><tr><td>Topic modeling</td><td>Word</td><td>Lemma</td><td>Remove</td><td>BoW or TF-IDF</td></tr><tr><td>Machine translation</td><td>Subword (BPE)</td><td>Minimal</td><td>Keep</td><td>Embeddings</td></tr><tr><td>NER</td><td>Word</td><td>None</td><td>Keep</td><td>Embeddings + context</td></tr><tr><td>Modern LLMs</td><td>Subword (BPE)</td><td>None</td><td>Keep</td><td>Learned embeddings</td></tr></tbody></table><p><strong>Rule of thumb</strong>. The more model capacity and data you have, the less preprocessing you should do. Deep models learn their own normalization; aggressive preprocessing destroys signal they could have used. Classical ML benefits from careful feature engineering; LLMs prefer raw text.</p><hr><h2 id=key-takeaways>Key Takeaways</h2><ul><li>Preprocessing is task-specific. Search wants aggressive normalization; neural models want raw text.</li><li>Subword tokenization (BPE, WordPiece, SentencePiece) is the modern default because it bounds vocabulary and handles unseen words.</li><li>TF-IDF remains the right baseline. If a TF-IDF + logistic regression baseline beats your fancy model, the fancy model is broken.</li><li>Zipf&rsquo;s law explains why stopword removal helps classical models and why long-tail words are hard.</li><li>Less is often more. Over-preprocessing hurts representation learning. Always measure.</li></ul><hr><h2 id=further-reading>Further Reading</h2><ul><li><a href=https://web.stanford.edu/~jurafsky/slp3/ target=_blank rel="noopener noreferrer">Speech and Language Processing <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&ndash; Jurafsky and Martin, free online textbook (the canonical reference)</li><li><a href=https://arxiv.org/abs/1706.03762 target=_blank rel="noopener noreferrer">Attention Is All You Need <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&ndash; the Transformer paper</li><li><a href=https://arxiv.org/abs/1508.07909 target=_blank rel="noopener noreferrer">Neural Machine Translation of Rare Words with Subword Units <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+&ndash; Sennrich et al., the BPE-for-NLP paper</li><li><a href=https://spacy.io/usage/linguistic-features target=_blank rel="noopener noreferrer">spaCy linguistic features <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li><a href=https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction target=_blank rel="noopener noreferrer">scikit-learn text feature extraction <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th><th>Link</th></tr></thead><tbody><tr><td><strong>1</strong></td><td><strong>Introduction and Text Preprocessing (this article)</strong></td><td></td></tr><tr><td>2</td><td>Word Embeddings and Language Models</td><td><a href=/en/nlp-word-embeddings-lm/>Read next &ndash;></a></td></tr><tr><td>3</td><td>RNN and Sequence Modeling</td><td><a href=/en/nlp-rnn-sequence-modeling/>Read &ndash;></a></td></tr><tr><td>4</td><td>Attention Mechanism and Transformer</td><td><a href=/en/nlp-attention-transformer/>Read &ndash;></a></td></tr><tr><td>5</td><td>BERT and Pretrained Models</td><td><a href=/en/nlp-bert-pretrained-models/>Read &ndash;></a></td></tr><tr><td>6</td><td>GPT and Generative Models</td><td><a href=/en/nlp-gpt-generative-models/>Read &ndash;></a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#1-four-eras-of-nlp>1. Four Eras of NLP</a><ul><li><a href=#11-symbolic-era-1950s----late-1980s>1.1 Symbolic Era (1950s &ndash; late 1980s)</a></li><li><a href=#12-statistical-revolution-1990s>1.2 Statistical Revolution (1990s)</a></li><li><a href=#13-deep-learning-era-2013----2016>1.3 Deep Learning Era (2013 &ndash; 2016)</a></li><li><a href=#14-transformer-revolution-2017----present>1.4 Transformer Revolution (2017 &ndash; present)</a></li></ul></li><li><a href=#2-where-nlp-shows-up-today>2. Where NLP Shows Up Today</a></li><li><a href=#3-the-preprocessing-pipeline-at-a-glance>3. The Preprocessing Pipeline at a Glance</a><ul><li><a href=#31-environment-setup>3.1 Environment Setup</a></li></ul></li><li><a href=#4-step-1----text-cleaning>4. Step 1 &ndash; Text Cleaning</a></li><li><a href=#5-step-2----tokenization>5. Step 2 &ndash; Tokenization</a><ul><li><a href=#51-word-tokenization>5.1 Word Tokenization</a></li><li><a href=#52-sentence-tokenization>5.2 Sentence Tokenization</a></li><li><a href=#53-subword-tokenization-bpe>5.3 Subword Tokenization (BPE)</a></li></ul></li><li><a href=#6-step-3----normalization>6. Step 3 &ndash; Normalization</a><ul><li><a href=#61-lowercasing>6.1 Lowercasing</a></li><li><a href=#62-stemming-vs-lemmatization>6.2 Stemming vs Lemmatization</a></li></ul></li><li><a href=#7-step-4----stopwords-and-zipfs-law>7. Step 4 &ndash; Stopwords and Zipf&rsquo;s Law</a></li><li><a href=#8-step-5----from-tokens-to-vectors>8. Step 5 &ndash; From Tokens to Vectors</a><ul><li><a href=#81-one-hot-vs-distributed-representations>8.1 One-hot vs Distributed Representations</a></li><li><a href=#82-bag-of-words>8.2 Bag of Words</a></li><li><a href=#83-tf-idf>8.3 TF-IDF</a></li></ul></li><li><a href=#9-step-6----n-gram-language-models>9. Step 6 &ndash; N-gram Language Models</a></li><li><a href=#10-a-reusable-preprocessing-class>10. A Reusable Preprocessing Class</a></li><li><a href=#11-end-to-end-example-a-minimal-spam-classifier>11. End-to-End Example: a Minimal Spam Classifier</a></li><li><a href=#12-decision-table-which-steps-for-which-task>12. Decision Table: Which Steps for Which Task</a></li><li><a href=#key-takeaways>Key Takeaways</a></li><li><a href=#further-reading>Further Reading</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>18 min</strong></div><div class=row><span>Word count</span><strong>3681</strong></div><div class=row><span>Published</span><strong>Oct 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

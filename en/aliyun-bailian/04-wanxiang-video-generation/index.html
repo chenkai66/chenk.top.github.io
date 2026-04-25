@@ -1,413 +1,110 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/aliyun-bailian/04-wanxiang-video-generation/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Aliyun Bailian (4): Wanxiang Video Generation End-to-End · Chen Kai Blog</title>
-<meta name="description" content="Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Aliyun Bailian (4): Wanxiang Video Generation End-to-End">
-<meta property="og:description" content="Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire.">
-<meta property="og:url" content="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun Bailian</a>
-         · Chapter 4
-      </div>
-      <h1>Aliyun Bailian (4): Wanxiang Video Generation End-to-End</h1>
-      <p class="deck">Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-28">February 28, 2026</time> · 5 min read · 1000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/aliyun-bailian/" class="tag">#Aliyun Bailian</a><a href="/en/tags/wanxiang/" class="tag">#Wanxiang</a><a href="/en/tags/video-generation/" class="tag">#Video Generation</a><a href="/en/tags/async/" class="tag">#Async</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/aliyun-bailian/04-wanxiang-video-generation/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Wanxiang is the API that has done the most for our marketing pipeline and caused the most production surprises. The model is genuinely good — <code>wan2.5-t2v-plus</code> produces 720p clips that pass for an actual video team&rsquo;s output most of the time — but the surface around it is async, native-protocol, has expiring URLs, and rate-limits in non-obvious ways. This article is the version of the docs that has been through six months of &ldquo;why is this happening at 2am&rdquo; tickets.</p>
-<h2 id="the-model-lineup">The model lineup</h2>
-<p>Three models, all native-only (no OpenAI compat), all async:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png" alt="Wanxiang model lineup" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><code>wan2.5-t2v-plus</code> is the one I use 80% of the time — text-to-video is the most flexible and the easiest to brief without a designer. <code>wan2.5-i2v-plus</code> is for cases where the marketing team already has a hero image they want to animate (a still product shot becomes a 5-second turntable). <code>wan2.5-kf2v-plus</code> for transitions: hand it a first frame and a last frame, get back the in-between motion.</p>
-<h2 id="the-end-to-end-flow">The end-to-end flow</h2>
-<p>There is one flow, repeated for every video:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig2_async_video_flow.png" alt="Wanxiang request flow" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The minimum viable Python:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">requests</span><span class="o">,</span> <span class="nn">dashscope</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">dashscope</span> <span class="kn">import</span> <span class="n">VideoSynthesis</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">dashscope</span><span class="o">.</span><span class="n">api_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">t2v</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;1280*720&#34;</span><span class="p">,</span> <span class="n">duration</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">resp</span> <span class="o">=</span> <span class="n">VideoSynthesis</span><span class="o">.</span><span class="n">async_call</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;wan2.5-t2v-plus&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">task_id</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">task_id</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;task:&#34;</span><span class="p">,</span> <span class="n">task_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">delay</span> <span class="o">=</span> <span class="mi">5</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">info</span> <span class="o">=</span> <span class="n">VideoSynthesis</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">task</span><span class="o">=</span><span class="n">task_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">status</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">task_status</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&#34;SUCCEEDED&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">info</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">url</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="s2">&#34;FAILED&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">delay</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">delay</span> <span class="o">*</span> <span class="mf">1.45</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&#34;task did not finish in time&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">url</span> <span class="o">=</span> <span class="n">t2v</span><span class="p">(</span><span class="s2">&#34;a slow motion shot of a Hangzhou tea garden at sunrise, &#34;</span>
-</span></span><span class="line"><span class="cl">           <span class="s2">&#34;drone aerial pulling back, golden hour, cinematic, 35mm film grain&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="polling-with-backoff--pick-a-sensible-schedule">Polling with backoff — pick a sensible schedule</h2>
-<p>Polling every second is wasteful and gets you rate-limited. Polling every 30 seconds wastes user time. The backoff schedule I use:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png" alt="Polling schedule" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Start at 5 seconds, multiply by 1.45 each iteration, cap at 60 seconds. A typical 720p 5-second clip finishes in 30-90 seconds, so the median user waits about 4 polls.</p>
-<p>For a backend service, the right pattern is often <em>not</em> to poll inside the request handler. Instead:</p>
-<ol>
-<li>User submits prompt → you POST to Wanxiang and store <code>task_id</code> in your DB.</li>
-<li>Return immediately with a job URL.</li>
-<li>A background worker polls and updates the DB when <code>SUCCEEDED</code>.</li>
-<li>The frontend polls <em>your</em> DB, not Wanxiang.</li>
-</ol>
-<p>That gives you retry, observability, and a place to store the result URL before it expires.</p>
-<h2 id="save-the-url-immediately--they-expire-in-24h">Save the URL immediately — they expire in 24h</h2>
-<p>The single most expensive mistake I have seen in production: someone fetched the <code>result_url</code>, displayed it on the site, and then the page broke 24 hours later when the URL stopped resolving. The URLs Wanxiang returns are signed and time-bound. <strong>Always copy the file to your own OSS bucket on success:</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">archive</span><span class="p">(</span><span class="n">result_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="kn">import</span> <span class="nn">oss2</span><span class="o">,</span> <span class="nn">requests</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">auth</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Auth</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_AK&#34;</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_SK&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bucket</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Bucket</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="s2">&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class="p">,</span> <span class="s2">&#34;your-bucket&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">bucket</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="sa">f</span><span class="s2">&#34;oss://your-bucket/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>I do this synchronously inside the polling worker, before returning success. If the archive step fails, the task isn&rsquo;t done.</p>
-<h2 id="prompt-patterns-that-survive">Prompt patterns that survive</h2>
-<p>A surprisingly high fraction of Wanxiang quality is in the prompt. After a few months of iteration, the structure that works:</p>
-<pre tabindex="0"><code>[shot type], [subject], [action], [setting / environment],
+<!doctype html><html lang=en data-translation=/zh/aliyun-bailian/04-wanxiang-video-generation/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Aliyun Bailian (4): Wanxiang Video Generation End-to-End · Chen Kai Blog</title>
+<meta name=description content="Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/><meta property="og:type" content="article"><meta property="og:title" content="Aliyun Bailian (4): Wanxiang Video Generation End-to-End"><meta property="og:description" content="Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire."><meta property="og:url" content="https://www.chenk.top/en/aliyun-bailian/04-wanxiang-video-generation/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Aliyun Bailian</a>
+· Chapter 4</div><h1>Aliyun Bailian (4): Wanxiang Video Generation End-to-End</h1><p class=deck>Wanxiang text-to-video and image-to-video for production: the async task pattern, polling with backoff, prompt techniques that survive contact with reality, and the OSS write-through that saves you when result URLs expire.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-28>February 28, 2026</time> · 5 min read · 993 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/aliyun-bailian/ class=tag>#Aliyun Bailian</a><a href=/en/tags/wanxiang/ class=tag>#Wanxiang</a><a href=/en/tags/video-generation/ class=tag>#Video Generation</a><a href=/en/tags/async/ class=tag>#Async</a></div><a class="pill pill-outline" href=/zh/aliyun-bailian/04-wanxiang-video-generation/>Read in English →</a></div></header><div class=prose><p>Wanxiang is the API that has done the most for our marketing pipeline and caused the most production surprises. The model is genuinely good — <code>wan2.5-t2v-plus</code> produces 720p clips that pass for an actual video team&rsquo;s output most of the time — but the surface around it is async, native-protocol, has expiring URLs, and rate-limits in non-obvious ways. This article is the version of the docs that has been through six months of &ldquo;why is this happening at 2am&rdquo; tickets.</p><h2 id=the-model-lineup>The model lineup</h2><p>Three models, all native-only (no OpenAI compat), all async:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig1_wanxiang_models.png alt="Wanxiang model lineup" loading=lazy decoding=async></figure></p><p><code>wan2.5-t2v-plus</code> is the one I use 80% of the time — text-to-video is the most flexible and the easiest to brief without a designer. <code>wan2.5-i2v-plus</code> is for cases where the marketing team already has a hero image they want to animate (a still product shot becomes a 5-second turntable). <code>wan2.5-kf2v-plus</code> for transitions: hand it a first frame and a last frame, get back the in-between motion.</p><h2 id=the-end-to-end-flow>The end-to-end flow</h2><p>There is one flow, repeated for every video:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig2_async_video_flow.png alt="Wanxiang request flow" loading=lazy decoding=async></figure></p><p>The minimum viable Python:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span><span class=o>,</span> <span class=nn>time</span><span class=o>,</span> <span class=nn>requests</span><span class=o>,</span> <span class=nn>dashscope</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>dashscope</span> <span class=kn>import</span> <span class=n>VideoSynthesis</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>dashscope</span><span class=o>.</span><span class=n>api_key</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DASHSCOPE_API_KEY&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>t2v</span><span class=p>(</span><span class=n>prompt</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>size</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;1280*720&#34;</span><span class=p>,</span> <span class=n>duration</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>resp</span> <span class=o>=</span> <span class=n>VideoSynthesis</span><span class=o>.</span><span class=n>async_call</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>=</span><span class=s2>&#34;wan2.5-t2v-plus&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>prompt</span><span class=o>=</span><span class=n>prompt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>size</span><span class=o>=</span><span class=n>size</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>duration</span><span class=o>=</span><span class=n>duration</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>task_id</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>task_id</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;task:&#34;</span><span class=p>,</span> <span class=n>task_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>delay</span> <span class=o>=</span> <span class=mi>5</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>60</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>info</span> <span class=o>=</span> <span class=n>VideoSynthesis</span><span class=o>.</span><span class=n>fetch</span><span class=p>(</span><span class=n>task</span><span class=o>=</span><span class=n>task_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>status</span> <span class=o>=</span> <span class=n>info</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>task_status</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=n>status</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>status</span> <span class=o>==</span> <span class=s2>&#34;SUCCEEDED&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>info</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>results</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>url</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>status</span> <span class=o>==</span> <span class=s2>&#34;FAILED&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=n>info</span><span class=o>.</span><span class=n>output</span><span class=o>.</span><span class=n>message</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=n>delay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>delay</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>delay</span> <span class=o>*</span> <span class=mf>1.45</span><span class=p>,</span> <span class=mi>60</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>raise</span> <span class=ne>TimeoutError</span><span class=p>(</span><span class=s2>&#34;task did not finish in time&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>url</span> <span class=o>=</span> <span class=n>t2v</span><span class=p>(</span><span class=s2>&#34;a slow motion shot of a Hangzhou tea garden at sunrise, &#34;</span>
+</span></span><span class=line><span class=cl>           <span class=s2>&#34;drone aerial pulling back, golden hour, cinematic, 35mm film grain&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>url</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=polling-with-backoff--pick-a-sensible-schedule>Polling with backoff — pick a sensible schedule</h2><p>Polling every second is wasteful and gets you rate-limited. Polling every 30 seconds wastes user time. The backoff schedule I use:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-bailian/04-wanxiang-video-generation/fig3_polling_backoff.png alt="Polling schedule" loading=lazy decoding=async></figure></p><p>Start at 5 seconds, multiply by 1.45 each iteration, cap at 60 seconds. A typical 720p 5-second clip finishes in 30-90 seconds, so the median user waits about 4 polls.</p><p>For a backend service, the right pattern is often <em>not</em> to poll inside the request handler. Instead:</p><ol><li>User submits prompt → you POST to Wanxiang and store <code>task_id</code> in your DB.</li><li>Return immediately with a job URL.</li><li>A background worker polls and updates the DB when <code>SUCCEEDED</code>.</li><li>The frontend polls <em>your</em> DB, not Wanxiang.</li></ol><p>That gives you retry, observability, and a place to store the result URL before it expires.</p><h2 id=save-the-url-immediately--they-expire-in-24h>Save the URL immediately — they expire in 24h</h2><p>The single most expensive mistake I have seen in production: someone fetched the <code>result_url</code>, displayed it on the site, and then the page broke 24 hours later when the URL stopped resolving. The URLs Wanxiang returns are signed and time-bound. <strong>Always copy the file to your own OSS bucket on success:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>archive</span><span class=p>(</span><span class=n>result_url</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>oss2</span><span class=o>,</span> <span class=nn>requests</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>result_url</span><span class=p>,</span> <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>timeout</span><span class=o>=</span><span class=mi>60</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>r</span><span class=o>.</span><span class=n>raise_for_status</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_AK&#34;</span><span class=p>],</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_SK&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s2>&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class=p>,</span> <span class=s2>&#34;your-bucket&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>bucket</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>r</span><span class=o>.</span><span class=n>raw</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=sa>f</span><span class=s2>&#34;oss://your-bucket/</span><span class=si>{</span><span class=n>key</span><span class=si>}</span><span class=s2>&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>I do this synchronously inside the polling worker, before returning success. If the archive step fails, the task isn&rsquo;t done.</p><h2 id=prompt-patterns-that-survive>Prompt patterns that survive</h2><p>A surprisingly high fraction of Wanxiang quality is in the prompt. After a few months of iteration, the structure that works:</p><pre tabindex=0><code>[shot type], [subject], [action], [setting / environment],
 [lighting], [camera movement], [style], [quality keywords]
-</code></pre><p>Examples that have gone to production:</p>
-<ul>
-<li><code>wide angle, a cup of bubble tea, condensation drops sliding down the cup, on a marble table next to a window, soft afternoon backlight, slow dolly in, photorealistic, 4k, shallow depth of field</code></li>
-<li><code>medium shot, a young woman wearing a Hanfu dress, walking through a Hangzhou bamboo forest, early morning mist, dappled light, smooth tracking shot from behind, cinematic film look, 35mm</code></li>
-</ul>
-<p>Things that hurt quality:</p>
-<ul>
-<li>Negative prompts in the main prompt (&ldquo;no text on screen&rdquo;). Use a <code>negative_prompt</code> parameter if you need them.</li>
-<li>More than ~3 main subjects. The model conflates them.</li>
-<li>Specific brand or person names. Generic descriptions work better.</li>
-<li>Anything cyrillic / Arabic / Devanagari script as text-on-frame. Wanxiang is currently English- and Chinese-text aware; other scripts come out as garbled glyphs.</li>
-</ul>
-<h2 id="image-to-video-and-keyframe-to-video">Image-to-video and keyframe-to-video</h2>
-<p>Same flow, different <code>model</code> and inputs. I2V takes an <code>image_url</code> (OSS-signed URL works); KF2V takes <code>first_frame_url</code> and <code>last_frame_url</code>. The duration limits are model-dependent (typically 5 or 10 seconds); read the model card before generating.</p>
-<p>A useful production pattern for product demos:</p>
-<ol>
-<li>Photographer ships a hero still.</li>
-<li>We prompt: &ldquo;the product slowly rotating on a rotating platform, studio lighting&rdquo;.</li>
-<li>I2V produces a 5-second turntable.</li>
-<li>Append to the hero image&rsquo;s product page.</li>
-</ol>
-<p>Cost is a few RMB per clip; the alternative is a half-day of someone&rsquo;s photography time.</p>
-<h2 id="what-to-do-when-succeeded-but-the-video-looks-wrong">What to do when SUCCEEDED but the video looks wrong</h2>
-<p>The most common failure is &ldquo;the model generated something, but it ignored half the prompt&rdquo;. Causes:</p>
-<ul>
-<li>Prompt too long. Wanxiang has a soft limit; aggressive trimming helps.</li>
-<li>Prompt contradictory (&ldquo;daytime, dark, neon&rdquo;). Pick one.</li>
-<li>Wrong model variant. T2V will not animate a specific image; you wanted I2V.</li>
-<li>Wrong aspect ratio. The <code>size</code> parameter shapes composition; <code>1280*720</code> and <code>720*1280</code> produce different framings.</li>
-</ul>
-<p>Generate three variants per critical prompt with different seeds (<code>seed</code> parameter). One of them is usually the right one.</p>
-<h2 id="cost-and-rate-limits">Cost and rate limits</h2>
-<p>Wanxiang is per-second-of-video billed. A 5-second 720p clip is on the order of a few RMB. Concurrent task limits are per-API-key — for production traffic, request a quota increase via the console <em>before</em> you launch. The default of (last I checked) 5 concurrent tasks per workspace is fine for prototyping and instantly insufficient for any real product.</p>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 5 closes the series with <strong>Qwen-TTS-Flash</strong> — speech synthesis with the only Chinese-dialect voices I&rsquo;d ship to production. It&rsquo;s also native-only, so the patterns from this article apply.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/"><span class="title">Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/"><span class="title">Aliyun Bailian (5): Qwen-TTS for Multilingual Voice</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-model-lineup">The model lineup</a></li>
-    <li><a href="#the-end-to-end-flow">The end-to-end flow</a></li>
-    <li><a href="#polling-with-backoff--pick-a-sensible-schedule">Polling with backoff — pick a sensible schedule</a></li>
-    <li><a href="#save-the-url-immediately--they-expire-in-24h">Save the URL immediately — they expire in 24h</a></li>
-    <li><a href="#prompt-patterns-that-survive">Prompt patterns that survive</a></li>
-    <li><a href="#image-to-video-and-keyframe-to-video">Image-to-video and keyframe-to-video</a></li>
-    <li><a href="#what-to-do-when-succeeded-but-the-video-looks-wrong">What to do when SUCCEEDED but the video looks wrong</a></li>
-    <li><a href="#cost-and-rate-limits">Cost and rate limits</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>5 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1000</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>Examples that have gone to production:</p><ul><li><code>wide angle, a cup of bubble tea, condensation drops sliding down the cup, on a marble table next to a window, soft afternoon backlight, slow dolly in, photorealistic, 4k, shallow depth of field</code></li><li><code>medium shot, a young woman wearing a Hanfu dress, walking through a Hangzhou bamboo forest, early morning mist, dappled light, smooth tracking shot from behind, cinematic film look, 35mm</code></li></ul><p>Things that hurt quality:</p><ul><li>Negative prompts in the main prompt (&ldquo;no text on screen&rdquo;). Use a <code>negative_prompt</code> parameter if you need them.</li><li>More than ~3 main subjects. The model conflates them.</li><li>Specific brand or person names. Generic descriptions work better.</li><li>Anything cyrillic / Arabic / Devanagari script as text-on-frame. Wanxiang is currently English- and Chinese-text aware; other scripts come out as garbled glyphs.</li></ul><h2 id=image-to-video-and-keyframe-to-video>Image-to-video and keyframe-to-video</h2><p>Same flow, different <code>model</code> and inputs. I2V takes an <code>image_url</code> (OSS-signed URL works); KF2V takes <code>first_frame_url</code> and <code>last_frame_url</code>. The duration limits are model-dependent (typically 5 or 10 seconds); read the model card before generating.</p><p>A useful production pattern for product demos:</p><ol><li>Photographer ships a hero still.</li><li>We prompt: &ldquo;the product slowly rotating on a rotating platform, studio lighting&rdquo;.</li><li>I2V produces a 5-second turntable.</li><li>Append to the hero image&rsquo;s product page.</li></ol><p>Cost is a few RMB per clip; the alternative is a half-day of someone&rsquo;s photography time.</p><h2 id=what-to-do-when-succeeded-but-the-video-looks-wrong>What to do when SUCCEEDED but the video looks wrong</h2><p>The most common failure is &ldquo;the model generated something, but it ignored half the prompt&rdquo;. Causes:</p><ul><li>Prompt too long. Wanxiang has a soft limit; aggressive trimming helps.</li><li>Prompt contradictory (&ldquo;daytime, dark, neon&rdquo;). Pick one.</li><li>Wrong model variant. T2V will not animate a specific image; you wanted I2V.</li><li>Wrong aspect ratio. The <code>size</code> parameter shapes composition; <code>1280*720</code> and <code>720*1280</code> produce different framings.</li></ul><p>Generate three variants per critical prompt with different seeds (<code>seed</code> parameter). One of them is usually the right one.</p><h2 id=cost-and-rate-limits>Cost and rate limits</h2><p>Wanxiang is per-second-of-video billed. A 5-second 720p clip is on the order of a few RMB. Concurrent task limits are per-API-key — for production traffic, request a quota increase via the console <em>before</em> you launch. The default of (last I checked) 5 concurrent tasks per workspace is fine for prototyping and instantly insufficient for any real product.</p><h2 id=whats-next>What&rsquo;s next</h2><p>Article 5 closes the series with <strong>Qwen-TTS-Flash</strong> — speech synthesis with the only Chinese-dialect voices I&rsquo;d ship to production. It&rsquo;s also native-only, so the patterns from this article apply.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/><span class=title>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/><span class=title>Aliyun Bailian (5): Qwen-TTS for Multilingual Voice</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-model-lineup>The model lineup</a></li><li><a href=#the-end-to-end-flow>The end-to-end flow</a></li><li><a href=#polling-with-backoff--pick-a-sensible-schedule>Polling with backoff — pick a sensible schedule</a></li><li><a href=#save-the-url-immediately--they-expire-in-24h>Save the URL immediately — they expire in 24h</a></li><li><a href=#prompt-patterns-that-survive>Prompt patterns that survive</a></li><li><a href=#image-to-video-and-keyframe-to-video>Image-to-video and keyframe-to-video</a></li><li><a href=#what-to-do-when-succeeded-but-the-video-looks-wrong>What to do when SUCCEEDED but the video looks wrong</a></li><li><a href=#cost-and-rate-limits>Cost and rate limits</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Aliyun Bailian</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>Aliyun Bailian (1): Platform Overview and First Request</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/><span class=chapter-num>02</span>
+<span class=chapter-title>Aliyun Bailian (2): The Qwen LLM API in Production</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/><span class=chapter-num>03</span>
+<span class=chapter-title>Aliyun Bailian (3): Qwen-Omni for Video, Audio, and Image Understanding</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>Aliyun Bailian (4): Wanxiang Video Generation End-to-End</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-bailian/05-qwen-tts-voice/><span class=chapter-num>05</span>
+<span class=chapter-title>Aliyun Bailian (5): Qwen-TTS for Multilingual Voice</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>5 min</strong></div><div class=row><span>Word count</span><strong>993</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

@@ -1,655 +1,194 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM · Chen Kai Blog</title>
-<meta name="description" content="A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/ml-math-derivations/14-variational-inference-and-variational-em/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/ml-math-derivations/14-variational-inference-and-variational-em/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM">
-<meta property="og:description" content="A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs.">
-<meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/14-variational-inference-and-variational-em/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Ml mathematical derivations</a>
-         · Chapter 14
-      </div>
-      <h1>Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM</h1>
-      <p class="deck">A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-02">February 2, 2026</time> · 14 min read · 3000 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/variational-inference/" class="tag">#Variational Inference</a><a href="/en/tags/elbo/" class="tag">#ELBO</a><a href="/en/tags/kl-divergence/" class="tag">#KL Divergence</a><a href="/en/tags/mean-field/" class="tag">#Mean Field</a><a href="/en/tags/variational-bayes/" class="tag">#Variational Bayes</a><a href="/en/tags/mathematical-derivation/" class="tag">#Mathematical Derivation</a><a href="/en/tags/machine-learning/" class="tag">#Machine Learning</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>When the posterior $p(\mathbf{z}\mid\mathbf{x})$ is intractable, you have two roads. <strong>Sampling</strong> (MCMC) walks a Markov chain whose stationary distribution is the posterior — eventually exact, but slow and hard to diagnose. <strong>Variational inference</strong> (VI) instead picks a simple family $\mathcal{Q}$ of distributions and finds the member $q^\star\in\mathcal{Q}$ that lies closest to the true posterior. Inference becomes optimization, and the same machinery that fits a neural network now fits a Bayesian model.</p>
-<p>This post derives VI from a single identity, builds the mean-field algorithm and CAVI from that identity, connects EM and variational EM as special cases, and ends with the reparameterization trick that turns the ELBO into a stochastic objective compatible with autodiff — the engine inside every VAE.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>Why VI turns inference into optimization through the ELBO identity</li>
-<li>The mean-field assumption and the closed-form coordinate-ascent updates it produces</li>
-<li>How variational EM extends classical EM by replacing the exact E-step with optimization over $q$</li>
-<li>The reparameterization trick: a low-variance gradient estimator that backpropagates through samples</li>
-<li>When VI is the right tool — and when it silently lies to you (mode-seeking, under-dispersion)</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>The EM algorithm and the ELBO from <a href="/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/">Part 13</a>
-</li>
-<li>KL divergence and Jensen&rsquo;s inequality</li>
-<li>Multivariate calculus and the exponential family</li>
-<li>Comfort with stochastic gradient estimation</li>
-</ul>
-<hr>
-<h2 id="1-the-posterior-bottleneck">1. The Posterior Bottleneck</h2>
-<p>Bayesian inference with observations $\mathbf{x}$, latent variables $\mathbf{z}$ and parameters $\boldsymbol{\theta}$ produces the posterior</p>
-$$p(\mathbf{z}\mid\mathbf{x}) \;=\; \frac{p(\mathbf{x},\mathbf{z})}{p(\mathbf{x})},\qquad p(\mathbf{x}) \;=\; \int p(\mathbf{x},\mathbf{z})\,d\mathbf{z}.$$<p>The numerator is cheap — it is just the model&rsquo;s joint density. The denominator, the <strong>evidence</strong> $p(\mathbf{x})$, is the integral of the joint over the entire latent space. For anything but conjugate exponential-family pairs, that integral is intractable.</p>
-<p>Two strategies dominate the literature:</p>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th>MCMC</th>
-          <th>Variational Inference</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Approach</td>
-          <td>Stochastic sampling</td>
-          <td>Deterministic optimization</td>
-      </tr>
-      <tr>
-          <td>Asymptotic behavior</td>
-          <td>Exact (in the limit)</td>
-          <td>Biased — bounded by $\mathcal{Q}$</td>
-      </tr>
-      <tr>
-          <td>Computational cost</td>
-          <td>High; chain mixing dominates</td>
-          <td>Low; gradient steps</td>
-      </tr>
-      <tr>
-          <td>Diagnostics</td>
-          <td>Hard (convergence, autocorrelation)</td>
-          <td>Easy (ELBO is monotone)</td>
-      </tr>
-      <tr>
-          <td>Scales to large data</td>
-          <td>Poorly without subsampling</td>
-          <td>Naturally with mini-batches</td>
-      </tr>
-  </tbody>
-</table>
-<p>VI&rsquo;s bias is the price you pay for its speed. The rest of this post quantifies that trade-off and shows how to manage it.</p>
-<hr>
-<h2 id="2-the-elbo-identity">2. The ELBO Identity</h2>
-<p>Pick <strong>any</strong> distribution $q(\mathbf{z})$ over the latent variables. Then</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM · Chen Kai Blog</title>
+<meta name=description content="A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/ml-math-derivations/14-variational-inference-and-variational-em/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/ml-math-derivations/14-variational-inference-and-variational-em/><meta property="og:type" content="article"><meta property="og:title" content="Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM"><meta property="og:description" content="A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs."><meta property="og:url" content="https://www.chenk.top/en/ml-math-derivations/14-variational-inference-and-variational-em/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Ml mathematical derivations</a>
+· Chapter 14</div><h1>Machine Learning Mathematical Derivations (14): Variational Inference and Variational EM</h1><p class=deck>A first-principles derivation of variational inference. From the ELBO identity and the mean-field assumption to the CAVI updates, variational EM, and the reparameterization trick that powers VAEs.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-02>February 2, 2026</time> · 14 min read · 2913 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/variational-inference/ class=tag>#Variational Inference</a><a href=/en/tags/elbo/ class=tag>#ELBO</a><a href=/en/tags/kl-divergence/ class=tag>#KL Divergence</a><a href=/en/tags/mean-field/ class=tag>#Mean Field</a><a href=/en/tags/variational-bayes/ class=tag>#Variational Bayes</a><a href=/en/tags/mathematical-derivation/ class=tag>#Mathematical Derivation</a><a href=/en/tags/machine-learning/ class=tag>#Machine Learning</a></div></div></header><div class=prose><p>When the posterior $p(\mathbf{z}\mid\mathbf{x})$ is intractable, you have two roads. <strong>Sampling</strong> (MCMC) walks a Markov chain whose stationary distribution is the posterior — eventually exact, but slow and hard to diagnose. <strong>Variational inference</strong> (VI) instead picks a simple family $\mathcal{Q}$ of distributions and finds the member $q^\star\in\mathcal{Q}$ that lies closest to the true posterior. Inference becomes optimization, and the same machinery that fits a neural network now fits a Bayesian model.</p><p>This post derives VI from a single identity, builds the mean-field algorithm and CAVI from that identity, connects EM and variational EM as special cases, and ends with the reparameterization trick that turns the ELBO into a stochastic objective compatible with autodiff — the engine inside every VAE.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>Why VI turns inference into optimization through the ELBO identity</li><li>The mean-field assumption and the closed-form coordinate-ascent updates it produces</li><li>How variational EM extends classical EM by replacing the exact E-step with optimization over $q$</li><li>The reparameterization trick: a low-variance gradient estimator that backpropagates through samples</li><li>When VI is the right tool — and when it silently lies to you (mode-seeking, under-dispersion)</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>The EM algorithm and the ELBO from <a href=/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/>Part 13</a></li><li>KL divergence and Jensen&rsquo;s inequality</li><li>Multivariate calculus and the exponential family</li><li>Comfort with stochastic gradient estimation</li></ul><hr><h2 id=1-the-posterior-bottleneck>1. The Posterior Bottleneck</h2><p>Bayesian inference with observations $\mathbf{x}$, latent variables $\mathbf{z}$ and parameters $\boldsymbol{\theta}$ produces the posterior</p>$$p(\mathbf{z}\mid\mathbf{x}) \;=\; \frac{p(\mathbf{x},\mathbf{z})}{p(\mathbf{x})},\qquad p(\mathbf{x}) \;=\; \int p(\mathbf{x},\mathbf{z})\,d\mathbf{z}.$$<p>The numerator is cheap — it is just the model&rsquo;s joint density. The denominator, the <strong>evidence</strong> $p(\mathbf{x})$, is the integral of the joint over the entire latent space. For anything but conjugate exponential-family pairs, that integral is intractable.</p><p>Two strategies dominate the literature:</p><table><thead><tr><th></th><th>MCMC</th><th>Variational Inference</th></tr></thead><tbody><tr><td>Approach</td><td>Stochastic sampling</td><td>Deterministic optimization</td></tr><tr><td>Asymptotic behavior</td><td>Exact (in the limit)</td><td>Biased — bounded by $\mathcal{Q}$</td></tr><tr><td>Computational cost</td><td>High; chain mixing dominates</td><td>Low; gradient steps</td></tr><tr><td>Diagnostics</td><td>Hard (convergence, autocorrelation)</td><td>Easy (ELBO is monotone)</td></tr><tr><td>Scales to large data</td><td>Poorly without subsampling</td><td>Naturally with mini-batches</td></tr></tbody></table><p>VI&rsquo;s bias is the price you pay for its speed. The rest of this post quantifies that trade-off and shows how to manage it.</p><hr><h2 id=2-the-elbo-identity>2. The ELBO Identity</h2><p>Pick <strong>any</strong> distribution $q(\mathbf{z})$ over the latent variables. Then</p>$$
 \log p(\mathbf{x})
 \;=\; \underbrace{\mathbb{E}_q\!\left[\log\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\right]}_{\displaystyle \mathcal{L}(q)\;\text{(ELBO)}}
 \;+\; \underbrace{\mathrm{KL}\!\big(q(\mathbf{z})\,\big\|\,p(\mathbf{z}\mid\mathbf{x})\big)}_{\displaystyle \geq 0}.
-$$<p>The derivation takes one line. Multiply and divide the joint by $q(\mathbf{z})$, take logs, and split:</p>
-$$\log p(\mathbf{x}) = \log\!\int q(\mathbf{z})\,\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\,d\mathbf{z}
-= \mathbb{E}_q\!\left[\log\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\right] + \mathrm{KL}(q\,\|\,p(\cdot\mid\mathbf{x})).$$<p>Because $\log p(\mathbf{x})$ does not depend on $q$, <strong>maximizing the ELBO with respect to $q$ is exactly the same as minimizing the KL divergence to the true posterior</strong>.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig1_elbo_decomposition.png" alt="ELBO decomposition: log-evidence splits into ELBO and KL gap" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 1.</em> The log-evidence is fixed once the data and model are chosen. Every increase in the ELBO is matched by an equal decrease in the KL gap; perfect inference would close the gap entirely. Because KL is non-negative, the ELBO is also a certified <strong>lower bound</strong> on the marginal likelihood — useful for model comparison.</p>
-<p>It is worth pausing on what we have done. We replaced an intractable integral (the evidence) with an optimization problem over a function space (find the best $q$). All of variational inference is the engineering that follows from this swap.</p>
-<hr>
-<h2 id="3-mean-field-approximation">3. Mean-Field Approximation</h2>
-<p>The optimization is still infinite-dimensional. The simplest restriction — and the one Jordan, Ghahramani, Jaakkola and Saul popularized in the 90s — is the <strong>mean-field</strong> assumption: $q$ factorizes across coordinates,</p>
-$$q(\mathbf{z}) \;=\; \prod_{j=1}^{M} q_j(z_j).$$<p>Each factor lives in its own family. We make no further parametric commitment.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig2_mean_field.png" alt="Mean-field collapses the joint into independent marginals" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 2.</em> The middle panel matches the marginals of the true posterior (left) but loses every off-diagonal entry. The right panel shows the global optimum of $\mathrm{KL}(q\|p)$: variance shrinks by a factor of $1-\rho^2$, so the surrogate is <strong>under-dispersed</strong> along both axes. This systematic under-estimation of uncertainty is the most common failure mode of mean-field VI.</p>
-<h3 id="31-the-optimal-factor">3.1 The optimal factor</h3>
-<p>Plug the factorization into the ELBO and isolate one factor $q_j$. Treating the others as fixed,</p>
-$$
+$$<p>The derivation takes one line. Multiply and divide the joint by $q(\mathbf{z})$, take logs, and split:</p>$$\log p(\mathbf{x}) = \log\!\int q(\mathbf{z})\,\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\,d\mathbf{z}
+= \mathbb{E}_q\!\left[\log\frac{p(\mathbf{x},\mathbf{z})}{q(\mathbf{z})}\right] + \mathrm{KL}(q\,\|\,p(\cdot\mid\mathbf{x})).$$<p>Because $\log p(\mathbf{x})$ does not depend on $q$, <strong>maximizing the ELBO with respect to $q$ is exactly the same as minimizing the KL divergence to the true posterior</strong>.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig1_elbo_decomposition.png alt="ELBO decomposition: log-evidence splits into ELBO and KL gap" loading=lazy decoding=async></figure></p><p><em>Figure 1.</em> The log-evidence is fixed once the data and model are chosen. Every increase in the ELBO is matched by an equal decrease in the KL gap; perfect inference would close the gap entirely. Because KL is non-negative, the ELBO is also a certified <strong>lower bound</strong> on the marginal likelihood — useful for model comparison.</p><p>It is worth pausing on what we have done. We replaced an intractable integral (the evidence) with an optimization problem over a function space (find the best $q$). All of variational inference is the engineering that follows from this swap.</p><hr><h2 id=3-mean-field-approximation>3. Mean-Field Approximation</h2><p>The optimization is still infinite-dimensional. The simplest restriction — and the one Jordan, Ghahramani, Jaakkola and Saul popularized in the 90s — is the <strong>mean-field</strong> assumption: $q$ factorizes across coordinates,</p>$$q(\mathbf{z}) \;=\; \prod_{j=1}^{M} q_j(z_j).$$<p>Each factor lives in its own family. We make no further parametric commitment.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig2_mean_field.png alt="Mean-field collapses the joint into independent marginals" loading=lazy decoding=async></figure></p><p><em>Figure 2.</em> The middle panel matches the marginals of the true posterior (left) but loses every off-diagonal entry. The right panel shows the global optimum of $\mathrm{KL}(q\|p)$: variance shrinks by a factor of $1-\rho^2$, so the surrogate is <strong>under-dispersed</strong> along both axes. This systematic under-estimation of uncertainty is the most common failure mode of mean-field VI.</p><h3 id=31-the-optimal-factor>3.1 The optimal factor</h3><p>Plug the factorization into the ELBO and isolate one factor $q_j$. Treating the others as fixed,</p>$$
 \mathcal{L}(q) = \int q_j(z_j) \,\mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big]\,dz_j
 \;-\; \int q_j(z_j)\log q_j(z_j)\,dz_j \;+\; \text{const}.
-$$<p>The bracketed expectation is a function of $z_j$ alone — call it $\log\tilde{p}(z_j)$. Maximizing over $q_j$ subject to $\int q_j = 1$ is a textbook variational calculus problem; the optimum is</p>
-$$\boxed{\;\log q_j^\star(z_j) \;=\; \mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big] \;+\; \text{const}.\;}$$<p>This is the central formula of mean-field VI. The optimal factor for coordinate $j$ is the geometric average of the joint with respect to all other factors, normalized.</p>
-<h3 id="32-coordinate-ascent-variational-inference-cavi">3.2 Coordinate-Ascent Variational Inference (CAVI)</h3>
-<p>Because each factor&rsquo;s optimum depends on the others, we solve cyclically:</p>
-<pre tabindex="0"><code>initialize q_1, ..., q_M
+$$<p>The bracketed expectation is a function of $z_j$ alone — call it $\log\tilde{p}(z_j)$. Maximizing over $q_j$ subject to $\int q_j = 1$ is a textbook variational calculus problem; the optimum is</p>$$\boxed{\;\log q_j^\star(z_j) \;=\; \mathbb{E}_{q_{-j}}\!\big[\log p(\mathbf{x},\mathbf{z})\big] \;+\; \text{const}.\;}$$<p>This is the central formula of mean-field VI. The optimal factor for coordinate $j$ is the geometric average of the joint with respect to all other factors, normalized.</p><h3 id=32-coordinate-ascent-variational-inference-cavi>3.2 Coordinate-Ascent Variational Inference (CAVI)</h3><p>Because each factor&rsquo;s optimum depends on the others, we solve cyclically:</p><pre tabindex=0><code>initialize q_1, ..., q_M
 repeat
     for j = 1, ..., M:
         log q_j(z_j) &lt;- E_{q_{-j}}[log p(x, z)] + const
         normalize q_j
 until ELBO change &lt; tolerance
-</code></pre><p>Every update is a coordinate ascent step on a concave-in-each-coordinate objective, so the ELBO never decreases. Convergence to a local optimum is guaranteed; reaching the global optimum is not.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig5_cavi_iterations.png" alt="CAVI ellipses tightening onto the target while ELBO climbs" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 5.</em> Eight CAVI sweeps on a correlated bivariate Gaussian. The diagonal $q$ both relocates and shrinks: its mean is dragged to the origin in two steps, and its variance collapses to $1/\text{precision}_{ii}$. The right panel shows the monotone ELBO trajectory — a useful convergence diagnostic in any VI implementation.</p>
-<h3 id="33-conjugate-exponential-families">3.3 Conjugate exponential families</h3>
-<p>When the model is a <strong>conjugate exponential family</strong> — every conditional $p(z_j\mid \mathbf{z}_{-j},\mathbf{x})$ lies in an exponential family — the CAVI update has a closed form. The optimal $q_j$ is in the same exponential family as the conditional, and updating it amounts to averaging natural parameters under $q_{-j}$. This covers Bayesian Gaussian mixtures, LDA, Bayesian linear regression, hidden Markov models with Dirichlet priors, and many others. For non-conjugate models, we need the black-box approach of Section 6.</p>
-<hr>
-<h2 id="4-the-variational-family-as-approximator">4. The Variational Family as Approximator</h2>
-<p>It pays to look at VI without the mean-field crutch. Pick <strong>any</strong> parametric family $q_\phi(\mathbf{z})$ — a Gaussian with learnable mean and covariance, a normalizing flow, an amortized inference network — and minimize $\mathrm{KL}(q_\phi\,\|\,p(\cdot\mid\mathbf{x}))$ over $\phi$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig3_q_approximates_post.png" alt="Reverse vs forward KL on a bimodal target" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 3.</em> On a bimodal target, the <strong>reverse-KL</strong> optimum (purple) locks onto a single mode — it is <strong>mode-seeking</strong> because $\mathrm{KL}(q\|p) = \int q\log(q/p)$ pays an infinite price wherever $q>0$ but $p\approx 0$. The <strong>forward-KL</strong> optimum (amber, used by expectation propagation) instead matches moments and <strong>covers</strong> both modes, even at the cost of placing density in low-probability valleys. VI uses reverse KL because we can compute it from samples of $q$ alone — but the asymmetry has real consequences for downstream uncertainty estimates.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig6_kl_asymmetry.png" alt="KL asymmetry: zero-forcing vs mass-covering" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 6.</em> The same story on a symmetric mixture. Reverse KL has multiple local optima, each centered on one mode. Forward KL produces a single, broad solution centered between the modes. Knowing which behavior your application can tolerate is half the battle when designing a VI system.</p>
-<h3 id="when-mean-field-bites">When mean-field bites</h3>
-<p>The under-dispersion in Figure 2 is not a bug; it follows from the geometry of reverse KL applied to a factorized family. Whenever your downstream task <strong>uses the posterior variance</strong> — Bayesian model averaging, calibrated prediction, decision theory — mean-field VI will under-state uncertainty. Three escape hatches:</p>
-<ol>
-<li><strong>Structured VI</strong>: keep some dependencies (e.g., a tree-structured $q$).</li>
-<li><strong>Normalizing flows</strong>: a sequence of invertible transformations gives $q$ enough flexibility to model correlations.</li>
-<li><strong>Amortized inference</strong> with a flexible neural network (the encoder in a VAE).</li>
-</ol>
-<hr>
-<h2 id="5-variational-em">5. Variational EM</h2>
-<p>Section 2 of <a href="/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/">Part 13</a>
- showed that the EM algorithm itself rests on the ELBO identity. EM alternates:</p>
-<ul>
-<li><strong>E-step</strong>: choose $q(\mathbf{z}) = p(\mathbf{z}\mid\mathbf{x};\boldsymbol{\theta}^{(t)})$, the exact posterior — the KL gap goes to zero, so the ELBO touches $\log p(\mathbf{x};\boldsymbol{\theta}^{(t)})$.</li>
-<li><strong>M-step</strong>: hold $q$ fixed, maximize the ELBO with respect to $\boldsymbol{\theta}$, which reduces to maximizing $\mathbb{E}_q[\log p(\mathbf{x},\mathbf{z};\boldsymbol{\theta})]$.</li>
-</ul>
-<p>When the exact posterior is intractable, the E-step breaks. <strong>Variational EM</strong> simply replaces it with a VI sub-routine:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Step</th>
-          <th>Standard EM</th>
-          <th>Variational EM</th>
-          <th>Variational Bayes EM</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>E-step</td>
-          <td>Exact $p(\mathbf{z}\mid\mathbf{x};\boldsymbol{\theta})$</td>
-          <td>Best $q(\mathbf{z})\in\mathcal{Q}$</td>
-          <td>Best $q(\mathbf{z},\boldsymbol{\theta})\in\mathcal{Q}$</td>
-      </tr>
-      <tr>
-          <td>M-step</td>
-          <td>Maximize $Q(\boldsymbol{\theta})$</td>
-          <td>Maximize $Q(\boldsymbol{\theta})$</td>
-          <td>Folded into VI</td>
-      </tr>
-      <tr>
-          <td>Treats $\boldsymbol{\theta}$ as</td>
-          <td>Point estimate</td>
-          <td>Point estimate</td>
-          <td>Random variable</td>
-      </tr>
-  </tbody>
-</table>
-<p>In Variational EM the ELBO is no longer tight after the E-step (the KL gap is non-zero), so the algorithm maximizes a lower bound on $\log p(\mathbf{x};\boldsymbol{\theta})$ rather than the likelihood itself. It still <strong>monotonically increases</strong> that lower bound — a useful guarantee in practice.</p>
-<p><strong>Variational Bayes EM</strong> (VBEM) goes further and treats $\boldsymbol{\theta}$ as a random variable with its own variational factor, producing a full posterior over both $\mathbf{z}$ and $\boldsymbol{\theta}$. This is what the variational Bayesian Gaussian mixture and variational LDA solve.</p>
-<hr>
-<h2 id="6-black-box-vi-and-the-reparameterization-trick">6. Black-Box VI and the Reparameterization Trick</h2>
-<p>Outside conjugate models, neither the closed-form CAVI updates nor the variational E-step are available. <strong>Black-box VI (BBVI)</strong> parameterizes $q_\phi$ with a neural network and optimizes the ELBO with stochastic gradients:</p>
-$$\nabla_\phi\,\mathcal{L}(\phi) \;=\; \nabla_\phi\,\mathbb{E}_{q_\phi(\mathbf{z})}\!\left[\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\right].$$<p>The expectation is over $q_\phi$, whose distribution depends on $\phi$ — the gradient does not move inside the expectation for free.</p>
-<p><strong>Score-function (REINFORCE) estimator.</strong> Differentiate the density:</p>
-$$\nabla_\phi \mathcal{L} \;=\; \mathbb{E}_{q_\phi}\!\left[\big(\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\big)\nabla_\phi \log q_\phi(\mathbf{z})\right].$$<p>Unbiased, but high variance — needs control variates and large sample sizes to be practical.</p>
-<p><strong>Reparameterization trick.</strong> Whenever we can write $\mathbf{z}$ as a deterministic transform of a parameter-free noise variable,</p>
-$$\mathbf{z} \;=\; g_\phi(\boldsymbol{\epsilon}),\qquad \boldsymbol{\epsilon}\sim p(\boldsymbol{\epsilon}),$$<p>the expectation moves to a fixed measure and the gradient slides inside:</p>
-$$\nabla_\phi \mathcal{L} \;=\; \mathbb{E}_{p(\boldsymbol{\epsilon})}\!\left[\nabla_\phi\big(\log p(\mathbf{x},g_\phi(\boldsymbol{\epsilon})) - \log q_\phi(g_\phi(\boldsymbol{\epsilon}))\big)\right].$$<p>For a diagonal Gaussian $q_\phi(\mathbf{z}) = \mathcal{N}(\boldsymbol{\mu}_\phi,\,\mathrm{diag}(\boldsymbol{\sigma}_\phi^2))$, the transform is $g_\phi(\boldsymbol{\epsilon}) = \boldsymbol{\mu}_\phi + \boldsymbol{\sigma}_\phi\odot\boldsymbol{\epsilon}$ with $\boldsymbol{\epsilon}\sim\mathcal{N}(\mathbf{0},\mathbf{I})$. The whole computation graph is differentiable, autodiff handles the rest, and the resulting gradient has dramatically lower variance than REINFORCE. This is the engine inside the <strong>variational autoencoder</strong> and almost every modern continuous-latent variational model.</p>
-<p>For discrete latent variables the trick fails (you cannot write $z\in\{0,1\}$ as a smooth function of $\epsilon$). The standard remedies are REINFORCE with control variates, the Gumbel-Softmax / Concrete relaxation, or a continuous relaxation followed by straight-through estimation.</p>
-<h3 id="when-to-choose-what">When to choose what</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig4_vi_vs_mcmc.png" alt="VI vs MCMC speed-accuracy trade-off" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 4.</em> Wall-clock vs error on a representative benchmark. VI hits a small error fast and then plateaus at its bias floor (the gap between the true posterior and the best member of $\mathcal{Q}$). MCMC starts after a burn-in and grinds down toward zero error at the classic $1/\sqrt{T}$ rate. The decision matrix is short:</p>
-<ul>
-<li><strong>Use VI</strong> for large datasets, online learning, exploratory modeling, and inside neural networks.</li>
-<li><strong>Use MCMC</strong> when the posterior really matters — drug-dose response, scientific inference, anything published.</li>
-<li><strong>Use both</strong>: warm-start an HMC chain from a VI mean. You get fast initialization plus eventual unbiasedness.</li>
-</ul>
-<hr>
-<h2 id="7-application-vi-for-lda">7. Application: VI for LDA</h2>
-<p>Latent Dirichlet Allocation (Blei, Ng, Jordan 2003) is the canonical large-scale VI success story. The model has per-document topic proportions $\theta_d$ and per-topic word distributions $\beta_k$, both Dirichlet-distributed. The posterior is intractable, but the model is conjugate-exponential, so mean-field CAVI gives closed-form updates:</p>
-$$q(\theta,\beta,z) \;=\; \prod_d q(\theta_d\mid\gamma_d) \prod_k q(\beta_k\mid\lambda_k) \prod_{d,n} q(z_{d,n}\mid\phi_{d,n}),$$<p>with Dirichlet variational factors for $\theta_d$ and $\beta_k$, and categorical factors for the per-word topic assignments.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig7_lda_topics.png" alt="Variational LDA: per-document topics and per-topic words" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><em>Figure 7.</em> The two outputs of variational LDA. <strong>Left</strong>: the posterior mean topic proportions $\mathbb{E}_q[\theta_d]$ for eight documents. Each document is a soft mixture of four topics; documents 1 and 5 are dominantly &ldquo;ML&rdquo;, document 3 is dominantly &ldquo;Finance&rdquo;, and so on. <strong>Right</strong>: the posterior mean word distributions $\mathbb{E}_q[\beta_k]$. Each topic concentrates mass on a few characteristic vocabulary terms — exactly the interpretable structure that made LDA a workhorse for the 2000s and 2010s.</p>
-<p>Stochastic VI (Hoffman et al. 2013) scales the same updates to billions of documents by sampling mini-batches and applying natural-gradient steps to $\lambda_k$ — a clean example of the speed advantage in Figure 4.</p>
-<hr>
-<h2 id="8-implementation-variational-bayesian-gmm">8. Implementation: Variational Bayesian GMM</h2>
-<p>A compact CAVI implementation of the conjugate Bayesian GMM. The math behind the updates is in Bishop PRML §10.2; here we focus on a clean reading of the loop.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span><span class="lnt">71
-</span><span class="lnt">72
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">digamma</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">VariationalGMM</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Mean-field variational Bayes Gaussian mixture (CAVI).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">K</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">K</span> <span class="o">=</span> <span class="n">K</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tol</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">N</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Vague conjugate priors</span>
-</span></span><span class="line"><span class="cl">        <span class="n">alpha0</span><span class="p">,</span> <span class="n">beta0</span><span class="p">,</span> <span class="n">nu0</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">m0</span><span class="p">,</span> <span class="n">W0</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># Variational parameters initialized to the prior + uniform mass</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">alpha0</span> <span class="o">+</span> <span class="n">N</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">beta0</span> <span class="o">+</span> <span class="n">N</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">nu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">nu0</span> <span class="o">+</span> <span class="n">N</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m0</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">W0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">)])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">dirichlet</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">r_old</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1"># ---- E-step: variational responsibilities  q(z_n) ----</span>
-</span></span><span class="line"><span class="cl">            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_r</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="c1"># ---- M-step: closed-form updates of the Dirichlet &amp; NW factors ----</span>
-</span></span><span class="line"><span class="cl">            <span class="n">N_k</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x_bar</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">X</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_k</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha0</span> <span class="o">+</span> <span class="n">N_k</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta0</span> <span class="o">+</span> <span class="n">N_k</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">nu</span> <span class="o">=</span> <span class="n">nu0</span> <span class="o">+</span> <span class="n">N_k</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta0</span> <span class="o">*</span> <span class="n">m0</span> <span class="o">+</span> <span class="n">N_k</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_bar</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">diff</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">x_bar</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">                <span class="n">S</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">[:,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">diff</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">diff</span> <span class="o">/</span> <span class="n">N_k</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">                <span class="n">dm</span> <span class="o">=</span> <span class="n">x_bar</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">m0</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">W0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                    <span class="o">+</span> <span class="n">N_k</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">S</span>
-</span></span><span class="line"><span class="cl">                    <span class="o">+</span> <span class="n">beta0</span> <span class="o">*</span> <span class="n">N_k</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">beta0</span> <span class="o">+</span> <span class="n">N_k</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="n">r_old</span><span class="p">))</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_update_r</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Compute  rho_</span><span class="si">{nk}</span><span class="s2"> = exp( E_q[log pi_k] + 0.5 E_q[log|Lambda_k|]
-</span></span></span><span class="line"><span class="cl"><span class="s2">                                    - 0.5 E_q[(x-mu_k)^T Lambda_k (x-mu_k)] )&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">K</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">E_lp</span> <span class="o">=</span> <span class="n">digamma</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">-</span> <span class="n">digamma</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">            <span class="n">E_ld</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">digamma</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nu</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="n">E_ld</span> <span class="o">+=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mf">1e-10</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">                <span class="n">diff</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">                <span class="n">r</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">E_lp</span>
-</span></span><span class="line"><span class="cl">                           <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">E_ld</span>
-</span></span><span class="line"><span class="cl">                           <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nu</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">diff</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">@</span> <span class="n">diff</span>
-</span></span><span class="line"><span class="cl">                                    <span class="o">+</span> <span class="n">d</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="n">r</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">r</span> <span class="o">/</span> <span class="n">r</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_update_r</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The algorithmic shape mirrors the EM-GMM from Part 13 — alternate responsibilities and component statistics — but every quantity is a posterior moment under $q$, not a point estimate. A side benefit is <strong>automatic component pruning</strong>: $\alpha_k$ shrinks toward $\alpha_0$ for empty components, so unused topics quietly fade out instead of fitting noise.</p>
-<hr>
-<h2 id="9-qa">9. Q&amp;A</h2>
-<p><strong>Q1: Why reverse KL and not forward KL?</strong>
-Reverse $\mathrm{KL}(q\|p)$ only requires expectations under $q$, which we control. Forward $\mathrm{KL}(p\|q)$ requires expectations under the intractable $p$. The price is mode-seeking behavior — see Figure 6.</p>
-<p><strong>Q2: My ELBO is going down — is something broken?</strong>
-Yes. CAVI&rsquo;s ELBO is monotone non-decreasing by construction. A drop means a bug, usually in (i) the responsibility normalization, (ii) a sign in the entropy term, or (iii) a stale variational parameter being read before it is updated.</p>
-<p><strong>Q3: How tight is the ELBO bound?</strong>
-$\log p(\mathbf{x}) - \mathcal{L}(q^\star) = \mathrm{KL}(q^\star\|p(\cdot\mid\mathbf{x})) \geq 0$. The gap is exactly the modeling error of the variational family. Bayesian model comparison via ELBO is fair only when the gaps across models are comparable.</p>
-<p><strong>Q4: When does mean-field fail catastrophically?</strong>
-Strong posterior correlations (Figure 2) and multimodality (Figure 6). Symptoms: drastically under-estimated posterior variance, overconfident predictions, sensitivity to initialization. Fix with structured VI, normalizing flows, or full-covariance amortized inference.</p>
-<p><strong>Q5: Reparameterization vs REINFORCE — which one?</strong>
-Reparameterization for continuous, differentiable $q$ (Gaussians, Logistic, mixtures via Gumbel-Softmax). REINFORCE for discrete latent variables. Reparameterization typically has 100–1000× lower gradient variance when both apply.</p>
-<p><strong>Q6: Variational EM vs full Variational Bayes — when do I need VBEM?</strong>
-If you need uncertainty in $\boldsymbol{\theta}$ (small data, model selection, decision theory), use VBEM. If you only need a good point estimate (large data, predictive accuracy), Variational EM is faster and simpler.</p>
-<hr>
-<h2 id="10-exercises">10. Exercises</h2>
-<p><strong>E1.</strong> Prove $\mathcal{L}(q) \leq \log p(\mathbf{x})$ from scratch.
-<em>Sketch.</em> $\log p(\mathbf{x}) = \mathcal{L}(q) + \mathrm{KL}(q\|p(\cdot\mid\mathbf{x}))$ and KL is non-negative by Jensen.</p>
-<p><strong>E2.</strong> For a two-variable mean-field $q(z_1,z_2) = q_1(z_1)q_2(z_2)$, write the optimal $q_1^\star$.
-<em>Answer.</em> $\log q_1^\star(z_1) = \mathbb{E}_{q_2}[\log p(\mathbf{x},z_1,z_2)] + \text{const}$.</p>
-<p><strong>E3.</strong> Derive the closed-form CAVI update for a bivariate Gaussian target with precision matrix $\Lambda$ and zero mean. Show that at convergence, $\mathrm{Var}_q[z_j] = 1/\Lambda_{jj}$ — the inverse of the diagonal of the precision, <strong>not</strong> the diagonal of the covariance.
-<em>Hint.</em> Reproduce the trajectory in Figure 5.</p>
-<p><strong>E4.</strong> Show that the Variational EM ELBO is non-decreasing across iterations even though the E-step is no longer exact.
-<em>Sketch.</em> The E-step increases the ELBO (improves $q$); the M-step increases the ELBO (improves $\boldsymbol{\theta}$). Monotonicity follows from the alternating structure.</p>
-<p><strong>E5.</strong> Why does direct Monte-Carlo gradient estimation $\nabla_\phi \mathbb{E}_{q_\phi}[f(\mathbf{z})] \approx \frac{1}{S}\sum_s \nabla_\phi f(\mathbf{z}^{(s)})$ with $\mathbf{z}^{(s)}\sim q_\phi$ give the wrong answer?
-<em>Answer.</em> The samples themselves depend on $\phi$; the naive gradient ignores that dependency. REINFORCE and reparameterization are the two principled fixes.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Jordan, M. I., Ghahramani, Z., Jaakkola, T. S., &amp; Saul, L. K. (1999). An introduction to variational methods for graphical models. <em>Machine Learning</em>, 37(2), 183–233.</li>
-<li>Blei, D. M., Kucukelbir, A., &amp; McAuliffe, J. D. (2017). Variational inference: A review for statisticians. <em>JASA</em>, 112(518), 859–877.</li>
-<li>Hoffman, M. D., Blei, D. M., Wang, C., &amp; Paisley, J. (2013). Stochastic variational inference. <em>JMLR</em>, 14, 1303–1347.</li>
-<li>Kingma, D. P., &amp; Welling, M. (2014). Auto-encoding variational Bayes. <em>ICLR</em>.</li>
-<li>Ranganath, R., Gerrish, S., &amp; Blei, D. M. (2014). Black box variational inference. <em>AISTATS</em>.</li>
-<li>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>, Chapter 10. Springer.</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<ul>
-<li>Previous: <a href="/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/">Part 13 &ndash; EM Algorithm and GMM</a>
-</li>
-<li>Next: <a href="/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/">Part 15 &ndash; Hidden Markov Models</a>
-</li>
-<li><a href="/tags/Machine-Learning/">View all 20 parts in this series</a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-the-posterior-bottleneck">1. The Posterior Bottleneck</a></li>
-    <li><a href="#2-the-elbo-identity">2. The ELBO Identity</a></li>
-    <li><a href="#3-mean-field-approximation">3. Mean-Field Approximation</a>
-      <ul>
-        <li><a href="#31-the-optimal-factor">3.1 The optimal factor</a></li>
-        <li><a href="#32-coordinate-ascent-variational-inference-cavi">3.2 Coordinate-Ascent Variational Inference (CAVI)</a></li>
-        <li><a href="#33-conjugate-exponential-families">3.3 Conjugate exponential families</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-the-variational-family-as-approximator">4. The Variational Family as Approximator</a>
-      <ul>
-        <li><a href="#when-mean-field-bites">When mean-field bites</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-variational-em">5. Variational EM</a></li>
-    <li><a href="#6-black-box-vi-and-the-reparameterization-trick">6. Black-Box VI and the Reparameterization Trick</a>
-      <ul>
-        <li><a href="#when-to-choose-what">When to choose what</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-application-vi-for-lda">7. Application: VI for LDA</a></li>
-    <li><a href="#8-implementation-variational-bayesian-gmm">8. Implementation: Variational Bayesian GMM</a></li>
-    <li><a href="#9-qa">9. Q&amp;A</a></li>
-    <li><a href="#10-exercises">10. Exercises</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Ml mathematical derivations</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3000</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+</code></pre><p>Every update is a coordinate ascent step on a concave-in-each-coordinate objective, so the ELBO never decreases. Convergence to a local optimum is guaranteed; reaching the global optimum is not.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig5_cavi_iterations.png alt="CAVI ellipses tightening onto the target while ELBO climbs" loading=lazy decoding=async></figure></p><p><em>Figure 5.</em> Eight CAVI sweeps on a correlated bivariate Gaussian. The diagonal $q$ both relocates and shrinks: its mean is dragged to the origin in two steps, and its variance collapses to $1/\text{precision}_{ii}$. The right panel shows the monotone ELBO trajectory — a useful convergence diagnostic in any VI implementation.</p><h3 id=33-conjugate-exponential-families>3.3 Conjugate exponential families</h3><p>When the model is a <strong>conjugate exponential family</strong> — every conditional $p(z_j\mid \mathbf{z}_{-j},\mathbf{x})$ lies in an exponential family — the CAVI update has a closed form. The optimal $q_j$ is in the same exponential family as the conditional, and updating it amounts to averaging natural parameters under $q_{-j}$. This covers Bayesian Gaussian mixtures, LDA, Bayesian linear regression, hidden Markov models with Dirichlet priors, and many others. For non-conjugate models, we need the black-box approach of Section 6.</p><hr><h2 id=4-the-variational-family-as-approximator>4. The Variational Family as Approximator</h2><p>It pays to look at VI without the mean-field crutch. Pick <strong>any</strong> parametric family $q_\phi(\mathbf{z})$ — a Gaussian with learnable mean and covariance, a normalizing flow, an amortized inference network — and minimize $\mathrm{KL}(q_\phi\,\|\,p(\cdot\mid\mathbf{x}))$ over $\phi$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig3_q_approximates_post.png alt="Reverse vs forward KL on a bimodal target" loading=lazy decoding=async></figure></p><p><em>Figure 3.</em> On a bimodal target, the <strong>reverse-KL</strong> optimum (purple) locks onto a single mode — it is <strong>mode-seeking</strong> because $\mathrm{KL}(q\|p) = \int q\log(q/p)$ pays an infinite price wherever $q>0$ but $p\approx 0$. The <strong>forward-KL</strong> optimum (amber, used by expectation propagation) instead matches moments and <strong>covers</strong> both modes, even at the cost of placing density in low-probability valleys. VI uses reverse KL because we can compute it from samples of $q$ alone — but the asymmetry has real consequences for downstream uncertainty estimates.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig6_kl_asymmetry.png alt="KL asymmetry: zero-forcing vs mass-covering" loading=lazy decoding=async></figure></p><p><em>Figure 6.</em> The same story on a symmetric mixture. Reverse KL has multiple local optima, each centered on one mode. Forward KL produces a single, broad solution centered between the modes. Knowing which behavior your application can tolerate is half the battle when designing a VI system.</p><h3 id=when-mean-field-bites>When mean-field bites</h3><p>The under-dispersion in Figure 2 is not a bug; it follows from the geometry of reverse KL applied to a factorized family. Whenever your downstream task <strong>uses the posterior variance</strong> — Bayesian model averaging, calibrated prediction, decision theory — mean-field VI will under-state uncertainty. Three escape hatches:</p><ol><li><strong>Structured VI</strong>: keep some dependencies (e.g., a tree-structured $q$).</li><li><strong>Normalizing flows</strong>: a sequence of invertible transformations gives $q$ enough flexibility to model correlations.</li><li><strong>Amortized inference</strong> with a flexible neural network (the encoder in a VAE).</li></ol><hr><h2 id=5-variational-em>5. Variational EM</h2><p>Section 2 of <a href=/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/>Part 13</a>
+showed that the EM algorithm itself rests on the ELBO identity. EM alternates:</p><ul><li><strong>E-step</strong>: choose $q(\mathbf{z}) = p(\mathbf{z}\mid\mathbf{x};\boldsymbol{\theta}^{(t)})$, the exact posterior — the KL gap goes to zero, so the ELBO touches $\log p(\mathbf{x};\boldsymbol{\theta}^{(t)})$.</li><li><strong>M-step</strong>: hold $q$ fixed, maximize the ELBO with respect to $\boldsymbol{\theta}$, which reduces to maximizing $\mathbb{E}_q[\log p(\mathbf{x},\mathbf{z};\boldsymbol{\theta})]$.</li></ul><p>When the exact posterior is intractable, the E-step breaks. <strong>Variational EM</strong> simply replaces it with a VI sub-routine:</p><table><thead><tr><th>Step</th><th>Standard EM</th><th>Variational EM</th><th>Variational Bayes EM</th></tr></thead><tbody><tr><td>E-step</td><td>Exact $p(\mathbf{z}\mid\mathbf{x};\boldsymbol{\theta})$</td><td>Best $q(\mathbf{z})\in\mathcal{Q}$</td><td>Best $q(\mathbf{z},\boldsymbol{\theta})\in\mathcal{Q}$</td></tr><tr><td>M-step</td><td>Maximize $Q(\boldsymbol{\theta})$</td><td>Maximize $Q(\boldsymbol{\theta})$</td><td>Folded into VI</td></tr><tr><td>Treats $\boldsymbol{\theta}$ as</td><td>Point estimate</td><td>Point estimate</td><td>Random variable</td></tr></tbody></table><p>In Variational EM the ELBO is no longer tight after the E-step (the KL gap is non-zero), so the algorithm maximizes a lower bound on $\log p(\mathbf{x};\boldsymbol{\theta})$ rather than the likelihood itself. It still <strong>monotonically increases</strong> that lower bound — a useful guarantee in practice.</p><p><strong>Variational Bayes EM</strong> (VBEM) goes further and treats $\boldsymbol{\theta}$ as a random variable with its own variational factor, producing a full posterior over both $\mathbf{z}$ and $\boldsymbol{\theta}$. This is what the variational Bayesian Gaussian mixture and variational LDA solve.</p><hr><h2 id=6-black-box-vi-and-the-reparameterization-trick>6. Black-Box VI and the Reparameterization Trick</h2><p>Outside conjugate models, neither the closed-form CAVI updates nor the variational E-step are available. <strong>Black-box VI (BBVI)</strong> parameterizes $q_\phi$ with a neural network and optimizes the ELBO with stochastic gradients:</p>$$\nabla_\phi\,\mathcal{L}(\phi) \;=\; \nabla_\phi\,\mathbb{E}_{q_\phi(\mathbf{z})}\!\left[\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\right].$$<p>The expectation is over $q_\phi$, whose distribution depends on $\phi$ — the gradient does not move inside the expectation for free.</p><p><strong>Score-function (REINFORCE) estimator.</strong> Differentiate the density:</p>$$\nabla_\phi \mathcal{L} \;=\; \mathbb{E}_{q_\phi}\!\left[\big(\log p(\mathbf{x},\mathbf{z}) - \log q_\phi(\mathbf{z})\big)\nabla_\phi \log q_\phi(\mathbf{z})\right].$$<p>Unbiased, but high variance — needs control variates and large sample sizes to be practical.</p><p><strong>Reparameterization trick.</strong> Whenever we can write $\mathbf{z}$ as a deterministic transform of a parameter-free noise variable,</p>$$\mathbf{z} \;=\; g_\phi(\boldsymbol{\epsilon}),\qquad \boldsymbol{\epsilon}\sim p(\boldsymbol{\epsilon}),$$<p>the expectation moves to a fixed measure and the gradient slides inside:</p>$$\nabla_\phi \mathcal{L} \;=\; \mathbb{E}_{p(\boldsymbol{\epsilon})}\!\left[\nabla_\phi\big(\log p(\mathbf{x},g_\phi(\boldsymbol{\epsilon})) - \log q_\phi(g_\phi(\boldsymbol{\epsilon}))\big)\right].$$<p>For a diagonal Gaussian $q_\phi(\mathbf{z}) = \mathcal{N}(\boldsymbol{\mu}_\phi,\,\mathrm{diag}(\boldsymbol{\sigma}_\phi^2))$, the transform is $g_\phi(\boldsymbol{\epsilon}) = \boldsymbol{\mu}_\phi + \boldsymbol{\sigma}_\phi\odot\boldsymbol{\epsilon}$ with $\boldsymbol{\epsilon}\sim\mathcal{N}(\mathbf{0},\mathbf{I})$. The whole computation graph is differentiable, autodiff handles the rest, and the resulting gradient has dramatically lower variance than REINFORCE. This is the engine inside the <strong>variational autoencoder</strong> and almost every modern continuous-latent variational model.</p><p>For discrete latent variables the trick fails (you cannot write $z\in\{0,1\}$ as a smooth function of $\epsilon$). The standard remedies are REINFORCE with control variates, the Gumbel-Softmax / Concrete relaxation, or a continuous relaxation followed by straight-through estimation.</p><h3 id=when-to-choose-what>When to choose what</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig4_vi_vs_mcmc.png alt="VI vs MCMC speed-accuracy trade-off" loading=lazy decoding=async></figure></p><p><em>Figure 4.</em> Wall-clock vs error on a representative benchmark. VI hits a small error fast and then plateaus at its bias floor (the gap between the true posterior and the best member of $\mathcal{Q}$). MCMC starts after a burn-in and grinds down toward zero error at the classic $1/\sqrt{T}$ rate. The decision matrix is short:</p><ul><li><strong>Use VI</strong> for large datasets, online learning, exploratory modeling, and inside neural networks.</li><li><strong>Use MCMC</strong> when the posterior really matters — drug-dose response, scientific inference, anything published.</li><li><strong>Use both</strong>: warm-start an HMC chain from a VI mean. You get fast initialization plus eventual unbiasedness.</li></ul><hr><h2 id=7-application-vi-for-lda>7. Application: VI for LDA</h2><p>Latent Dirichlet Allocation (Blei, Ng, Jordan 2003) is the canonical large-scale VI success story. The model has per-document topic proportions $\theta_d$ and per-topic word distributions $\beta_k$, both Dirichlet-distributed. The posterior is intractable, but the model is conjugate-exponential, so mean-field CAVI gives closed-form updates:</p>$$q(\theta,\beta,z) \;=\; \prod_d q(\theta_d\mid\gamma_d) \prod_k q(\beta_k\mid\lambda_k) \prod_{d,n} q(z_{d,n}\mid\phi_{d,n}),$$<p>with Dirichlet variational factors for $\theta_d$ and $\beta_k$, and categorical factors for the per-word topic assignments.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/ml-math-derivations/14-Variational-Inference-and-Variational-EM/fig7_lda_topics.png alt="Variational LDA: per-document topics and per-topic words" loading=lazy decoding=async></figure></p><p><em>Figure 7.</em> The two outputs of variational LDA. <strong>Left</strong>: the posterior mean topic proportions $\mathbb{E}_q[\theta_d]$ for eight documents. Each document is a soft mixture of four topics; documents 1 and 5 are dominantly &ldquo;ML&rdquo;, document 3 is dominantly &ldquo;Finance&rdquo;, and so on. <strong>Right</strong>: the posterior mean word distributions $\mathbb{E}_q[\beta_k]$. Each topic concentrates mass on a few characteristic vocabulary terms — exactly the interpretable structure that made LDA a workhorse for the 2000s and 2010s.</p><p>Stochastic VI (Hoffman et al. 2013) scales the same updates to billions of documents by sampling mini-batches and applying natural-gradient steps to $\lambda_k$ — a clean example of the speed advantage in Figure 4.</p><hr><h2 id=8-implementation-variational-bayesian-gmm>8. Implementation: Variational Bayesian GMM</h2><p>A compact CAVI implementation of the conjugate Bayesian GMM. The math behind the updates is in Bishop PRML §10.2; here we focus on a clean reading of the loop.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.special</span> <span class=kn>import</span> <span class=n>digamma</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>VariationalGMM</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Mean-field variational Bayes Gaussian mixture (CAVI).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>K</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>max_iter</span><span class=o>=</span><span class=mi>100</span><span class=p>,</span> <span class=n>tol</span><span class=o>=</span><span class=mf>1e-3</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>K</span> <span class=o>=</span> <span class=n>K</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_iter</span> <span class=o>=</span> <span class=n>max_iter</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tol</span> <span class=o>=</span> <span class=n>tol</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>fit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>N</span><span class=p>,</span> <span class=n>d</span> <span class=o>=</span> <span class=n>X</span><span class=o>.</span><span class=n>shape</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Vague conjugate priors</span>
+</span></span><span class=line><span class=cl>        <span class=n>alpha0</span><span class=p>,</span> <span class=n>beta0</span><span class=p>,</span> <span class=n>nu0</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=nb>float</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>m0</span><span class=p>,</span> <span class=n>W0</span> <span class=o>=</span> <span class=n>X</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=mi>0</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>eye</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># Variational parameters initialized to the prior + uniform mass</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>,</span> <span class=n>alpha0</span> <span class=o>+</span> <span class=n>N</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>beta</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>,</span> <span class=n>beta0</span> <span class=o>+</span> <span class=n>N</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>nu</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>,</span> <span class=n>nu0</span> <span class=o>+</span> <span class=n>N</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>m</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>m0</span> <span class=o>+</span> <span class=mf>0.1</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>randn</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>W</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>W0</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>)])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>r</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>random</span><span class=o>.</span><span class=n>dirichlet</span><span class=p>([</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>,</span> <span class=n>N</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>max_iter</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>r_old</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># ---- E-step: variational responsibilities  q(z_n) ----</span>
+</span></span><span class=line><span class=cl>            <span class=n>r</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_update_r</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=n>N</span><span class=p>,</span> <span class=n>d</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=c1># ---- M-step: closed-form updates of the Dirichlet &amp; NW factors ----</span>
+</span></span><span class=line><span class=cl>            <span class=n>N_k</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>x_bar</span> <span class=o>=</span> <span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>X</span><span class=p>)</span> <span class=o>/</span> <span class=n>N_k</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>alpha0</span> <span class=o>+</span> <span class=n>N_k</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>beta</span> <span class=o>=</span> <span class=n>beta0</span> <span class=o>+</span> <span class=n>N_k</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>nu</span> <span class=o>=</span> <span class=n>nu0</span> <span class=o>+</span> <span class=n>N_k</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>m</span> <span class=o>=</span> <span class=p>(</span><span class=n>beta0</span> <span class=o>*</span> <span class=n>m0</span> <span class=o>+</span> <span class=n>N_k</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>x_bar</span><span class=p>)</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>[:,</span> <span class=kc>None</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>diff</span> <span class=o>=</span> <span class=n>X</span> <span class=o>-</span> <span class=n>x_bar</span><span class=p>[</span><span class=n>k</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                <span class=n>S</span> <span class=o>=</span> <span class=p>(</span><span class=n>r</span><span class=p>[:,</span> <span class=n>k</span><span class=p>,</span> <span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>diff</span><span class=p>)</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>diff</span> <span class=o>/</span> <span class=n>N_k</span><span class=p>[</span><span class=n>k</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                <span class=n>dm</span> <span class=o>=</span> <span class=n>x_bar</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>-</span> <span class=n>m0</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>inv</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>                    <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>inv</span><span class=p>(</span><span class=n>W0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=o>+</span> <span class=n>N_k</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>*</span> <span class=n>S</span>
+</span></span><span class=line><span class=cl>                    <span class=o>+</span> <span class=n>beta0</span> <span class=o>*</span> <span class=n>N_k</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>/</span> <span class=p>(</span><span class=n>beta0</span> <span class=o>+</span> <span class=n>N_k</span><span class=p>[</span><span class=n>k</span><span class=p>])</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>outer</span><span class=p>(</span><span class=n>dm</span><span class=p>,</span> <span class=n>dm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>r</span> <span class=o>-</span> <span class=n>r_old</span><span class=p>))</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>tol</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_update_r</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>,</span> <span class=n>N</span><span class=p>,</span> <span class=n>d</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Compute  rho_</span><span class=si>{nk}</span><span class=s2> = exp( E_q[log pi_k] + 0.5 E_q[log|Lambda_k|]
+</span></span></span><span class=line><span class=cl><span class=s2>                                    - 0.5 E_q[(x-mu_k)^T Lambda_k (x-mu_k)] )&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>r</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>((</span><span class=n>N</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>K</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>E_lp</span> <span class=o>=</span> <span class=n>digamma</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=p>[</span><span class=n>k</span><span class=p>])</span> <span class=o>-</span> <span class=n>digamma</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>alpha</span><span class=o>.</span><span class=n>sum</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>            <span class=n>E_ld</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=n>digamma</span><span class=p>((</span><span class=bp>self</span><span class=o>.</span><span class=n>nu</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span> <span class=o>-</span> <span class=n>i</span><span class=p>)</span> <span class=o>/</span> <span class=mi>2</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>d</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=n>E_ld</span> <span class=o>+=</span> <span class=n>d</span> <span class=o>*</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>det</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=p>[</span><span class=n>k</span><span class=p>]),</span> <span class=mf>1e-10</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>N</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>                <span class=n>diff</span> <span class=o>=</span> <span class=n>X</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=p>[</span><span class=n>k</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>                <span class=n>r</span><span class=p>[</span><span class=n>n</span><span class=p>,</span> <span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>E_lp</span>
+</span></span><span class=line><span class=cl>                           <span class=o>+</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>E_ld</span>
+</span></span><span class=line><span class=cl>                           <span class=o>-</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>nu</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>*</span> <span class=n>diff</span> <span class=o>@</span> <span class=bp>self</span><span class=o>.</span><span class=n>W</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>@</span> <span class=n>diff</span>
+</span></span><span class=line><span class=cl>                                    <span class=o>+</span> <span class=n>d</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>beta</span><span class=p>[</span><span class=n>k</span><span class=p>]))</span>
+</span></span><span class=line><span class=cl>        <span class=n>r</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>r</span> <span class=o>-</span> <span class=n>r</span><span class=o>.</span><span class=n>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>r</span> <span class=o>/</span> <span class=n>r</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdims</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>predict</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>X</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_update_r</span><span class=p>(</span><span class=n>X</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>X</span><span class=p>),</span> <span class=n>X</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]),</span> <span class=n>axis</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The algorithmic shape mirrors the EM-GMM from Part 13 — alternate responsibilities and component statistics — but every quantity is a posterior moment under $q$, not a point estimate. A side benefit is <strong>automatic component pruning</strong>: $\alpha_k$ shrinks toward $\alpha_0$ for empty components, so unused topics quietly fade out instead of fitting noise.</p><hr><h2 id=9-qa>9. Q&amp;A</h2><p><strong>Q1: Why reverse KL and not forward KL?</strong>
+Reverse $\mathrm{KL}(q\|p)$ only requires expectations under $q$, which we control. Forward $\mathrm{KL}(p\|q)$ requires expectations under the intractable $p$. The price is mode-seeking behavior — see Figure 6.</p><p><strong>Q2: My ELBO is going down — is something broken?</strong>
+Yes. CAVI&rsquo;s ELBO is monotone non-decreasing by construction. A drop means a bug, usually in (i) the responsibility normalization, (ii) a sign in the entropy term, or (iii) a stale variational parameter being read before it is updated.</p><p><strong>Q3: How tight is the ELBO bound?</strong>
+$\log p(\mathbf{x}) - \mathcal{L}(q^\star) = \mathrm{KL}(q^\star\|p(\cdot\mid\mathbf{x})) \geq 0$. The gap is exactly the modeling error of the variational family. Bayesian model comparison via ELBO is fair only when the gaps across models are comparable.</p><p><strong>Q4: When does mean-field fail catastrophically?</strong>
+Strong posterior correlations (Figure 2) and multimodality (Figure 6). Symptoms: drastically under-estimated posterior variance, overconfident predictions, sensitivity to initialization. Fix with structured VI, normalizing flows, or full-covariance amortized inference.</p><p><strong>Q5: Reparameterization vs REINFORCE — which one?</strong>
+Reparameterization for continuous, differentiable $q$ (Gaussians, Logistic, mixtures via Gumbel-Softmax). REINFORCE for discrete latent variables. Reparameterization typically has 100–1000× lower gradient variance when both apply.</p><p><strong>Q6: Variational EM vs full Variational Bayes — when do I need VBEM?</strong>
+If you need uncertainty in $\boldsymbol{\theta}$ (small data, model selection, decision theory), use VBEM. If you only need a good point estimate (large data, predictive accuracy), Variational EM is faster and simpler.</p><hr><h2 id=10-exercises>10. Exercises</h2><p><strong>E1.</strong> Prove $\mathcal{L}(q) \leq \log p(\mathbf{x})$ from scratch.
+<em>Sketch.</em> $\log p(\mathbf{x}) = \mathcal{L}(q) + \mathrm{KL}(q\|p(\cdot\mid\mathbf{x}))$ and KL is non-negative by Jensen.</p><p><strong>E2.</strong> For a two-variable mean-field $q(z_1,z_2) = q_1(z_1)q_2(z_2)$, write the optimal $q_1^\star$.
+<em>Answer.</em> $\log q_1^\star(z_1) = \mathbb{E}_{q_2}[\log p(\mathbf{x},z_1,z_2)] + \text{const}$.</p><p><strong>E3.</strong> Derive the closed-form CAVI update for a bivariate Gaussian target with precision matrix $\Lambda$ and zero mean. Show that at convergence, $\mathrm{Var}_q[z_j] = 1/\Lambda_{jj}$ — the inverse of the diagonal of the precision, <strong>not</strong> the diagonal of the covariance.
+<em>Hint.</em> Reproduce the trajectory in Figure 5.</p><p><strong>E4.</strong> Show that the Variational EM ELBO is non-decreasing across iterations even though the E-step is no longer exact.
+<em>Sketch.</em> The E-step increases the ELBO (improves $q$); the M-step increases the ELBO (improves $\boldsymbol{\theta}$). Monotonicity follows from the alternating structure.</p><p><strong>E5.</strong> Why does direct Monte-Carlo gradient estimation $\nabla_\phi \mathbb{E}_{q_\phi}[f(\mathbf{z})] \approx \frac{1}{S}\sum_s \nabla_\phi f(\mathbf{z}^{(s)})$ with $\mathbf{z}^{(s)}\sim q_\phi$ give the wrong answer?
+<em>Answer.</em> The samples themselves depend on $\phi$; the naive gradient ignores that dependency. REINFORCE and reparameterization are the two principled fixes.</p><hr><h2 id=references>References</h2><ul><li>Jordan, M. I., Ghahramani, Z., Jaakkola, T. S., & Saul, L. K. (1999). An introduction to variational methods for graphical models. <em>Machine Learning</em>, 37(2), 183–233.</li><li>Blei, D. M., Kucukelbir, A., & McAuliffe, J. D. (2017). Variational inference: A review for statisticians. <em>JASA</em>, 112(518), 859–877.</li><li>Hoffman, M. D., Blei, D. M., Wang, C., & Paisley, J. (2013). Stochastic variational inference. <em>JMLR</em>, 14, 1303–1347.</li><li>Kingma, D. P., & Welling, M. (2014). Auto-encoding variational Bayes. <em>ICLR</em>.</li><li>Ranganath, R., Gerrish, S., & Blei, D. M. (2014). Black box variational inference. <em>AISTATS</em>.</li><li>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>, Chapter 10. Springer.</li></ul><hr><h2 id=series-navigation>Series Navigation</h2><ul><li>Previous: <a href=/en/Machine-Learning-Mathematical-Derivations-13-EM-Algorithm-and-GMM/>Part 13 &ndash; EM Algorithm and GMM</a></li><li>Next: <a href=/en/Machine-Learning-Mathematical-Derivations-15-Hidden-Markov-Models/>Part 15 &ndash; Hidden Markov Models</a></li><li><a href=/tags/Machine-Learning/>View all 20 parts in this series</a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-the-posterior-bottleneck>1. The Posterior Bottleneck</a></li><li><a href=#2-the-elbo-identity>2. The ELBO Identity</a></li><li><a href=#3-mean-field-approximation>3. Mean-Field Approximation</a><ul><li><a href=#31-the-optimal-factor>3.1 The optimal factor</a></li><li><a href=#32-coordinate-ascent-variational-inference-cavi>3.2 Coordinate-Ascent Variational Inference (CAVI)</a></li><li><a href=#33-conjugate-exponential-families>3.3 Conjugate exponential families</a></li></ul></li><li><a href=#4-the-variational-family-as-approximator>4. The Variational Family as Approximator</a><ul><li><a href=#when-mean-field-bites>When mean-field bites</a></li></ul></li><li><a href=#5-variational-em>5. Variational EM</a></li><li><a href=#6-black-box-vi-and-the-reparameterization-trick>6. Black-Box VI and the Reparameterization Trick</a><ul><li><a href=#when-to-choose-what>When to choose what</a></li></ul></li><li><a href=#7-application-vi-for-lda>7. Application: VI for LDA</a></li><li><a href=#8-implementation-variational-bayesian-gmm>8. Implementation: Variational Bayesian GMM</a></li><li><a href=#9-qa>9. Q&amp;A</a></li><li><a href=#10-exercises>10. Exercises</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>2913</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

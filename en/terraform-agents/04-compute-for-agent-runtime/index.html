@@ -1,721 +1,357 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/terraform-agents/04-compute-for-agent-runtime/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute? · Chen Kai Blog</title>
-<meta name="description" content="The three places an agent&#39;s main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?">
-<meta property="og:description" content="The three places an agent&#39;s main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds.">
-<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-3);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
-         · Chapter 4
-      </div>
-      <h1>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</h1>
-      <p class="deck">The three places an agent&#39;s main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-18">March 18, 2026</time> · 9 min read · 1900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/ecs/" class="tag">#ECS</a><a href="/en/tags/ack/" class="tag">#ACK</a><a href="/en/tags/function-compute/" class="tag">#Function Compute</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/terraform-agents/04-compute-for-agent-runtime/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>The single most important architecture decision in an agent system is <em>where the agent loop process actually runs</em>. There are exactly three good answers on Aliyun. Picking the wrong one isn&rsquo;t catastrophic — you can migrate later — but it costs you weeks of unnecessary scaffolding.</p>
-<p>This article walks through all three with working Terraform, the cost crossover, and the operational gotchas.</p>
-<h2 id="the-three-patterns">The three patterns</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png" alt="Three places to run an agent: ECS, ACK, FC" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Each has a sweet spot:</p>
-<ul>
-<li><strong>ECS</strong> is a Linux VM. Long-lived, stateful, easy to SSH into when you&rsquo;re debugging. The right answer for prototypes, single-tenant agents, and anywhere you want to keep one machine &ldquo;warm&rdquo; with cached models or local state.</li>
-<li><strong>ACK</strong> (Container Service for Kubernetes) is the prod answer at scale. Multiple agent kinds, autoscaling, rolling deploys, GPU scheduling. Worth the operational weight only when you have at least three or four agent services and an SRE who&rsquo;s comfortable in K8s.</li>
-<li><strong>Function Compute</strong> is per-invocation, scale-to-zero. Cold start 200-800ms. Right for webhook-triggered agents, scheduled crawlers, and anything where the agent runs in bursts and idles otherwise.</li>
-</ul>
-<h2 id="the-cost-crossover">The cost crossover</h2>
-<p>Here&rsquo;s the rough monthly cost picture as a function of sustained QPS:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png" alt="Compute cost crossover — rough model" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Under ~1 QPS sustained, FC dominates — you pay almost nothing during idle. From ~1 to ~30 QPS sustained, a single ECS box wins. Above that, ACK&rsquo;s higher fixed cost is amortised over enough load to be cheaper than packing more onto ECS.</p>
-<p>The model is rough — your actual numbers depend on instance family, network, and how chatty the agent is — but the <em>shape</em> is reliable. The decision rule I use:</p>
-<blockquote>
-<p>Bursty + low average  →  Function Compute</p>
-<p>Steady + low-to-mid  →  ECS with pm2</p>
-<p>Multi-agent + sustained mid-to-high  →  ACK</p>
-</blockquote>
-<h2 id="pattern-1-ecs-with-pm2">Pattern 1: ECS with pm2</h2>
-<p>For 80% of agent projects, this is what you want. One or two ECS instances behind an ALB, each running <code>pm2</code> as the supervisor for the Python or Node agent process.</p>
-<p>The official &ldquo;Create an ECS instance&rdquo; practice doc gives a working baseline. Adapted for our agent context:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">data</span> <span class="s2">&#34;alicloud_images&#34; &#34;ubuntu&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  owners</span>      <span class="o">=</span> <span class="s2">&#34;system&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name_regex</span>  <span class="o">=</span> <span class="s2">&#34;^ubuntu_22_04_x64.*&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  most_recent</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">data</span> <span class="s2">&#34;alicloud_instance_types&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  cpu_core_count</span>       <span class="o">=</span> <span class="m">4</span>
-</span></span><span class="line"><span class="cl"><span class="n">  memory_size</span>          <span class="o">=</span> <span class="m">16</span>
-</span></span><span class="line"><span class="cl"><span class="n">  availability_zone</span>    <span class="o">=</span> <span class="s2">&#34;cn-shanghai-l&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_type_family</span> <span class="o">=</span> <span class="s2">&#34;ecs.c7&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_instance&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  count</span> <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">agent_count</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  instance_name</span>        <span class="o">=</span> <span class="s2">&#34;agent-${terraform.workspace}-${count.index + 1}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  image_id</span>             <span class="o">=</span> <span class="k">data</span><span class="p">.</span><span class="k">alicloud_images</span><span class="p">.</span><span class="k">ubuntu</span><span class="p">.</span><span class="k">images</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_type</span>        <span class="o">=</span> <span class="k">data</span><span class="p">.</span><span class="k">alicloud_instance_types</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">instance_types</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  availability_zone</span>    <span class="o">=</span> <span class="s2">&#34;cn-shanghai-l&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  vswitch_id</span>      <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="k">count</span><span class="p">.</span><span class="k">index</span> <span class="err">%</span> <span class="m">3</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  security_groups</span> <span class="o">=</span> <span class="p">[</span><span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">agent_runtime_sg_id</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_category</span> <span class="o">=</span> <span class="s2">&#34;cloud_essd&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_size</span>     <span class="o">=</span> <span class="m">80</span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_encrypted</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_kms_key_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;memory&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  user_data</span> <span class="o">=</span> <span class="k">base64encode</span><span class="p">(</span><span class="k">templatefile</span><span class="p">(</span><span class="s2">&#34;${path.module}/cloud-init.sh&#34;</span><span class="p">,</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    repo_url</span>       <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">agent_repo_url</span>
-</span></span><span class="line"><span class="cl"><span class="n">    branch</span>         <span class="o">=</span> <span class="k">var</span><span class="p">.</span><span class="k">agent_branch</span>
-</span></span><span class="line"><span class="cl"><span class="n">    gateway_url</span>    <span class="o">=</span> <span class="s2">&#34;http://${alicloud_alb_listener.gateway.id}.alb.aliyuncs.com&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    sls_project</span>    <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    sls_logstore</span>   <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">agent_runs</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    Role</span> <span class="o">=</span> <span class="s2">&#34;agent-runtime&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    App</span>  <span class="o">=</span> <span class="s2">&#34;research-agent&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">lifecycle</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    create_before_destroy</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">    ignore_changes</span> <span class="o">=</span> <span class="p">[</span><span class="k">user_data</span><span class="p">]</span><span class="c1">    # don&#39;t replace on every cloud-init bump
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Three things worth highlighting:</p>
-<ol>
-<li><strong><code>data</code> blocks pick the image and instance type</strong> instead of hardcoding them. <code>ubuntu_22_04_x64</code> resolves to the latest patched image; <code>data.alicloud_instance_types.agent</code> finds an <code>ecs.c7</code> with 4 vCPUs and 16 GiB. When Aliyun deprecates an image SKU, your next plan picks the new one automatically.</li>
-<li><strong><code>system_disk_kms_key_id</code> ties the disk to the <code>memory</code> CMK</strong> from article 3. Encryption-at-rest costs nothing extra and removes a whole compliance headache.</li>
-<li><strong><code>lifecycle { create_before_destroy = true }</code></strong> means a planned replace creates the new instance, attaches it to the ALB, drains the old, then destroys it — zero-downtime rotation. The trade-off is you briefly need 2× capacity, which is fine for two-instance fleets and starts to matter at 50.</li>
-</ol>
-<h3 id="the-cloud-init-bootstrap">The cloud-init bootstrap</h3>
-<p><code>cloud-init.sh</code> is a templatefile that boots the box from bare Ubuntu to running agent:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span><span class="nb">set</span> -euxo pipefail
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Update apt and install base deps</span>
-</span></span><span class="line"><span class="cl">apt-get update -y
-</span></span><span class="line"><span class="cl">apt-get install -y python3.11 python3.11-venv git curl ca-certificates
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Node 20 for any JS tooling the agent shells out to</span>
-</span></span><span class="line"><span class="cl">curl -fsSL https://deb.nodesource.com/setup_20.x <span class="p">|</span> bash -
-</span></span><span class="line"><span class="cl">apt-get install -y nodejs
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># pm2 as the process supervisor</span>
-</span></span><span class="line"><span class="cl">npm install -g pm2 uv
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Clone the agent runtime</span>
-</span></span><span class="line"><span class="cl">mkdir -p /opt/agent
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> /opt/agent
-</span></span><span class="line"><span class="cl">git clone --depth <span class="m">1</span> -b <span class="si">${</span><span class="nv">branch</span><span class="si">}</span> <span class="si">${</span><span class="nv">repo_url</span><span class="si">}</span> src
-</span></span><span class="line"><span class="cl"><span class="nb">cd</span> src
-</span></span><span class="line"><span class="cl">uv venv .venv
-</span></span><span class="line"><span class="cl">uv pip sync requirements.txt
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Wire env vars (these come from Terraform via the templatefile)</span>
-</span></span><span class="line"><span class="cl">cat &gt; /opt/agent/src/.env <span class="s">&lt;&lt;EOF
-</span></span></span><span class="line"><span class="cl"><span class="s">LLM_GATEWAY_URL=${gateway_url}
-</span></span></span><span class="line"><span class="cl"><span class="s">SLS_PROJECT=${sls_project}
-</span></span></span><span class="line"><span class="cl"><span class="s">SLS_LOGSTORE=${sls_logstore}
-</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Start under pm2 and persist</span>
-</span></span><span class="line"><span class="cl">pm2 start ecosystem.config.js
-</span></span><span class="line"><span class="cl">pm2 save
-</span></span><span class="line"><span class="cl">pm2 startup systemd -u root --hp /root
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The flow:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig3_cloud_init_flow.png" alt="Cloud-init bootstrap flow" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>About 90 seconds from <code>apply</code> to <code>pm2 status</code> showing the agent as <code>online</code>. The first <code>apt-get install</code> is the slow step (~60s). Once you have a stable image, <strong>bake it with Packer</strong> so future ECS instances skip apt entirely and boot in 25 seconds.</p>
-<blockquote>
-<p><strong>Real-world tip:</strong> <code>user_data</code> is logged to <code>/var/log/cloud-init-output.log</code> on the instance. When an agent doesn&rsquo;t come up, that&rsquo;s where you look first. Add <code>set -euxo pipefail</code> at the top so failures are loud and traceable.</p>
-</blockquote>
-<h2 id="pattern-2-ack-for-production-fleets">Pattern 2: ACK for production fleets</h2>
-<p>Once you have three or more agent kinds running side by side, the per-VM operational cost dominates. ACK gives you one cluster, one scheduler, one upgrade path.</p>
-<p>The minimal Terraform to get a managed K8s cluster on Aliyun:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_cs_managed_kubernetes&#34; &#34;agents&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  name_prefix</span>          <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  version</span>              <span class="o">=</span> <span class="s2">&#34;1.30.1-aliyun.1&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  cluster_spec</span>         <span class="o">=</span> <span class="s2">&#34;ack.pro.small&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  vpc_id</span>               <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  worker_vswitch_ids</span>   <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span>
-</span></span><span class="line"><span class="cl"><span class="n">  pod_vswitch_ids</span>      <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span>
-</span></span><span class="line"><span class="cl"><span class="n">  service_cidr</span>         <span class="o">=</span> <span class="s2">&#34;172.21.0.0/20&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  proxy_mode</span>           <span class="o">=</span> <span class="s2">&#34;ipvs&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  load_balancer_spec</span>   <span class="o">=</span> <span class="s2">&#34;slb.s2.small&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  enable_ssh</span>           <span class="o">=</span> <span class="kt">false</span>
-</span></span><span class="line"><span class="cl"><span class="n">  delete_protection</span>    <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">  control_plane_log_components</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;apiserver&#34;, &#34;audit&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">addons</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    name</span> <span class="o">=</span> <span class="s2">&#34;managed-arms-prometheus&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">  <span class="k">addons</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    name</span> <span class="o">=</span> <span class="s2">&#34;logtail-ds&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_cs_kubernetes_node_pool&#34; &#34;agents&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  cluster_id</span>           <span class="o">=</span> <span class="k">alicloud_cs_managed_kubernetes</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  node_pool_name</span>       <span class="o">=</span> <span class="s2">&#34;agent-workers&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  vswitch_ids</span>          <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_types</span>       <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;ecs.c7.xlarge&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  desired_size</span>         <span class="o">=</span> <span class="m">3</span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_category</span> <span class="o">=</span> <span class="s2">&#34;cloud_essd&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  system_disk_size</span>     <span class="o">=</span> <span class="m">80</span>
-</span></span><span class="line"><span class="cl"><span class="n">  install_cloud_monitor</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl">  <span class="k">scaling_config</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    enable</span>    <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">    min_size</span>  <span class="o">=</span> <span class="m">2</span>
-</span></span><span class="line"><span class="cl"><span class="n">    max_size</span>  <span class="o">=</span> <span class="m">10</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>A few notes:</p>
-<ul>
-<li><strong><code>ack.pro.small</code></strong> is the managed control plane SKU. Aliyun runs the masters; you only pay for the worker ECS. Don&rsquo;t pick the unmanaged SKU unless you have a strong reason.</li>
-<li><strong><code>pod_vswitch_ids</code></strong> is for Terway, the Aliyun-native CNI. Each pod gets a real VPC IP — no overlay network, security groups apply directly. This is the right default; the alternative (Flannel) makes networking debugging miserable.</li>
-<li><strong><code>delete_protection = true</code></strong> does what it says — <code>terraform destroy</code> won&rsquo;t kill the cluster. Set this on every prod cluster.</li>
-<li>The <code>addons</code> block enables ARMS Prometheus (article 7) and the SLS log collector. Provisioning these via Terraform means new clusters come pre-instrumented.</li>
-</ul>
-<p>The actual agent pods come from a Kubernetes deployment manifest — usually applied by a separate <code>kubectl</code> step or via the <code>kubernetes</code> Terraform provider. I keep the cluster in this <code>terraform</code> project and the workloads in a separate Helm chart, because they have different release cadences.</p>
-<h2 id="pattern-3-function-compute-for-event-driven-agents">Pattern 3: Function Compute for event-driven agents</h2>
-<p>Some agents only run when triggered — a webhook fires, a cron tick happens, an OSS object lands. For those, FC is unbeatable: zero idle cost, automatic scale-out, and the cloud handles the runtime entirely.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_fc_service&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;agent-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Event-triggered agent functions&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">log_config</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    project</span>  <span class="o">=</span> <span class="k">alicloud_log_project</span><span class="p">.</span><span class="k">agents</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">    logstore</span> <span class="o">=</span> <span class="k">alicloud_log_store</span><span class="p">.</span><span class="k">agent_runs</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">vpc_config</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    vswitch_ids</span>       <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span>
-</span></span><span class="line"><span class="cl"><span class="n">    security_group_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">agent_runtime_sg_id</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  role</span>          <span class="o">=</span> <span class="k">alicloud_ram_role</span><span class="p">.</span><span class="k">fc_agent</span><span class="p">.</span><span class="k">arn</span>
-</span></span><span class="line"><span class="cl"><span class="n">  internet_access</span> <span class="o">=</span> <span class="kt">false</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_fc_function&#34; &#34;scheduled_research&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  service</span>     <span class="o">=</span> <span class="k">alicloud_fc_service</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>        <span class="o">=</span> <span class="s2">&#34;scheduled-research&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Daily research agent run&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  filename</span>    <span class="o">=</span> <span class="s2">&#34;${path.module}/dist/scheduled-research.zip&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  handler</span>     <span class="o">=</span> <span class="s2">&#34;index.handler&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  runtime</span>     <span class="o">=</span> <span class="s2">&#34;python3.11&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  memory_size</span> <span class="o">=</span> <span class="m">1024</span>
-</span></span><span class="line"><span class="cl"><span class="n">  timeout</span>     <span class="o">=</span> <span class="m">600</span>
-</span></span><span class="line"><span class="cl"><span class="n">  ca_port</span>     <span class="o">=</span> <span class="m">8080</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  environment_variables</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    LLM_GATEWAY_URL</span> <span class="o">=</span> <span class="s2">&#34;http://${alicloud_alb_listener.gateway.id}.alb.aliyuncs.com&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_fc_trigger&#34; &#34;daily&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  service</span>  <span class="o">=</span> <span class="k">alicloud_fc_service</span><span class="p">.</span><span class="k">agent</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  function</span> <span class="o">=</span> <span class="k">alicloud_fc_function</span><span class="p">.</span><span class="k">scheduled_research</span><span class="p">.</span><span class="k">name</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>     <span class="o">=</span> <span class="s2">&#34;daily-9am&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span>     <span class="o">=</span> <span class="s2">&#34;timer&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  config</span> <span class="o">=</span> <span class="k">jsonencode</span><span class="p">(</span>{
-</span></span><span class="line"><span class="cl"><span class="n">    cronExpression</span> <span class="o">=</span> <span class="s2">&#34;0 0 9 * * *&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    enable</span>         <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl"><span class="n">    payload</span>        <span class="o">=</span> <span class="s2">&#34;{}&#34;</span>
-</span></span><span class="line"><span class="cl">  }<span class="p">)</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>What this gives you: a Python 3.11 function, 1 GiB RAM, 10-minute timeout, attached to the same VPC and security group as the rest of your stack, triggered every day at 9am. Zero servers to maintain. Cost: roughly ¥0.10 per invocation at this size, plus ¥0.0001 per GB-second of execution.</p>
-<p>Three caveats I keep tripping on:</p>
-<ol>
-<li><strong>Cold start.</strong> First invocation after idle takes 200-800ms more than subsequent ones. For a webhook with sub-second SLA, this matters; for a cron task, it doesn&rsquo;t. Provisioned concurrency exists but defeats the point of FC.</li>
-<li><strong>VPC attachment</strong> adds another 200-400ms to cold starts because FC has to attach an ENI to your VPC. Worth it if the function needs to reach RDS/OpenSearch; skip the <code>vpc_config</code> block if it only calls public APIs.</li>
-<li><strong>24-hour max runtime.</strong> For long agent loops, FC is a bad fit. Either chunk the loop into shorter steps or use ECS.</li>
-</ol>
-<h2 id="a-real-example-hybrid">A real example: hybrid</h2>
-<p>Most production agent stacks I&rsquo;ve shipped end up hybrid:</p>
-<ul>
-<li>ECS for the always-on conversational agent that holds session state</li>
-<li>ACK for the worker fleet that processes background jobs</li>
-<li>FC for webhook receivers and daily/hourly cron tasks</li>
-</ul>
-<p>Terraform makes this trivial — three modules in the same project, sharing the VPC and security groups from article 3. The skill is knowing which pattern fits which workload, not learning all the resource syntaxes.</p>
-<h2 id="right-sizing-the-instance">Right-sizing the instance</h2>
-<p>A common question: which <code>ecs.*</code> family for an agent runtime? My defaults:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Workload</th>
-          <th>Family</th>
-          <th>Why</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Conversational agent, no GPU</td>
-          <td><code>ecs.c7</code></td>
-          <td>CPU-bound on tokenisation + I/O on LLM calls</td>
-      </tr>
-      <tr>
-          <td>Memory-heavy (large context)</td>
-          <td><code>ecs.r7</code></td>
-          <td>More RAM per vCPU</td>
-      </tr>
-      <tr>
-          <td>Batch / scheduled with bursts</td>
-          <td><code>ecs.c7a</code> (AMD)</td>
-          <td>~15% cheaper, slightly slower per core</td>
-      </tr>
-      <tr>
-          <td>GPU inference of small models</td>
-          <td><code>ecs.gn7i</code></td>
-          <td>T4-class, cheapest GPU on Aliyun</td>
-      </tr>
-      <tr>
-          <td>Pretraining / large fine-tune</td>
-          <td>Use PAI-DLC, not ECS</td>
-          <td>Don&rsquo;t reinvent the orchestration</td>
-      </tr>
-  </tbody>
-</table>
-<p>Avoid the burstable <code>ecs.t6</code> family for agent runtime — CPU credits run out under sustained load and your latency goes off a cliff. They&rsquo;re fine for the bastion that runs <code>terraform apply</code> and not much else.</p>
-<blockquote>
-<p><strong>Real-world tip:</strong> Use <code>data.alicloud_instance_types</code> to ask the API for &ldquo;give me a 4-vCPU 16-GiB instance available in this zone right now&rdquo;. Hardcoding <code>ecs.c7.xlarge</code> works until that exact SKU is out of stock in your zone, at which point Terraform fails. Letting the data source pick gives you graceful fallback.</p>
-</blockquote>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 5 fills in the storage layer — vector store, relational, object store, backups — that everything we just provisioned needs to talk to. ECS instances are useless until they have somewhere to put memory.</p>
-<p>Then article 6 builds the LLM gateway in front of all the compute, article 7 wires observability and cost alarms, and article 8 stitches everything into one <code>terraform apply</code>.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/"><span class="title">Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/"><span class="title">Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-three-patterns">The three patterns</a></li>
-    <li><a href="#the-cost-crossover">The cost crossover</a></li>
-    <li><a href="#pattern-1-ecs-with-pm2">Pattern 1: ECS with pm2</a>
-      <ul>
-        <li><a href="#the-cloud-init-bootstrap">The cloud-init bootstrap</a></li>
-      </ul>
-    </li>
-    <li><a href="#pattern-2-ack-for-production-fleets">Pattern 2: ACK for production fleets</a></li>
-    <li><a href="#pattern-3-function-compute-for-event-driven-agents">Pattern 3: Function Compute for event-driven agents</a></li>
-    <li><a href="#a-real-example-hybrid">A real example: hybrid</a></li>
-    <li><a href="#right-sizing-the-instance">Right-sizing the instance</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1900</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/terraform-agents/04-compute-for-agent-runtime/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute? · Chen Kai Blog</title>
+<meta name=description content="The three places an agent's main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/terraform-agents/04-compute-for-agent-runtime/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><meta property="og:type" content="article"><meta property="og:title" content="Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?"><meta property="og:description" content="The three places an agent's main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds."><meta property="og:url" content="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Terraform Agents</a>
+· Chapter 4</div><h1>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</h1><p class=deck>The three places an agent's main loop can live on Aliyun: a long-running ECS instance with pm2, a Kubernetes pod on ACK, or a Function Compute invocation. The cost-crossover model I use to pick between them, and a real cloud-init bootstrap that goes from bare Ubuntu to running agent in 90 seconds.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-18>March 18, 2026</time> · 9 min read · 1846 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/ecs/ class=tag>#ECS</a><a href=/en/tags/ack/ class=tag>#ACK</a><a href=/en/tags/function-compute/ class=tag>#Function Compute</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/04-compute-for-agent-runtime/>Read in English →</a></div></header><div class=prose><p>The single most important architecture decision in an agent system is <em>where the agent loop process actually runs</em>. There are exactly three good answers on Aliyun. Picking the wrong one isn&rsquo;t catastrophic — you can migrate later — but it costs you weeks of unnecessary scaffolding.</p><p>This article walks through all three with working Terraform, the cost crossover, and the operational gotchas.</p><h2 id=the-three-patterns>The three patterns</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig1_three_compute_patterns.png alt="Three places to run an agent: ECS, ACK, FC" loading=lazy decoding=async></figure></p><p>Each has a sweet spot:</p><ul><li><strong>ECS</strong> is a Linux VM. Long-lived, stateful, easy to SSH into when you&rsquo;re debugging. The right answer for prototypes, single-tenant agents, and anywhere you want to keep one machine &ldquo;warm&rdquo; with cached models or local state.</li><li><strong>ACK</strong> (Container Service for Kubernetes) is the prod answer at scale. Multiple agent kinds, autoscaling, rolling deploys, GPU scheduling. Worth the operational weight only when you have at least three or four agent services and an SRE who&rsquo;s comfortable in K8s.</li><li><strong>Function Compute</strong> is per-invocation, scale-to-zero. Cold start 200-800ms. Right for webhook-triggered agents, scheduled crawlers, and anything where the agent runs in bursts and idles otherwise.</li></ul><h2 id=the-cost-crossover>The cost crossover</h2><p>Here&rsquo;s the rough monthly cost picture as a function of sustained QPS:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig2_compute_cost_curve.png alt="Compute cost crossover — rough model" loading=lazy decoding=async></figure></p><p>Under ~1 QPS sustained, FC dominates — you pay almost nothing during idle. From ~1 to ~30 QPS sustained, a single ECS box wins. Above that, ACK&rsquo;s higher fixed cost is amortised over enough load to be cheaper than packing more onto ECS.</p><p>The model is rough — your actual numbers depend on instance family, network, and how chatty the agent is — but the <em>shape</em> is reliable. The decision rule I use:</p><blockquote><p>Bursty + low average → Function Compute</p><p>Steady + low-to-mid → ECS with pm2</p><p>Multi-agent + sustained mid-to-high → ACK</p></blockquote><h2 id=pattern-1-ecs-with-pm2>Pattern 1: ECS with pm2</h2><p>For 80% of agent projects, this is what you want. One or two ECS instances behind an ALB, each running <code>pm2</code> as the supervisor for the Python or Node agent process.</p><p>The official &ldquo;Create an ECS instance&rdquo; practice doc gives a working baseline. Adapted for our agent context:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>data</span> <span class=s2>&#34;alicloud_images&#34; &#34;ubuntu&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  owners</span>      <span class=o>=</span> <span class=s2>&#34;system&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  name_regex</span>  <span class=o>=</span> <span class=s2>&#34;^ubuntu_22_04_x64.*&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  most_recent</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>data</span> <span class=s2>&#34;alicloud_instance_types&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  cpu_core_count</span>       <span class=o>=</span> <span class=m>4</span>
+</span></span><span class=line><span class=cl><span class=n>  memory_size</span>          <span class=o>=</span> <span class=m>16</span>
+</span></span><span class=line><span class=cl><span class=n>  availability_zone</span>    <span class=o>=</span> <span class=s2>&#34;cn-shanghai-l&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_type_family</span> <span class=o>=</span> <span class=s2>&#34;ecs.c7&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_instance&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  count</span> <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>agent_count</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  instance_name</span>        <span class=o>=</span> <span class=s2>&#34;agent-${terraform.workspace}-${count.index + 1}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  image_id</span>             <span class=o>=</span> <span class=k>data</span><span class=p>.</span><span class=k>alicloud_images</span><span class=p>.</span><span class=k>ubuntu</span><span class=p>.</span><span class=k>images</span><span class=p>[</span><span class=m>0</span><span class=p>].</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_type</span>        <span class=o>=</span> <span class=k>data</span><span class=p>.</span><span class=k>alicloud_instance_types</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>instance_types</span><span class=p>[</span><span class=m>0</span><span class=p>].</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  availability_zone</span>    <span class=o>=</span> <span class=s2>&#34;cn-shanghai-l&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  vswitch_id</span>      <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=k>count</span><span class=p>.</span><span class=k>index</span> <span class=err>%</span> <span class=m>3</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  security_groups</span> <span class=o>=</span> <span class=p>[</span><span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>agent_runtime_sg_id</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_category</span> <span class=o>=</span> <span class=s2>&#34;cloud_essd&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_size</span>     <span class=o>=</span> <span class=m>80</span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_encrypted</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_kms_key_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;memory&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  user_data</span> <span class=o>=</span> <span class=k>base64encode</span><span class=p>(</span><span class=k>templatefile</span><span class=p>(</span><span class=s2>&#34;${path.module}/cloud-init.sh&#34;</span><span class=p>,</span> {
+</span></span><span class=line><span class=cl><span class=n>    repo_url</span>       <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>agent_repo_url</span>
+</span></span><span class=line><span class=cl><span class=n>    branch</span>         <span class=o>=</span> <span class=k>var</span><span class=p>.</span><span class=k>agent_branch</span>
+</span></span><span class=line><span class=cl><span class=n>    gateway_url</span>    <span class=o>=</span> <span class=s2>&#34;http://${alicloud_alb_listener.gateway.id}.alb.aliyuncs.com&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    sls_project</span>    <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    sls_logstore</span>   <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>agent_runs</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>  }<span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  tags</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    Role</span> <span class=o>=</span> <span class=s2>&#34;agent-runtime&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    App</span>  <span class=o>=</span> <span class=s2>&#34;research-agent&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>lifecycle</span> {
+</span></span><span class=line><span class=cl><span class=n>    create_before_destroy</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    ignore_changes</span> <span class=o>=</span> <span class=p>[</span><span class=k>user_data</span><span class=p>]</span><span class=c1>    # don&#39;t replace on every cloud-init bump
+</span></span></span><span class=line><span class=cl><span class=c1></span>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Three things worth highlighting:</p><ol><li><strong><code>data</code> blocks pick the image and instance type</strong> instead of hardcoding them. <code>ubuntu_22_04_x64</code> resolves to the latest patched image; <code>data.alicloud_instance_types.agent</code> finds an <code>ecs.c7</code> with 4 vCPUs and 16 GiB. When Aliyun deprecates an image SKU, your next plan picks the new one automatically.</li><li><strong><code>system_disk_kms_key_id</code> ties the disk to the <code>memory</code> CMK</strong> from article 3. Encryption-at-rest costs nothing extra and removes a whole compliance headache.</li><li><strong><code>lifecycle { create_before_destroy = true }</code></strong> means a planned replace creates the new instance, attaches it to the ALB, drains the old, then destroys it — zero-downtime rotation. The trade-off is you briefly need 2× capacity, which is fine for two-instance fleets and starts to matter at 50.</li></ol><h3 id=the-cloud-init-bootstrap>The cloud-init bootstrap</h3><p><code>cloud-init.sh</code> is a templatefile that boots the box from bare Ubuntu to running agent:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=cp>#!/bin/bash
+</span></span></span><span class=line><span class=cl><span class=cp></span><span class=nb>set</span> -euxo pipefail
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Update apt and install base deps</span>
+</span></span><span class=line><span class=cl>apt-get update -y
+</span></span><span class=line><span class=cl>apt-get install -y python3.11 python3.11-venv git curl ca-certificates
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Node 20 for any JS tooling the agent shells out to</span>
+</span></span><span class=line><span class=cl>curl -fsSL https://deb.nodesource.com/setup_20.x <span class=p>|</span> bash -
+</span></span><span class=line><span class=cl>apt-get install -y nodejs
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># pm2 as the process supervisor</span>
+</span></span><span class=line><span class=cl>npm install -g pm2 uv
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Clone the agent runtime</span>
+</span></span><span class=line><span class=cl>mkdir -p /opt/agent
+</span></span><span class=line><span class=cl><span class=nb>cd</span> /opt/agent
+</span></span><span class=line><span class=cl>git clone --depth <span class=m>1</span> -b <span class=si>${</span><span class=nv>branch</span><span class=si>}</span> <span class=si>${</span><span class=nv>repo_url</span><span class=si>}</span> src
+</span></span><span class=line><span class=cl><span class=nb>cd</span> src
+</span></span><span class=line><span class=cl>uv venv .venv
+</span></span><span class=line><span class=cl>uv pip sync requirements.txt
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Wire env vars (these come from Terraform via the templatefile)</span>
+</span></span><span class=line><span class=cl>cat &gt; /opt/agent/src/.env <span class=s>&lt;&lt;EOF
+</span></span></span><span class=line><span class=cl><span class=s>LLM_GATEWAY_URL=${gateway_url}
+</span></span></span><span class=line><span class=cl><span class=s>SLS_PROJECT=${sls_project}
+</span></span></span><span class=line><span class=cl><span class=s>SLS_LOGSTORE=${sls_logstore}
+</span></span></span><span class=line><span class=cl><span class=s>EOF</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Start under pm2 and persist</span>
+</span></span><span class=line><span class=cl>pm2 start ecosystem.config.js
+</span></span><span class=line><span class=cl>pm2 save
+</span></span><span class=line><span class=cl>pm2 startup systemd -u root --hp /root
+</span></span></code></pre></td></tr></table></div></div><p>The flow:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/04-compute-for-agent-runtime/fig3_cloud_init_flow.png alt="Cloud-init bootstrap flow" loading=lazy decoding=async></figure></p><p>About 90 seconds from <code>apply</code> to <code>pm2 status</code> showing the agent as <code>online</code>. The first <code>apt-get install</code> is the slow step (~60s). Once you have a stable image, <strong>bake it with Packer</strong> so future ECS instances skip apt entirely and boot in 25 seconds.</p><blockquote><p><strong>Real-world tip:</strong> <code>user_data</code> is logged to <code>/var/log/cloud-init-output.log</code> on the instance. When an agent doesn&rsquo;t come up, that&rsquo;s where you look first. Add <code>set -euxo pipefail</code> at the top so failures are loud and traceable.</p></blockquote><h2 id=pattern-2-ack-for-production-fleets>Pattern 2: ACK for production fleets</h2><p>Once you have three or more agent kinds running side by side, the per-VM operational cost dominates. ACK gives you one cluster, one scheduler, one upgrade path.</p><p>The minimal Terraform to get a managed K8s cluster on Aliyun:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cs_managed_kubernetes&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  name_prefix</span>          <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  version</span>              <span class=o>=</span> <span class=s2>&#34;1.30.1-aliyun.1&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  cluster_spec</span>         <span class=o>=</span> <span class=s2>&#34;ack.pro.small&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  vpc_id</span>               <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>vpc_id</span>
+</span></span><span class=line><span class=cl><span class=n>  worker_vswitch_ids</span>   <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span>
+</span></span><span class=line><span class=cl><span class=n>  pod_vswitch_ids</span>      <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span>
+</span></span><span class=line><span class=cl><span class=n>  service_cidr</span>         <span class=o>=</span> <span class=s2>&#34;172.21.0.0/20&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  proxy_mode</span>           <span class=o>=</span> <span class=s2>&#34;ipvs&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  load_balancer_spec</span>   <span class=o>=</span> <span class=s2>&#34;slb.s2.small&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  enable_ssh</span>           <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl><span class=n>  delete_protection</span>    <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>  control_plane_log_components</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;apiserver&#34;, &#34;audit&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>addons</span> {
+</span></span><span class=line><span class=cl><span class=n>    name</span> <span class=o>=</span> <span class=s2>&#34;managed-arms-prometheus&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>  <span class=k>addons</span> {
+</span></span><span class=line><span class=cl><span class=n>    name</span> <span class=o>=</span> <span class=s2>&#34;logtail-ds&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_cs_kubernetes_node_pool&#34; &#34;agents&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  cluster_id</span>           <span class=o>=</span> <span class=k>alicloud_cs_managed_kubernetes</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  node_pool_name</span>       <span class=o>=</span> <span class=s2>&#34;agent-workers&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  vswitch_ids</span>          <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_types</span>       <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;ecs.c7.xlarge&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  desired_size</span>         <span class=o>=</span> <span class=m>3</span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_category</span> <span class=o>=</span> <span class=s2>&#34;cloud_essd&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  system_disk_size</span>     <span class=o>=</span> <span class=m>80</span>
+</span></span><span class=line><span class=cl><span class=n>  install_cloud_monitor</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>  <span class=k>scaling_config</span> {
+</span></span><span class=line><span class=cl><span class=n>    enable</span>    <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    min_size</span>  <span class=o>=</span> <span class=m>2</span>
+</span></span><span class=line><span class=cl><span class=n>    max_size</span>  <span class=o>=</span> <span class=m>10</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>A few notes:</p><ul><li><strong><code>ack.pro.small</code></strong> is the managed control plane SKU. Aliyun runs the masters; you only pay for the worker ECS. Don&rsquo;t pick the unmanaged SKU unless you have a strong reason.</li><li><strong><code>pod_vswitch_ids</code></strong> is for Terway, the Aliyun-native CNI. Each pod gets a real VPC IP — no overlay network, security groups apply directly. This is the right default; the alternative (Flannel) makes networking debugging miserable.</li><li><strong><code>delete_protection = true</code></strong> does what it says — <code>terraform destroy</code> won&rsquo;t kill the cluster. Set this on every prod cluster.</li><li>The <code>addons</code> block enables ARMS Prometheus (article 7) and the SLS log collector. Provisioning these via Terraform means new clusters come pre-instrumented.</li></ul><p>The actual agent pods come from a Kubernetes deployment manifest — usually applied by a separate <code>kubectl</code> step or via the <code>kubernetes</code> Terraform provider. I keep the cluster in this <code>terraform</code> project and the workloads in a separate Helm chart, because they have different release cadences.</p><h2 id=pattern-3-function-compute-for-event-driven-agents>Pattern 3: Function Compute for event-driven agents</h2><p>Some agents only run when triggered — a webhook fires, a cron tick happens, an OSS object lands. For those, FC is unbeatable: zero idle cost, automatic scale-out, and the cloud handles the runtime entirely.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_fc_service&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  name</span>        <span class=o>=</span> <span class=s2>&#34;agent-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Event-triggered agent functions&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>log_config</span> {
+</span></span><span class=line><span class=cl><span class=n>    project</span>  <span class=o>=</span> <span class=k>alicloud_log_project</span><span class=p>.</span><span class=k>agents</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>    logstore</span> <span class=o>=</span> <span class=k>alicloud_log_store</span><span class=p>.</span><span class=k>agent_runs</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>vpc_config</span> {
+</span></span><span class=line><span class=cl><span class=n>    vswitch_ids</span>       <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span>
+</span></span><span class=line><span class=cl><span class=n>    security_group_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>agent_runtime_sg_id</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  role</span>          <span class=o>=</span> <span class=k>alicloud_ram_role</span><span class=p>.</span><span class=k>fc_agent</span><span class=p>.</span><span class=k>arn</span>
+</span></span><span class=line><span class=cl><span class=n>  internet_access</span> <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_fc_function&#34; &#34;scheduled_research&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  service</span>     <span class=o>=</span> <span class=k>alicloud_fc_service</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>        <span class=o>=</span> <span class=s2>&#34;scheduled-research&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Daily research agent run&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  filename</span>    <span class=o>=</span> <span class=s2>&#34;${path.module}/dist/scheduled-research.zip&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  handler</span>     <span class=o>=</span> <span class=s2>&#34;index.handler&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  runtime</span>     <span class=o>=</span> <span class=s2>&#34;python3.11&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  memory_size</span> <span class=o>=</span> <span class=m>1024</span>
+</span></span><span class=line><span class=cl><span class=n>  timeout</span>     <span class=o>=</span> <span class=m>600</span>
+</span></span><span class=line><span class=cl><span class=n>  ca_port</span>     <span class=o>=</span> <span class=m>8080</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  environment_variables</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    LLM_GATEWAY_URL</span> <span class=o>=</span> <span class=s2>&#34;http://${alicloud_alb_listener.gateway.id}.alb.aliyuncs.com&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_fc_trigger&#34; &#34;daily&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  service</span>  <span class=o>=</span> <span class=k>alicloud_fc_service</span><span class=p>.</span><span class=k>agent</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  function</span> <span class=o>=</span> <span class=k>alicloud_fc_function</span><span class=p>.</span><span class=k>scheduled_research</span><span class=p>.</span><span class=k>name</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>     <span class=o>=</span> <span class=s2>&#34;daily-9am&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span>     <span class=o>=</span> <span class=s2>&#34;timer&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  config</span> <span class=o>=</span> <span class=k>jsonencode</span><span class=p>(</span>{
+</span></span><span class=line><span class=cl><span class=n>    cronExpression</span> <span class=o>=</span> <span class=s2>&#34;0 0 9 * * *&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    enable</span>         <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl><span class=n>    payload</span>        <span class=o>=</span> <span class=s2>&#34;{}&#34;</span>
+</span></span><span class=line><span class=cl>  }<span class=p>)</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>What this gives you: a Python 3.11 function, 1 GiB RAM, 10-minute timeout, attached to the same VPC and security group as the rest of your stack, triggered every day at 9am. Zero servers to maintain. Cost: roughly ¥0.10 per invocation at this size, plus ¥0.0001 per GB-second of execution.</p><p>Three caveats I keep tripping on:</p><ol><li><strong>Cold start.</strong> First invocation after idle takes 200-800ms more than subsequent ones. For a webhook with sub-second SLA, this matters; for a cron task, it doesn&rsquo;t. Provisioned concurrency exists but defeats the point of FC.</li><li><strong>VPC attachment</strong> adds another 200-400ms to cold starts because FC has to attach an ENI to your VPC. Worth it if the function needs to reach RDS/OpenSearch; skip the <code>vpc_config</code> block if it only calls public APIs.</li><li><strong>24-hour max runtime.</strong> For long agent loops, FC is a bad fit. Either chunk the loop into shorter steps or use ECS.</li></ol><h2 id=a-real-example-hybrid>A real example: hybrid</h2><p>Most production agent stacks I&rsquo;ve shipped end up hybrid:</p><ul><li>ECS for the always-on conversational agent that holds session state</li><li>ACK for the worker fleet that processes background jobs</li><li>FC for webhook receivers and daily/hourly cron tasks</li></ul><p>Terraform makes this trivial — three modules in the same project, sharing the VPC and security groups from article 3. The skill is knowing which pattern fits which workload, not learning all the resource syntaxes.</p><h2 id=right-sizing-the-instance>Right-sizing the instance</h2><p>A common question: which <code>ecs.*</code> family for an agent runtime? My defaults:</p><table><thead><tr><th>Workload</th><th>Family</th><th>Why</th></tr></thead><tbody><tr><td>Conversational agent, no GPU</td><td><code>ecs.c7</code></td><td>CPU-bound on tokenisation + I/O on LLM calls</td></tr><tr><td>Memory-heavy (large context)</td><td><code>ecs.r7</code></td><td>More RAM per vCPU</td></tr><tr><td>Batch / scheduled with bursts</td><td><code>ecs.c7a</code> (AMD)</td><td>~15% cheaper, slightly slower per core</td></tr><tr><td>GPU inference of small models</td><td><code>ecs.gn7i</code></td><td>T4-class, cheapest GPU on Aliyun</td></tr><tr><td>Pretraining / large fine-tune</td><td>Use PAI-DLC, not ECS</td><td>Don&rsquo;t reinvent the orchestration</td></tr></tbody></table><p>Avoid the burstable <code>ecs.t6</code> family for agent runtime — CPU credits run out under sustained load and your latency goes off a cliff. They&rsquo;re fine for the bastion that runs <code>terraform apply</code> and not much else.</p><blockquote><p><strong>Real-world tip:</strong> Use <code>data.alicloud_instance_types</code> to ask the API for &ldquo;give me a 4-vCPU 16-GiB instance available in this zone right now&rdquo;. Hardcoding <code>ecs.c7.xlarge</code> works until that exact SKU is out of stock in your zone, at which point Terraform fails. Letting the data source pick gives you graceful fallback.</p></blockquote><h2 id=whats-next>What&rsquo;s next</h2><p>Article 5 fills in the storage layer — vector store, relational, object store, backups — that everything we just provisioned needs to talk to. ECS instances are useless until they have somewhere to put memory.</p><p>Then article 6 builds the LLM gateway in front of all the compute, article 7 wires observability and cost alarms, and article 8 stitches everything into one <code>terraform apply</code>.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/><span class=title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><span class=title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-three-patterns>The three patterns</a></li><li><a href=#the-cost-crossover>The cost crossover</a></li><li><a href=#pattern-1-ecs-with-pm2>Pattern 1: ECS with pm2</a><ul><li><a href=#the-cloud-init-bootstrap>The cloud-init bootstrap</a></li></ul></li><li><a href=#pattern-2-ack-for-production-fleets>Pattern 2: ACK for production fleets</a></li><li><a href=#pattern-3-function-compute-for-event-driven-agents>Pattern 3: Function Compute for event-driven agents</a></li><li><a href=#a-real-example-hybrid>A real example: hybrid</a></li><li><a href=#right-sizing-the-instance>Right-sizing the instance</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Terraform Agents</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
+<span class=chapter-title>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
+<span class=chapter-title>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
+<span class=chapter-title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><span class=chapter-num>05</span>
+<span class=chapter-title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
+<span class=chapter-title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
+<span class=chapter-title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
+<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>9 min</strong></div><div class=row><span>Word count</span><strong>1846</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

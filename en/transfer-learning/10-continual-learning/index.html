@@ -1,719 +1,254 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Transfer Learning (10): Continual Learning · Chen Kai Blog</title>
-<meta name="description" content="Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/10-continual-learning/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/10-continual-learning/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Transfer Learning (10): Continual Learning">
-<meta property="og:description" content="Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation.">
-<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/10-continual-learning/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
-         · Chapter 10
-      </div>
-      <h1>Transfer Learning (10): Continual Learning</h1>
-      <p class="deck">Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-06-24">June 24, 2025</time> · 2 min read · 300 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/continual-learning/" class="tag">#Continual Learning</a><a href="/en/tags/catastrophic-forgetting/" class="tag">#Catastrophic Forgetting</a><a href="/en/tags/incremental-learning/" class="tag">#Incremental Learning</a><a href="/en/tags/lifelong-learning/" class="tag">#Lifelong Learning</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>You can teach yourself to play guitar this year and you will still remember how to ride a bike. A neural network cannot. Fine-tune a vision model on CIFAR-10 then on SVHN, evaluate it on CIFAR-10 again, and accuracy collapses to barely above chance. The phenomenon is called <strong>catastrophic forgetting</strong>, and overcoming it is the central problem of <strong>continual learning (CL)</strong>: a learner that absorbs a stream of tasks $\mathcal{T}_1, \mathcal{T}_2, \ldots$ without re-accessing past data and without losing what it already knew.</p>
-<p>This post derives why forgetting happens (it is not a bug, it is the structure of SGD on overparameterised networks), then walks through the four families of solutions &ndash; regularisation, replay, dynamic architectures, meta-learning &ndash; with the math, the intuition, and a from-scratch EWC implementation.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>The CL problem statement and the three scenarios (Task-IL, Domain-IL, Class-IL)</li>
-<li>Why SGD on a new task destroys old-task knowledge: gradient interference and the loss-landscape view</li>
-<li>Fisher information as a principled measure of parameter importance</li>
-<li>Regularisation methods &ndash; EWC, MAS, SI, LwF &ndash; and how they differ</li>
-<li>Replay methods &ndash; Experience Replay, GEM, A-GEM &ndash; and the projection geometry of A-GEM</li>
-<li>Dynamic architectures &ndash; Progressive Networks, PackNet &ndash; and their trade-offs</li>
-<li>The standard metrics: average accuracy, average forgetting, and forward/backward transfer</li>
-<li>A self-contained EWC implementation evaluated on Permuted MNIST</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Neural network training, gradients, the cross-entropy loss</li>
-<li>Basic familiarity with the Fisher information matrix</li>
-<li>Transfer-learning fundamentals (Parts 1-6 of this series)</li>
-</ul>
-<hr>
-<h2 id="problem-setup">Problem Setup</h2>
-<p>Tasks arrive sequentially: $\mathcal{T}_1, \mathcal{T}_2, \ldots, \mathcal{T}_T$. When the learner trains on $\mathcal{T}_t$ it sees $\mathcal{D}_t = \{(x_i, y_i)\}$, but $\mathcal{D}_{<t}$ is <strong>not</strong> available. After all $T$ tasks the model is tested on every task it has ever seen.</p>
-<p>Three scenarios make the difficulty concrete (van de Ven &amp; Tolias, 2019):</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig4_cl_scenarios.png" alt="Three CL Scenarios: Task-IL, Domain-IL, Class-IL" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li><strong>Task-IL.</strong> The task identity is known at test time. The model can use a per-task head &ndash; only the shared trunk competes for capacity.</li>
-<li><strong>Domain-IL.</strong> The label space is fixed but the input distribution shifts (clean -&gt; rotated -&gt; noisy MNIST). One head; no test-time task ID.</li>
-<li><strong>Class-IL.</strong> Each task introduces <em>new classes</em> and the learner must classify across <strong>all</strong> classes seen so far without knowing which task a sample came from. This is the hardest setting and the one most relevant to deployment.</li>
-</ul>
-<p><strong>Standard metrics.</strong> Let $R_{i,j}$ be the accuracy on task $j$ after training on task $i$. After all $T$ tasks:</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Transfer Learning (10): Continual Learning · Chen Kai Blog</title>
+<meta name=description content="Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/transfer-learning/10-continual-learning/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/transfer-learning/10-continual-learning/><meta property="og:type" content="article"><meta property="og:title" content="Transfer Learning (10): Continual Learning"><meta property="og:description" content="Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation."><meta property="og:url" content="https://www.chenk.top/en/transfer-learning/10-continual-learning/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Transfer Learning</a>
+· Chapter 10</div><h1>Transfer Learning (10): Continual Learning</h1><p class=deck>Derive catastrophic forgetting from gradient interference and the Fisher information matrix. Covers EWC, MAS, LwF, replay (ER/A-GEM), dynamic architectures, the three CL scenarios, FWT/BWT metrics, and a from-scratch EWC implementation.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-06-24>June 24, 2025</time> · 2 min read · 266 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/continual-learning/ class=tag>#Continual Learning</a><a href=/en/tags/catastrophic-forgetting/ class=tag>#Catastrophic Forgetting</a><a href=/en/tags/incremental-learning/ class=tag>#Incremental Learning</a><a href=/en/tags/lifelong-learning/ class=tag>#Lifelong Learning</a><a href=/en/tags/transfer-learning/ class=tag>#Transfer Learning</a></div></div></header><div class=prose><p>You can teach yourself to play guitar this year and you will still remember how to ride a bike. A neural network cannot. Fine-tune a vision model on CIFAR-10 then on SVHN, evaluate it on CIFAR-10 again, and accuracy collapses to barely above chance. The phenomenon is called <strong>catastrophic forgetting</strong>, and overcoming it is the central problem of <strong>continual learning (CL)</strong>: a learner that absorbs a stream of tasks $\mathcal{T}_1, \mathcal{T}_2, \ldots$ without re-accessing past data and without losing what it already knew.</p><p>This post derives why forgetting happens (it is not a bug, it is the structure of SGD on overparameterised networks), then walks through the four families of solutions &ndash; regularisation, replay, dynamic architectures, meta-learning &ndash; with the math, the intuition, and a from-scratch EWC implementation.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>The CL problem statement and the three scenarios (Task-IL, Domain-IL, Class-IL)</li><li>Why SGD on a new task destroys old-task knowledge: gradient interference and the loss-landscape view</li><li>Fisher information as a principled measure of parameter importance</li><li>Regularisation methods &ndash; EWC, MAS, SI, LwF &ndash; and how they differ</li><li>Replay methods &ndash; Experience Replay, GEM, A-GEM &ndash; and the projection geometry of A-GEM</li><li>Dynamic architectures &ndash; Progressive Networks, PackNet &ndash; and their trade-offs</li><li>The standard metrics: average accuracy, average forgetting, and forward/backward transfer</li><li>A self-contained EWC implementation evaluated on Permuted MNIST</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Neural network training, gradients, the cross-entropy loss</li><li>Basic familiarity with the Fisher information matrix</li><li>Transfer-learning fundamentals (Parts 1-6 of this series)</li></ul><hr><h2 id=problem-setup>Problem Setup</h2><p>Tasks arrive sequentially: $\mathcal{T}_1, \mathcal{T}_2, \ldots, \mathcal{T}_T$. When the learner trains on $\mathcal{T}_t$ it sees $\mathcal{D}_t = \{(x_i, y_i)\}$, but $\mathcal{D}_{<t}$ is <strong>not</strong> available. After all $T$ tasks the model is tested on every task it has ever seen.</p><p>Three scenarios make the difficulty concrete (van de Ven & Tolias, 2019):</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig4_cl_scenarios.png alt="Three CL Scenarios: Task-IL, Domain-IL, Class-IL" loading=lazy decoding=async></figure></p><ul><li><strong>Task-IL.</strong> The task identity is known at test time. The model can use a per-task head &ndash; only the shared trunk competes for capacity.</li><li><strong>Domain-IL.</strong> The label space is fixed but the input distribution shifts (clean -> rotated -> noisy MNIST). One head; no test-time task ID.</li><li><strong>Class-IL.</strong> Each task introduces <em>new classes</em> and the learner must classify across <strong>all</strong> classes seen so far without knowing which task a sample came from. This is the hardest setting and the one most relevant to deployment.</li></ul><p><strong>Standard metrics.</strong> Let $R_{i,j}$ be the accuracy on task $j$ after training on task $i$. After all $T$ tasks:</p>$$
 \mathrm{Avg} \;=\; \frac{1}{T}\sum_{j=1}^{T} R_{T,j}, \qquad
 \mathrm{Forgetting} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1}\!\left(\max_{t \le T} R_{t,j} - R_{T,j}\right).
-$$<p>Lopez-Paz &amp; Ranzato (2017) add two more, made for measuring transfer rather than retention:</p>
-$$
+$$<p>Lopez-Paz & Ranzato (2017) add two more, made for measuring transfer rather than retention:</p>$$
 \mathrm{BWT} \;=\; \frac{1}{T-1}\sum_{j=1}^{T-1} (R_{T,j} - R_{j,j}),
 \qquad
 \mathrm{FWT} \;=\; \frac{1}{T-1}\sum_{j=2}^{T} (R_{j-1,j} - b_j),
-$$<p>where $b_j$ is a random/untrained baseline on task $j$. <strong>BWT &lt; 0</strong> is forgetting; <strong>BWT &gt; 0</strong> is the rare and desirable phenomenon of <em>positive backward transfer</em> (learning later tasks helps earlier ones). <strong>FWT &gt; 0</strong> means earlier tasks pre-shape representations that help future tasks zero-shot.</p>
-<p><figure>
-  <img src="./10-continual-learning/fig6_transfer_matrix.png" alt="Transfer matrix R[i,j] with FWT and BWT regions" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<hr>
-<h2 id="why-forgetting-happens">Why Forgetting Happens</h2>
-<h3 id="gradient-interference">Gradient interference</h3>
-<p>For two tasks, write the gradients $\mathbf{g}_1 = \nabla_\theta \mathcal{L}_1$ and $\mathbf{g}_2 = \nabla_\theta \mathcal{L}_2$. A single SGD step on task 2 changes $\mathcal{L}_1$ to first order by</p>
-$$
+$$<p>where $b_j$ is a random/untrained baseline on task $j$. <strong>BWT &lt; 0</strong> is forgetting; <strong>BWT > 0</strong> is the rare and desirable phenomenon of <em>positive backward transfer</em> (learning later tasks helps earlier ones). <strong>FWT > 0</strong> means earlier tasks pre-shape representations that help future tasks zero-shot.</p><p><figure><img src=./10-continual-learning/fig6_transfer_matrix.png alt="Transfer matrix R[i,j] with FWT and BWT regions" loading=lazy decoding=async></figure></p><hr><h2 id=why-forgetting-happens>Why Forgetting Happens</h2><h3 id=gradient-interference>Gradient interference</h3><p>For two tasks, write the gradients $\mathbf{g}_1 = \nabla_\theta \mathcal{L}_1$ and $\mathbf{g}_2 = \nabla_\theta \mathcal{L}_2$. A single SGD step on task 2 changes $\mathcal{L}_1$ to first order by</p>$$
 \Delta \mathcal{L}_1 \approx -\eta\, \mathbf{g}_1 \cdot \mathbf{g}_2.
-$$<p>If $\mathbf{g}_1 \cdot \mathbf{g}_2 < 0$, every step on task 2 <em>increases</em> the task-1 loss. In high-dimensional networks gradients of unrelated tasks are typically nearly orthogonal but the negative-cosine fraction is large enough to be devastating after thousands of steps.</p>
-<h3 id="loss-landscape-view">Loss-landscape view</h3>
-<p>The optima $\theta_1^{*}$ and $\theta_2^{*}$ live in different low-loss basins. SGD on task 2 starting from $\theta_1^{*}$ walks out of basin 1 unless something pulls it back. The figure below shows a vanilla baseline doing exactly that, alongside two repairs we will derive in the next sections.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig1_catastrophic_forgetting.png" alt="Catastrophic forgetting on a 5-task sequence: baseline vs EWC vs replay" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="fisher-information--parameter-importance">Fisher information = parameter importance</h3>
-<p>The Fisher information matrix of the model&rsquo;s predictive distribution $p_\theta(y \mid x)$ is</p>
-$$
+$$<p>If $\mathbf{g}_1 \cdot \mathbf{g}_2 < 0$, every step on task 2 <em>increases</em> the task-1 loss. In high-dimensional networks gradients of unrelated tasks are typically nearly orthogonal but the negative-cosine fraction is large enough to be devastating after thousands of steps.</p><h3 id=loss-landscape-view>Loss-landscape view</h3><p>The optima $\theta_1^{*}$ and $\theta_2^{*}$ live in different low-loss basins. SGD on task 2 starting from $\theta_1^{*}$ walks out of basin 1 unless something pulls it back. The figure below shows a vanilla baseline doing exactly that, alongside two repairs we will derive in the next sections.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig1_catastrophic_forgetting.png alt="Catastrophic forgetting on a 5-task sequence: baseline vs EWC vs replay" loading=lazy decoding=async></figure></p><h3 id=fisher-information--parameter-importance>Fisher information = parameter importance</h3><p>The Fisher information matrix of the model&rsquo;s predictive distribution $p_\theta(y \mid x)$ is</p>$$
 F(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D},\, y \sim p_\theta(\cdot \mid x)}\!\left[\nabla_\theta \log p_\theta(y \mid x)\, \nabla_\theta \log p_\theta(y \mid x)^{\top}\right].
-$$<p>At a local optimum the Fisher equals the (positive semi-definite) Hessian of the negative log-likelihood, so the diagonal $F_i$ measures how steeply the loss rises when $\theta_i$ is perturbed. A large $F_i$ means $\theta_i$ is <em>load-bearing</em> for the task &ndash; protect it. A small $F_i$ means the loss is flat in that direction &ndash; it is safe to repurpose the parameter for a new task. Every regularisation method below is a specific answer to &ldquo;how should we pick which parameters to protect?&rdquo;.</p>
-<hr>
-<h2 id="regularisation-methods">Regularisation Methods</h2>
-<h3 id="elastic-weight-consolidation-ewc">Elastic Weight Consolidation (EWC)</h3>
-<p>Kirkpatrick et al. (2017) approximate the posterior over $\theta$ after task A by a Gaussian centred at $\theta_A^{*}$ with precision proportional to the Fisher diagonal. A second-order Taylor expansion of the task-A negative log-likelihood around $\theta_A^{*}$ then gives</p>
-$$
+$$<p>At a local optimum the Fisher equals the (positive semi-definite) Hessian of the negative log-likelihood, so the diagonal $F_i$ measures how steeply the loss rises when $\theta_i$ is perturbed. A large $F_i$ means $\theta_i$ is <em>load-bearing</em> for the task &ndash; protect it. A small $F_i$ means the loss is flat in that direction &ndash; it is safe to repurpose the parameter for a new task. Every regularisation method below is a specific answer to &ldquo;how should we pick which parameters to protect?&rdquo;.</p><hr><h2 id=regularisation-methods>Regularisation Methods</h2><h3 id=elastic-weight-consolidation-ewc>Elastic Weight Consolidation (EWC)</h3><p>Kirkpatrick et al. (2017) approximate the posterior over $\theta$ after task A by a Gaussian centred at $\theta_A^{*}$ with precision proportional to the Fisher diagonal. A second-order Taylor expansion of the task-A negative log-likelihood around $\theta_A^{*}$ then gives</p>$$
 \mathcal{L}_A(\theta) \;\approx\; \mathcal{L}_A(\theta_A^{*}) + \tfrac{1}{2} (\theta - \theta_A^{*})^{\top} F_A\, (\theta - \theta_A^{*}).
-$$<p>Adding this as a penalty when learning task B yields the EWC objective:</p>
-$$
+$$<p>Adding this as a penalty when learning task B yields the EWC objective:</p>$$
 \boxed{\;\mathcal{L}(\theta) \;=\; \mathcal{L}_B(\theta) \;+\; \frac{\lambda}{2} \sum_i F_{A,i}\, (\theta_i - \theta_{A,i}^{*})^{2}\;}
-$$<p>Geometrically EWC anchors a quadratic well at the old optimum whose curvature matches the <em>true</em> curvature of the old loss. Updates are cheap in directions where $F_i$ is small (the loss was flat anyway) and expensive where $F_i$ is large.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig2_ewc_penalty.png" alt="EWC penalty as a quadratic well in parameter space" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>For a sequence of tasks one can either accumulate Fisher matrices, $F_{1:t} = \sum_{k \le t} F_k$, or use <strong>Online EWC</strong> (Schwarz et al., 2018) with a discount $\gamma \in (0, 1)$:</p>
-$$
+$$<p>Geometrically EWC anchors a quadratic well at the old optimum whose curvature matches the <em>true</em> curvature of the old loss. Updates are cheap in directions where $F_i$ is small (the loss was flat anyway) and expensive where $F_i$ is large.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig2_ewc_penalty.png alt="EWC penalty as a quadratic well in parameter space" loading=lazy decoding=async></figure></p><p>For a sequence of tasks one can either accumulate Fisher matrices, $F_{1:t} = \sum_{k \le t} F_k$, or use <strong>Online EWC</strong> (Schwarz et al., 2018) with a discount $\gamma \in (0, 1)$:</p>$$
 \tilde F_t \;=\; \gamma\, \tilde F_{t-1} + F_t, \qquad \theta^{*}_{1:t} = \theta^{*}_t.
-$$<p>Picking $\lambda$ matters. Too small and forgetting wins; too large and the model becomes plastic-blind (&ldquo;rigidity&rdquo;). Typical ranges are $\lambda \in [10^2, 10^4]$ for Permuted MNIST and $\lambda \in [1, 10]$ for Split CIFAR.</p>
-<h3 id="memory-aware-synapses-mas">Memory Aware Synapses (MAS)</h3>
-<p>EWC needs labels (the log-likelihood). Aljundi et al. (2018) replace it with the gradient of the squared output norm:</p>
-$$
+$$<p>Picking $\lambda$ matters. Too small and forgetting wins; too large and the model becomes plastic-blind (&ldquo;rigidity&rdquo;). Typical ranges are $\lambda \in [10^2, 10^4]$ for Permuted MNIST and $\lambda \in [1, 10]$ for Split CIFAR.</p><h3 id=memory-aware-synapses-mas>Memory Aware Synapses (MAS)</h3><p>EWC needs labels (the log-likelihood). Aljundi et al. (2018) replace it with the gradient of the squared output norm:</p>$$
 \Omega_i \;=\; \mathbb{E}_{x}\!\left[\, \left| \frac{\partial \, \tfrac{1}{2}\|f(x;\theta)\|_2^{2}}{\partial \theta_i} \right| \, \right].
-$$<p>This is <strong>unsupervised</strong> &ndash; you can compute it on unlabelled data, even on the test stream &ndash; which is a real advantage in deployed settings.</p>
-<h3 id="synaptic-intelligence-si">Synaptic Intelligence (SI)</h3>
-<p>Zenke et al. (2017) compute importance <em>online</em> during training as the path integral of $-g_i \cdot \dot\theta_i$ along the SGD trajectory. No second pass over data is needed; the cost is folded into the optimiser.</p>
-<h3 id="learning-without-forgetting-lwf">Learning without Forgetting (LwF)</h3>
-<p>Li &amp; Hoiem (2017) take a different angle: instead of penalising parameter drift, penalise <em>output</em> drift. Snapshot the old model $f_{\text{old}}$ before training on the new task. For each new-task input $x$, compute soft targets $\sigma(z^{\text{old}}/T)$ and distill them into the new model on the <em>old</em> output heads, while training the new heads on the new task&rsquo;s labels:</p>
-$$
+$$<p>This is <strong>unsupervised</strong> &ndash; you can compute it on unlabelled data, even on the test stream &ndash; which is a real advantage in deployed settings.</p><h3 id=synaptic-intelligence-si>Synaptic Intelligence (SI)</h3><p>Zenke et al. (2017) compute importance <em>online</em> during training as the path integral of $-g_i \cdot \dot\theta_i$ along the SGD trajectory. No second pass over data is needed; the cost is folded into the optimiser.</p><h3 id=learning-without-forgetting-lwf>Learning without Forgetting (LwF)</h3><p>Li & Hoiem (2017) take a different angle: instead of penalising parameter drift, penalise <em>output</em> drift. Snapshot the old model $f_{\text{old}}$ before training on the new task. For each new-task input $x$, compute soft targets $\sigma(z^{\text{old}}/T)$ and distill them into the new model on the <em>old</em> output heads, while training the new heads on the new task&rsquo;s labels:</p>$$
 \mathcal{L} \;=\; \underbrace{\mathcal{L}_{\text{CE}}\bigl(y,\, z^{\text{new}}_{\text{new heads}}\bigr)}_{\text{learn new task}} \;+\; \alpha\, \underbrace{T^{2}\, \mathrm{KL}\!\bigl(\sigma(z^{\text{old}}/T)\,\Vert\,\sigma(z^{\text{new}}_{\text{old heads}}/T)\bigr)}_{\text{don't move old outputs}}.
-$$<p>LwF needs no old data and no Fisher matrix &ndash; only the old model. The temperature $T$ (typically 2-4) softens the distributions so the distillation signal carries shape information beyond the argmax.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig5_lwf_distillation.png" alt="LwF: knowledge distillation from frozen old model" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<hr>
-<h2 id="replay-methods">Replay Methods</h2>
-<p>A different philosophy: <em>keep</em> a small slice of the past around. With even a tiny memory buffer, mixing old samples into each mini-batch is by far the strongest baseline known.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig3_replay_buffer.png" alt="Experience replay pipeline" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="experience-replay-er">Experience Replay (ER)</h3>
-<p>Maintain a memory $\mathcal{M}$ of size $N$. At every step sample $B_{\text{new}}$ from the new stream and $B_{\text{mem}}$ from $\mathcal{M}$, optimise</p>
-$$
+$$<p>LwF needs no old data and no Fisher matrix &ndash; only the old model. The temperature $T$ (typically 2-4) softens the distributions so the distillation signal carries shape information beyond the argmax.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig5_lwf_distillation.png alt="LwF: knowledge distillation from frozen old model" loading=lazy decoding=async></figure></p><hr><h2 id=replay-methods>Replay Methods</h2><p>A different philosophy: <em>keep</em> a small slice of the past around. With even a tiny memory buffer, mixing old samples into each mini-batch is by far the strongest baseline known.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig3_replay_buffer.png alt="Experience replay pipeline" loading=lazy decoding=async></figure></p><h3 id=experience-replay-er>Experience Replay (ER)</h3><p>Maintain a memory $\mathcal{M}$ of size $N$. At every step sample $B_{\text{new}}$ from the new stream and $B_{\text{mem}}$ from $\mathcal{M}$, optimise</p>$$
 \mathcal{L} \;=\; \mathcal{L}_{\text{new}}(B_{\text{new}}) \;+\; \alpha\, \mathcal{L}_{\text{mem}}(B_{\text{mem}}),
-$$<p>then write some new samples back into $\mathcal{M}$. <strong>Reservoir sampling</strong> keeps a uniform sample over the entire past stream with a fixed-size buffer (Vitter, 1985); <strong>class-balanced</strong> sampling guarantees coverage of every class. Empirically $|B_{\text{mem}}| = |B_{\text{new}}|$ already recovers most of the joint-training accuracy on Split-CIFAR-style benchmarks.</p>
-<h3 id="gem-and-a-gem">GEM and A-GEM</h3>
-<p>Lopez-Paz &amp; Ranzato (2017) frame the gradient step itself as a constrained optimisation: pick the new gradient $\tilde{\mathbf{g}}$ closest to $\mathbf{g}_{\text{new}}$ that does not increase the loss on any past task represented in memory:</p>
-$$
+$$<p>then write some new samples back into $\mathcal{M}$. <strong>Reservoir sampling</strong> keeps a uniform sample over the entire past stream with a fixed-size buffer (Vitter, 1985); <strong>class-balanced</strong> sampling guarantees coverage of every class. Empirically $|B_{\text{mem}}| = |B_{\text{new}}|$ already recovers most of the joint-training accuracy on Split-CIFAR-style benchmarks.</p><h3 id=gem-and-a-gem>GEM and A-GEM</h3><p>Lopez-Paz & Ranzato (2017) frame the gradient step itself as a constrained optimisation: pick the new gradient $\tilde{\mathbf{g}}$ closest to $\mathbf{g}_{\text{new}}$ that does not increase the loss on any past task represented in memory:</p>$$
 \min_{\tilde{\mathbf{g}}} \tfrac{1}{2}\|\tilde{\mathbf{g}} - \mathbf{g}_{\text{new}}\|^{2}
 \quad \text{s.t.} \quad \tilde{\mathbf{g}} \cdot \mathbf{g}_{k} \;\ge\; 0 \quad \forall k = 1, \ldots, t-1.
-$$<p>This is a quadratic program with one constraint per past task &ndash; it scales poorly. <strong>A-GEM</strong> (Chaudhry et al., 2019) keeps a single reference gradient $\mathbf{g}_{\text{ref}}$ averaged over a random batch from $\mathcal{M}$ and projects only when the cosine is negative:</p>
-$$
+$$<p>This is a quadratic program with one constraint per past task &ndash; it scales poorly. <strong>A-GEM</strong> (Chaudhry et al., 2019) keeps a single reference gradient $\mathbf{g}_{\text{ref}}$ averaged over a random batch from $\mathcal{M}$ and projects only when the cosine is negative:</p>$$
 \tilde{\mathbf{g}} \;=\; \mathbf{g}_{\text{new}} \;-\; \frac{\mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}}}{\|\mathbf{g}_{\text{ref}}\|^{2}}\, \mathbf{g}_{\text{ref}} \quad \text{if } \mathbf{g}_{\text{new}} \cdot \mathbf{g}_{\text{ref}} < 0,
-$$<p>otherwise $\tilde{\mathbf{g}} = \mathbf{g}_{\text{new}}$. The cost is one extra forward/backward on the reference batch and a single dot product &ndash; a thousand times cheaper than GEM and almost as accurate.</p>
-<h3 id="der-and-der">DER and DER++</h3>
-<p>Buzzega et al. (2020) store both the input <em>and</em> the model&rsquo;s logits at the time the sample was added. The replay loss becomes a logit-matching MSE, optionally combined with the original label cross-entropy. DER++ is currently among the strongest single-model baselines on most CL benchmarks.</p>
-<hr>
-<h2 id="dynamic-architectures">Dynamic Architectures</h2>
-<p>Instead of squeezing all tasks into a fixed parameter budget, grow the model.</p>
-<ul>
-<li><strong>Progressive Networks</strong> (Rusu et al., 2016): freeze the network after each task and add a new column for the next task, with lateral connections from frozen columns into the new one. Forgetting becomes <em>zero by construction</em>, but parameters and inference cost grow linearly with $T$.</li>
-<li><strong>PackNet</strong> (Mallya &amp; Lazebnik, 2018): after each task, prune to a sparse subset of weights and freeze them; future tasks reuse the unpruned mask. Model size is fixed but available capacity shrinks each task &ndash; after enough tasks, performance collapses.</li>
-<li><strong>Supermasks in Superposition</strong> (Wortsman et al., 2020): keep parameters random and frozen; learn a binary mask per task. Storage per task is one bit per parameter, and surprisingly, performance rivals trained baselines.</li>
-</ul>
-<p>The trade-off is universal: zero forgetting either costs growing parameters or shrinking capacity. Hybrid approaches &ndash; a fixed trunk with lightweight per-task adapters (cf. Part 9) &ndash; are how this technology actually ships.</p>
-<hr>
-<h2 id="implementation-ewc-from-scratch">Implementation: EWC From Scratch</h2>
-<p>Below is a clean PyTorch implementation that (i) computes the empirical diagonal Fisher after each task, (ii) stores it together with $\theta^{*}$, and (iii) adds the EWC penalty to the next task&rsquo;s loss. It runs on Permuted MNIST out of the box.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span><span class="lnt">53
-</span><span class="lnt">54
-</span><span class="lnt">55
-</span><span class="lnt">56
-</span><span class="lnt">57
-</span><span class="lnt">58
-</span><span class="lnt">59
-</span><span class="lnt">60
-</span><span class="lnt">61
-</span><span class="lnt">62
-</span><span class="lnt">63
-</span><span class="lnt">64
-</span><span class="lnt">65
-</span><span class="lnt">66
-</span><span class="lnt">67
-</span><span class="lnt">68
-</span><span class="lnt">69
-</span><span class="lnt">70
-</span><span class="lnt">71
-</span><span class="lnt">72
-</span><span class="lnt">73
-</span><span class="lnt">74
-</span><span class="lnt">75
-</span><span class="lnt">76
-</span><span class="lnt">77
-</span><span class="lnt">78
-</span><span class="lnt">79
-</span><span class="lnt">80
-</span><span class="lnt">81
-</span><span class="lnt">82
-</span><span class="lnt">83
-</span><span class="lnt">84
-</span><span class="lnt">85
-</span><span class="lnt">86
-</span><span class="lnt">87
-</span><span class="lnt">88
-</span><span class="lnt">89
-</span><span class="lnt">90
-</span><span class="lnt">91
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">EWC</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Elastic Weight Consolidation.
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    After each task, call `consolidate(dataloader)` to snapshot theta*
-</span></span></span><span class="line"><span class="cl"><span class="s2">    and the empirical Fisher diagonal. During subsequent training, add
-</span></span></span><span class="line"><span class="cl"><span class="s2">    `lambda * ewc.penalty()` to the loss.
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&#34;cpu&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt_params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.enable_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_empirical_fisher</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataloader</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span>
-</span></span><span class="line"><span class="cl">                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Diagonal Fisher: E[(d log p(y|x; theta) / d theta)^2].&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">fisher</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">seen</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># Sample y from the model&#39;s predictive distribution -- this is the</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># *true* Fisher; using the labels gives the empirical Fisher.</span>
-</span></span><span class="line"><span class="cl">            <span class="n">probs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">seen</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">seen</span> <span class="o">&gt;=</span> <span class="n">n_samples</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">break</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">fisher</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">fisher</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">/=</span> <span class="nb">max</span><span class="p">(</span><span class="n">seen</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">fisher</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">consolidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataloader</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Call at the END of training a task.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_empirical_fisher</span><span class="p">(</span><span class="n">dataloader</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">opt_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">             <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Sum_t Sum_i F_{t,i} * (theta_i - theta*_{t,i})^2.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">F_t</span><span class="p">,</span> <span class="n">theta_t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fisher</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_params</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">F_t</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="p">(</span><span class="n">F_t</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">theta_t</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">loss</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">train_task</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ewc</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">optimiser</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">ewc_lambda</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">               <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="n">ewc_lambda</span> <span class="o">*</span> <span class="n">ewc</span><span class="o">.</span><span class="n">penalty</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">optimiser</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">optimiser</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">correct</span> <span class="o">=</span> <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">correct</span> <span class="o">+=</span> <span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">total</span> <span class="o">+=</span> <span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">correct</span> <span class="o">/</span> <span class="n">total</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Usage sketch</strong> (Permuted MNIST):</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">ewc</span> <span class="o">=</span> <span class="n">EWC</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">train_task</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ewc</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">               <span class="n">ewc_lambda</span><span class="o">=</span><span class="mf">400.0</span> <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">               <span class="n">epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ewc</span><span class="o">.</span><span class="n">consolidate</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>               <span class="c1"># snapshot theta* and F</span>
-</span></span><span class="line"><span class="cl">    <span class="n">accs</span> <span class="o">=</span> <span class="p">[</span><span class="n">evaluate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">t_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>   <span class="c1"># check all tasks so far</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">t_loader</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">[:</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;After task </span><span class="si">{</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">accs</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Two implementation details that matter:</p>
-<ol>
-<li><strong>True vs empirical Fisher.</strong> Sampling $y$ from $p_\theta(\cdot \mid x)$ (as above) gives the true Fisher and is theoretically what the EWC derivation uses. Plugging in the dataset labels gives the <em>empirical</em> Fisher; in practice both work and the empirical version is slightly stronger when labels are clean.</li>
-<li><strong>Where to compute Fisher.</strong> Compute it <em>after</em> you finish training the task &ndash; that is when $\theta \approx \theta_t^{*}$ and the quadratic approximation is tight.</li>
-</ol>
-<hr>
-<h2 id="empirical-comparison">Empirical Comparison</h2>
-<p>The figure below shows representative numbers on the two canonical CL benchmarks. Replay dominates regularisation when memory is allowed; with no memory, EWC and LwF still substantially beat naive SGD; nothing yet matches the joint upper bound.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig7_benchmarks.png" alt="CL benchmarks: Permuted MNIST and Split CIFAR" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Three takeaways:</p>
-<ul>
-<li><strong>Replay is the strongest single trick.</strong> Even 200 stored samples per task usually beats every regularisation-only method on class-IL.</li>
-<li><strong>Class-IL is much harder than task-IL.</strong> Methods that score 80% on Permuted MNIST routinely drop to 40-50% on Split CIFAR-100.</li>
-<li><strong>Combine, don&rsquo;t choose.</strong> Production systems use ER + LwF (or ER + DER) and a small EWC term. Each addresses a different failure mode.</li>
-</ul>
-<hr>
-<h2 id="qa">Q&amp;A</h2>
-<h3 id="how-should-i-pick-ewcs-lambda">How should I pick EWC&rsquo;s $\lambda$?</h3>
-<p>Start at 100 for MNIST-scale problems and 1-10 for CIFAR-scale. Run a sweep on the average accuracy <em>and</em> forgetting metric; the right $\lambda$ is the one that maximises Avg subject to Forgetting under your tolerance.</p>
-<h3 id="why-does-my-ewc-degenerate-to-freeze-everything-after-many-tasks">Why does my EWC degenerate to &ldquo;freeze everything&rdquo; after many tasks?</h3>
-<p>Accumulated Fisher matrices keep growing &ndash; every parameter eventually gets a large $\sum_t F_{t,i}$. Use <strong>Online EWC</strong> with $\gamma \approx 0.95$ to forget old Fisher contributions exponentially.</p>
-<h3 id="ewc-vs-mas-vs-si----which-one-in-practice">EWC vs MAS vs SI &ndash; which one in practice?</h3>
-<p>EWC for clean supervised tasks. MAS when you have unlabelled streams (it does not need labels). SI when you cannot afford a second pass over data after each task &ndash; it is the cheapest because it is computed online.</p>
-<h3 id="how-big-should-the-replay-buffer-be">How big should the replay buffer be?</h3>
-<p>On Split-CIFAR-style benchmarks the curve typically saturates around 200-500 samples per task. The interesting regime is &ldquo;as small as you can afford&rdquo; &ndash; if you can afford more, replay just keeps winning.</p>
-<h3 id="continual-learning-vs-multi-task-learning----arent-they-the-same">Continual learning vs multi-task learning &ndash; aren&rsquo;t they the same?</h3>
-<p>No. Multi-task has <em>all</em> data simultaneously, so you optimise a fixed objective; the only challenge is task balancing. CL has tasks one at a time and forbids re-access to past data; the challenge is forgetting. CL with infinite memory and no order constraint reduces to multi-task &ndash; this is exactly the joint upper bound in the benchmark figure.</p>
-<h3 id="does-replay-leak-data">Does replay leak data?</h3>
-<p>Yes &ndash; the buffer is literal training data. In privacy-sensitive deployments use <strong>generative replay</strong> (train a generator on past data, then sample from it for replay) or <strong>dark experience</strong> (store only logits, not inputs).</p>
-<h3 id="why-is-class-il-so-much-harder-than-task-il">Why is Class-IL so much harder than Task-IL?</h3>
-<p>Class-IL requires <em>cross-task</em> discrimination at inference time. Even with perfect retention on each task, the per-task softmax heads have not seen each other&rsquo;s classes during training, so their logits are not calibrated against one another &ndash; new-class outputs typically swamp old-class ones. iCaRL (Rebuffi et al., 2017) addresses exactly this with a nearest-class-mean classifier on top of the learned features.</p>
-<hr>
-<h2 id="summary">Summary</h2>
-<p>Catastrophic forgetting is a structural property of SGD on a single shared parameter vector, derivable from gradient interference and the geometry of high-dimensional loss landscapes. Solutions cluster into four families:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Family</th>
-          <th>Mechanism</th>
-          <th>Typical example</th>
-          <th>Trade-off</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Regularisation</td>
-          <td>Anchor important parameters</td>
-          <td>EWC, MAS, SI, LwF</td>
-          <td>No memory cost, weakest on class-IL</td>
-      </tr>
-      <tr>
-          <td>Replay</td>
-          <td>Re-train on past samples</td>
-          <td>ER, A-GEM, DER++</td>
-          <td>Strongest in practice; needs storage</td>
-      </tr>
-      <tr>
-          <td>Dynamic architectures</td>
-          <td>Add capacity per task</td>
-          <td>Progressive Nets, PackNet, SupSup</td>
-          <td>Zero forgetting; growing model</td>
-      </tr>
-      <tr>
-          <td>Meta-learning</td>
-          <td>Learn <em>how</em> to continue learning</td>
-          <td>OML, MER</td>
-          <td>Powerful but costly to meta-train</td>
-      </tr>
-  </tbody>
-</table>
-<p>The takeaway for practitioners is direct: if you can store any data at all, run a small reservoir buffer with experience replay; layer in LwF for free regularisation through the old model snapshot; only reach for EWC/MAS when memory is impossible. The next part picks up cross-lingual transfer, where the &ldquo;tasks&rdquo; are languages and the same machinery &ndash; careful sharing, careful protection &ndash; carries over.</p>
-<hr>
-<h2 id="references">References</h2>
-<ul>
-<li>Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. <em>PNAS</em>, 114(13), 3521-3526.</li>
-<li>Schwarz, J., et al. (2018). Progress &amp; Compress: A scalable framework for continual learning. <em>ICML</em>.</li>
-<li>Aljundi, R., et al. (2018). Memory Aware Synapses: Learning what (not) to forget. <em>ECCV</em>.</li>
-<li>Zenke, F., Poole, B., &amp; Ganguli, S. (2017). Continual learning through synaptic intelligence. <em>ICML</em>.</li>
-<li>Li, Z., &amp; Hoiem, D. (2017). Learning without forgetting. <em>TPAMI</em>, 40(12), 2935-2947.</li>
-<li>Lopez-Paz, D., &amp; Ranzato, M. (2017). Gradient episodic memory for continual learning. <em>NeurIPS</em>.</li>
-<li>Chaudhry, A., et al. (2019). Efficient lifelong learning with A-GEM. <em>ICLR</em>.</li>
-<li>Buzzega, P., et al. (2020). Dark experience for general continual learning. <em>NeurIPS</em>.</li>
-<li>Rusu, A. A., et al. (2016). Progressive neural networks. <em>arXiv:1606.04671</em>.</li>
-<li>Mallya, A., &amp; Lazebnik, S. (2018). PackNet: Adding multiple tasks to a single network by iterative pruning. <em>CVPR</em>.</li>
-<li>Wortsman, M., et al. (2020). Supermasks in superposition. <em>NeurIPS</em>.</li>
-<li>Rebuffi, S.-A., et al. (2017). iCaRL: Incremental classifier and representation learning. <em>CVPR</em>.</li>
-<li>van de Ven, G. M., &amp; Tolias, A. S. (2019). Three scenarios for continual learning. <em>arXiv:1904.07734</em>.</li>
-<li>Vitter, J. S. (1985). Random sampling with a reservoir. <em>ACM TOMS</em>, 11(1), 37-57.</li>
-</ul>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<ul>
-<li>Previous: <a href="/en/transfer-learning-9-parameter-efficient-fine-tuning/">Part 9 &ndash; Parameter-Efficient Fine-Tuning</a>
-</li>
-<li>Next: <a href="/en/transfer-learning-11-cross-lingual-transfer/">Part 11 &ndash; Cross-Lingual Transfer</a>
-</li>
-<li><a href="/tags/Transfer-Learning/">View all 12 parts in this series</a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#problem-setup">Problem Setup</a></li>
-    <li><a href="#why-forgetting-happens">Why Forgetting Happens</a>
-      <ul>
-        <li><a href="#gradient-interference">Gradient interference</a></li>
-        <li><a href="#loss-landscape-view">Loss-landscape view</a></li>
-        <li><a href="#fisher-information--parameter-importance">Fisher information = parameter importance</a></li>
-      </ul>
-    </li>
-    <li><a href="#regularisation-methods">Regularisation Methods</a>
-      <ul>
-        <li><a href="#elastic-weight-consolidation-ewc">Elastic Weight Consolidation (EWC)</a></li>
-        <li><a href="#memory-aware-synapses-mas">Memory Aware Synapses (MAS)</a></li>
-        <li><a href="#synaptic-intelligence-si">Synaptic Intelligence (SI)</a></li>
-        <li><a href="#learning-without-forgetting-lwf">Learning without Forgetting (LwF)</a></li>
-      </ul>
-    </li>
-    <li><a href="#replay-methods">Replay Methods</a>
-      <ul>
-        <li><a href="#experience-replay-er">Experience Replay (ER)</a></li>
-        <li><a href="#gem-and-a-gem">GEM and A-GEM</a></li>
-        <li><a href="#der-and-der">DER and DER++</a></li>
-      </ul>
-    </li>
-    <li><a href="#dynamic-architectures">Dynamic Architectures</a></li>
-    <li><a href="#implementation-ewc-from-scratch">Implementation: EWC From Scratch</a></li>
-    <li><a href="#empirical-comparison">Empirical Comparison</a></li>
-    <li><a href="#qa">Q&amp;A</a>
-      <ul>
-        <li><a href="#how-should-i-pick-ewcs-lambda">How should I pick EWC&rsquo;s ?</a></li>
-        <li><a href="#why-does-my-ewc-degenerate-to-freeze-everything-after-many-tasks">Why does my EWC degenerate to &ldquo;freeze everything&rdquo; after many tasks?</a></li>
-        <li><a href="#ewc-vs-mas-vs-si----which-one-in-practice">EWC vs MAS vs SI &ndash; which one in practice?</a></li>
-        <li><a href="#how-big-should-the-replay-buffer-be">How big should the replay buffer be?</a></li>
-        <li><a href="#continual-learning-vs-multi-task-learning----arent-they-the-same">Continual learning vs multi-task learning &ndash; aren&rsquo;t they the same?</a></li>
-        <li><a href="#does-replay-leak-data">Does replay leak data?</a></li>
-        <li><a href="#why-is-class-il-so-much-harder-than-task-il">Why is Class-IL so much harder than Task-IL?</a></li>
-      </ul>
-    </li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>2 min</strong></div>
-      <div class="row"><span>Word count</span><strong>300</strong></div>
-      <div class="row"><span>Published</span><strong>Jun 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>otherwise $\tilde{\mathbf{g}} = \mathbf{g}_{\text{new}}$. The cost is one extra forward/backward on the reference batch and a single dot product &ndash; a thousand times cheaper than GEM and almost as accurate.</p><h3 id=der-and-der>DER and DER++</h3><p>Buzzega et al. (2020) store both the input <em>and</em> the model&rsquo;s logits at the time the sample was added. The replay loss becomes a logit-matching MSE, optionally combined with the original label cross-entropy. DER++ is currently among the strongest single-model baselines on most CL benchmarks.</p><hr><h2 id=dynamic-architectures>Dynamic Architectures</h2><p>Instead of squeezing all tasks into a fixed parameter budget, grow the model.</p><ul><li><strong>Progressive Networks</strong> (Rusu et al., 2016): freeze the network after each task and add a new column for the next task, with lateral connections from frozen columns into the new one. Forgetting becomes <em>zero by construction</em>, but parameters and inference cost grow linearly with $T$.</li><li><strong>PackNet</strong> (Mallya & Lazebnik, 2018): after each task, prune to a sparse subset of weights and freeze them; future tasks reuse the unpruned mask. Model size is fixed but available capacity shrinks each task &ndash; after enough tasks, performance collapses.</li><li><strong>Supermasks in Superposition</strong> (Wortsman et al., 2020): keep parameters random and frozen; learn a binary mask per task. Storage per task is one bit per parameter, and surprisingly, performance rivals trained baselines.</li></ul><p>The trade-off is universal: zero forgetting either costs growing parameters or shrinking capacity. Hybrid approaches &ndash; a fixed trunk with lightweight per-task adapters (cf. Part 9) &ndash; are how this technology actually ships.</p><hr><h2 id=implementation-ewc-from-scratch>Implementation: EWC From Scratch</h2><p>Below is a clean PyTorch implementation that (i) computes the empirical diagonal Fisher after each task, (ii) stores it together with $\theta^{*}$, and (iii) adds the EWC penalty to the next task&rsquo;s loss. It runs on Permuted MNIST out of the box.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span><span class=lnt>53
+</span><span class=lnt>54
+</span><span class=lnt>55
+</span><span class=lnt>56
+</span><span class=lnt>57
+</span><span class=lnt>58
+</span><span class=lnt>59
+</span><span class=lnt>60
+</span><span class=lnt>61
+</span><span class=lnt>62
+</span><span class=lnt>63
+</span><span class=lnt>64
+</span><span class=lnt>65
+</span><span class=lnt>66
+</span><span class=lnt>67
+</span><span class=lnt>68
+</span><span class=lnt>69
+</span><span class=lnt>70
+</span><span class=lnt>71
+</span><span class=lnt>72
+</span><span class=lnt>73
+</span><span class=lnt>74
+</span><span class=lnt>75
+</span><span class=lnt>76
+</span><span class=lnt>77
+</span><span class=lnt>78
+</span><span class=lnt>79
+</span><span class=lnt>80
+</span><span class=lnt>81
+</span><span class=lnt>82
+</span><span class=lnt>83
+</span><span class=lnt>84
+</span><span class=lnt>85
+</span><span class=lnt>86
+</span><span class=lnt>87
+</span><span class=lnt>88
+</span><span class=lnt>89
+</span><span class=lnt>90
+</span><span class=lnt>91
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>copy</span> <span class=kn>import</span> <span class=n>deepcopy</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>EWC</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Elastic Weight Consolidation.
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    After each task, call `consolidate(dataloader)` to snapshot theta*
+</span></span></span><span class=line><span class=cl><span class=s2>    and the empirical Fisher diagonal. During subsequent training, add
+</span></span></span><span class=line><span class=cl><span class=s2>    `lambda * ewc.penalty()` to the loss.
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>model</span><span class=p>:</span> <span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>,</span> <span class=n>device</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>&#34;cpu&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=n>model</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>device</span> <span class=o>=</span> <span class=n>device</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fisher</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>opt_params</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.enable_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_empirical_fisher</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dataloader</span><span class=p>,</span> <span class=n>n_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1024</span>
+</span></span><span class=line><span class=cl>                          <span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>]:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Diagonal Fisher: E[(d log p(y|x; theta) / d theta)^2].&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>fisher</span> <span class=o>=</span> <span class=p>{</span><span class=n>n</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>p</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                  <span class=k>if</span> <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>seen</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>dataloader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=c1># Sample y from the model&#39;s predictive distribution -- this is the</span>
+</span></span><span class=line><span class=cl>            <span class=c1># *true* Fisher; using the labels gives the empirical Fisher.</span>
+</span></span><span class=line><span class=cl>            <span class=n>probs</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>y</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>multinomial</span><span class=p>(</span><span class=n>probs</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>cross_entropy</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>p</span><span class=o>.</span><span class=n>grad</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>fisher</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>+=</span> <span class=n>p</span><span class=o>.</span><span class=n>grad</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span> <span class=o>**</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>x</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>seen</span> <span class=o>+=</span> <span class=n>x</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>seen</span> <span class=o>&gt;=</span> <span class=n>n_samples</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>break</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>fisher</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>fisher</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>/=</span> <span class=nb>max</span><span class=p>(</span><span class=n>seen</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>fisher</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>consolidate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dataloader</span><span class=p>,</span> <span class=n>n_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1024</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Call at the END of training a task.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fisher</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_empirical_fisher</span><span class=p>(</span><span class=n>dataloader</span><span class=p>,</span> <span class=n>n_samples</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>opt_params</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=n>n</span><span class=p>:</span> <span class=n>p</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span><span class=o>.</span><span class=n>clone</span><span class=p>()</span> <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>             <span class=k>if</span> <span class=n>p</span><span class=o>.</span><span class=n>requires_grad</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>penalty</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Sum_t Sum_i F_{t,i} * (theta_i - theta*_{t,i})^2.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>fisher</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>loss</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>F_t</span><span class=p>,</span> <span class=n>theta_t</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fisher</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>opt_params</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>n</span><span class=p>,</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>named_parameters</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=n>n</span> <span class=ow>in</span> <span class=n>F_t</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>loss</span> <span class=o>=</span> <span class=n>loss</span> <span class=o>+</span> <span class=p>(</span><span class=n>F_t</span><span class=p>[</span><span class=n>n</span><span class=p>]</span> <span class=o>*</span> <span class=p>(</span><span class=n>p</span> <span class=o>-</span> <span class=n>theta_t</span><span class=p>[</span><span class=n>n</span><span class=p>])</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>loss</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>train_task</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>ewc</span><span class=p>,</span> <span class=n>loader</span><span class=p>,</span> <span class=n>optimiser</span><span class=p>,</span> <span class=o>*</span><span class=p>,</span> <span class=n>ewc_lambda</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>               <span class=n>epochs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>device</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>y</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>cross_entropy</span><span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>),</span> <span class=n>y</span><span class=p>)</span> <span class=o>+</span> <span class=n>ewc_lambda</span> <span class=o>*</span> <span class=n>ewc</span><span class=o>.</span><span class=n>penalty</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>optimiser</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>optimiser</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>evaluate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>loader</span><span class=p>,</span> <span class=n>device</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>float</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>correct</span> <span class=o>=</span> <span class=n>total</span> <span class=o>=</span> <span class=mi>0</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>loader</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>x</span><span class=p>,</span> <span class=n>y</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>),</span> <span class=n>y</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>correct</span> <span class=o>+=</span> <span class=p>(</span><span class=n>model</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=o>==</span> <span class=n>y</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>total</span> <span class=o>+=</span> <span class=n>y</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=mf>100.0</span> <span class=o>*</span> <span class=n>correct</span> <span class=o>/</span> <span class=n>total</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Usage sketch</strong> (Permuted MNIST):</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>ewc</span> <span class=o>=</span> <span class=n>EWC</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>t</span><span class=p>,</span> <span class=p>(</span><span class=n>train_loader</span><span class=p>,</span> <span class=n>test_loader</span><span class=p>)</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>tasks</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>opt</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>optim</span><span class=o>.</span><span class=n>SGD</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=mf>0.05</span><span class=p>,</span> <span class=n>momentum</span><span class=o>=</span><span class=mf>0.9</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>train_task</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>ewc</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>opt</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>               <span class=n>ewc_lambda</span><span class=o>=</span><span class=mf>400.0</span> <span class=k>if</span> <span class=n>t</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=mf>0.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>               <span class=n>epochs</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span> <span class=n>device</span><span class=o>=</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>ewc</span><span class=o>.</span><span class=n>consolidate</span><span class=p>(</span><span class=n>train_loader</span><span class=p>)</span>               <span class=c1># snapshot theta* and F</span>
+</span></span><span class=line><span class=cl>    <span class=n>accs</span> <span class=o>=</span> <span class=p>[</span><span class=n>evaluate</span><span class=p>(</span><span class=n>model</span><span class=p>,</span> <span class=n>t_loader</span><span class=p>,</span> <span class=n>device</span><span class=p>)</span>   <span class=c1># check all tasks so far</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>_</span><span class=p>,</span> <span class=n>t_loader</span> <span class=ow>in</span> <span class=n>tasks</span><span class=p>[:</span><span class=n>t</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;After task </span><span class=si>{</span><span class=n>t</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>accs</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Two implementation details that matter:</p><ol><li><strong>True vs empirical Fisher.</strong> Sampling $y$ from $p_\theta(\cdot \mid x)$ (as above) gives the true Fisher and is theoretically what the EWC derivation uses. Plugging in the dataset labels gives the <em>empirical</em> Fisher; in practice both work and the empirical version is slightly stronger when labels are clean.</li><li><strong>Where to compute Fisher.</strong> Compute it <em>after</em> you finish training the task &ndash; that is when $\theta \approx \theta_t^{*}$ and the quadratic approximation is tight.</li></ol><hr><h2 id=empirical-comparison>Empirical Comparison</h2><p>The figure below shows representative numbers on the two canonical CL benchmarks. Replay dominates regularisation when memory is allowed; with no memory, EWC and LwF still substantially beat naive SGD; nothing yet matches the joint upper bound.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/10-continual-learning/fig7_benchmarks.png alt="CL benchmarks: Permuted MNIST and Split CIFAR" loading=lazy decoding=async></figure></p><p>Three takeaways:</p><ul><li><strong>Replay is the strongest single trick.</strong> Even 200 stored samples per task usually beats every regularisation-only method on class-IL.</li><li><strong>Class-IL is much harder than task-IL.</strong> Methods that score 80% on Permuted MNIST routinely drop to 40-50% on Split CIFAR-100.</li><li><strong>Combine, don&rsquo;t choose.</strong> Production systems use ER + LwF (or ER + DER) and a small EWC term. Each addresses a different failure mode.</li></ul><hr><h2 id=qa>Q&amp;A</h2><h3 id=how-should-i-pick-ewcs-lambda>How should I pick EWC&rsquo;s $\lambda$?</h3><p>Start at 100 for MNIST-scale problems and 1-10 for CIFAR-scale. Run a sweep on the average accuracy <em>and</em> forgetting metric; the right $\lambda$ is the one that maximises Avg subject to Forgetting under your tolerance.</p><h3 id=why-does-my-ewc-degenerate-to-freeze-everything-after-many-tasks>Why does my EWC degenerate to &ldquo;freeze everything&rdquo; after many tasks?</h3><p>Accumulated Fisher matrices keep growing &ndash; every parameter eventually gets a large $\sum_t F_{t,i}$. Use <strong>Online EWC</strong> with $\gamma \approx 0.95$ to forget old Fisher contributions exponentially.</p><h3 id=ewc-vs-mas-vs-si----which-one-in-practice>EWC vs MAS vs SI &ndash; which one in practice?</h3><p>EWC for clean supervised tasks. MAS when you have unlabelled streams (it does not need labels). SI when you cannot afford a second pass over data after each task &ndash; it is the cheapest because it is computed online.</p><h3 id=how-big-should-the-replay-buffer-be>How big should the replay buffer be?</h3><p>On Split-CIFAR-style benchmarks the curve typically saturates around 200-500 samples per task. The interesting regime is &ldquo;as small as you can afford&rdquo; &ndash; if you can afford more, replay just keeps winning.</p><h3 id=continual-learning-vs-multi-task-learning----arent-they-the-same>Continual learning vs multi-task learning &ndash; aren&rsquo;t they the same?</h3><p>No. Multi-task has <em>all</em> data simultaneously, so you optimise a fixed objective; the only challenge is task balancing. CL has tasks one at a time and forbids re-access to past data; the challenge is forgetting. CL with infinite memory and no order constraint reduces to multi-task &ndash; this is exactly the joint upper bound in the benchmark figure.</p><h3 id=does-replay-leak-data>Does replay leak data?</h3><p>Yes &ndash; the buffer is literal training data. In privacy-sensitive deployments use <strong>generative replay</strong> (train a generator on past data, then sample from it for replay) or <strong>dark experience</strong> (store only logits, not inputs).</p><h3 id=why-is-class-il-so-much-harder-than-task-il>Why is Class-IL so much harder than Task-IL?</h3><p>Class-IL requires <em>cross-task</em> discrimination at inference time. Even with perfect retention on each task, the per-task softmax heads have not seen each other&rsquo;s classes during training, so their logits are not calibrated against one another &ndash; new-class outputs typically swamp old-class ones. iCaRL (Rebuffi et al., 2017) addresses exactly this with a nearest-class-mean classifier on top of the learned features.</p><hr><h2 id=summary>Summary</h2><p>Catastrophic forgetting is a structural property of SGD on a single shared parameter vector, derivable from gradient interference and the geometry of high-dimensional loss landscapes. Solutions cluster into four families:</p><table><thead><tr><th>Family</th><th>Mechanism</th><th>Typical example</th><th>Trade-off</th></tr></thead><tbody><tr><td>Regularisation</td><td>Anchor important parameters</td><td>EWC, MAS, SI, LwF</td><td>No memory cost, weakest on class-IL</td></tr><tr><td>Replay</td><td>Re-train on past samples</td><td>ER, A-GEM, DER++</td><td>Strongest in practice; needs storage</td></tr><tr><td>Dynamic architectures</td><td>Add capacity per task</td><td>Progressive Nets, PackNet, SupSup</td><td>Zero forgetting; growing model</td></tr><tr><td>Meta-learning</td><td>Learn <em>how</em> to continue learning</td><td>OML, MER</td><td>Powerful but costly to meta-train</td></tr></tbody></table><p>The takeaway for practitioners is direct: if you can store any data at all, run a small reservoir buffer with experience replay; layer in LwF for free regularisation through the old model snapshot; only reach for EWC/MAS when memory is impossible. The next part picks up cross-lingual transfer, where the &ldquo;tasks&rdquo; are languages and the same machinery &ndash; careful sharing, careful protection &ndash; carries over.</p><hr><h2 id=references>References</h2><ul><li>Kirkpatrick, J., et al. (2017). Overcoming catastrophic forgetting in neural networks. <em>PNAS</em>, 114(13), 3521-3526.</li><li>Schwarz, J., et al. (2018). Progress & Compress: A scalable framework for continual learning. <em>ICML</em>.</li><li>Aljundi, R., et al. (2018). Memory Aware Synapses: Learning what (not) to forget. <em>ECCV</em>.</li><li>Zenke, F., Poole, B., & Ganguli, S. (2017). Continual learning through synaptic intelligence. <em>ICML</em>.</li><li>Li, Z., & Hoiem, D. (2017). Learning without forgetting. <em>TPAMI</em>, 40(12), 2935-2947.</li><li>Lopez-Paz, D., & Ranzato, M. (2017). Gradient episodic memory for continual learning. <em>NeurIPS</em>.</li><li>Chaudhry, A., et al. (2019). Efficient lifelong learning with A-GEM. <em>ICLR</em>.</li><li>Buzzega, P., et al. (2020). Dark experience for general continual learning. <em>NeurIPS</em>.</li><li>Rusu, A. A., et al. (2016). Progressive neural networks. <em>arXiv:1606.04671</em>.</li><li>Mallya, A., & Lazebnik, S. (2018). PackNet: Adding multiple tasks to a single network by iterative pruning. <em>CVPR</em>.</li><li>Wortsman, M., et al. (2020). Supermasks in superposition. <em>NeurIPS</em>.</li><li>Rebuffi, S.-A., et al. (2017). iCaRL: Incremental classifier and representation learning. <em>CVPR</em>.</li><li>van de Ven, G. M., & Tolias, A. S. (2019). Three scenarios for continual learning. <em>arXiv:1904.07734</em>.</li><li>Vitter, J. S. (1985). Random sampling with a reservoir. <em>ACM TOMS</em>, 11(1), 37-57.</li></ul><hr><h2 id=series-navigation>Series Navigation</h2><ul><li>Previous: <a href=/en/transfer-learning-9-parameter-efficient-fine-tuning/>Part 9 &ndash; Parameter-Efficient Fine-Tuning</a></li><li>Next: <a href=/en/transfer-learning-11-cross-lingual-transfer/>Part 11 &ndash; Cross-Lingual Transfer</a></li><li><a href=/tags/Transfer-Learning/>View all 12 parts in this series</a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#problem-setup>Problem Setup</a></li><li><a href=#why-forgetting-happens>Why Forgetting Happens</a><ul><li><a href=#gradient-interference>Gradient interference</a></li><li><a href=#loss-landscape-view>Loss-landscape view</a></li><li><a href=#fisher-information--parameter-importance>Fisher information = parameter importance</a></li></ul></li><li><a href=#regularisation-methods>Regularisation Methods</a><ul><li><a href=#elastic-weight-consolidation-ewc>Elastic Weight Consolidation (EWC)</a></li><li><a href=#memory-aware-synapses-mas>Memory Aware Synapses (MAS)</a></li><li><a href=#synaptic-intelligence-si>Synaptic Intelligence (SI)</a></li><li><a href=#learning-without-forgetting-lwf>Learning without Forgetting (LwF)</a></li></ul></li><li><a href=#replay-methods>Replay Methods</a><ul><li><a href=#experience-replay-er>Experience Replay (ER)</a></li><li><a href=#gem-and-a-gem>GEM and A-GEM</a></li><li><a href=#der-and-der>DER and DER++</a></li></ul></li><li><a href=#dynamic-architectures>Dynamic Architectures</a></li><li><a href=#implementation-ewc-from-scratch>Implementation: EWC From Scratch</a></li><li><a href=#empirical-comparison>Empirical Comparison</a></li><li><a href=#qa>Q&amp;A</a><ul><li><a href=#how-should-i-pick-ewcs-lambda>How should I pick EWC&rsquo;s ?</a></li><li><a href=#why-does-my-ewc-degenerate-to-freeze-everything-after-many-tasks>Why does my EWC degenerate to &ldquo;freeze everything&rdquo; after many tasks?</a></li><li><a href=#ewc-vs-mas-vs-si----which-one-in-practice>EWC vs MAS vs SI &ndash; which one in practice?</a></li><li><a href=#how-big-should-the-replay-buffer-be>How big should the replay buffer be?</a></li><li><a href=#continual-learning-vs-multi-task-learning----arent-they-the-same>Continual learning vs multi-task learning &ndash; aren&rsquo;t they the same?</a></li><li><a href=#does-replay-leak-data>Does replay leak data?</a></li><li><a href=#why-is-class-il-so-much-harder-than-task-il>Why is Class-IL so much harder than Task-IL?</a></li></ul></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>2 min</strong></div><div class=row><span>Word count</span><strong>266</strong></div><div class=row><span>Published</span><strong>Jun 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

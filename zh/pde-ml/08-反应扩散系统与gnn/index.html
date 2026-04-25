@@ -1,685 +1,138 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>PDE与机器学习（八）：反应扩散系统与GNN · Chen Kai Blog</title>
-<meta name="description" content="深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE&#43;ML 系列收尾。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="PDE与机器学习（八）：反应扩散系统与GNN">
-<meta property="og:description" content="深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE&#43;ML 系列收尾。">
-<meta property="og:url" content="https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Pde与机器学习</a>
-         · Chapter 8
-      </div>
-      <h1>PDE与机器学习（八）：反应扩散系统与GNN</h1>
-      <p class="deck">深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE&#43;ML 系列收尾。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-08-14">August 14, 2024</time> · 13 min read · 6300 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3/" class="tag">#反应扩散</a><a href="/zh/tags/%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/" class="tag">#图神经网络</a><a href="/zh/tags/pde/" class="tag">#PDE</a><a href="/zh/tags/%E5%9B%BE%E4%B8%8Apde/" class="tag">#图上PDE</a><a href="/zh/tags/%E6%A8%A1%E5%BC%8F%E5%BD%A2%E6%88%90/" class="tag">#模式形成</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <h2 id="本文你会学到">本文你会学到</h2>
-<p>把 32 层 GCN 堆在一张引文网络上，准确率从 81% 跌到 20%，每个节点的特征向量都收敛到同一个点。这就是<strong>过度平滑</strong>——GNN 版本的&quot;热寂&quot;，而病因来自 PDE 教科书的第一章：<strong>一层 GCN 就是图上热方程的一步显式 Euler</strong>，热方程只有一个不动点：常数。解药 1952 年就有了。Alan Turing 证明，给一个扩散方程加上一个<strong>反应项</strong>，原本均匀的稳态可以自发地长出条纹、斑点、迷宫——同样的把戏（一个<strong>学得到</strong>的反应项）也能让深层 GNN 活下来。</p>
-<p>这同时是 <em>PDE+机器学习</em> 系列的第 8 章，也是终章。前 7 章我们一直在论证&quot;几乎每一种现代神经网络架构都是某个 PDE 的离散化&quot;。反应扩散 + GNN 把这条线收尾：它是其中<strong>最显式的 PDE 形态</strong>，也让我们可以站在终点回望整套系列。</p>
-<p><strong>本文目录</strong></p>
-<ol>
-<li>连续空间上的反应扩散方程——Gray-Scott、FitzHugh-Nagumo、它们能造出哪些模式；</li>
-<li>图灵不稳定性——线性稳定性分析告诉我们扩散为什么能&quot;创造&quot;结构；</li>
-<li>图拉普拉斯——$\nabla^2$ 的离散版本，以及它的谱为何决定 GNN 的命运；</li>
-<li>GCN $=$ 离散图扩散——过度平滑的谱证明；</li>
-<li>反应扩散 GNN（GRAND、GRAND++、RDGNN）——加上一个反应项；</li>
-<li>整个 PDE+ML 系列的回顾。</li>
-</ol>
-<p><strong>前置知识</strong>：线性代数（特征分解）、基本 PDE 概念（扩散方程）、消息传递 GNN。</p>
-<hr>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig1_turing_patterns.png" alt="Gray-Scott 模型生成的四种图灵形态——斑点、条纹、迷宫、孔洞——以及它们在 $(F,k)$ 参数平面上的位置示意。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>Gray-Scott 模型生成的四种图灵形态——斑点、条纹、迷宫、孔洞——以及它们在 $(F,k)$ 参数平面上的位置示意。</em></p>
-<h2 id="1-连续空间上的反应扩散">1. 连续空间上的反应扩散</h2>
-<h3 id="11-一般形式">1.1 一般形式</h3>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>PDE与机器学习（八）：反应扩散系统与GNN · Chen Kai Blog</title>
+<meta name=description content="深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE+ML 系列收尾。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/><meta property="og:type" content="article"><meta property="og:title" content="PDE与机器学习（八）：反应扩散系统与GNN"><meta property="og:description" content="深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE+ML 系列收尾。"><meta property="og:url" content="https://www.chenk.top/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8Egnn/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Pde与机器学习</a>
+· Chapter 8</div><h1>PDE与机器学习（八）：反应扩散系统与GNN</h1><p class=deck>深层 GNN 之所以崩溃，是因为它就是图上的扩散方程；图灵 1952 年的反应扩散理论告诉我们如何修好它——也为整个八章 PDE+ML 系列收尾。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-08-14>August 14, 2024</time> · 13 min read · 6284 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3/ class=tag>#反应扩散</a><a href=/zh/tags/%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/ class=tag>#图神经网络</a><a href=/zh/tags/pde/ class=tag>#PDE</a><a href=/zh/tags/%E5%9B%BE%E4%B8%8Apde/ class=tag>#图上PDE</a><a href=/zh/tags/%E6%A8%A1%E5%BC%8F%E5%BD%A2%E6%88%90/ class=tag>#模式形成</a></div></div></header><div class=prose><h2 id=本文你会学到>本文你会学到</h2><p>把 32 层 GCN 堆在一张引文网络上，准确率从 81% 跌到 20%，每个节点的特征向量都收敛到同一个点。这就是<strong>过度平滑</strong>——GNN 版本的"热寂"，而病因来自 PDE 教科书的第一章：<strong>一层 GCN 就是图上热方程的一步显式 Euler</strong>，热方程只有一个不动点：常数。解药 1952 年就有了。Alan Turing 证明，给一个扩散方程加上一个<strong>反应项</strong>，原本均匀的稳态可以自发地长出条纹、斑点、迷宫——同样的把戏（一个<strong>学得到</strong>的反应项）也能让深层 GNN 活下来。</p><p>这同时是 <em>PDE+机器学习</em> 系列的第 8 章，也是终章。前 7 章我们一直在论证"几乎每一种现代神经网络架构都是某个 PDE 的离散化"。反应扩散 + GNN 把这条线收尾：它是其中<strong>最显式的 PDE 形态</strong>，也让我们可以站在终点回望整套系列。</p><p><strong>本文目录</strong></p><ol><li>连续空间上的反应扩散方程——Gray-Scott、FitzHugh-Nagumo、它们能造出哪些模式；</li><li>图灵不稳定性——线性稳定性分析告诉我们扩散为什么能"创造"结构；</li><li>图拉普拉斯——$\nabla^2$ 的离散版本，以及它的谱为何决定 GNN 的命运；</li><li>GCN $=$ 离散图扩散——过度平滑的谱证明；</li><li>反应扩散 GNN（GRAND、GRAND++、RDGNN）——加上一个反应项；</li><li>整个 PDE+ML 系列的回顾。</li></ol><p><strong>前置知识</strong>：线性代数（特征分解）、基本 PDE 概念（扩散方程）、消息传递 GNN。</p><hr><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig1_turing_patterns.png alt="Gray-Scott 模型生成的四种图灵形态——斑点、条纹、迷宫、孔洞——以及它们在 $(F,k)$ 参数平面上的位置示意。" loading=lazy decoding=async></figure><em>Gray-Scott 模型生成的四种图灵形态——斑点、条纹、迷宫、孔洞——以及它们在 $(F,k)$ 参数平面上的位置示意。</em></p><h2 id=1-连续空间上的反应扩散>1. 连续空间上的反应扩散</h2><h3 id=11-一般形式>1.1 一般形式</h3>$$
 \frac{\partial \mathbf{u}}{\partial t} = \mathbf{D}\,\nabla^2\mathbf{u} + \mathbf{R}(\mathbf{u}). \tag{1}
-$$<ul>
-<li>扩散项 $\mathbf{D}\nabla^2\mathbf{u}$ 是<strong>线性</strong>且<strong>抹平</strong>的——它永远在缩小梯度。</li>
-<li>反应项 $\mathbf{R}(\mathbf{u})$ 是<strong>局部</strong>（不带空间导数）且<strong>非线性</strong>的——它可以加强也可以对抗扩散。</li>
-</ul>
-<p>两种视角都有用。物理上，$\mathbf{u}$ 是一组浓度，扩散是 Fick 定律，反应是局部速率方程；数学上，(1) 是一个半线性抛物 PDE——就是我们在第 7 章见过的热方程加上一个逐点非线性源项。</p>
-<p>Turing 的洞察在于：这两项的<strong>竞争</strong>可以让一个均匀初值自发演化成稳定的、非平凡的空间模式。这种现象被称为<strong>扩散驱动的不稳定性</strong>（diffusion-driven instability）。</p>
-<h3 id="12-gray-scott-模型">1.2 Gray-Scott 模型</h3>
-$$
+$$<ul><li>扩散项 $\mathbf{D}\nabla^2\mathbf{u}$ 是<strong>线性</strong>且<strong>抹平</strong>的——它永远在缩小梯度。</li><li>反应项 $\mathbf{R}(\mathbf{u})$ 是<strong>局部</strong>（不带空间导数）且<strong>非线性</strong>的——它可以加强也可以对抗扩散。</li></ul><p>两种视角都有用。物理上，$\mathbf{u}$ 是一组浓度，扩散是 Fick 定律，反应是局部速率方程；数学上，(1) 是一个半线性抛物 PDE——就是我们在第 7 章见过的热方程加上一个逐点非线性源项。</p><p>Turing 的洞察在于：这两项的<strong>竞争</strong>可以让一个均匀初值自发演化成稳定的、非平凡的空间模式。这种现象被称为<strong>扩散驱动的不稳定性</strong>（diffusion-driven instability）。</p><h3 id=12-gray-scott-模型>1.2 Gray-Scott 模型</h3>$$
 \partial_t u = D_u \nabla^2 u - u v^2 + F(1-u),\qquad
 \partial_t v = D_v \nabla^2 v + u v^2 - (F+k)\,v.
-$$<ul>
-<li>$u$ 是按速率 $F$ 注入的底物，$v$ 是消耗 $u$ 的自催化剂（反应 $u + 2v \to 3v$），并以速率 $k$ 衰减。</li>
-<li>当 $D_u > D_v$（底物比催化剂扩散得快），$v$ 的小斑块就能稳定下来，演化出图 1 中的各种形态。</li>
-</ul>
-<p>同一个方程，换不同的 $(F, k)$，可以得到<strong>斑点</strong>、<strong>条纹</strong>、<strong>迷宫</strong>、<strong>孔洞</strong>、<strong>移动斑点</strong>，甚至<strong>自复制斑点</strong>——Pearson (1993) 一口气分类出十几种相区。</p>
-<h3 id="13-fitzhugh-nagumo-模型">1.3 FitzHugh-Nagumo 模型</h3>
-$$
+$$<ul><li>$u$ 是按速率 $F$ 注入的底物，$v$ 是消耗 $u$ 的自催化剂（反应 $u + 2v \to 3v$），并以速率 $k$ 衰减。</li><li>当 $D_u > D_v$（底物比催化剂扩散得快），$v$ 的小斑块就能稳定下来，演化出图 1 中的各种形态。</li></ul><p>同一个方程，换不同的 $(F, k)$，可以得到<strong>斑点</strong>、<strong>条纹</strong>、<strong>迷宫</strong>、<strong>孔洞</strong>、<strong>移动斑点</strong>，甚至<strong>自复制斑点</strong>——Pearson (1993) 一口气分类出十几种相区。</p><h3 id=13-fitzhugh-nagumo-模型>1.3 FitzHugh-Nagumo 模型</h3>$$
 \partial_t v = D \nabla^2 v + v - \tfrac{v^3}{3} - w + I,\qquad
 \partial_t w = \varepsilon\,(v + \beta - \gamma w),\quad \varepsilon \ll 1.
-$$<ul>
-<li>$v$ 是快变量（膜电位），$w$ 是慢恢复变量。</li>
-<li>三次非线性让 $v$ 具有<strong>激发性</strong>：超过阈值的扰动会触发一个标志化脉冲，慢变量 $w$ 随后把它复位。</li>
-</ul>
-<p>二维下你会看到螺旋波和靶心波——这正是心脏纤颤时的电波形态、也是发育中视网膜上看到的图样（见 §6 图 6）。</p>
-<hr>
-<h2 id="2-图灵不稳定性从均匀生出模式">2. 图灵不稳定性：从均匀生出模式</h2>
-<h3 id="21-问题">2.1 问题</h3>
-<p>挑一个均匀稳态 $\bar{\mathbf{u}}$，满足 $\mathbf{R}(\bar{\mathbf{u}}) = \mathbf{0}$，并且<strong>在去掉扩散的纯局部系统中是稳定的</strong>。把扩散加回来，能否让这个稳态<strong>失稳</strong>？</p>
-<p>直觉上不能——扩散只会&quot;抹平&quot;，怎么会让东西更&quot;乱&quot;？Turing (1952) 证明了直觉是错的。</p>
-<h3 id="22-推导">2.2 推导</h3>
-$$
+$$<ul><li>$v$ 是快变量（膜电位），$w$ 是慢恢复变量。</li><li>三次非线性让 $v$ 具有<strong>激发性</strong>：超过阈值的扰动会触发一个标志化脉冲，慢变量 $w$ 随后把它复位。</li></ul><p>二维下你会看到螺旋波和靶心波——这正是心脏纤颤时的电波形态、也是发育中视网膜上看到的图样（见 §6 图 6）。</p><hr><h2 id=2-图灵不稳定性从均匀生出模式>2. 图灵不稳定性：从均匀生出模式</h2><h3 id=21-问题>2.1 问题</h3><p>挑一个均匀稳态 $\bar{\mathbf{u}}$，满足 $\mathbf{R}(\bar{\mathbf{u}}) = \mathbf{0}$，并且<strong>在去掉扩散的纯局部系统中是稳定的</strong>。把扩散加回来，能否让这个稳态<strong>失稳</strong>？</p><p>直觉上不能——扩散只会"抹平"，怎么会让东西更"乱"？Turing (1952) 证明了直觉是错的。</p><h3 id=22-推导>2.2 推导</h3>$$
 \sigma\,\mathbf{q} \;=\; \underbrace{\bigl(\mathbf{J} - |\mathbf{k}|^2\,\mathbf{D}\bigr)}_{\mathbf{A}(|\mathbf{k}|^2)}\,\mathbf{q},\qquad
 \mathbf{J} = \nabla_{\mathbf{u}}\mathbf{R}(\bar{\mathbf{u}}). \tag{2}
-$$<p>
-当 $\mathbf{A}(|\mathbf{k}|^2)$ 有正实部特征值时，模式 $\mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}$ 增长。完整的<strong>图灵条件</strong>是四条不等式（图 2 右）：</p>
-<ol>
-<li>$\mathrm{tr}\,\mathbf{J} < 0$ 且 $\det\,\mathbf{J} > 0$——<strong>纯局部系统稳定</strong>；</li>
-<li>Jacobian 具有激活-抑制结构：$f_u > 0,\;g_v < 0,\;f_v g_u < 0$；</li>
-<li><strong>扩散不对称性</strong>：$D_v \gg D_u$——抑制剂扩散得远比激活剂快；</li>
-<li>存在某个 $|\mathbf{k}|^2$ 使 $\det\,\mathbf{A}(|\mathbf{k}|^2) < 0$，即一个不稳定波数。</li>
-</ol>
-<p>前三条是关于动力学的代数事实，第四条是真正的机制：<strong>一段波数变得不稳定</strong>，其中最不稳定的模 $|\mathbf{k}_*|$ 决定了模式的特征长度 $\ell \sim 2\pi/|\mathbf{k}_*|$。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig2_turing_instability.png" alt="左：激活-抑制系统的色散关系 $\sigma(|\mathbf{k}|^2)$。等扩散（蓝）下处处稳定；让抑制剂跑得更快（红），就在 $|\mathbf{k}_*|^2 \approx 3.4$ 附近打开一段不稳定带。右：四条图灵条件一目了然。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>左：激活-抑制系统的色散关系 $\sigma(|\mathbf{k}|^2)$。等扩散（蓝）下处处稳定；让抑制剂跑得更快（红），就在 $|\mathbf{k}_*|^2 \approx 3.4$ 附近打开一段不稳定带。右：四条图灵条件一目了然。</em></p>
-<h3 id="23-直觉短程激活长程抑制">2.3 直觉：短程激活、长程抑制</h3>
-<p>为什么不对称扩散能&quot;破坏&quot;一个原本稳定的稳态？想象一个微小的局部凸起（多了点激活剂）。<strong>局部上</strong>，激活剂正反馈、自我放大；同时它会生成抑制剂，但抑制剂跑得快，所以局部抑制剂浓度仍然偏低，<strong>远处</strong>抑制剂浓度则迅速堆高，把别处可能形成的凸起摁住。这就是<strong>短程激活、长程抑制</strong>——动物斑纹、植被条带、沙波纹背后的通用配方，也是后面 §5 深层 GNN 架构背后的同一个东西。</p>
-<hr>
-<h2 id="3-从网格到图">3. 从网格到图</h2>
-<h3 id="31-为什么要图">3.1 为什么要图</h3>
-<p>有限差分（FDM）和有限元（FEM）在规则网格或精心剖分的网格上离散 PDE。对简单几何很好用。但<strong>分子结构、社交网络、引文图、路网、脑连接组</strong>没有自然的&quot;网格&quot;——连接关系本身就是几何。</p>
-<p>图 $G = (V, E)$ 是统一的：一组节点加上节点间的关系。GNN 在解一个图上的&quot;PDE&quot;。本节就是把这个 PDE 写出来。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig3_grid_to_graph.png" alt="从规则网格到不规则图。两者都在离散 $\nabla^2$，但格点 stencil 被节点的邻域代替。连续 PDE $\partial_t u = D\nabla^2 u &#43; R(u)$ 同时容许两种离散；图版本的一步 Euler 就是一层 GCN。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>从规则网格到不规则图。两者都在离散 $\nabla^2$，但格点 stencil 被节点的邻域代替。连续 PDE $\partial_t u = D\nabla^2 u + R(u)$ 同时容许两种离散；图版本的一步 Euler 就是一层 GCN。</em></p>
-<h3 id="32-图拉普拉斯">3.2 图拉普拉斯</h3>
-<p>带权无向图，邻接矩阵 $\mathbf{A}$，度矩阵 $\mathbf{D} = \mathrm{diag}(d_i)$：</p>
-<table>
-  <thead>
-      <tr>
-          <th>变体</th>
-          <th>公式</th>
-          <th>谱所在</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>组合型</td>
-          <td>$\mathbf{L} = \mathbf{D} - \mathbf{A}$</td>
-          <td>$[0, 2 d_{\max}]$</td>
-      </tr>
-      <tr>
-          <td>对称归一</td>
-          <td>$\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{A}\mathbf{D}^{-1/2}$</td>
-          <td>$[0, 2]$</td>
-      </tr>
-      <tr>
-          <td>随机游走</td>
-          <td>$\mathbf{L}_{\text{rw}} = \mathbf{I} - \mathbf{D}^{-1}\mathbf{A}$</td>
-          <td>$[0, 2]$</td>
-      </tr>
-  </tbody>
-</table>
-$$
+$$<p>当 $\mathbf{A}(|\mathbf{k}|^2)$ 有正实部特征值时，模式 $\mathbf{q}\,e^{i\mathbf{k}\cdot\mathbf{x}}$ 增长。完整的<strong>图灵条件</strong>是四条不等式（图 2 右）：</p><ol><li>$\mathrm{tr}\,\mathbf{J} < 0$ 且 $\det\,\mathbf{J} > 0$——<strong>纯局部系统稳定</strong>；</li><li>Jacobian 具有激活-抑制结构：$f_u > 0,\;g_v < 0,\;f_v g_u < 0$；</li><li><strong>扩散不对称性</strong>：$D_v \gg D_u$——抑制剂扩散得远比激活剂快；</li><li>存在某个 $|\mathbf{k}|^2$ 使 $\det\,\mathbf{A}(|\mathbf{k}|^2) < 0$，即一个不稳定波数。</li></ol><p>前三条是关于动力学的代数事实，第四条是真正的机制：<strong>一段波数变得不稳定</strong>，其中最不稳定的模 $|\mathbf{k}_*|$ 决定了模式的特征长度 $\ell \sim 2\pi/|\mathbf{k}_*|$。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig2_turing_instability.png alt="左：激活-抑制系统的色散关系 $\sigma(|\mathbf{k}|^2)$。等扩散（蓝）下处处稳定；让抑制剂跑得更快（红），就在 $|\mathbf{k}_*|^2 \approx 3.4$ 附近打开一段不稳定带。右：四条图灵条件一目了然。" loading=lazy decoding=async></figure><em>左：激活-抑制系统的色散关系 $\sigma(|\mathbf{k}|^2)$。等扩散（蓝）下处处稳定；让抑制剂跑得更快（红），就在 $|\mathbf{k}_*|^2 \approx 3.4$ 附近打开一段不稳定带。右：四条图灵条件一目了然。</em></p><h3 id=23-直觉短程激活长程抑制>2.3 直觉：短程激活、长程抑制</h3><p>为什么不对称扩散能"破坏"一个原本稳定的稳态？想象一个微小的局部凸起（多了点激活剂）。<strong>局部上</strong>，激活剂正反馈、自我放大；同时它会生成抑制剂，但抑制剂跑得快，所以局部抑制剂浓度仍然偏低，<strong>远处</strong>抑制剂浓度则迅速堆高，把别处可能形成的凸起摁住。这就是<strong>短程激活、长程抑制</strong>——动物斑纹、植被条带、沙波纹背后的通用配方，也是后面 §5 深层 GNN 架构背后的同一个东西。</p><hr><h2 id=3-从网格到图>3. 从网格到图</h2><h3 id=31-为什么要图>3.1 为什么要图</h3><p>有限差分（FDM）和有限元（FEM）在规则网格或精心剖分的网格上离散 PDE。对简单几何很好用。但<strong>分子结构、社交网络、引文图、路网、脑连接组</strong>没有自然的"网格"——连接关系本身就是几何。</p><p>图 $G = (V, E)$ 是统一的：一组节点加上节点间的关系。GNN 在解一个图上的"PDE"。本节就是把这个 PDE 写出来。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig3_grid_to_graph.png alt="从规则网格到不规则图。两者都在离散 $\nabla^2$，但格点 stencil 被节点的邻域代替。连续 PDE $\partial_t u = D\nabla^2 u + R(u)$ 同时容许两种离散；图版本的一步 Euler 就是一层 GCN。" loading=lazy decoding=async></figure><em>从规则网格到不规则图。两者都在离散 $\nabla^2$，但格点 stencil 被节点的邻域代替。连续 PDE $\partial_t u = D\nabla^2 u + R(u)$ 同时容许两种离散；图版本的一步 Euler 就是一层 GCN。</em></p><h3 id=32-图拉普拉斯>3.2 图拉普拉斯</h3><p>带权无向图，邻接矩阵 $\mathbf{A}$，度矩阵 $\mathbf{D} = \mathrm{diag}(d_i)$：</p><table><thead><tr><th>变体</th><th>公式</th><th>谱所在</th></tr></thead><tbody><tr><td>组合型</td><td>$\mathbf{L} = \mathbf{D} - \mathbf{A}$</td><td>$[0, 2 d_{\max}]$</td></tr><tr><td>对称归一</td><td>$\mathbf{L}_{\text{sym}} = \mathbf{I} - \mathbf{D}^{-1/2}\mathbf{A}\mathbf{D}^{-1/2}$</td><td>$[0, 2]$</td></tr><tr><td>随机游走</td><td>$\mathbf{L}_{\text{rw}} = \mathbf{I} - \mathbf{D}^{-1}\mathbf{A}$</td><td>$[0, 2]$</td></tr></tbody></table>$$
 \mathbf{x}^{\!\top}\!\mathbf{L}\mathbf{x} \;=\; \tfrac{1}{2}\sum_{(i,j) \in E} w_{ij}\,(x_i - x_j)^2 \;\geq\; 0. \tag{3}
-$$<p>
-图拉普拉斯就是 $-\nabla^2$ 的离散版：它对<strong>梯度的平方做积分</strong>。它对称半正定，谱分解 $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{\!\top}$，特征值 $0 = \lambda_1 \leq \lambda_2 \leq \cdots \leq \lambda_n$。</p>
-<p>最小特征值恒为 0，对应常向量 $\mathbf{1}$；第二小的 $\lambda_2$（<strong>代数连通度</strong>）刻画图的连通强度。</p>
-<h3 id="33-图上的热方程">3.3 图上的热方程</h3>
-$$
+$$<p>图拉普拉斯就是 $-\nabla^2$ 的离散版：它对<strong>梯度的平方做积分</strong>。它对称半正定，谱分解 $\mathbf{L} = \mathbf{U}\boldsymbol{\Lambda}\mathbf{U}^{\!\top}$，特征值 $0 = \lambda_1 \leq \lambda_2 \leq \cdots \leq \lambda_n$。</p><p>最小特征值恒为 0，对应常向量 $\mathbf{1}$；第二小的 $\lambda_2$（<strong>代数连通度</strong>）刻画图的连通强度。</p><h3 id=33-图上的热方程>3.3 图上的热方程</h3>$$
 \frac{d\mathbf{X}}{dt} = -\mathbf{L}\mathbf{X}. \tag{4}
 $$$$
 \hat x_k(t) = e^{-\lambda_k t}\,\hat x_k(0),\qquad \hat x_k = \mathbf{u}_k^{\!\top}\mathbf{X}(0).
-$$<p>
-每个模都按各自速率 $\lambda_k$ 指数衰减——除了 $\lambda_1 = 0$，那个常数模永远活着。$t \to \infty$ 时只剩常数。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig4_graph_laplacian.png" alt="图热方程的实战。一个 50 节点小世界图上的随机初始信号被扩散摧毁：到 $t = 6$ 时所有节点取同一个值。右图给出原因——第 $k$ 个模按 $e^{-\lambda_k t}$ 衰减，只有 $\lambda_1 = 0$ 不死。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>图热方程的实战。一个 50 节点小世界图上的随机初始信号被扩散摧毁：到 $t = 6$ 时所有节点取同一个值。右图给出原因——第 $k$ 个模按 $e^{-\lambda_k t}$ 衰减，只有 $\lambda_1 = 0$ 不死。</em></p>
-<p>这就是<strong>最纯粹的过度平滑</strong>，我们甚至还没提神经网络。</p>
-<hr>
-<h2 id="4-gcn-就是热方程">4. GCN 就是热方程</h2>
-<h3 id="41-等价关系">4.1 等价关系</h3>
-$$
+$$<p>每个模都按各自速率 $\lambda_k$ 指数衰减——除了 $\lambda_1 = 0$，那个常数模永远活着。$t \to \infty$ 时只剩常数。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig4_graph_laplacian.png alt="图热方程的实战。一个 50 节点小世界图上的随机初始信号被扩散摧毁：到 $t = 6$ 时所有节点取同一个值。右图给出原因——第 $k$ 个模按 $e^{-\lambda_k t}$ 衰减，只有 $\lambda_1 = 0$ 不死。" loading=lazy decoding=async></figure><em>图热方程的实战。一个 50 节点小世界图上的随机初始信号被扩散摧毁：到 $t = 6$ 时所有节点取同一个值。右图给出原因——第 $k$ 个模按 $e^{-\lambda_k t}$ 衰减，只有 $\lambda_1 = 0$ 不死。</em></p><p>这就是<strong>最纯粹的过度平滑</strong>，我们甚至还没提神经网络。</p><hr><h2 id=4-gcn-就是热方程>4. GCN 就是热方程</h2><h3 id=41-等价关系>4.1 等价关系</h3>$$
 \mathbf{H}^{(\ell+1)} = \sigma\bigl(\tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}\,\mathbf{W}^{(\ell)}\bigr),
 \qquad \tilde{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2}(\mathbf{A} + \mathbf{I})\tilde{\mathbf{D}}^{-1/2}.
 $$$$
 \mathbf{H}^{(\ell+1)} = \tilde{\mathbf{A}}\,\mathbf{H}^{(\ell)}
 \;=\; \bigl(\mathbf{I} - \tilde{\mathbf{L}}_{\text{sym}}\bigr)\mathbf{H}^{(\ell)}.
 \tag{5}
-$$<p>
-这正是图热方程 $\dot{\mathbf{H}} = -\tilde{\mathbf{L}}_{\text{sym}}\mathbf{H}$ 的<strong>显式 Euler</strong>，步长 $h = 1$。&ldquo;加自环&rdquo; $\mathbf{A} + \mathbf{I}$ 是标准的 FDM 稳定化技巧——把 $\tilde{\mathbf{L}}_{\text{sym}}$ 的谱压进 $[0, 2)$，让显式格式仍然稳定。</p>
-<h3 id="42-过度平滑的谱证明">4.2 过度平滑的谱证明</h3>
-$$
+$$<p>这正是图热方程 $\dot{\mathbf{H}} = -\tilde{\mathbf{L}}_{\text{sym}}\mathbf{H}$ 的<strong>显式 Euler</strong>，步长 $h = 1$。&ldquo;加自环&rdquo; $\mathbf{A} + \mathbf{I}$ 是标准的 FDM 稳定化技巧——把 $\tilde{\mathbf{L}}_{\text{sym}}$ 的谱压进 $[0, 2)$，让显式格式仍然稳定。</p><h3 id=42-过度平滑的谱证明>4.2 过度平滑的谱证明</h3>$$
 \mathbf{H}^{(L)} = \tilde{\mathbf{A}}^L\,\mathbf{H}^{(0)}.
 $$$$
 \tilde{\mathbf{A}}^L \xrightarrow[L \to \infty]{} \pi_{\text{const}}.
-$$<p>
-所有节点特征坍缩到同一个向量。<strong>这不是 GCN 的怪癖，是任何低通滤波器迭代后的定理</strong>。加上 ReLU 和可学习权重只能延缓这个过程：Oono &amp; Suzuki (2020) 证明，对任意奇异值有界的权重序列，GCN 特征仍然收敛到一个低维子空间。</p>
-<h3 id="43-连续深度-gnn">4.3 连续深度 GNN</h3>
-$$
+$$<p>所有节点特征坍缩到同一个向量。<strong>这不是 GCN 的怪癖，是任何低通滤波器迭代后的定理</strong>。加上 ReLU 和可学习权重只能延缓这个过程：Oono & Suzuki (2020) 证明，对任意奇异值有界的权重序列，GCN 特征仍然收敛到一个低维子空间。</p><h3 id=43-连续深度-gnn>4.3 连续深度 GNN</h3>$$
 \frac{d\mathbf{X}}{dt} = -\mathcal{L}_\theta(\mathbf{X})\,\mathbf{X},\qquad \mathbf{X}(T) = \text{输出}.
-$$<p>
-$\mathcal{L}_\theta$ 是带学习注意力的拉普拉斯，积分用现成的 ODE solver（Dormand-Prince 等）。这并<strong>不能</strong>根治过度平滑——更精确地解一个热方程，依然在解一个热方程。<strong>GRAND++</strong>（Thorpe et al., 2022）加了一个<strong>源</strong>项；<strong>RDGNN</strong>（Eliasof et al., 2024 等）则加上了完整的<strong>反应</strong>项。下一节我们造出后者。</p>
-<hr>
-<h2 id="5-rdgnn反应扩散图神经网络">5. RDGNN：反应扩散图神经网络</h2>
-<h3 id="51-架构">5.1 架构</h3>
-$$
+$$<p>$\mathcal{L}_\theta$ 是带学习注意力的拉普拉斯，积分用现成的 ODE solver（Dormand-Prince 等）。这并<strong>不能</strong>根治过度平滑——更精确地解一个热方程，依然在解一个热方程。<strong>GRAND++</strong>（Thorpe et al., 2022）加了一个<strong>源</strong>项；<strong>RDGNN</strong>（Eliasof et al., 2024 等）则加上了完整的<strong>反应</strong>项。下一节我们造出后者。</p><hr><h2 id=5-rdgnn反应扩散图神经网络>5. RDGNN：反应扩散图神经网络</h2><h3 id=51-架构>5.1 架构</h3>$$
 \frac{d\mathbf{H}}{dt} = -\epsilon_d\,\mathbf{L}\,\mathbf{H} \;+\; \epsilon_r\,R_\theta(\mathbf{H}, \mathbf{H}^{(0)}).
 \tag{6}
 $$$$
 \boxed{\;\mathbf{H}^{(\ell+1)} = \mathbf{H}^{(\ell)} \;-\; \epsilon_d\,\mathbf{L}\,\mathbf{H}^{(\ell)} \;+\; \epsilon_r\,R_\theta\bigl(\mathbf{H}^{(\ell)},\,\mathbf{H}^{(0)}\bigr).\;} \tag{7}
-$$<p>
-三个分支（图 5）：</p>
-<ul>
-<li><strong>扩散</strong> $-\epsilon_d \mathbf{L}\mathbf{H}^{(\ell)}$：标准的图平滑。步长约束 $\epsilon_d < 1/\lambda_{\max}(\mathbf{L})$，保证显式 Euler 稳定。</li>
-<li><strong>反应</strong> $\epsilon_r R_\theta(\mathbf{H}^{(\ell)}, \mathbf{H}^{(0)})$：可学习的、<strong>严格逐节点</strong>的变换——通常是一个小 MLP 在节点上单独跑。条件化在 $\mathbf{H}^{(0)}$ 上相当于 ResNet 的 input-skip，防止漂移。</li>
-<li><strong>跳过项</strong> $\mathbf{H}^{(\ell)}$：让动力学贴近恒等，正是大 $L$ 时数值稳定的关键。</li>
-</ul>
-$$
+$$<p>三个分支（图 5）：</p><ul><li><strong>扩散</strong> $-\epsilon_d \mathbf{L}\mathbf{H}^{(\ell)}$：标准的图平滑。步长约束 $\epsilon_d < 1/\lambda_{\max}(\mathbf{L})$，保证显式 Euler 稳定。</li><li><strong>反应</strong> $\epsilon_r R_\theta(\mathbf{H}^{(\ell)}, \mathbf{H}^{(0)})$：可学习的、<strong>严格逐节点</strong>的变换——通常是一个小 MLP 在节点上单独跑。条件化在 $\mathbf{H}^{(0)}$ 上相当于 ResNet 的 input-skip，防止漂移。</li><li><strong>跳过项</strong> $\mathbf{H}^{(\ell)}$：让动力学贴近恒等，正是大 $L$ 时数值稳定的关键。</li></ul>$$
 R_\theta(\mathbf{H}, \mathbf{H}^{(0)}) = \mathrm{MLP}_\theta\bigl([\mathbf{H} \,\Vert\, \mathbf{H}^{(0)}]\bigr) \;-\; \alpha\,\mathbf{H}.
-$$<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig5_rdgnn_architecture.png" alt="RDGNN 一层：扩散分支做图拉普拉斯平滑，反应分支做学得到的逐节点非线性，从 $\mathbf{H}^{(0)}$ 出来的输入跳跃避免漂移。把这块重复 $L$ 次得到的深层 GNN，不像 GCN 一样会塌掉。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>RDGNN 一层：扩散分支做图拉普拉斯平滑，反应分支做学得到的逐节点非线性，从 $\mathbf{H}^{(0)}$ 出来的输入跳跃避免漂移。把这块重复 $L$ 次得到的深层 GNN，不像 GCN 一样会塌掉。</em></p>
-<h3 id="52-为什么有效">5.2 为什么有效</h3>
-<p>两种角度。</p>
-<p><strong>谱视角</strong>。纯扩散把每个非常数模按 $e^{-\lambda_k t}$ 衰减；反应项<strong>不是</strong> $\mathbf{L}$ 的函数，谱内容可以任意，特别可以把扩散正在杀掉的高频能量再灌回去。结果是能量在频率上有个非平凡的稳定分布。</p>
-<p><strong>图灵视角</strong>。如果 $R_\theta$ 学到了激活-抑制结构（一个表达力够的 MLP 完全可以），并且扩散强度 $\epsilon_d$ 选得让 $\mathbf{J} - \epsilon_d \lambda_k$ 在某些 $k$ 上不稳定，整个网络就会出现<strong>节点级别的图灵模式</strong>——不同节点收敛到不同的特征值，按图谱组织起来。这就是 GNN 版本的&quot;鱼身上的条纹&quot;。</p>
-<h3 id="53-pytorch-实现">5.3 PyTorch 实现</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch_geometric.nn</span> <span class="kn">import</span> <span class="n">GCNConv</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">RDGNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;反应扩散 GNN。
-</span></span></span><span class="line"><span class="cl"><span class="s2">
-</span></span></span><span class="line"><span class="cl"><span class="s2">    H^(l+1) = H^(l) - eps_d * L H^(l) + eps_r * R(H^(l), H^(0))
-</span></span></span><span class="line"><span class="cl"><span class="s2">    扩散步借助 GCNConv（内部含归一化拉普拉斯）；
-</span></span></span><span class="line"><span class="cl"><span class="s2">    反应步是逐节点 MLP，并以输入嵌入为条件。
-</span></span></span><span class="line"><span class="cl"><span class="s2">    &#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">eps_d</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">eps_r</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">eps_d</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">eps_d</span><span class="p">,</span> <span class="n">eps_r</span><span class="p">,</span> <span class="n">alpha</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">diff</span> <span class="o">=</span> <span class="n">GCNConv</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_self_loops</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">react</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                          <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                          <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="p">])</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="n">h0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">react</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="c1"># 扩散步: -eps_d * L h  ~~  eps_d * (GCN(h) - h)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h_diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">edge_index</span><span class="p">)</span> <span class="o">-</span> <span class="n">h</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h_react</span> <span class="o">=</span> <span class="n">r</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">h</span><span class="p">,</span> <span class="n">h0</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">h</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps_d</span> <span class="o">*</span> <span class="n">h_diff</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps_r</span> <span class="o">*</span> <span class="n">h_react</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>整个架构非常精瘦：扩散用一个共享的 GCN，反应用 $L$ 个小 MLP，两端各一个线性投影。图 6c 的精度曲线显示，仅靠这点料就能把 Cora 准确率维持到 64 层——比 GCN 崩溃的那个深度还多了八倍。</p>
-<hr>
-<h2 id="6-反应扩散已经胜出的地方">6. 反应扩散已经胜出的地方</h2>
-<p>同一个方程，三个应用故事。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig6_applications.png" alt="从生物到 GNN。(a) Gray-Scott 模型造出逼真的皮毛斑纹——正是 Turing 假设的生物形态发生机制。(b) FitzHugh-Nagumo 动力学产生螺旋波，可在心室纤颤和早期视皮层发育中观测到。(c) 同样的 RD 思想用到图上，得到不会塌的深层 GNN——RDGNN 在 64 层时仍维持 ~80% Cora 准确率，而 GCN、GAT、纯扩散的 GRAND 都跌破 25%。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>从生物到 GNN。(a) Gray-Scott 模型造出逼真的皮毛斑纹——正是 Turing 假设的生物形态发生机制。(b) FitzHugh-Nagumo 动力学产生螺旋波，可在心室纤颤和早期视皮层发育中观测到。(c) 同样的 RD 思想用到图上，得到不会塌的深层 GNN——RDGNN 在 64 层时仍维持 ~80% Cora 准确率，而 GCN、GAT、纯扩散的 GRAND 都跌破 25%。</em></p>
-<p><strong>形态发生</strong>。Murray 的《Mathematical Biology》里用图灵机制拟合了大型猫科动物的斑纹相变：体型大的（美洲虎）出斑点、中等的（豹）出玫瑰花斑、尾巴（局部几何把 $|\mathbf{k}|$ 限住）出条纹——一套反应参数加上胚胎几何就能解释。同样的数学也预测了半干旱地带的植被条带（水当抑制剂、生物量当激活剂）和 Belousov-Zhabotinsky 化学振荡的螺旋臂。</p>
-<p><strong>神经发育</strong>。视网膜镶嵌形成时，相邻光感受器<strong>互斥</strong>分化为同一亚型，但远程通过扩散性形态发生素<strong>协助</strong>同型分化——这从数学上就是图灵系统，得到的视锥排列具有可测量的波长 $\ell \sim 2\pi/|\mathbf{k}_*|$。皮层电活动里的螺旋波（癫痫时是病理，发育时则参与连接组成型）就是 2D 可激发介质上的 FitzHugh-Nagumo 解。</p>
-<p><strong>深层 GNN</strong>。在标准基准上深度-精度的故事戏剧化（图 6c，复刻自 Eliasof et al. (2024) 的 Cora 实验）：GCN/GAT 在 8 层后崩溃，跟谱证明的预测一致；纯扩散 GRAND 只是<strong>推迟</strong>了崩溃，因为它只是更精确地解同一个热方程；只有 RDGNN——显式反应项——能在 $L = 64$ 时维持精度。这种效应在<strong>异配图</strong>（邻居标签更倾向不同）上更明显，因为对异配图来说&quot;平滑&quot;本身就是有害的：反应项可以学着<strong>放大</strong>邻居之间的差异。</p>
-<hr>
-<h2 id="7-系列收官八章一念">7. 系列收官：八章一念</h2>
-<p>我们到了 <em>PDE+机器学习</em> 系列的终点。退一步看。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig7_series_journey.png" alt="八章之旅。第 1-2 章用神经网络解 PDE；第 3-4 章把训练重写成变分原理；第 5-6 章构造保结构的网络；第 7-8 章把同一套机器搬到生成模型和图学习上。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>八章之旅。第 1-2 章用神经网络<strong>解</strong> PDE；第 3-4 章把训练重写成变分原理；第 5-6 章构造<strong>保结构</strong>的网络；第 7-8 章把同一套机器搬到生成模型和图学习上。</em></p>
-<p>八章可以分成四对：</p>
-<table>
-  <thead>
-      <tr>
-          <th>对</th>
-          <th>章节</th>
-          <th>背后的 PDE</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>用 NN 解 PDE</td>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e7%89%a9%e7%90%86%e4%bf%a1%e6%81%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/">1</a>
- PINN，<a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/">2</a>
- 神经算子</td>
-          <td>PDE 本身就是损失函数</td>
-      </tr>
-      <tr>
-          <td>变分视角</td>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/">3</a>
- Deep Ritz，<a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/">4</a>
- VI / Fokker-Planck</td>
-          <td>损失 $=$ 自由能；梯度流 $=$ 连续性方程</td>
-      </tr>
-      <tr>
-          <td>保结构流</td>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/">5</a>
- 辛网络，<a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/">6</a>
- Neural ODE / CNF</td>
-          <td>网络尊重流的辛 / 体积 / 散度结构</td>
-      </tr>
-      <tr>
-          <td>生成 + 图 PDE</td>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/">7</a>
- 扩散模型，<strong>8</strong> RD + GNN</td>
-          <td>正反向 Fokker-Planck；图上反应扩散</td>
-      </tr>
-  </tbody>
-</table>
-<p>每一章背后都是同一句话：</p>
-<blockquote>
-<p><strong>一种神经架构是某个被离散化的 PDE。选架构 = 选 PDE。</strong></p>
-</blockquote>
-<p>具体来说：</p>
-<ul>
-<li><strong>想在训练分布外外推？</strong>——选算子学习的 PDE（第 2 章）。</li>
-<li><strong>想让网络尊重守恒量？</strong>——选辛积分器（第 5 章）。</li>
-<li><strong>想要可计算的似然？</strong>——选连续性方程，学它的漂移（第 6 章）。</li>
-<li><strong>想从复杂分布采样？</strong>——选 Fokker-Planck，学它的 score（第 7 章）。</li>
-<li><strong>想要不会塌的深层 GNN？</strong>——选反应扩散，而不是只有扩散（本章）。</li>
-</ul>
-<p>PDE 视角不是看深度学习的唯一有用透镜，但它出乎意料地<strong>有生产力</strong>：每次我们问&quot;对应的数值分析会怎么说？&ldquo;都能换来一个具体的回报——一个稳定性界、一个步长约束、一个结构修复。这是物理范式给机器学习带来的红利，也是这两个领域之间的对话还远没说完的原因。</p>
-<hr>
-<h2 id="8-习题">8. 习题</h2>
-<p><strong>练习 1.</strong> 证明对连通图，$\mathbf{L}\mathbf{x} = \mathbf{0}$ 的唯一解是常向量。由此说明热方程把任何初值驱动到其均值。</p>
-<blockquote>
-<p><em>解。</em> 由 (3)，$\mathbf{x}^\top\!\mathbf{L}\mathbf{x} = \tfrac{1}{2}\sum w_{ij}(x_i - x_j)^2 = 0$ 强制每条边两端 $x_i = x_j$；连通图上这意味着 $\mathbf{x}$ 是常向量。所以 $\mathbf{L}$ 的核是一维的，其余特征值严格为正，$e^{-\mathbf{L}t}$ 杀掉所有非常数分量并保住均值。$\blacksquare$</p>
-</blockquote>
-<p><strong>练习 2.</strong> 推导扩散步的显式 Euler 稳定性界 $\epsilon_d < 1/\lambda_{\max}(\mathbf{L})$。</p>
-<blockquote>
-<p><em>解。</em> 谱坐标下 Euler 更新为 $\hat{x}_k^{(\ell+1)} = (1 - \epsilon_d \lambda_k)\,\hat{x}_k^{(\ell)}$。要求每个 $k$ 都不增长 $|1 - \epsilon_d \lambda_k| \leq 1$，即 $0 \leq \epsilon_d \lambda_k \leq 2$，得 $\epsilon_d \leq 2/\lambda_{\max}$。要求单调衰减（不振荡）则更严格地要求 $\epsilon_d < 1/\lambda_{\max}$。$\blacksquare$</p>
-</blockquote>
-<p><strong>练习 3.</strong> 为什么 RDGNN 在异配图上特别有用？</p>
-<blockquote>
-<p><em>解。</em> 异配图上邻居标签倾向相反。纯扩散把邻居特征相加平均，这本身就在<strong>摧毁</strong>判别信号——层数越多越糟。反应项<strong>逐节点</strong>操作，并以 $\mathbf{H}^{(0)}$ 为条件，因此可以输出节点专属的更新，<strong>放大</strong>邻居之间的差异，恢复类间可分性。$\blacksquare$</p>
-</blockquote>
-<p><strong>练习 4.</strong> 证明 RDGNN 的离散更新 (7) 是连续 RD-GNN (6) 的一阶 Lie-Trotter 算子分裂离散。</p>
-<blockquote>
-<p><em>解。</em> 算子分裂把 $\dot{\mathbf{H}} = (\mathcal{D} + \mathcal{R})\,\mathbf{H}$ 分成两步交替的 Euler：先 $\mathbf{H}^{1/2} = \mathbf{H} + h\mathcal{D}\mathbf{H}$，再 $\mathbf{H}^{(\ell+1)} = \mathbf{H}^{1/2} + h\mathcal{R}\mathbf{H}^{1/2}$。在标准实现中两个算子都在同一个 $\mathbf{H}^{(\ell)}$ 上求值，结果就是 (7)。局部截断误差为 $\mathcal{O}(h^2[\mathcal{D}, \mathcal{R}])$，即一阶。$\blacksquare$</p>
-</blockquote>
-<p><strong>练习 5.</strong> 单条图灵不稳定性条件可以数值检验：取 Gray-Scott 的参数 $(D_u, D_v, F, k)$，在均匀稳态附近线性化，扫 $|\mathbf{k}|^2$ 看 $\det\,\mathbf{A}(|\mathbf{k}|^2)$ 何时变号。把这个写成代码，复现图 1 中的某一格。</p>
-<blockquote>
-<p><em>解概要。</em> Gray-Scott 的均匀稳态满足 $u v^2 = F(1 - u)$ 且 $u v^2 = (F + k) v$。算这个稳态处的 $2\times 2$ Jacobian，构造 $\mathbf{A}(|\mathbf{k}|^2) = \mathbf{J} - |\mathbf{k}|^2 \mathrm{diag}(D_u, D_v)$，画 $\det\,\mathbf{A}$ vs $|\mathbf{k}|^2$。负的一段表示不稳定带，对应波长 $2\pi/|\mathbf{k}_*|$ 与模拟出来的模式可视尺度一致。$\blacksquare$</p>
-</blockquote>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<p>[1] Turing, A. M. (1952). <em>The chemical basis of morphogenesis.</em> Phil. Trans. R. Soc. B, 237(641), 37-72.</p>
-<p>[2] Pearson, J. E. (1993). <em>Complex patterns in a simple system.</em> Science, 261(5118), 189-192.</p>
-<p>[3] Murray, J. D. (2003). <em>Mathematical biology II: Spatial models and biomedical applications</em> (3rd ed.). Springer.</p>
-<p>[4] Kipf, T. N., &amp; Welling, M. (2017). <em>Semi-supervised classification with graph convolutional networks.</em> ICLR. <a href="https://arxiv.org/abs/1609.02907" target="_blank" rel="noopener noreferrer">arXiv:1609.02907 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<p>[5] Oono, K., &amp; Suzuki, T. (2020). <em>Graph neural networks exponentially lose expressive power for node classification.</em> ICLR. <a href="https://arxiv.org/abs/1905.10947" target="_blank" rel="noopener noreferrer">arXiv:1905.10947 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<p>[6] Chamberlain, B., Rowbottom, J., Gorinova, M., Webb, S., Rossi, E., &amp; Bronstein, M. (2021). <em>GRAND: Graph neural diffusion.</em> ICML. <a href="https://arxiv.org/abs/2106.10934" target="_blank" rel="noopener noreferrer">arXiv:2106.10934 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<p>[7] Thorpe, M., Nguyen, T. M., Xia, H., Strohmer, T., Bertozzi, A., Osher, S., &amp; Wang, B. (2022). <em>GRAND++: Graph neural diffusion with a source term.</em> ICLR.</p>
-<p>[8] Eliasof, M., Haber, E., &amp; Treister, E. (2021). <em>PDE-GCN: Novel architectures for graph neural networks motivated by partial differential equations.</em> NeurIPS. <a href="https://arxiv.org/abs/2108.01938" target="_blank" rel="noopener noreferrer">arXiv:2108.01938 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<p>[9] Di Giovanni, F., Rowbottom, J., Chamberlain, B., Markovich, T., &amp; Bronstein, M. (2022). <em>Graph neural networks as gradient flows.</em> <a href="https://arxiv.org/abs/2206.10991" target="_blank" rel="noopener noreferrer">arXiv:2206.10991 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<p>[10] Choi, J., Hong, S., Park, N., &amp; Cho, S.-B. (2023). <em>GREAD: Graph neural reaction-diffusion networks.</em> ICML. <a href="https://arxiv.org/abs/2211.14208" target="_blank" rel="noopener noreferrer">arXiv:2211.14208 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<p>[11] Eliasof, M., Haber, E., &amp; Treister, E. (2024). <em>Graph neural reaction-diffusion models.</em> SIAM J. Sci. Comput. <a href="https://arxiv.org/abs/2406.10871" target="_blank" rel="noopener noreferrer">arXiv:2406.10871 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</p>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<table>
-  <thead>
-      <tr>
-          <th>部分</th>
-          <th>主题</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e7%89%a9%e7%90%86%e4%bf%a1%e6%81%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/">1</a>
-</td>
-          <td>物理信息神经网络</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/">2</a>
-</td>
-          <td>神经算子理论</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/">3</a>
-</td>
-          <td>变分原理与优化</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/">4</a>
-</td>
-          <td>变分推断与Fokker-Planck方程</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/">5</a>
-</td>
-          <td>辛几何与保结构网络</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/">6</a>
-</td>
-          <td>连续归一化流与Neural ODE</td>
-      </tr>
-      <tr>
-          <td><a href="/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/">7</a>
-</td>
-          <td>扩散模型与Score Matching</td>
-      </tr>
-      <tr>
-          <td><strong>8</strong></td>
-          <td><strong>反应扩散系统与GNN（本文，终章）</strong></td>
-      </tr>
-  </tbody>
-</table>
-<p><em>感谢看到这里。</em></p>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#本文你会学到">本文你会学到</a></li>
-    <li><a href="#1-连续空间上的反应扩散">1. 连续空间上的反应扩散</a>
-      <ul>
-        <li><a href="#11-一般形式">1.1 一般形式</a></li>
-        <li><a href="#12-gray-scott-模型">1.2 Gray-Scott 模型</a></li>
-        <li><a href="#13-fitzhugh-nagumo-模型">1.3 FitzHugh-Nagumo 模型</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-图灵不稳定性从均匀生出模式">2. 图灵不稳定性：从均匀生出模式</a>
-      <ul>
-        <li><a href="#21-问题">2.1 问题</a></li>
-        <li><a href="#22-推导">2.2 推导</a></li>
-        <li><a href="#23-直觉短程激活长程抑制">2.3 直觉：短程激活、长程抑制</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-从网格到图">3. 从网格到图</a>
-      <ul>
-        <li><a href="#31-为什么要图">3.1 为什么要图</a></li>
-        <li><a href="#32-图拉普拉斯">3.2 图拉普拉斯</a></li>
-        <li><a href="#33-图上的热方程">3.3 图上的热方程</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-gcn-就是热方程">4. GCN 就是热方程</a>
-      <ul>
-        <li><a href="#41-等价关系">4.1 等价关系</a></li>
-        <li><a href="#42-过度平滑的谱证明">4.2 过度平滑的谱证明</a></li>
-        <li><a href="#43-连续深度-gnn">4.3 连续深度 GNN</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-rdgnn反应扩散图神经网络">5. RDGNN：反应扩散图神经网络</a>
-      <ul>
-        <li><a href="#51-架构">5.1 架构</a></li>
-        <li><a href="#52-为什么有效">5.2 为什么有效</a></li>
-        <li><a href="#53-pytorch-实现">5.3 PyTorch 实现</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-反应扩散已经胜出的地方">6. 反应扩散已经胜出的地方</a></li>
-    <li><a href="#7-系列收官八章一念">7. 系列收官：八章一念</a></li>
-    <li><a href="#8-习题">8. 习题</a></li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Pde与机器学习</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>13 min</strong></div>
-      <div class="row"><span>Word count</span><strong>6300</strong></div>
-      <div class="row"><span>Published</span><strong>Aug 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig5_rdgnn_architecture.png alt="RDGNN 一层：扩散分支做图拉普拉斯平滑，反应分支做学得到的逐节点非线性，从 $\mathbf{H}^{(0)}$ 出来的输入跳跃避免漂移。把这块重复 $L$ 次得到的深层 GNN，不像 GCN 一样会塌掉。" loading=lazy decoding=async></figure><em>RDGNN 一层：扩散分支做图拉普拉斯平滑，反应分支做学得到的逐节点非线性，从 $\mathbf{H}^{(0)}$ 出来的输入跳跃避免漂移。把这块重复 $L$ 次得到的深层 GNN，不像 GCN 一样会塌掉。</em></p><h3 id=52-为什么有效>5.2 为什么有效</h3><p>两种角度。</p><p><strong>谱视角</strong>。纯扩散把每个非常数模按 $e^{-\lambda_k t}$ 衰减；反应项<strong>不是</strong> $\mathbf{L}$ 的函数，谱内容可以任意，特别可以把扩散正在杀掉的高频能量再灌回去。结果是能量在频率上有个非平凡的稳定分布。</p><p><strong>图灵视角</strong>。如果 $R_\theta$ 学到了激活-抑制结构（一个表达力够的 MLP 完全可以），并且扩散强度 $\epsilon_d$ 选得让 $\mathbf{J} - \epsilon_d \lambda_k$ 在某些 $k$ 上不稳定，整个网络就会出现<strong>节点级别的图灵模式</strong>——不同节点收敛到不同的特征值，按图谱组织起来。这就是 GNN 版本的"鱼身上的条纹"。</p><h3 id=53-pytorch-实现>5.3 PyTorch 实现</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch_geometric.nn</span> <span class=kn>import</span> <span class=n>GCNConv</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>RDGNN</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;反应扩散 GNN。
+</span></span></span><span class=line><span class=cl><span class=s2>
+</span></span></span><span class=line><span class=cl><span class=s2>    H^(l+1) = H^(l) - eps_d * L H^(l) + eps_r * R(H^(l), H^(0))
+</span></span></span><span class=line><span class=cl><span class=s2>    扩散步借助 GCNConv（内部含归一化拉普拉斯）；
+</span></span></span><span class=line><span class=cl><span class=s2>    反应步是逐节点 MLP，并以输入嵌入为条件。
+</span></span></span><span class=line><span class=cl><span class=s2>    &#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>in_dim</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>out_dim</span><span class=p>,</span> <span class=n>n_layers</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>eps_d</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>eps_r</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>eps_d</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>eps_r</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>=</span> <span class=n>eps_d</span><span class=p>,</span> <span class=n>eps_r</span><span class=p>,</span> <span class=n>alpha</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>in_dim</span><span class=p>,</span> <span class=n>hidden</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>diff</span> <span class=o>=</span> <span class=n>GCNConv</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>normalize</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>add_self_loops</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>react</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>ModuleList</span><span class=p>([</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                          <span class=n>nn</span><span class=o>.</span><span class=n>GELU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                          <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>hidden</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>            <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_layers</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=p>])</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>out_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>edge_index</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h0</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoder</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=n>h0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>react</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=c1># 扩散步: -eps_d * L h  ~~  eps_d * (GCN(h) - h)</span>
+</span></span><span class=line><span class=cl>            <span class=n>h_diff</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>diff</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>edge_index</span><span class=p>)</span> <span class=o>-</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>            <span class=n>h_react</span> <span class=o>=</span> <span class=n>r</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>cat</span><span class=p>([</span><span class=n>h</span><span class=p>,</span> <span class=n>h0</span><span class=p>],</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>))</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>alpha</span> <span class=o>*</span> <span class=n>h</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span> <span class=o>=</span> <span class=n>h</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>eps_d</span> <span class=o>*</span> <span class=n>h_diff</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>eps_r</span> <span class=o>*</span> <span class=n>h_react</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>decoder</span><span class=p>(</span><span class=n>h</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>整个架构非常精瘦：扩散用一个共享的 GCN，反应用 $L$ 个小 MLP，两端各一个线性投影。图 6c 的精度曲线显示，仅靠这点料就能把 Cora 准确率维持到 64 层——比 GCN 崩溃的那个深度还多了八倍。</p><hr><h2 id=6-反应扩散已经胜出的地方>6. 反应扩散已经胜出的地方</h2><p>同一个方程，三个应用故事。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig6_applications.png alt="从生物到 GNN。(a) Gray-Scott 模型造出逼真的皮毛斑纹——正是 Turing 假设的生物形态发生机制。(b) FitzHugh-Nagumo 动力学产生螺旋波，可在心室纤颤和早期视皮层发育中观测到。(c) 同样的 RD 思想用到图上，得到不会塌的深层 GNN——RDGNN 在 64 层时仍维持 ~80% Cora 准确率，而 GCN、GAT、纯扩散的 GRAND 都跌破 25%。" loading=lazy decoding=async></figure><em>从生物到 GNN。(a) Gray-Scott 模型造出逼真的皮毛斑纹——正是 Turing 假设的生物形态发生机制。(b) FitzHugh-Nagumo 动力学产生螺旋波，可在心室纤颤和早期视皮层发育中观测到。(c) 同样的 RD 思想用到图上，得到不会塌的深层 GNN——RDGNN 在 64 层时仍维持 ~80% Cora 准确率，而 GCN、GAT、纯扩散的 GRAND 都跌破 25%。</em></p><p><strong>形态发生</strong>。Murray 的《Mathematical Biology》里用图灵机制拟合了大型猫科动物的斑纹相变：体型大的（美洲虎）出斑点、中等的（豹）出玫瑰花斑、尾巴（局部几何把 $|\mathbf{k}|$ 限住）出条纹——一套反应参数加上胚胎几何就能解释。同样的数学也预测了半干旱地带的植被条带（水当抑制剂、生物量当激活剂）和 Belousov-Zhabotinsky 化学振荡的螺旋臂。</p><p><strong>神经发育</strong>。视网膜镶嵌形成时，相邻光感受器<strong>互斥</strong>分化为同一亚型，但远程通过扩散性形态发生素<strong>协助</strong>同型分化——这从数学上就是图灵系统，得到的视锥排列具有可测量的波长 $\ell \sim 2\pi/|\mathbf{k}_*|$。皮层电活动里的螺旋波（癫痫时是病理，发育时则参与连接组成型）就是 2D 可激发介质上的 FitzHugh-Nagumo 解。</p><p><strong>深层 GNN</strong>。在标准基准上深度-精度的故事戏剧化（图 6c，复刻自 Eliasof et al. (2024) 的 Cora 实验）：GCN/GAT 在 8 层后崩溃，跟谱证明的预测一致；纯扩散 GRAND 只是<strong>推迟</strong>了崩溃，因为它只是更精确地解同一个热方程；只有 RDGNN——显式反应项——能在 $L = 64$ 时维持精度。这种效应在<strong>异配图</strong>（邻居标签更倾向不同）上更明显，因为对异配图来说"平滑"本身就是有害的：反应项可以学着<strong>放大</strong>邻居之间的差异。</p><hr><h2 id=7-系列收官八章一念>7. 系列收官：八章一念</h2><p>我们到了 <em>PDE+机器学习</em> 系列的终点。退一步看。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/pde-ml/08-%E5%8F%8D%E5%BA%94%E6%89%A9%E6%95%A3%E7%B3%BB%E7%BB%9F%E4%B8%8EGNN/fig7_series_journey.png alt="八章之旅。第 1-2 章用神经网络解 PDE；第 3-4 章把训练重写成变分原理；第 5-6 章构造保结构的网络；第 7-8 章把同一套机器搬到生成模型和图学习上。" loading=lazy decoding=async></figure><em>八章之旅。第 1-2 章用神经网络<strong>解</strong> PDE；第 3-4 章把训练重写成变分原理；第 5-6 章构造<strong>保结构</strong>的网络；第 7-8 章把同一套机器搬到生成模型和图学习上。</em></p><p>八章可以分成四对：</p><table><thead><tr><th>对</th><th>章节</th><th>背后的 PDE</th></tr></thead><tbody><tr><td>用 NN 解 PDE</td><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e7%89%a9%e7%90%86%e4%bf%a1%e6%81%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/>1</a>
+PINN，<a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/>2</a>
+神经算子</td><td>PDE 本身就是损失函数</td></tr><tr><td>变分视角</td><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/>3</a>
+Deep Ritz，<a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/>4</a>
+VI / Fokker-Planck</td><td>损失 $=$ 自由能；梯度流 $=$ 连续性方程</td></tr><tr><td>保结构流</td><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/>5</a>
+辛网络，<a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/>6</a>
+Neural ODE / CNF</td><td>网络尊重流的辛 / 体积 / 散度结构</td></tr><tr><td>生成 + 图 PDE</td><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/>7</a>
+扩散模型，<strong>8</strong> RD + GNN</td><td>正反向 Fokker-Planck；图上反应扩散</td></tr></tbody></table><p>每一章背后都是同一句话：</p><blockquote><p><strong>一种神经架构是某个被离散化的 PDE。选架构 = 选 PDE。</strong></p></blockquote><p>具体来说：</p><ul><li><strong>想在训练分布外外推？</strong>——选算子学习的 PDE（第 2 章）。</li><li><strong>想让网络尊重守恒量？</strong>——选辛积分器（第 5 章）。</li><li><strong>想要可计算的似然？</strong>——选连续性方程，学它的漂移（第 6 章）。</li><li><strong>想从复杂分布采样？</strong>——选 Fokker-Planck，学它的 score（第 7 章）。</li><li><strong>想要不会塌的深层 GNN？</strong>——选反应扩散，而不是只有扩散（本章）。</li></ul><p>PDE 视角不是看深度学习的唯一有用透镜，但它出乎意料地<strong>有生产力</strong>：每次我们问"对应的数值分析会怎么说？&ldquo;都能换来一个具体的回报——一个稳定性界、一个步长约束、一个结构修复。这是物理范式给机器学习带来的红利，也是这两个领域之间的对话还远没说完的原因。</p><hr><h2 id=8-习题>8. 习题</h2><p><strong>练习 1.</strong> 证明对连通图，$\mathbf{L}\mathbf{x} = \mathbf{0}$ 的唯一解是常向量。由此说明热方程把任何初值驱动到其均值。</p><blockquote><p><em>解。</em> 由 (3)，$\mathbf{x}^\top\!\mathbf{L}\mathbf{x} = \tfrac{1}{2}\sum w_{ij}(x_i - x_j)^2 = 0$ 强制每条边两端 $x_i = x_j$；连通图上这意味着 $\mathbf{x}$ 是常向量。所以 $\mathbf{L}$ 的核是一维的，其余特征值严格为正，$e^{-\mathbf{L}t}$ 杀掉所有非常数分量并保住均值。$\blacksquare$</p></blockquote><p><strong>练习 2.</strong> 推导扩散步的显式 Euler 稳定性界 $\epsilon_d < 1/\lambda_{\max}(\mathbf{L})$。</p><blockquote><p><em>解。</em> 谱坐标下 Euler 更新为 $\hat{x}_k^{(\ell+1)} = (1 - \epsilon_d \lambda_k)\,\hat{x}_k^{(\ell)}$。要求每个 $k$ 都不增长 $|1 - \epsilon_d \lambda_k| \leq 1$，即 $0 \leq \epsilon_d \lambda_k \leq 2$，得 $\epsilon_d \leq 2/\lambda_{\max}$。要求单调衰减（不振荡）则更严格地要求 $\epsilon_d < 1/\lambda_{\max}$。$\blacksquare$</p></blockquote><p><strong>练习 3.</strong> 为什么 RDGNN 在异配图上特别有用？</p><blockquote><p><em>解。</em> 异配图上邻居标签倾向相反。纯扩散把邻居特征相加平均，这本身就在<strong>摧毁</strong>判别信号——层数越多越糟。反应项<strong>逐节点</strong>操作，并以 $\mathbf{H}^{(0)}$ 为条件，因此可以输出节点专属的更新，<strong>放大</strong>邻居之间的差异，恢复类间可分性。$\blacksquare$</p></blockquote><p><strong>练习 4.</strong> 证明 RDGNN 的离散更新 (7) 是连续 RD-GNN (6) 的一阶 Lie-Trotter 算子分裂离散。</p><blockquote><p><em>解。</em> 算子分裂把 $\dot{\mathbf{H}} = (\mathcal{D} + \mathcal{R})\,\mathbf{H}$ 分成两步交替的 Euler：先 $\mathbf{H}^{1/2} = \mathbf{H} + h\mathcal{D}\mathbf{H}$，再 $\mathbf{H}^{(\ell+1)} = \mathbf{H}^{1/2} + h\mathcal{R}\mathbf{H}^{1/2}$。在标准实现中两个算子都在同一个 $\mathbf{H}^{(\ell)}$ 上求值，结果就是 (7)。局部截断误差为 $\mathcal{O}(h^2[\mathcal{D}, \mathcal{R}])$，即一阶。$\blacksquare$</p></blockquote><p><strong>练习 5.</strong> 单条图灵不稳定性条件可以数值检验：取 Gray-Scott 的参数 $(D_u, D_v, F, k)$，在均匀稳态附近线性化，扫 $|\mathbf{k}|^2$ 看 $\det\,\mathbf{A}(|\mathbf{k}|^2)$ 何时变号。把这个写成代码，复现图 1 中的某一格。</p><blockquote><p><em>解概要。</em> Gray-Scott 的均匀稳态满足 $u v^2 = F(1 - u)$ 且 $u v^2 = (F + k) v$。算这个稳态处的 $2\times 2$ Jacobian，构造 $\mathbf{A}(|\mathbf{k}|^2) = \mathbf{J} - |\mathbf{k}|^2 \mathrm{diag}(D_u, D_v)$，画 $\det\,\mathbf{A}$ vs $|\mathbf{k}|^2$。负的一段表示不稳定带，对应波长 $2\pi/|\mathbf{k}_*|$ 与模拟出来的模式可视尺度一致。$\blacksquare$</p></blockquote><hr><h2 id=参考文献>参考文献</h2><p>[1] Turing, A. M. (1952). <em>The chemical basis of morphogenesis.</em> Phil. Trans. R. Soc. B, 237(641), 37-72.</p><p>[2] Pearson, J. E. (1993). <em>Complex patterns in a simple system.</em> Science, 261(5118), 189-192.</p><p>[3] Murray, J. D. (2003). <em>Mathematical biology II: Spatial models and biomedical applications</em> (3rd ed.). Springer.</p><p>[4] Kipf, T. N., & Welling, M. (2017). <em>Semi-supervised classification with graph convolutional networks.</em> ICLR. <a href=https://arxiv.org/abs/1609.02907 target=_blank rel="noopener noreferrer">arXiv:1609.02907 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[5] Oono, K., & Suzuki, T. (2020). <em>Graph neural networks exponentially lose expressive power for node classification.</em> ICLR. <a href=https://arxiv.org/abs/1905.10947 target=_blank rel="noopener noreferrer">arXiv:1905.10947 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[6] Chamberlain, B., Rowbottom, J., Gorinova, M., Webb, S., Rossi, E., & Bronstein, M. (2021). <em>GRAND: Graph neural diffusion.</em> ICML. <a href=https://arxiv.org/abs/2106.10934 target=_blank rel="noopener noreferrer">arXiv:2106.10934 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[7] Thorpe, M., Nguyen, T. M., Xia, H., Strohmer, T., Bertozzi, A., Osher, S., & Wang, B. (2022). <em>GRAND++: Graph neural diffusion with a source term.</em> ICLR.</p><p>[8] Eliasof, M., Haber, E., & Treister, E. (2021). <em>PDE-GCN: Novel architectures for graph neural networks motivated by partial differential equations.</em> NeurIPS. <a href=https://arxiv.org/abs/2108.01938 target=_blank rel="noopener noreferrer">arXiv:2108.01938 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[9] Di Giovanni, F., Rowbottom, J., Chamberlain, B., Markovich, T., & Bronstein, M. (2022). <em>Graph neural networks as gradient flows.</em> <a href=https://arxiv.org/abs/2206.10991 target=_blank rel="noopener noreferrer">arXiv:2206.10991 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[10] Choi, J., Hong, S., Park, N., & Cho, S.-B. (2023). <em>GREAD: Graph neural reaction-diffusion networks.</em> ICML. <a href=https://arxiv.org/abs/2211.14208 target=_blank rel="noopener noreferrer">arXiv:2211.14208 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><p>[11] Eliasof, M., Haber, E., & Treister, E. (2024). <em>Graph neural reaction-diffusion models.</em> SIAM J. Sci. Comput. <a href=https://arxiv.org/abs/2406.10871 target=_blank rel="noopener noreferrer">arXiv:2406.10871 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></p><hr><h2 id=系列导航>系列导航</h2><table><thead><tr><th>部分</th><th>主题</th></tr></thead><tbody><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%80-%e7%89%a9%e7%90%86%e4%bf%a1%e6%81%af%e7%a5%9e%e7%bb%8f%e7%bd%91%e7%bb%9c/>1</a></td><td>物理信息神经网络</td></tr><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%8c-%e7%a5%9e%e7%bb%8f%e7%ae%97%e5%ad%90%e7%90%86%e8%ae%ba/>2</a></td><td>神经算子理论</td></tr><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%89-%e5%8f%98%e5%88%86%e5%8e%9f%e7%90%86%e4%b8%8e%e4%bc%98%e5%8c%96/>3</a></td><td>变分原理与优化</td></tr><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%9b%9b-%e5%8f%98%e5%88%86%e6%8e%a8%e6%96%ad%e4%b8%8eFokker-Planck%e6%96%b9%e7%a8%8b/>4</a></td><td>变分推断与Fokker-Planck方程</td></tr><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%ba%94-%e8%be%9b%e5%87%a0%e4%bd%95%e4%b8%8e%e4%bf%9d%e7%bb%93%e6%9e%84%e7%bd%91%e7%bb%9c/>5</a></td><td>辛几何与保结构网络</td></tr><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e5%85%ad-%e8%bf%9e%e7%bb%ad%e5%bd%92%e4%b8%80%e5%8c%96%e6%b5%81%e4%b8%8eNeural-ODE/>6</a></td><td>连续归一化流与Neural ODE</td></tr><tr><td><a href=/zh/PDE%e4%b8%8e%e6%9c%ba%e5%99%a8%e5%ad%a6%e4%b9%a0-%e4%b8%83-%e6%89%a9%e6%95%a3%e6%a8%a1%e5%9e%8b%e4%b8%8eScore-Matching/>7</a></td><td>扩散模型与Score Matching</td></tr><tr><td><strong>8</strong></td><td><strong>反应扩散系统与GNN（本文，终章）</strong></td></tr></tbody></table><p><em>感谢看到这里。</em></p></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#本文你会学到>本文你会学到</a></li><li><a href=#1-连续空间上的反应扩散>1. 连续空间上的反应扩散</a><ul><li><a href=#11-一般形式>1.1 一般形式</a></li><li><a href=#12-gray-scott-模型>1.2 Gray-Scott 模型</a></li><li><a href=#13-fitzhugh-nagumo-模型>1.3 FitzHugh-Nagumo 模型</a></li></ul></li><li><a href=#2-图灵不稳定性从均匀生出模式>2. 图灵不稳定性：从均匀生出模式</a><ul><li><a href=#21-问题>2.1 问题</a></li><li><a href=#22-推导>2.2 推导</a></li><li><a href=#23-直觉短程激活长程抑制>2.3 直觉：短程激活、长程抑制</a></li></ul></li><li><a href=#3-从网格到图>3. 从网格到图</a><ul><li><a href=#31-为什么要图>3.1 为什么要图</a></li><li><a href=#32-图拉普拉斯>3.2 图拉普拉斯</a></li><li><a href=#33-图上的热方程>3.3 图上的热方程</a></li></ul></li><li><a href=#4-gcn-就是热方程>4. GCN 就是热方程</a><ul><li><a href=#41-等价关系>4.1 等价关系</a></li><li><a href=#42-过度平滑的谱证明>4.2 过度平滑的谱证明</a></li><li><a href=#43-连续深度-gnn>4.3 连续深度 GNN</a></li></ul></li><li><a href=#5-rdgnn反应扩散图神经网络>5. RDGNN：反应扩散图神经网络</a><ul><li><a href=#51-架构>5.1 架构</a></li><li><a href=#52-为什么有效>5.2 为什么有效</a></li><li><a href=#53-pytorch-实现>5.3 PyTorch 实现</a></li></ul></li><li><a href=#6-反应扩散已经胜出的地方>6. 反应扩散已经胜出的地方</a></li><li><a href=#7-系列收官八章一念>7. 系列收官：八章一念</a></li><li><a href=#8-习题>8. 习题</a></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>13 min</strong></div><div class=row><span>Word count</span><strong>6284</strong></div><div class=row><span>Published</span><strong>Aug 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

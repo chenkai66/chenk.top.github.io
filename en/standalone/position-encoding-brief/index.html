@@ -1,481 +1,51 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Position Encoding Brief: From Sinusoidal to RoPE and ALiBi · Chen Kai Blog</title>
-<meta name="description" content="A practitioner&#39;s tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/standalone/position-encoding-brief/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/standalone/position-encoding-brief/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Position Encoding Brief: From Sinusoidal to RoPE and ALiBi">
-<meta property="og:description" content="A practitioner&#39;s tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters.">
-<meta property="og:url" content="https://www.chenk.top/en/standalone/position-encoding-brief/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Standalone</a>
-        
-      </div>
-      <h1>Position Encoding Brief: From Sinusoidal to RoPE and ALiBi</h1>
-      <p class="deck">A practitioner&#39;s tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-09-20">September 20, 2023</time> · 6 min read · 2900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/nlp/" class="tag">#NLP</a><a href="/en/tags/transformer/" class="tag">#Transformer</a><a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/llm/" class="tag">#LLM</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Self-attention has a strange property that surprises most people the first time they compute it by hand: it does not know the order of its inputs. Permute the tokens and every attention score is permuted along with them — the function is exactly equivariant. So before we can do anything useful with a Transformer, we have to inject position information from the outside.</p>
-<p>That single design decision — <em>how</em> to inject it — has spawned a remarkable amount of research. Sinusoidal, learned, relative, T5-style buckets, RoPE, ALiBi, NoPE, and more. This post is a practitioner&rsquo;s brief: enough math to know why each scheme works, enough comparison to choose one, and a clear focus on the property that matters most in the LLM era — <strong>length extrapolation</strong>, the ability to handle sequences longer than anything seen in training.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>Why attention is permutation-equivariant and what that means for design</li>
-<li>The two big families: <strong>absolute</strong> vs. <strong>relative</strong> position encoding</li>
-<li>Sinusoidal, learned, T5 buckets, RoPE, ALiBi — what they actually compute</li>
-<li>Which schemes extrapolate to longer contexts and which collapse</li>
-<li>A short selection guide for new architectures</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Familiarity with self-attention ($Q$, $K$, $V$, softmax)</li>
-<li>Comfort with basic linear algebra (matrices, dot products, rotations)</li>
-</ul>
-<hr>
-<h1 id="why-attention-needs-position-at-all">Why Attention Needs Position At All</h1>
-<p>Given input embeddings $X = [x_1, x_2, \ldots, x_n] \in \mathbb{R}^{n \times d}$, scaled dot-product attention computes</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Position Encoding Brief: From Sinusoidal to RoPE and ALiBi · Chen Kai Blog</title>
+<meta name=description content="A practitioner's tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/standalone/position-encoding-brief/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/standalone/position-encoding-brief/><meta property="og:type" content="article"><meta property="og:title" content="Position Encoding Brief: From Sinusoidal to RoPE and ALiBi"><meta property="og:description" content="A practitioner's tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters."><meta property="og:url" content="https://www.chenk.top/en/standalone/position-encoding-brief/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Standalone</a></div><h1>Position Encoding Brief: From Sinusoidal to RoPE and ALiBi</h1><p class=deck>A practitioner's tour of Transformer position encoding: why attention needs it at all, how sinusoidal/learned/relative/RoPE/ALiBi schemes differ, and which one to pick when long-context extrapolation matters.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-09-20>September 20, 2023</time> · 6 min read · 2806 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/nlp/ class=tag>#NLP</a><a href=/en/tags/transformer/ class=tag>#Transformer</a><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/llm/ class=tag>#LLM</a></div></div></header><div class=prose><p>Self-attention has a strange property that surprises most people the first time they compute it by hand: it does not know the order of its inputs. Permute the tokens and every attention score is permuted along with them — the function is exactly equivariant. So before we can do anything useful with a Transformer, we have to inject position information from the outside.</p><p>That single design decision — <em>how</em> to inject it — has spawned a remarkable amount of research. Sinusoidal, learned, relative, T5-style buckets, RoPE, ALiBi, NoPE, and more. This post is a practitioner&rsquo;s brief: enough math to know why each scheme works, enough comparison to choose one, and a clear focus on the property that matters most in the LLM era — <strong>length extrapolation</strong>, the ability to handle sequences longer than anything seen in training.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>Why attention is permutation-equivariant and what that means for design</li><li>The two big families: <strong>absolute</strong> vs. <strong>relative</strong> position encoding</li><li>Sinusoidal, learned, T5 buckets, RoPE, ALiBi — what they actually compute</li><li>Which schemes extrapolate to longer contexts and which collapse</li><li>A short selection guide for new architectures</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Familiarity with self-attention ($Q$, $K$, $V$, softmax)</li><li>Comfort with basic linear algebra (matrices, dot products, rotations)</li></ul><hr><h1 id=why-attention-needs-position-at-all>Why Attention Needs Position At All</h1><p>Given input embeddings $X = [x_1, x_2, \ldots, x_n] \in \mathbb{R}^{n \times d}$, scaled dot-product attention computes</p>$$
 \text{Attn}(X) = \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d_k}}\right) V,
 \quad Q = XW_Q,\; K = XW_K,\; V = XW_V.
-$$<p>If we permute the rows of $X$ by any permutation matrix $P$, then $Q$, $K$, and $V$ permute the same way, and the attention output is also permuted by $P$. In symbols, $\text{Attn}(PX) = P\,\text{Attn}(X)$.</p>
-<p>That&rsquo;s what &ldquo;the model has no sense of order&rdquo; means precisely: the function is <strong>equivariant</strong> to permutations of the input. It treats &ldquo;the cat sat on the mat&rdquo; the same as &ldquo;the mat sat on the cat&rdquo; — same multiset of token embeddings in, same multiset of vectors out, just shuffled. We must inject order somehow, or the model can never tell the two sentences apart.</p>
-<p>The space of solutions divides into two clean families.</p>
-<hr>
-<h1 id="family-1-absolute-position-encoding">Family 1: Absolute Position Encoding</h1>
-<p>The idea is the simplest one possible: assign each position $p$ its own vector $e_p \in \mathbb{R}^d$, and add it to the token embedding before the first attention layer:</p>
-$$
+$$<p>If we permute the rows of $X$ by any permutation matrix $P$, then $Q$, $K$, and $V$ permute the same way, and the attention output is also permuted by $P$. In symbols, $\text{Attn}(PX) = P\,\text{Attn}(X)$.</p><p>That&rsquo;s what &ldquo;the model has no sense of order&rdquo; means precisely: the function is <strong>equivariant</strong> to permutations of the input. It treats &ldquo;the cat sat on the mat&rdquo; the same as &ldquo;the mat sat on the cat&rdquo; — same multiset of token embeddings in, same multiset of vectors out, just shuffled. We must inject order somehow, or the model can never tell the two sentences apart.</p><p>The space of solutions divides into two clean families.</p><hr><h1 id=family-1-absolute-position-encoding>Family 1: Absolute Position Encoding</h1><p>The idea is the simplest one possible: assign each position $p$ its own vector $e_p \in \mathbb{R}^d$, and add it to the token embedding before the first attention layer:</p>$$
 \tilde{x}_p = x_p + e_p.
-$$<p>Now the input at position 1 is genuinely different from the input at position 2, even if both are the word &ldquo;the&rdquo;. Attention can read these distinct vectors and pick up order.</p>
-<p>The question is: where do the $e_p$ come from?</p>
-<h2 id="11-learned-position-embeddings">1.1 Learned Position Embeddings</h2>
-<p>The most direct answer: make $E \in \mathbb{R}^{L_{\max} \times d}$ a trainable parameter matrix and let SGD figure it out. This is what the original BERT and GPT-2 use.</p>
-<p><strong>Pros.</strong></p>
-<ul>
-<li>Maximum flexibility: the model learns whatever positional structure the data actually needs.</li>
-<li>Very simple to implement: it is just an <code>nn.Embedding(L_max, d)</code>.</li>
-</ul>
-<p><strong>Cons.</strong></p>
-<ul>
-<li><strong>Hard cap on sequence length.</strong> You picked $L_{\max}$ at training time, and rows beyond it simply do not exist. To go longer, you must reinitialize and continue training.</li>
-<li><strong>No extrapolation.</strong> Even within $L_{\max}$, positions that were rare in training get rare gradients and often look noisy. Push past $L_{\max}$ and the model has nothing to rely on.</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig2_learned.png" alt="Learned positional encoding: random initialization sharpens into smooth structure during training, but performance falls off a cliff past the training context length" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The right panel above is the punchline: an absolute learned PE is a good in-distribution function and an <em>undefined</em> function past $L_{\max}$. For a chat model that needs to handle long documents, this is fatal.</p>
-<h2 id="12-sinusoidal-position-encoding">1.2 Sinusoidal Position Encoding</h2>
-<p>The &ldquo;Attention Is All You Need&rdquo; paper proposes a hand-designed alternative. For position $p$ and dimension index $i$ (with $d$ even), define</p>
-$$
-\text{PE}(p, 2i)   = \sin\!\bigl(p / 10000^{2i/d}\bigr), \qquad
+$$<p>Now the input at position 1 is genuinely different from the input at position 2, even if both are the word &ldquo;the&rdquo;. Attention can read these distinct vectors and pick up order.</p><p>The question is: where do the $e_p$ come from?</p><h2 id=11-learned-position-embeddings>1.1 Learned Position Embeddings</h2><p>The most direct answer: make $E \in \mathbb{R}^{L_{\max} \times d}$ a trainable parameter matrix and let SGD figure it out. This is what the original BERT and GPT-2 use.</p><p><strong>Pros.</strong></p><ul><li>Maximum flexibility: the model learns whatever positional structure the data actually needs.</li><li>Very simple to implement: it is just an <code>nn.Embedding(L_max, d)</code>.</li></ul><p><strong>Cons.</strong></p><ul><li><strong>Hard cap on sequence length.</strong> You picked $L_{\max}$ at training time, and rows beyond it simply do not exist. To go longer, you must reinitialize and continue training.</li><li><strong>No extrapolation.</strong> Even within $L_{\max}$, positions that were rare in training get rare gradients and often look noisy. Push past $L_{\max}$ and the model has nothing to rely on.</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig2_learned.png alt="Learned positional encoding: random initialization sharpens into smooth structure during training, but performance falls off a cliff past the training context length" loading=lazy decoding=async></figure></p><p>The right panel above is the punchline: an absolute learned PE is a good in-distribution function and an <em>undefined</em> function past $L_{\max}$. For a chat model that needs to handle long documents, this is fatal.</p><h2 id=12-sinusoidal-position-encoding>1.2 Sinusoidal Position Encoding</h2><p>The &ldquo;Attention Is All You Need&rdquo; paper proposes a hand-designed alternative. For position $p$ and dimension index $i$ (with $d$ even), define</p>$$
+\text{PE}(p, 2i) = \sin\!\bigl(p / 10000^{2i/d}\bigr), \qquad
 \text{PE}(p, 2i+1) = \cos\!\bigl(p / 10000^{2i/d}\bigr).
-$$<p>Each pair of dimensions $(2i, 2i+1)$ is a sine/cosine at a frequency that decreases geometrically with $i$. The lowest dimensions wiggle fast (period $2\pi$); the highest dimensions barely move over the entire sequence (period $\sim 2\pi \cdot 10000$). Each position thus gets a <em>unique multi-scale fingerprint</em>.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig1_sinusoidal.png" alt="Sinusoidal positional encoding: heatmap of dim x position (left), and the per-dimension fingerprint of a single position (right)" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>Why these specific frequencies?</strong> Two reasons.</p>
-<ol>
-<li>
-<p><strong>Linear-relative property.</strong> Because $\sin(p+k)$ and $\cos(p+k)$ are linear combinations of $\sin(p)$, $\cos(p)$ with coefficients that depend only on $k$, the encoding for $p+k$ is a fixed linear transform of the encoding for $p$. Attention, which applies linear projections to $Q$ and $K$, can in principle learn to read off relative offsets. This is the &ldquo;free&rdquo; relative information that everybody talks about.</p>
-</li>
-<li>
-<p><strong>No length cap.</strong> The formula evaluates at any $p \in \mathbb{R}$. You can ask for position 100,000 even though training only saw position 512.</p>
-</li>
-</ol>
-<p><strong>Pros.</strong></p>
-<ul>
-<li>Parameter-free; no embedding table to size.</li>
-<li>Defined for all positions, with a smooth, principled extrapolation.</li>
-<li>The linear-relative trick gives attention a head start on relative reasoning.</li>
-</ul>
-<p><strong>Cons.</strong></p>
-<ul>
-<li><strong>The &ldquo;free&rdquo; relative information is only theoretical.</strong> Modern Transformers don&rsquo;t actually exploit it after the first layer because LayerNorm and FFN destroy the linear structure.</li>
-<li><strong>Empirical extrapolation is poor.</strong> Despite the elegant formula, perplexity rises sharply past the training length — often more sharply than for ALiBi. The reason is that <em>attention weights</em>, not the encoding itself, are what need to remain sensible at long range, and there is no mechanism keeping them so.</li>
-</ul>
-<p>In practice: sinusoidal PE was a beautiful idea that was overtaken by what came next.</p>
-<h2 id="13-other-absolute-variants-brief">1.3 Other Absolute Variants (Brief)</h2>
-<p>Two more schemes are worth mentioning quickly so you recognize them.</p>
-<ul>
-<li>
-<p><strong>Recurrent / FLOATER (Liu et al., 2020).</strong> Replace the lookup table with a learned ODE: $e_{p+1} = e_p + f_\theta(e_p, p)$. The recurrence gives extrapolation but breaks parallelism — exactly the trade-off Transformers were designed to avoid.</p>
-</li>
-<li>
-<p><strong>Multiplicative encoding.</strong> Instead of $\tilde{x}_p = x_p + e_p$, use $\tilde{x}_p = x_p \odot e_p$. Mostly an academic curiosity; in practice it is hard to train stably.</p>
-</li>
-</ul>
-<p>The ceiling of pure absolute encoding is set by the same fact for all of these: position is glued onto the token <em>before</em> any attention, and after a few layers the link to &ldquo;this token is at offset $k$ from that token&rdquo; is gone.</p>
-<hr>
-<h1 id="family-2-relative-position-encoding">Family 2: Relative Position Encoding</h1>
-<p>The shift in viewpoint that powers everything modern: in language, <strong>what matters is usually the <em>gap</em> between two tokens, not where either of them sits in the document.</strong> &ldquo;The cat sat on the mat&rdquo; means the same thing whether it appears on page 1 or page 47. So inject the relative offset $i - j$ directly into attention, where it is actually used.</p>
-<h2 id="21-the-original-shaw-style-formulation">2.1 The Original Shaw-Style Formulation</h2>
-<p>Shaw et al. (2018) introduced relative position into the attention dot product as a learned bias on the keys:</p>
-$$
+$$<p>Each pair of dimensions $(2i, 2i+1)$ is a sine/cosine at a frequency that decreases geometrically with $i$. The lowest dimensions wiggle fast (period $2\pi$); the highest dimensions barely move over the entire sequence (period $\sim 2\pi \cdot 10000$). Each position thus gets a <em>unique multi-scale fingerprint</em>.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig1_sinusoidal.png alt="Sinusoidal positional encoding: heatmap of dim x position (left), and the per-dimension fingerprint of a single position (right)" loading=lazy decoding=async></figure></p><p><strong>Why these specific frequencies?</strong> Two reasons.</p><ol><li><p><strong>Linear-relative property.</strong> Because $\sin(p+k)$ and $\cos(p+k)$ are linear combinations of $\sin(p)$, $\cos(p)$ with coefficients that depend only on $k$, the encoding for $p+k$ is a fixed linear transform of the encoding for $p$. Attention, which applies linear projections to $Q$ and $K$, can in principle learn to read off relative offsets. This is the &ldquo;free&rdquo; relative information that everybody talks about.</p></li><li><p><strong>No length cap.</strong> The formula evaluates at any $p \in \mathbb{R}$. You can ask for position 100,000 even though training only saw position 512.</p></li></ol><p><strong>Pros.</strong></p><ul><li>Parameter-free; no embedding table to size.</li><li>Defined for all positions, with a smooth, principled extrapolation.</li><li>The linear-relative trick gives attention a head start on relative reasoning.</li></ul><p><strong>Cons.</strong></p><ul><li><strong>The &ldquo;free&rdquo; relative information is only theoretical.</strong> Modern Transformers don&rsquo;t actually exploit it after the first layer because LayerNorm and FFN destroy the linear structure.</li><li><strong>Empirical extrapolation is poor.</strong> Despite the elegant formula, perplexity rises sharply past the training length — often more sharply than for ALiBi. The reason is that <em>attention weights</em>, not the encoding itself, are what need to remain sensible at long range, and there is no mechanism keeping them so.</li></ul><p>In practice: sinusoidal PE was a beautiful idea that was overtaken by what came next.</p><h2 id=13-other-absolute-variants-brief>1.3 Other Absolute Variants (Brief)</h2><p>Two more schemes are worth mentioning quickly so you recognize them.</p><ul><li><p><strong>Recurrent / FLOATER (Liu et al., 2020).</strong> Replace the lookup table with a learned ODE: $e_{p+1} = e_p + f_\theta(e_p, p)$. The recurrence gives extrapolation but breaks parallelism — exactly the trade-off Transformers were designed to avoid.</p></li><li><p><strong>Multiplicative encoding.</strong> Instead of $\tilde{x}_p = x_p + e_p$, use $\tilde{x}_p = x_p \odot e_p$. Mostly an academic curiosity; in practice it is hard to train stably.</p></li></ul><p>The ceiling of pure absolute encoding is set by the same fact for all of these: position is glued onto the token <em>before</em> any attention, and after a few layers the link to &ldquo;this token is at offset $k$ from that token&rdquo; is gone.</p><hr><h1 id=family-2-relative-position-encoding>Family 2: Relative Position Encoding</h1><p>The shift in viewpoint that powers everything modern: in language, <strong>what matters is usually the <em>gap</em> between two tokens, not where either of them sits in the document.</strong> &ldquo;The cat sat on the mat&rdquo; means the same thing whether it appears on page 1 or page 47. So inject the relative offset $i - j$ directly into attention, where it is actually used.</p><h2 id=21-the-original-shaw-style-formulation>2.1 The Original Shaw-Style Formulation</h2><p>Shaw et al. (2018) introduced relative position into the attention dot product as a learned bias on the keys:</p>$$
 \text{score}(i, j) = \frac{q_i^\top \bigl(k_j + r_{i-j}\bigr)}{\sqrt{d_k}},
-$$<p>where $r_{i-j} \in \mathbb{R}^{d_k}$ is a learned vector indexed by the <em>signed offset</em> $i - j$. Offsets larger than some clipping radius $K$ collapse to a single bucket, so a finite vocabulary of offsets covers any sequence length.</p>
-<p><strong>Why this works.</strong> The model can directly learn things like &ldquo;tokens 1 step away matter more than tokens 5 steps away&rdquo; without ever needing the absolute position. And because offsets repeat across the sequence, training data for &ldquo;offset = 3&rdquo; comes from every position pair separated by 3, not just one.</p>
-<p><strong>Limitation.</strong> Each layer adds a $|R| \times d_k$ table, and the attention computation now includes a per-pair lookup, which is awkward to fuse into the matmul.</p>
-<h2 id="22-t5-bias-as-simple-as-it-gets">2.2 T5 Bias: As Simple As It Gets</h2>
-<p>T5 (Raffel et al., 2020) takes the simplification one step further. Drop the vector $r_{i-j}$ and use a <em>scalar</em> bias added directly to the score:</p>
-$$
+$$<p>where $r_{i-j} \in \mathbb{R}^{d_k}$ is a learned vector indexed by the <em>signed offset</em> $i - j$. Offsets larger than some clipping radius $K$ collapse to a single bucket, so a finite vocabulary of offsets covers any sequence length.</p><p><strong>Why this works.</strong> The model can directly learn things like &ldquo;tokens 1 step away matter more than tokens 5 steps away&rdquo; without ever needing the absolute position. And because offsets repeat across the sequence, training data for &ldquo;offset = 3&rdquo; comes from every position pair separated by 3, not just one.</p><p><strong>Limitation.</strong> Each layer adds a $|R| \times d_k$ table, and the attention computation now includes a per-pair lookup, which is awkward to fuse into the matmul.</p><h2 id=22-t5-bias-as-simple-as-it-gets>2.2 T5 Bias: As Simple As It Gets</h2><p>T5 (Raffel et al., 2020) takes the simplification one step further. Drop the vector $r_{i-j}$ and use a <em>scalar</em> bias added directly to the score:</p>$$
 \text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} + b_{B(i-j)},
-$$<p>where $B(\cdot)$ is a &ldquo;bucketing&rdquo; function that maps small offsets to themselves and large offsets logarithmically into a small number of bins (typically 32). Each head learns its own table of $\sim 32$ bias scalars. That&rsquo;s it.</p>
-<p>T5 also drops the position bias on the value vectors entirely. Empirically nothing breaks, and the math is dramatically simpler.</p>
-<h2 id="23-deberta-disentangled-attention">2.3 DeBERTa: Disentangled Attention</h2>
-<p>DeBERTa (He et al., 2021) goes the other direction and <em>expands</em> the relative formulation. If you expand $(x_i + e_i)^\top (x_j + e_j)$ you get four terms: content–content, content–position, position–content, position–position. T5 keeps content–content plus a position–position scalar; DeBERTa keeps the cross terms (content–position and position–content) and drops the position–position one. The intuition is that &ldquo;what does this token attend to at relative distance $k$?&rdquo; is genuinely informative, and a content-aware version of that should be even better.</p>
-<p>DeBERTa held the SuperGLUE crown briefly. The cost is more parameters and more attention complexity.</p>
-<hr>
-<h1 id="rope-rotation-in-disguise">RoPE: Rotation in Disguise</h1>
-<p>RoPE (Su et al., 2021) is the position encoding that powers most modern open-source LLMs — LLaMA, Qwen, Mistral, Yi, DeepSeek, Gemma, all RoPE. It deserves its own section because it manages a magic trick: it looks like an <em>absolute</em> encoding (apply a transform to each token&rsquo;s $q$ and $k$ based on its absolute position) but the resulting attention score depends only on the <em>relative</em> offset. Best of both worlds.</p>
-<h2 id="31-the-construction">3.1 The Construction</h2>
-<p>Treat each pair of dimensions in the query/key vectors as a 2-D plane. For position $m$, rotate that plane by an angle $m \theta_g$, where $\theta_g$ is a fixed frequency for the $g$-th pair (chosen on a geometric schedule, just like sinusoidal):</p>
-$$
+$$<p>where $B(\cdot)$ is a &ldquo;bucketing&rdquo; function that maps small offsets to themselves and large offsets logarithmically into a small number of bins (typically 32). Each head learns its own table of $\sim 32$ bias scalars. That&rsquo;s it.</p><p>T5 also drops the position bias on the value vectors entirely. Empirically nothing breaks, and the math is dramatically simpler.</p><h2 id=23-deberta-disentangled-attention>2.3 DeBERTa: Disentangled Attention</h2><p>DeBERTa (He et al., 2021) goes the other direction and <em>expands</em> the relative formulation. If you expand $(x_i + e_i)^\top (x_j + e_j)$ you get four terms: content–content, content–position, position–content, position–position. T5 keeps content–content plus a position–position scalar; DeBERTa keeps the cross terms (content–position and position–content) and drops the position–position one. The intuition is that &ldquo;what does this token attend to at relative distance $k$?&rdquo; is genuinely informative, and a content-aware version of that should be even better.</p><p>DeBERTa held the SuperGLUE crown briefly. The cost is more parameters and more attention complexity.</p><hr><h1 id=rope-rotation-in-disguise>RoPE: Rotation in Disguise</h1><p>RoPE (Su et al., 2021) is the position encoding that powers most modern open-source LLMs — LLaMA, Qwen, Mistral, Yi, DeepSeek, Gemma, all RoPE. It deserves its own section because it manages a magic trick: it looks like an <em>absolute</em> encoding (apply a transform to each token&rsquo;s $q$ and $k$ based on its absolute position) but the resulting attention score depends only on the <em>relative</em> offset. Best of both worlds.</p><h2 id=31-the-construction>3.1 The Construction</h2><p>Treat each pair of dimensions in the query/key vectors as a 2-D plane. For position $m$, rotate that plane by an angle $m \theta_g$, where $\theta_g$ is a fixed frequency for the $g$-th pair (chosen on a geometric schedule, just like sinusoidal):</p>$$
 R_m^{(g)} =
 \begin{pmatrix}
-  \cos m\theta_g & -\sin m\theta_g \\
+\cos m\theta_g & -\sin m\theta_g \\
   \sin m\theta_g &  \cos m\theta_g
 \end{pmatrix}.
-$$<p>Apply these block-diagonal rotations to $q$ and $k$:</p>
-$$
+$$<p>Apply these block-diagonal rotations to $q$ and $k$:</p>$$
 \tilde q_m = R_m\, q_m, \qquad \tilde k_n = R_n\, k_n.
-$$<p>Now compute the inner product:</p>
-$$
+$$<p>Now compute the inner product:</p>$$
 \tilde q_m^\top \tilde k_n
 = q_m^\top R_m^\top R_n\, k_n
 = q_m^\top R_{n-m}\, k_n.
-$$<p>The two absolute rotations collapse into a <em>single</em> rotation by the relative offset $n - m$. The attention score now depends only on the gap.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig3_rope.png" alt="RoPE rotates each (q, k) pair by an angle proportional to its absolute position; the resulting inner product depends only on the relative offset" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h2 id="32-why-it-works-so-well">3.2 Why It Works So Well</h2>
-<p>Three properties make RoPE the default for modern LLMs.</p>
-<ol>
-<li>
-<p><strong>Relative by construction.</strong> Unlike sinusoidal, where the relative information has to be recovered through linear projections that LayerNorm later destroys, RoPE bakes the relative dependence into the <em>score itself</em> at every layer.</p>
-</li>
-<li>
-<p><strong>Length-agnostic.</strong> The rotation matrix $R_m$ is defined for any real $m$, just like $\sin(m\theta)$. No embedding table to grow.</p>
-</li>
-<li>
-<p><strong>Cheap.</strong> Block rotations cost the same as a single complex multiplication per dimension pair; in code it&rsquo;s a few <code>cos</code>/<code>sin</code> ops and elementwise products. Negligible on top of the attention matmul.</p>
-</li>
-</ol>
-<h2 id="33-extending-rope-to-longer-context">3.3 Extending RoPE to Longer Context</h2>
-<p>RoPE doesn&rsquo;t extrapolate perfectly past the training length either — perplexity rises, just less catastrophically than sinusoidal. The community has invested heavily in fixes:</p>
-<ul>
-<li><strong>Position interpolation (PI, Chen et al., 2023).</strong> Scale every position by $L_{\text{train}} / L_{\text{test}}$ before applying RoPE so that, e.g., position 4096 uses the angles that training saw at position 2048. Cheap, requires a short fine-tune.</li>
-<li><strong>NTK-aware scaling and YaRN (Peng et al., 2023).</strong> Rescale only the <em>low-frequency</em> dimensions (the ones whose angles barely change across the training range), leaving high-frequency dimensions alone. Better long-context fidelity.</li>
-<li><strong>LongRoPE (Ding et al., 2024).</strong> Search for non-uniform per-dimension scaling factors. Pushes useful context to 2 M tokens with minimal fine-tuning.</li>
-</ul>
-<p>These are a major reason every new LLM ships with &ldquo;RoPE base = 10000&rdquo; in its config and &ldquo;RoPE scaling = &hellip;&rdquo; in the inference setup.</p>
-<hr>
-<h1 id="alibi-the-most-pragmatic-choice-for-extrapolation">ALiBi: The Most Pragmatic Choice for Extrapolation</h1>
-<p>ALiBi (Press et al., 2022) might be the most surprising entry in the list because it is so simple. No embeddings. No rotations. Just add a fixed, head-specific <em>linear penalty</em> to the attention scores:</p>
-$$
+$$<p>The two absolute rotations collapse into a <em>single</em> rotation by the relative offset $n - m$. The attention score now depends only on the gap.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig3_rope.png alt="RoPE rotates each (q, k) pair by an angle proportional to its absolute position; the resulting inner product depends only on the relative offset" loading=lazy decoding=async></figure></p><h2 id=32-why-it-works-so-well>3.2 Why It Works So Well</h2><p>Three properties make RoPE the default for modern LLMs.</p><ol><li><p><strong>Relative by construction.</strong> Unlike sinusoidal, where the relative information has to be recovered through linear projections that LayerNorm later destroys, RoPE bakes the relative dependence into the <em>score itself</em> at every layer.</p></li><li><p><strong>Length-agnostic.</strong> The rotation matrix $R_m$ is defined for any real $m$, just like $\sin(m\theta)$. No embedding table to grow.</p></li><li><p><strong>Cheap.</strong> Block rotations cost the same as a single complex multiplication per dimension pair; in code it&rsquo;s a few <code>cos</code>/<code>sin</code> ops and elementwise products. Negligible on top of the attention matmul.</p></li></ol><h2 id=33-extending-rope-to-longer-context>3.3 Extending RoPE to Longer Context</h2><p>RoPE doesn&rsquo;t extrapolate perfectly past the training length either — perplexity rises, just less catastrophically than sinusoidal. The community has invested heavily in fixes:</p><ul><li><strong>Position interpolation (PI, Chen et al., 2023).</strong> Scale every position by $L_{\text{train}} / L_{\text{test}}$ before applying RoPE so that, e.g., position 4096 uses the angles that training saw at position 2048. Cheap, requires a short fine-tune.</li><li><strong>NTK-aware scaling and YaRN (Peng et al., 2023).</strong> Rescale only the <em>low-frequency</em> dimensions (the ones whose angles barely change across the training range), leaving high-frequency dimensions alone. Better long-context fidelity.</li><li><strong>LongRoPE (Ding et al., 2024).</strong> Search for non-uniform per-dimension scaling factors. Pushes useful context to 2 M tokens with minimal fine-tuning.</li></ul><p>These are a major reason every new LLM ships with &ldquo;RoPE base = 10000&rdquo; in its config and &ldquo;RoPE scaling = &mldr;&rdquo; in the inference setup.</p><hr><h1 id=alibi-the-most-pragmatic-choice-for-extrapolation>ALiBi: The Most Pragmatic Choice for Extrapolation</h1><p>ALiBi (Press et al., 2022) might be the most surprising entry in the list because it is so simple. No embeddings. No rotations. Just add a fixed, head-specific <em>linear penalty</em> to the attention scores:</p>$$
 \text{score}(i, j) = \frac{q_i^\top k_j}{\sqrt{d_k}} - m_h \cdot |i - j|.
-$$<p>The slope $m_h$ is fixed per head on a geometric schedule (head 1: $m_1 = 1/2$; head 2: $m_2 = 1/4$; &hellip;); nothing is learned.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig4_alibi.png" alt="ALiBi: per-head linear distance bias added to attention scores; different heads decay at different rates" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>That&rsquo;s it. The right panel above shows the design intent: head 1 attends locally (steep slope, &ldquo;what just happened&rdquo;), while head 8 attends almost globally (gentle slope, &ldquo;the whole document&rdquo;).</p>
-<p><strong>Why it extrapolates.</strong> The bias is a closed-form function of the offset. Test time can hand the model a 32 K context even though training capped at 2 K, and the bias still does the right thing — it just keeps decaying linearly. No magic, no fine-tune.</p>
-<p><strong>Trade-off.</strong> Empirically, ALiBi tends to be slightly worse than RoPE <em>at</em> the training length on standard language modeling, and dramatically better past it. Several papers (BLOOM, MPT) chose it specifically for its extrapolation behavior.</p>
-<hr>
-<h1 id="putting-it-all-together-the-length-extrapolation-picture">Putting It All Together: The Length Extrapolation Picture</h1>
-<p>The main practical question in 2026 is: <strong>when context length at inference exceeds training length, what happens to perplexity?</strong></p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig5_compare.png" alt="Length extrapolation: sinusoidal collapses, RoPE degrades smoothly, ALiBi extrapolates almost for free" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The qualitative ordering — absolute PE collapses, RoPE degrades gradually, ALiBi extrapolates almost for free — is consistent across the literature (Press et al. 2022; the RoFormer paper; the various RoPE-scaling reports). The figure is illustrative; exact numbers depend heavily on model, data, and decoding setup.</p>
-<p>A few practitioner-level takeaways from this picture.</p>
-<ul>
-<li><strong>If you cap context at training length</strong> and don&rsquo;t care about going beyond, learned absolute PE is fine and dirt simple. This is what classic BERT does.</li>
-<li><strong>If you want extrapolation but also want competitive in-domain quality</strong>, RoPE plus a length-extension trick (PI, NTK-aware, YaRN) is the modern default. This is essentially every open LLM today.</li>
-<li><strong>If you want extrapolation with zero fuss and you can tolerate slightly weaker in-domain numbers</strong>, ALiBi is the most predictable choice. BLOOM, MPT, and Falcon-RW use it.</li>
-<li><strong>Hybrid schemes</strong> (RoPE plus a small learned bias, or NoPE-like schemes that drop position entirely in some layers) are an active research area; results are promising but unstable across model scales.</li>
-</ul>
-<hr>
-<h1 id="selection-guide">Selection Guide</h1>
-<p>A short decision tree for picking a scheme:</p>
-<ol>
-<li><strong>Maximum context $\leq$ training context, encoder-style model (classification/QA on bounded text)</strong>: learned absolute PE. Stop here.</li>
-<li><strong>Decoder-style LM, you control training length, want best in-domain quality</strong>: RoPE. Add YaRN/PI at inference if you need to go longer.</li>
-<li><strong>Decoder-style LM, you must serve much longer contexts than you trained on, no time to fine-tune</strong>: ALiBi.</li>
-<li><strong>You are training a small T5-style encoder-decoder</strong>: T5 bucket bias. It is honestly fine.</li>
-<li><strong>You want to publish a paper</strong>: try a new combination, run it past 64K, report perplexity.</li>
-</ol>
-<hr>
-<h1 id="common-misconceptions">Common Misconceptions</h1>
-<p>A few things that confused me, and seem to confuse a lot of others:</p>
-<ul>
-<li>
-<p><strong>&ldquo;Sinusoidal PE is relative.&rdquo;</strong> It contains relative <em>information</em> in a linear-algebraic sense, but the model has to learn to extract it through projections that LayerNorm destroys. Empirically it acts like an absolute encoding.</p>
-</li>
-<li>
-<p><strong>&ldquo;RoPE has no length limit.&rdquo;</strong> The math has no length limit. The model still has a length limit, because attention scores at offsets it never trained on are essentially out-of-distribution. That&rsquo;s why we need PI/YaRN.</p>
-</li>
-<li>
-<p><strong>&ldquo;ALiBi is just a heuristic.&rdquo;</strong> It is a heuristic, but the heuristic encodes a strong inductive bias that <em>closer tokens matter more</em>, which happens to be true of natural language. That single prior is enough to get strong extrapolation.</p>
-</li>
-<li>
-<p><strong>&ldquo;You can swap PE schemes after training.&rdquo;</strong> No. The whole network — including LayerNorm gains, attention head specialization, and FFN biases — has co-adapted to the position signal. Swapping it requires re-training or at least a careful long fine-tune.</p>
-</li>
-</ul>
-<hr>
-<h1 id="references">References</h1>
-<ul>
-<li>Vaswani et al., 2017. <em>Attention Is All You Need.</em> <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">arXiv:1706.03762 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Shaw et al., 2018. <em>Self-Attention with Relative Position Representations.</em> <a href="https://arxiv.org/abs/1803.02155" target="_blank" rel="noopener noreferrer">arXiv:1803.02155 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Dai et al., 2019. <em>Transformer-XL.</em> <a href="https://arxiv.org/abs/1901.02860" target="_blank" rel="noopener noreferrer">arXiv:1901.02860 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Raffel et al., 2020. <em>Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer (T5).</em> <a href="https://arxiv.org/abs/1910.10683" target="_blank" rel="noopener noreferrer">arXiv:1910.10683 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Liu et al., 2020. <em>Learning to Encode Position for Transformer with Continuous Dynamical Model (FLOATER).</em> <a href="https://arxiv.org/abs/2003.09229" target="_blank" rel="noopener noreferrer">arXiv:2003.09229 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>He et al., 2021. <em>DeBERTa: Decoding-enhanced BERT with Disentangled Attention.</em> <a href="https://arxiv.org/abs/2006.03654" target="_blank" rel="noopener noreferrer">arXiv:2006.03654 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Su et al., 2021. <em>RoFormer: Enhanced Transformer with Rotary Position Embedding.</em> <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener noreferrer">arXiv:2104.09864 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- — and the author&rsquo;s blog post <a href="https://spaces.ac.cn/archives/8130" target="_blank" rel="noopener noreferrer">《让研究人员绞尽脑汁的 Transformer 位置编码》 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-.</li>
-<li>Press et al., 2022. <em>Train Short, Test Long: Attention with Linear Biases (ALiBi).</em> <a href="https://arxiv.org/abs/2108.12409" target="_blank" rel="noopener noreferrer">arXiv:2108.12409 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Chen et al., 2023. <em>Extending Context Window of Large Language Models via Positional Interpolation.</em> <a href="https://arxiv.org/abs/2306.15595" target="_blank" rel="noopener noreferrer">arXiv:2306.15595 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Peng et al., 2023. <em>YaRN: Efficient Context Window Extension of Large Language Models.</em> <a href="https://arxiv.org/abs/2309.00071" target="_blank" rel="noopener noreferrer">arXiv:2309.00071 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Ding et al., 2024. <em>LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens.</em> <a href="https://arxiv.org/abs/2402.13753" target="_blank" rel="noopener noreferrer">arXiv:2402.13753 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#11-learned-position-embeddings">1.1 Learned Position Embeddings</a></li>
-    <li><a href="#12-sinusoidal-position-encoding">1.2 Sinusoidal Position Encoding</a></li>
-    <li><a href="#13-other-absolute-variants-brief">1.3 Other Absolute Variants (Brief)</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#21-the-original-shaw-style-formulation">2.1 The Original Shaw-Style Formulation</a></li>
-    <li><a href="#22-t5-bias-as-simple-as-it-gets">2.2 T5 Bias: As Simple As It Gets</a></li>
-    <li><a href="#23-deberta-disentangled-attention">2.3 DeBERTa: Disentangled Attention</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#31-the-construction">3.1 The Construction</a></li>
-    <li><a href="#32-why-it-works-so-well">3.2 Why It Works So Well</a></li>
-    <li><a href="#33-extending-rope-to-longer-context">3.3 Extending RoPE to Longer Context</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>6 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2900</strong></div>
-      <div class="row"><span>Published</span><strong>Sep 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>The slope $m_h$ is fixed per head on a geometric schedule (head 1: $m_1 = 1/2$; head 2: $m_2 = 1/4$; &mldr;); nothing is learned.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig4_alibi.png alt="ALiBi: per-head linear distance bias added to attention scores; different heads decay at different rates" loading=lazy decoding=async></figure></p><p>That&rsquo;s it. The right panel above shows the design intent: head 1 attends locally (steep slope, &ldquo;what just happened&rdquo;), while head 8 attends almost globally (gentle slope, &ldquo;the whole document&rdquo;).</p><p><strong>Why it extrapolates.</strong> The bias is a closed-form function of the offset. Test time can hand the model a 32 K context even though training capped at 2 K, and the bias still does the right thing — it just keeps decaying linearly. No magic, no fine-tune.</p><p><strong>Trade-off.</strong> Empirically, ALiBi tends to be slightly worse than RoPE <em>at</em> the training length on standard language modeling, and dramatically better past it. Several papers (BLOOM, MPT) chose it specifically for its extrapolation behavior.</p><hr><h1 id=putting-it-all-together-the-length-extrapolation-picture>Putting It All Together: The Length Extrapolation Picture</h1><p>The main practical question in 2026 is: <strong>when context length at inference exceeds training length, what happens to perplexity?</strong></p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/standalone/position-encoding-brief/fig5_compare.png alt="Length extrapolation: sinusoidal collapses, RoPE degrades smoothly, ALiBi extrapolates almost for free" loading=lazy decoding=async></figure></p><p>The qualitative ordering — absolute PE collapses, RoPE degrades gradually, ALiBi extrapolates almost for free — is consistent across the literature (Press et al. 2022; the RoFormer paper; the various RoPE-scaling reports). The figure is illustrative; exact numbers depend heavily on model, data, and decoding setup.</p><p>A few practitioner-level takeaways from this picture.</p><ul><li><strong>If you cap context at training length</strong> and don&rsquo;t care about going beyond, learned absolute PE is fine and dirt simple. This is what classic BERT does.</li><li><strong>If you want extrapolation but also want competitive in-domain quality</strong>, RoPE plus a length-extension trick (PI, NTK-aware, YaRN) is the modern default. This is essentially every open LLM today.</li><li><strong>If you want extrapolation with zero fuss and you can tolerate slightly weaker in-domain numbers</strong>, ALiBi is the most predictable choice. BLOOM, MPT, and Falcon-RW use it.</li><li><strong>Hybrid schemes</strong> (RoPE plus a small learned bias, or NoPE-like schemes that drop position entirely in some layers) are an active research area; results are promising but unstable across model scales.</li></ul><hr><h1 id=selection-guide>Selection Guide</h1><p>A short decision tree for picking a scheme:</p><ol><li><strong>Maximum context $\leq$ training context, encoder-style model (classification/QA on bounded text)</strong>: learned absolute PE. Stop here.</li><li><strong>Decoder-style LM, you control training length, want best in-domain quality</strong>: RoPE. Add YaRN/PI at inference if you need to go longer.</li><li><strong>Decoder-style LM, you must serve much longer contexts than you trained on, no time to fine-tune</strong>: ALiBi.</li><li><strong>You are training a small T5-style encoder-decoder</strong>: T5 bucket bias. It is honestly fine.</li><li><strong>You want to publish a paper</strong>: try a new combination, run it past 64K, report perplexity.</li></ol><hr><h1 id=common-misconceptions>Common Misconceptions</h1><p>A few things that confused me, and seem to confuse a lot of others:</p><ul><li><p><strong>&ldquo;Sinusoidal PE is relative.&rdquo;</strong> It contains relative <em>information</em> in a linear-algebraic sense, but the model has to learn to extract it through projections that LayerNorm destroys. Empirically it acts like an absolute encoding.</p></li><li><p><strong>&ldquo;RoPE has no length limit.&rdquo;</strong> The math has no length limit. The model still has a length limit, because attention scores at offsets it never trained on are essentially out-of-distribution. That&rsquo;s why we need PI/YaRN.</p></li><li><p><strong>&ldquo;ALiBi is just a heuristic.&rdquo;</strong> It is a heuristic, but the heuristic encodes a strong inductive bias that <em>closer tokens matter more</em>, which happens to be true of natural language. That single prior is enough to get strong extrapolation.</p></li><li><p><strong>&ldquo;You can swap PE schemes after training.&rdquo;</strong> No. The whole network — including LayerNorm gains, attention head specialization, and FFN biases — has co-adapted to the position signal. Swapping it requires re-training or at least a careful long fine-tune.</p></li></ul><hr><h1 id=references>References</h1><ul><li>Vaswani et al., 2017. <em>Attention Is All You Need.</em> <a href=https://arxiv.org/abs/1706.03762 target=_blank rel="noopener noreferrer">arXiv:1706.03762 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Shaw et al., 2018. <em>Self-Attention with Relative Position Representations.</em> <a href=https://arxiv.org/abs/1803.02155 target=_blank rel="noopener noreferrer">arXiv:1803.02155 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Dai et al., 2019. <em>Transformer-XL.</em> <a href=https://arxiv.org/abs/1901.02860 target=_blank rel="noopener noreferrer">arXiv:1901.02860 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Raffel et al., 2020. <em>Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer (T5).</em> <a href=https://arxiv.org/abs/1910.10683 target=_blank rel="noopener noreferrer">arXiv:1910.10683 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Liu et al., 2020. <em>Learning to Encode Position for Transformer with Continuous Dynamical Model (FLOATER).</em> <a href=https://arxiv.org/abs/2003.09229 target=_blank rel="noopener noreferrer">arXiv:2003.09229 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>He et al., 2021. <em>DeBERTa: Decoding-enhanced BERT with Disentangled Attention.</em> <a href=https://arxiv.org/abs/2006.03654 target=_blank rel="noopener noreferrer">arXiv:2006.03654 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Su et al., 2021. <em>RoFormer: Enhanced Transformer with Rotary Position Embedding.</em> <a href=https://arxiv.org/abs/2104.09864 target=_blank rel="noopener noreferrer">arXiv:2104.09864 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+— and the author&rsquo;s blog post <a href=https://spaces.ac.cn/archives/8130 target=_blank rel="noopener noreferrer">《让研究人员绞尽脑汁的 Transformer 位置编码》 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+.</li><li>Press et al., 2022. <em>Train Short, Test Long: Attention with Linear Biases (ALiBi).</em> <a href=https://arxiv.org/abs/2108.12409 target=_blank rel="noopener noreferrer">arXiv:2108.12409 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Chen et al., 2023. <em>Extending Context Window of Large Language Models via Positional Interpolation.</em> <a href=https://arxiv.org/abs/2306.15595 target=_blank rel="noopener noreferrer">arXiv:2306.15595 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Peng et al., 2023. <em>YaRN: Efficient Context Window Extension of Large Language Models.</em> <a href=https://arxiv.org/abs/2309.00071 target=_blank rel="noopener noreferrer">arXiv:2309.00071 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Ding et al., 2024. <em>LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens.</em> <a href=https://arxiv.org/abs/2402.13753 target=_blank rel="noopener noreferrer">arXiv:2402.13753 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li></ul><ul><li><a href=#11-learned-position-embeddings>1.1 Learned Position Embeddings</a></li><li><a href=#12-sinusoidal-position-encoding>1.2 Sinusoidal Position Encoding</a></li><li><a href=#13-other-absolute-variants-brief>1.3 Other Absolute Variants (Brief)</a></li></ul><ul><li><a href=#21-the-original-shaw-style-formulation>2.1 The Original Shaw-Style Formulation</a></li><li><a href=#22-t5-bias-as-simple-as-it-gets>2.2 T5 Bias: As Simple As It Gets</a></li><li><a href=#23-deberta-disentangled-attention>2.3 DeBERTa: Disentangled Attention</a></li></ul><ul><li><a href=#31-the-construction>3.1 The Construction</a></li><li><a href=#32-why-it-works-so-well>3.2 Why It Works So Well</a></li><li><a href=#33-extending-rope-to-longer-context>3.3 Extending RoPE to Longer Context</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>6 min</strong></div><div class=row><span>Word count</span><strong>2806</strong></div><div class=row><span>Published</span><strong>Sep 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

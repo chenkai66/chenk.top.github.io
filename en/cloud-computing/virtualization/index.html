@@ -1,1401 +1,359 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/cloud-computing/virtualization/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Virtualization Technology Deep Dive · Chen Kai Blog</title>
-<meta name="description" content="A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/cloud-computing/virtualization/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/cloud-computing/virtualization/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/cloud-computing/virtualization/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/cloud-computing/virtualization/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Virtualization Technology Deep Dive">
-<meta property="og:description" content="A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison.">
-<meta property="og:url" content="https://www.chenk.top/en/cloud-computing/virtualization/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-2);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Cloud Computing</a>
-         · Chapter 2
-      </div>
-      <h1>Virtualization Technology Deep Dive</h1>
-      <p class="deck">A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-02-20">February 20, 2023</time> · 18 min read · 3800 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/cloud-computing/" class="tag">#Cloud Computing</a><a href="/en/tags/virtualization/" class="tag">#Virtualization</a><a href="/en/tags/kvm/" class="tag">#KVM</a><a href="/en/tags/vmware/" class="tag">#VMware</a><a href="/en/tags/docker/" class="tag">#Docker</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/cloud-computing/virtualization/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>Without virtualization, there is no cloud. Every EC2 instance, every Lambda invocation, every Kubernetes pod ultimately stands on the same trick: lying convincingly to an operating system about the hardware underneath it. This article walks the full stack &ndash; from the CPU instructions that make the trick cheap, through the four hypervisors that dominate the market, to the production-grade tuning knobs that decide whether your VMs run at 70 % or 99 % of bare metal.</p>
-<h2 id="what-you-will-learn">What You Will Learn</h2>
-<ul>
-<li>How CPU virtualization actually works (rings, VT-x, EPT) and why Type 1 and Type 2 hypervisors exist</li>
-<li>Hands-on configuration of VMware ESXi, KVM, Xen, and Hyper-V with the right defaults for production</li>
-<li>Storage virtualization with LVM and ZFS, and why disk format choice can change IOPS by 4x</li>
-<li>Network virtualization: VLANs, VXLAN overlays, Open vSwitch and SR-IOV</li>
-<li>Performance tuning: CPU pinning, NUMA, huge pages, virtio, vhost-net</li>
-<li>Live migration internals, nested virtualization, and GPU sharing (vGPU / MIG)</li>
-<li>Security hardening, isolation primitives, and a troubleshooting playbook</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Comfortable on a Linux command line</li>
-<li>Basic OS concepts (processes, kernel vs userspace, page tables)</li>
-<li>Part 1 of this series (<a href="/en/cloud-computing-fundamentals/">Cloud Computing Fundamentals</a>
-)</li>
-</ul>
-<hr>
-<h2 id="1-virtualization-fundamentals">1. Virtualization Fundamentals</h2>
-<p>Virtualization creates virtual versions of hardware resources &ndash; CPU, memory, disks, NICs &ndash; so that multiple operating systems can each believe they own a whole machine. The component that maintains the illusion is the <strong>hypervisor</strong>, also called the Virtual Machine Monitor (VMM).</p>
-<h3 id="11-why-it-took-hardware-help">1.1 Why It Took Hardware Help</h3>
-<p>x86 was not originally virtualizable. The architecture exposes 17 sensitive instructions (e.g. <code>POPF</code>, <code>SGDT</code>) that change global state but do <strong>not</strong> trap when executed in user mode &ndash; which means a naive hypervisor cannot intercept them. Two workarounds emerged in the early 2000s:</p>
-<ul>
-<li><strong>Binary translation</strong> (VMware): rewrite guest kernel code on the fly to replace dangerous instructions with calls into the hypervisor. Clever but slow and complex.</li>
-<li><strong>Para-virtualization</strong> (Xen): modify the guest OS to call the hypervisor directly via &ldquo;hypercalls&rdquo;. Fast but only works for cooperating guests (Linux, BSD).</li>
-</ul>
-<p>In 2005-2006 Intel VT-x and AMD-V added a new CPU mode &ndash; <strong>VMX root</strong> for the hypervisor and <strong>VMX non-root</strong> for the guest &ndash; with hardware-managed transitions (<code>VMENTER</code> / <code>VMEXIT</code>). Suddenly any unmodified OS could run at near-native speed. A few years later, Extended Page Tables (EPT) and Nested Page Tables (NPT) eliminated the second-biggest cost &ndash; shadow page table maintenance &ndash; by giving the MMU two-level translation in hardware.</p>
-<p>This is the moment virtualization became cheap enough to build a public cloud on.</p>
-<h3 id="12-type-1-vs-type-2-hypervisors">1.2 Type 1 vs Type 2 Hypervisors</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig1_hypervisor_types.png" alt="Type 1 (Bare-Metal) vs Type 2 (Hosted) Hypervisor Architectures" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th>Type 1 (bare-metal)</th>
-          <th>Type 2 (hosted)</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Runs on</td>
-          <td>Hardware directly</td>
-          <td>A host OS</td>
-      </tr>
-      <tr>
-          <td>Examples</td>
-          <td>VMware ESXi, KVM, Xen, Hyper-V</td>
-          <td>VirtualBox, VMware Workstation, Parallels</td>
-      </tr>
-      <tr>
-          <td>Overhead</td>
-          <td>Minimal</td>
-          <td>Adds host-OS scheduling layer</td>
-      </tr>
-      <tr>
-          <td>Use case</td>
-          <td>Production clouds, data centers</td>
-          <td>Dev laptops, training labs</td>
-      </tr>
-  </tbody>
-</table>
-<p>KVM is a slightly weird case: it is a kernel module that turns Linux <em>into</em> a Type 1 hypervisor &ndash; the host kernel and the hypervisor are the same kernel.</p>
-<h3 id="13-key-concepts">1.3 Key Concepts</h3>
-<ul>
-<li><strong>Hypervisor (VMM):</strong> the layer that schedules vCPUs onto pCPUs, allocates memory, and traps privileged guest operations.</li>
-<li><strong>Guest OS:</strong> the OS running inside a VM, unaware (or barely aware) it is virtualized.</li>
-<li><strong>vCPU:</strong> a thread on the host scheduler that runs guest code in VMX non-root mode.</li>
-<li><strong>Resource overcommit:</strong> allocating more virtual resources than physically exist. Safe within limits because guests rarely peak together. Typical safe ratios: CPU 4:1-8:1, memory 1.5:1-2:1.</li>
-<li><strong>Ballooning:</strong> a guest driver that returns idle memory to the host on demand, enabling memory overcommit.</li>
-</ul>
-<h3 id="14-historical-milestones">1.4 Historical Milestones</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Year</th>
-          <th>Event</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1972</td>
-          <td>IBM VM/370 &ndash; first commercial OS-level virtualization</td>
-      </tr>
-      <tr>
-          <td>1999</td>
-          <td>VMware Workstation ships, virtualizing x86 via binary translation</td>
-      </tr>
-      <tr>
-          <td>2003</td>
-          <td>Xen 1.0 introduces para-virtualization on Linux</td>
-      </tr>
-      <tr>
-          <td>2005</td>
-          <td>Intel VT-x and AMD-V bring hardware-assisted virtualization to x86</td>
-      </tr>
-      <tr>
-          <td>2006</td>
-          <td>KVM merged into Linux 2.6.20</td>
-      </tr>
-      <tr>
-          <td>2008</td>
-          <td>EPT / NPT eliminate shadow page table cost</td>
-      </tr>
-      <tr>
-          <td>2013</td>
-          <td>Docker launches; containers become the second wave</td>
-      </tr>
-      <tr>
-          <td>2018</td>
-          <td>Firecracker (microVMs) enables sub-second VM boot for serverless</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="2-types-of-virtualization">2. Types of Virtualization</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Property</th>
-          <th>Full virt (BT)</th>
-          <th>Para-virt</th>
-          <th>HW-assisted</th>
-          <th>Containers</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Guest OS modified?</td>
-          <td>No</td>
-          <td>Yes</td>
-          <td>No</td>
-          <td>N/A</td>
-      </tr>
-      <tr>
-          <td>CPU overhead</td>
-          <td>High</td>
-          <td>Medium</td>
-          <td>~1-3 %</td>
-          <td>Near zero</td>
-      </tr>
-      <tr>
-          <td>Isolation</td>
-          <td>Strong</td>
-          <td>Strong</td>
-          <td>Strong</td>
-          <td>Process-level</td>
-      </tr>
-      <tr>
-          <td>Boot time</td>
-          <td>30-60 s</td>
-          <td>30-60 s</td>
-          <td>20-45 s</td>
-          <td>&lt; 1 s</td>
-      </tr>
-      <tr>
-          <td>Image size</td>
-          <td>GB</td>
-          <td>GB</td>
-          <td>GB</td>
-          <td>tens of MB</td>
-      </tr>
-      <tr>
-          <td>Example</td>
-          <td>Early VMware</td>
-          <td>Xen PV</td>
-          <td>KVM, ESXi 6+</td>
-          <td>Docker, containerd</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="21-containers-vs-vms-a-different-isolation-boundary">2.1 Containers vs VMs: a Different Isolation Boundary</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig2_vm_vs_container.png" alt="VM vs container resource isolation: each VM ships its own kernel, containers share the host kernel" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The single most important diagram in this article. A VM virtualizes the <strong>hardware</strong> &ndash; so each guest brings its own kernel. A container virtualizes the <strong>OS</strong> &ndash; it is just a Linux process bundled with namespaces (PID, mount, network, UTS, IPC, user) and cgroups for resource limits. Same kernel for everyone.</p>
-<p>Consequences:</p>
-<ul>
-<li>A container that triggers a kernel bug can compromise the host. A VM that triggers a kernel bug only crashes itself.</li>
-<li>Containers cannot run a different OS (no Windows containers on a Linux host kernel, despite the marketing).</li>
-<li>Containers boot in milliseconds because there is no kernel to initialize.</li>
-</ul>
-<p>This is why production workloads often run <strong>containers inside VMs</strong>: the VM gives you a security boundary, the container gives you density and speed.</p>
-<h3 id="22-startup-latency-and-memory-cost">2.2 Startup Latency and Memory Cost</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig3_startup_and_memory.png" alt="Cold-start latency and idle memory footprint: containers vs MicroVMs vs VMs (log scale)" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The numbers above are why &ldquo;serverless&rdquo; works on Firecracker microVMs (~125 ms cold start, ~30 MB overhead) and not on traditional KVM/QEMU VMs. Two orders of magnitude in startup time and memory completely change the economics of bursty workloads.</p>
-<h2 id="3-hypervisor-choice">3. Hypervisor Choice</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig4_hypervisor_matrix.png" alt="KVM vs Xen vs VMware ESXi vs Hyper-V across six dimensions" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>There is no single best hypervisor &ndash; the right choice depends on what you already run, who runs it, and what you can spend on licensing.</p>
-<h3 id="31-kvm-kernel-based-virtual-machine">3.1 KVM (Kernel-based Virtual Machine)</h3>
-<p>KVM turns Linux itself into a Type 1 hypervisor. It is open-source, ships in every major distro, and powers OpenStack, Proxmox, Amazon EC2 (Nitro), Google Cloud, and most of Alibaba Cloud&rsquo;s ECS fleet.</p>
-<p><strong>Install on Ubuntu/Debian:</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt update
-</span></span><span class="line"><span class="cl">sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>                    bridge-utils virt-manager
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo usermod -aG libvirt,kvm <span class="nv">$USER</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Verify hardware support and that the kernel module is loaded</span>
-</span></span><span class="line"><span class="cl">egrep -c <span class="s1">&#39;(vmx|svm)&#39;</span> /proc/cpuinfo   <span class="c1"># &gt; 0 means VT-x/AMD-V available</span>
-</span></span><span class="line"><span class="cl">lsmod <span class="p">|</span> grep kvm
-</span></span><span class="line"><span class="cl">virsh list --all
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Create a VM:</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virt-install <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --name ubuntu-server <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --ram <span class="m">4096</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --vcpus <span class="m">4</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --disk <span class="nv">path</span><span class="o">=</span>/var/lib/libvirt/images/ubuntu-server.qcow2,size<span class="o">=</span>50,bus<span class="o">=</span>virtio,cache<span class="o">=</span>none,io<span class="o">=</span>native <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --os-variant ubuntu22.04 <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --network <span class="nv">bridge</span><span class="o">=</span>virbr0,model<span class="o">=</span>virtio <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --graphics none <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --console pty,target_type<span class="o">=</span>serial <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --location <span class="s1">&#39;http://archive.ubuntu.com/ubuntu/dists/jammy/main/installer-amd64/&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --extra-args <span class="s1">&#39;console=ttyS0,115200n8 serial&#39;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Common <code>virsh</code> commands:</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh list --all                <span class="c1"># list VMs</span>
-</span></span><span class="line"><span class="cl">virsh start &lt;vm&gt;                <span class="c1"># start</span>
-</span></span><span class="line"><span class="cl">virsh shutdown &lt;vm&gt;             <span class="c1"># graceful shutdown</span>
-</span></span><span class="line"><span class="cl">virsh destroy &lt;vm&gt;              <span class="c1"># force stop (kill -9 equivalent)</span>
-</span></span><span class="line"><span class="cl">virsh <span class="nb">suspend</span> &lt;vm&gt;              <span class="c1"># freeze in memory</span>
-</span></span><span class="line"><span class="cl">virsh snapshot-create-as &lt;vm&gt; snap1
-</span></span><span class="line"><span class="cl">virsh domstats &lt;vm&gt;             <span class="c1"># live statistics</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="32-vmware-esxi">3.2 VMware ESXi</h3>
-<p>ESXi is a Type 1 hypervisor that runs directly on the server. It is the de facto enterprise standard and pairs with vCenter for cluster management.</p>
-<p>The default VM hardware uses emulated SCSI (LSI Logic) and an emulated 1 Gbps NIC (E1000). This is fine for a Windows installer but cripples production workloads. Switch to paravirtual:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="cl"><span class="c1"># Optimised .vmx fragment</span>
-</span></span><span class="line"><span class="cl"><span class="na">virtualHW.version</span> <span class="o">=</span> <span class="s">&#34;19&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="na">numvcpus</span> <span class="o">=</span> <span class="s">&#34;4&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="na">cpuid.coresPerSocket</span> <span class="o">=</span> <span class="s">&#34;2&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="na">memory</span> <span class="o">=</span> <span class="s">&#34;8192&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># PVSCSI: 3-4x the IOPS of LSI Logic</span>
-</span></span><span class="line"><span class="cl"><span class="na">scsi0.virtualDev</span>   <span class="o">=</span> <span class="s">&#34;pvscsi&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="na">scsi0:0.fileName</span>   <span class="o">=</span> <span class="s">&#34;Ubuntu-Server-22.04.vmdk&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># VMXNET3: ~9.5 Gbps vs E1000&#39;s 1 Gbps</span>
-</span></span><span class="line"><span class="cl"><span class="na">ethernet0.virtualDev</span> <span class="o">=</span> <span class="s">&#34;vmxnet3&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><table>
-  <thead>
-      <tr>
-          <th>Setting</th>
-          <th>Default</th>
-          <th>Optimised</th>
-          <th>Win</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>SCSI controller</td>
-          <td>LSI Logic (~80 K IOPS)</td>
-          <td>PVSCSI (~300 K+ IOPS)</td>
-          <td>3-4x IOPS</td>
-      </tr>
-      <tr>
-          <td>NIC</td>
-          <td>E1000 (~1 Gbps)</td>
-          <td>VMXNET3 (~9.5 Gbps)</td>
-          <td>~10x throughput</td>
-      </tr>
-      <tr>
-          <td>CPU overhead</td>
-          <td>Higher (emulation)</td>
-          <td>Lower (paravirtual)</td>
-          <td>30-50 % less CPU</td>
-      </tr>
-  </tbody>
-</table>
-<p>Both PVSCSI and VMXNET3 require the VMware Tools driver in the guest. Install with the legacy controllers, switch after first boot.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Verify in the guest after switch-over</span>
-</span></span><span class="line"><span class="cl">lsmod <span class="p">|</span> grep vmw_pvscsi
-</span></span><span class="line"><span class="cl">ethtool -i eth0    <span class="c1"># should show &#34;vmxnet3&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="33-xen">3.3 Xen</h3>
-<p>Xen is the original open-source Type 1 hypervisor and powered the first generation of AWS EC2. It supports both PV and HVM (hardware-assisted) modes. Today it is most common in security-focused stacks (Qubes OS) and a handful of legacy clouds.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y xen-hypervisor-amd64 xen-tools
-</span></span><span class="line"><span class="cl">sudo update-grub <span class="o">&amp;&amp;</span> sudo reboot
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo xen-create-image <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --hostname<span class="o">=</span>debian-pv --memory<span class="o">=</span>1024mb --vcpus<span class="o">=</span><span class="m">2</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --lvm<span class="o">=</span>vg0 --size<span class="o">=</span>20gb --dist<span class="o">=</span>bookworm
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo xl create /etc/xen/debian-pv.cfg
-</span></span><span class="line"><span class="cl">sudo xl list
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="34-microsoft-hyper-v">3.4 Microsoft Hyper-V</h3>
-<p>Hyper-V is bundled with Windows Server and the Windows desktop SKUs. The right choice when most of your guests are Windows or your team lives in PowerShell.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="nb">Enable-WindowsOptionalFeature</span> <span class="n">-Online</span> <span class="n">-FeatureName</span> <span class="nb">Microsoft-Hyper</span><span class="n">-V</span> <span class="n">-All</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">New-VM</span> <span class="n">-Name</span> <span class="s2">&#34;WindowsServer2022&#34;</span> <span class="p">`</span>
-</span></span><span class="line"><span class="cl">  <span class="n">-MemoryStartupBytes</span> <span class="mf">4</span><span class="p">GB</span> <span class="n">-Generation</span> <span class="mf">2</span> <span class="p">`</span>
-</span></span><span class="line"><span class="cl">  <span class="n">-NewVHDPath</span> <span class="s2">&#34;C:\VMs\WindowsServer2022.vhdx&#34;</span> <span class="p">`</span>
-</span></span><span class="line"><span class="cl">  <span class="n">-NewVHDSizeBytes</span> <span class="mf">100</span><span class="p">GB</span> <span class="n">-SwitchName</span> <span class="s2">&#34;Default Switch&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">Set-VMProcessor</span> <span class="n">-VMName</span> <span class="s2">&#34;WindowsServer2022&#34;</span> <span class="n">-Count</span> <span class="mf">4</span>
-</span></span><span class="line"><span class="cl"><span class="nb">Set-VMMemory</span>    <span class="n">-VMName</span> <span class="s2">&#34;WindowsServer2022&#34;</span> <span class="p">`</span>
-</span></span><span class="line"><span class="cl">                <span class="n">-DynamicMemoryEnabled</span> <span class="vm">$true</span> <span class="p">`</span>
-</span></span><span class="line"><span class="cl">                <span class="n">-MinimumBytes</span> <span class="mf">2</span><span class="p">GB</span> <span class="n">-MaximumBytes</span> <span class="mf">8</span><span class="p">GB</span>
-</span></span><span class="line"><span class="cl"><span class="nb">Start-VM</span> <span class="n">-Name</span>  <span class="s2">&#34;WindowsServer2022&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="35-choosing">3.5 Choosing</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Criterion</th>
-          <th>KVM</th>
-          <th>VMware ESXi</th>
-          <th>Hyper-V</th>
-          <th>Xen</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Cost</td>
-          <td>Free</td>
-          <td>$$$ per socket</td>
-          <td>Bundled with WS</td>
-          <td>Free</td>
-      </tr>
-      <tr>
-          <td>Management</td>
-          <td>virsh, OpenStack</td>
-          <td>vSphere (excellent GUI)</td>
-          <td>PowerShell, Windows Admin Center</td>
-          <td>xl, XenCenter</td>
-      </tr>
-      <tr>
-          <td>Performance</td>
-          <td>Excellent</td>
-          <td>Excellent</td>
-          <td>Very good</td>
-          <td>Excellent</td>
-      </tr>
-      <tr>
-          <td>Best fit</td>
-          <td>Linux clouds, OpenStack</td>
-          <td>Enterprise data centers</td>
-          <td>Microsoft shops</td>
-          <td>Security niches, legacy</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="4-storage-virtualization">4. Storage Virtualization</h2>
-<h3 id="41-lvm-logical-volume-manager">4.1 LVM (Logical Volume Manager)</h3>
-<p>LVM abstracts block devices into flexible, resizable logical volumes. The mental model: physical volumes (<code>pv</code>) -&gt; volume groups (<code>vg</code>) -&gt; logical volumes (<code>lv</code>).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo pvcreate /dev/sdb1 /dev/sdc1
-</span></span><span class="line"><span class="cl">sudo vgcreate vg_storage /dev/sdb1 /dev/sdc1
-</span></span><span class="line"><span class="cl">sudo lvcreate -L 100G -n lv_data vg_storage
-</span></span><span class="line"><span class="cl">sudo mkfs.ext4 /dev/vg_storage/lv_data
-</span></span><span class="line"><span class="cl">sudo mount /dev/vg_storage/lv_data /mnt/data
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Online expand (no unmount, no downtime)</span>
-</span></span><span class="line"><span class="cl">sudo lvextend -L +50G /dev/vg_storage/lv_data
-</span></span><span class="line"><span class="cl">sudo resize2fs   /dev/vg_storage/lv_data
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Copy-on-write snapshot</span>
-</span></span><span class="line"><span class="cl">sudo lvcreate -L 10G -s -n lv_data_snap /dev/vg_storage/lv_data
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="42-zfs">4.2 ZFS</h3>
-<p>ZFS combines volume management and filesystem with built-in checksums, compression, snapshots, and send/receive replication. The cost is RAM (rule of thumb: 1 GB per TB for the ARC).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo zpool create tank raidz /dev/sdb /dev/sdc /dev/sdd
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo zfs create tank/data
-</span></span><span class="line"><span class="cl">sudo zfs <span class="nb">set</span> <span class="nv">compression</span><span class="o">=</span>lz4 tank/data        <span class="c1"># ~30 % space savings, near-free CPU</span>
-</span></span><span class="line"><span class="cl">sudo zfs <span class="nb">set</span> <span class="nv">atime</span><span class="o">=</span>off       tank/data        <span class="c1"># avoid write amplification</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo zfs snapshot tank/data@2025-01-01
-</span></span><span class="line"><span class="cl">sudo zfs send tank/data@2025-01-01 <span class="p">|</span> ssh backup-host <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>     sudo zfs receive backup-pool/data
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="43-disk-format-and-io-path">4.3 Disk Format and I/O Path</h3>
-<p>The format you pick for the virtual disk image &ndash; and the cache mode you give QEMU &ndash; often matters more than which CPU you bought.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- libvirt: production-grade disk for KVM --&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;disk</span> <span class="na">type=</span><span class="s">&#39;file&#39;</span> <span class="na">device=</span><span class="s">&#39;disk&#39;</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#39;qemu&#39;</span> <span class="na">type=</span><span class="s">&#39;raw&#39;</span> <span class="na">cache=</span><span class="s">&#39;none&#39;</span> <span class="na">io=</span><span class="s">&#39;native&#39;</span> <span class="na">discard=</span><span class="s">&#39;unmap&#39;</span><span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;source</span> <span class="na">file=</span><span class="s">&#39;/var/lib/libvirt/images/db.raw&#39;</span><span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;target</span> <span class="na">dev=</span><span class="s">&#39;vda&#39;</span> <span class="na">bus=</span><span class="s">&#39;virtio&#39;</span><span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/disk&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Use a low-overhead I/O scheduler under the host</span>
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> none <span class="p">|</span> sudo tee /sys/block/nvme0n1/queue/scheduler
-</span></span></code></pre></td></tr></table>
-</div>
-</div><table>
-  <thead>
-      <tr>
-          <th>Format</th>
-          <th>Performance</th>
-          <th>Features</th>
-          <th>Best for</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Raw</td>
-          <td>Best</td>
-          <td>None</td>
-          <td>Production DBs, latency-critical</td>
-      </tr>
-      <tr>
-          <td>QCOW2</td>
-          <td>Very good</td>
-          <td>Snapshots, compression, thin</td>
-          <td>General use, dev/test</td>
-      </tr>
-      <tr>
-          <td>VMDK</td>
-          <td>Good</td>
-          <td>VMware ecosystem</td>
-          <td>VMware shops</td>
-      </tr>
-  </tbody>
-</table>
-<p><code>cache=none</code> + <code>io=native</code> bypasses the host page cache and uses asynchronous direct I/O &ndash; the right default for any guest with its own filesystem cache (i.e. all of them). <code>cache=writeback</code> is faster but loses data on host crash; only use it for ephemeral workloads.</p>
-<h2 id="5-network-virtualization">5. Network Virtualization</h2>
-<h3 id="51-vlans">5.1 VLANs</h3>
-<p>A VLAN tag (802.1Q) carves one physical network into many isolated broadcast domains.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ip link add link eth0 name eth0.100 <span class="nb">type</span> vlan id <span class="m">100</span>
-</span></span><span class="line"><span class="cl">sudo ip addr add 192.168.100.1/24 dev eth0.100
-</span></span><span class="line"><span class="cl">sudo ip link <span class="nb">set</span> eth0.100 up
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Limit: 4 094 VLAN IDs is plenty for a single rack, nowhere near enough for a public cloud.</p>
-<h3 id="52-vxlan">5.2 VXLAN</h3>
-<p>VXLAN tunnels Layer-2 Ethernet frames inside UDP packets, giving you 16 million logical networks (24-bit VNI) over any IP fabric. This is the workhorse of multi-tenant cloud networks and Kubernetes overlays (Flannel, Calico VXLAN mode).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">VM A (10.1.1.10) -- VTEP1 [VNI 100] --IP fabric-- VTEP2 [VNI 100] -- VM B (10.1.1.20)
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ip link add vxlan100 <span class="nb">type</span> vxlan id <span class="m">100</span> dstport <span class="m">4789</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>     group 239.1.1.1 dev eth0
-</span></span><span class="line"><span class="cl">sudo ip addr add 10.1.1.1/24 dev vxlan100
-</span></span><span class="line"><span class="cl">sudo ip link <span class="nb">set</span> vxlan100 up
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="53-open-vswitch">5.3 Open vSwitch</h3>
-<p>OVS is a programmable virtual switch with OpenFlow support, used by OpenStack Neutron, Open Virtual Network (OVN), and many SDN stacks.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo apt install -y openvswitch-switch
-</span></span><span class="line"><span class="cl">sudo ovs-vsctl add-br br0
-</span></span><span class="line"><span class="cl">sudo ovs-vsctl add-port br0 eth0
-</span></span><span class="line"><span class="cl">sudo ovs-vsctl add-port br0 vnet0
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">sudo ovs-ofctl add-flow br0 <span class="s2">&#34;in_port=1,actions=output:2&#34;</span>
-</span></span><span class="line"><span class="cl">sudo ovs-vsctl show
-</span></span><span class="line"><span class="cl">sudo ovs-ofctl dump-flows br0
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="54-sr-iov-bypass-the-hypervisor">5.4 SR-IOV: Bypass the Hypervisor</h3>
-<p>SR-IOV (Single Root I/O Virtualization) lets a NIC expose Virtual Functions (VFs) that are mapped directly into VMs, bypassing the host&rsquo;s network stack entirely. Latency drops from ~30 µs (virtio) to ~3 µs (SR-IOV); throughput becomes line-rate.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="m">4</span> <span class="p">|</span> sudo tee /sys/class/net/eth0/device/sriov_numvfs
-</span></span><span class="line"><span class="cl">ip link show eth0
-</span></span><span class="line"><span class="cl"><span class="c1"># eth0: ... vf 0 MAC ...  vf 1 MAC ...  vf 2 MAC ...  vf 3 MAC ...</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The trade-off: live migration becomes harder (the VM is bound to a specific physical NIC) and you can only have as many VMs on a NIC as it has VFs.</p>
-<h2 id="6-performance-optimization">6. Performance Optimization</h2>
-<h3 id="61-cpu-pinning-numa-topology">6.1 CPU: Pinning, NUMA, Topology</h3>
-<p>On any multi-socket host, the worst case is a vCPU that wakes up on socket A but its memory lives on socket B &ndash; every cache line is a cross-socket round trip. Fix this with <strong>CPU pinning</strong> plus <strong>NUMA pinning</strong>:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Pin each vCPU to a specific physical core</span>
-</span></span><span class="line"><span class="cl">virsh vcpupin ubuntu-server <span class="m">0</span> <span class="m">0</span>
-</span></span><span class="line"><span class="cl">virsh vcpupin ubuntu-server <span class="m">1</span> <span class="m">1</span>
-</span></span><span class="line"><span class="cl">virsh vcpupin ubuntu-server <span class="m">2</span> <span class="m">2</span>
-</span></span><span class="line"><span class="cl">virsh vcpupin ubuntu-server <span class="m">3</span> <span class="m">3</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Force memory allocation onto the same NUMA node</span>
-</span></span><span class="line"><span class="cl">virsh numatune ubuntu-server --nodeset <span class="m">0</span> --mode strict
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Expose the real CPU topology so the guest scheduler can make good decisions:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;cpu</span> <span class="na">mode=</span><span class="s">&#39;host-passthrough&#39;</span> <span class="na">check=</span><span class="s">&#39;none&#39;</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;topology</span> <span class="na">sockets=</span><span class="s">&#39;1&#39;</span> <span class="na">cores=</span><span class="s">&#39;4&#39;</span> <span class="na">threads=</span><span class="s">&#39;2&#39;</span><span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;cache</span> <span class="na">mode=</span><span class="s">&#39;passthrough&#39;</span><span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/cpu&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>mode='host-passthrough'</code> exposes every CPU flag (AVX-512, AES-NI, etc.) but breaks live migration to dissimilar hosts; use <code>host-model</code> if you need migration across a heterogeneous fleet.</p>
-<h3 id="62-memory-huge-pages-and-ballooning">6.2 Memory: Huge Pages and Ballooning</h3>
-<p>Each TLB entry maps one page. With 4 KB pages, walking 1 GB of RAM hits 262 144 entries; with 2 MB huge pages, just 512. For databases and JVMs the speedup is 5-15 %.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Allocate 2 048 huge pages * 2 MB = 4 GB</span>
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="m">2048</span> <span class="p">|</span> sudo tee /proc/sys/vm/nr_hugepages
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Tell libvirt to back the VM with huge pages</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># &lt;memoryBacking&gt;&lt;hugepages/&gt;&lt;/memoryBacking&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Ballooning gives memory back dynamically:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">virsh setmaxmem ubuntu-server 8G --config
-</span></span><span class="line"><span class="cl">virsh setmem    ubuntu-server 2G --live   <span class="c1"># shrink without reboot</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="63-io-virtio-everywhere">6.3 I/O: virtio Everywhere</h3>
-<p>Always use virtio devices in KVM guests. They are paravirtual &ndash; the guest knows it is in a VM and uses ring buffers shared with the hypervisor instead of MMIO emulation. <code>vhost-net</code> moves the network ring processing into the kernel, eliminating one userspace round trip per packet.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;interface</span> <span class="na">type=</span><span class="s">&#39;bridge&#39;</span><span class="nt">&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;model</span> <span class="na">type=</span><span class="s">&#39;virtio&#39;</span><span class="nt">/&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;driver</span> <span class="na">name=</span><span class="s">&#39;vhost&#39;</span> <span class="na">queues=</span><span class="s">&#39;4&#39;</span><span class="nt">/&gt;</span>   <span class="c">&lt;!-- multi-queue scales with vCPUs --&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/interface&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="64-tuning-checklist">6.4 Tuning Checklist</h3>
-<ul>
-<li><input disabled="" type="checkbox"> VT-x / AMD-V enabled in BIOS</li>
-<li><input disabled="" type="checkbox"> virtio (KVM) or PVSCSI/VMXNET3 (VMware) for disk and NIC</li>
-<li><input disabled="" type="checkbox"> CPU pinning + NUMA pinning for any VM with &gt; 8 vCPUs</li>
-<li><input disabled="" type="checkbox"> Host I/O scheduler = <code>none</code> (NVMe) or <code>mq-deadline</code> (SATA)</li>
-<li><input disabled="" type="checkbox"> Disk format = raw, <code>cache=none</code>, <code>io=native</code> for production</li>
-<li><input disabled="" type="checkbox"> Huge pages backing memory-intensive guests</li>
-<li><input disabled="" type="checkbox"> SR-IOV for network-intensive VMs that do not need live migration</li>
-<li><input disabled="" type="checkbox"> Multi-queue virtio-net with queue count = vCPU count</li>
-<li><input disabled="" type="checkbox"> CPU governor = <code>performance</code> on the host</li>
-</ul>
-<h2 id="7-live-migration-moving-a-running-vm">7. Live Migration: Moving a Running VM</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig5_live_migration.png" alt="Pre-copy live migration: full image, then iterative dirty-page rounds, then sub-100ms cutover" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Live migration is the single feature that turned VMs from &ldquo;another way to run a server&rdquo; into a fluid pool. The dominant algorithm is <strong>pre-copy</strong>:</p>
-<ol>
-<li><strong>Initial copy.</strong> Send the entire guest memory image to the destination while the VM keeps running on the source.</li>
-<li><strong>Dirty-page rounds.</strong> The source tracks pages dirtied during step 1 and re-sends them. Repeat until the dirty rate falls below network bandwidth, or you hit the round limit.</li>
-<li><strong>Stop &amp; switch.</strong> Pause the source VM, send the last dirty pages and CPU state, resume on the destination. Pause time is typically &lt; 100 ms &ndash; TCP connections and user sessions survive.</li>
-</ol>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># KVM live migration over TLS</span>
-</span></span><span class="line"><span class="cl">virsh migrate --live --persistent --undefinesource <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>              --copy-storage-all <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>              ubuntu-server qemu+tls://dest-host/system
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>If the guest is dirtying memory faster than the link can move it (a busy in-memory database, for example), pre-copy never converges. The fallbacks are <strong>post-copy</strong> (switch first, page-fault memory across the network &ndash; lower total downtime, higher tail latency) and <strong>auto-converge</strong> (throttle the guest CPU until the dirty rate drops).</p>
-<p>Requirements:</p>
-<ul>
-<li>Shared storage, <strong>or</strong> <code>--copy-storage-all</code> (slower)</li>
-<li>Compatible CPU features on source and destination (use <code>host-model</code>, not <code>host-passthrough</code>)</li>
-<li>A network fast enough that dirty rate &lt; bandwidth &ndash; 10 Gbps is the practical minimum for production VMs</li>
-</ul>
-<h2 id="8-nested-virtualization">8. Nested Virtualization</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig6_nested_virtualization.png" alt="Nested virtualization stack: L0 hypervisor, L1 guest hypervisor, L2 guest VM, with throughput cost per level" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Nested virtualization lets a guest VM itself be a hypervisor. Real uses:</p>
-<ul>
-<li>Running a hypervisor lab inside a cloud VM</li>
-<li>CI pipelines that spin up VMs as part of their build</li>
-<li>WSL 2 on Windows (Hyper-V running Linux running containers)</li>
-<li>Confidential computing (one hypervisor inside another for defence in depth)</li>
-</ul>
-<p>Enable on KVM:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Intel</span>
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;options kvm-intel nested=1&#34;</span> <span class="p">|</span> sudo tee /etc/modprobe.d/kvm.conf
-</span></span><span class="line"><span class="cl">sudo modprobe -r kvm_intel <span class="o">&amp;&amp;</span> sudo modprobe kvm_intel
-</span></span><span class="line"><span class="cl">cat /sys/module/kvm_intel/parameters/nested        <span class="c1"># should print Y</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># AMD</span>
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;options kvm-amd nested=1&#34;</span> <span class="p">|</span> sudo tee /etc/modprobe.d/kvm.conf
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Then expose <code>vmx</code> (or <code>svm</code>) to the L1 guest:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;cpu</span> <span class="na">mode=</span><span class="s">&#39;host-passthrough&#39;</span><span class="nt">/&gt;</span>   <span class="c">&lt;!-- simplest way to leak the flag --&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Cost: each nesting level adds VM-exit hops. CPU-bound workloads typically lose 5-10 % at L1 and 25-40 % at L2; I/O-bound workloads can lose much more without paravirt drivers all the way down.</p>
-<h2 id="9-gpu-virtualization">9. GPU Virtualization</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig7_gpu_virtualization.png" alt="Four ways to share a GPU: time-slicing, vGPU, MIG, and full passthrough" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>GPUs were designed for one process to own the whole device. Sharing them across VMs requires picking a point on the density-vs-isolation spectrum:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Mode</th>
-          <th>How</th>
-          <th>Isolation</th>
-          <th>Density</th>
-          <th>Notes</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Time-slicing</strong></td>
-          <td>Hypervisor round-robins context</td>
-          <td>Weak (no perf isolation)</td>
-          <td>High</td>
-          <td>Cheapest, used in many ML training clusters</td>
-      </tr>
-      <tr>
-          <td><strong>vGPU</strong> (NVIDIA GRID)</td>
-          <td>Mediated passthrough, virtual GPU per VM</td>
-          <td>Medium</td>
-          <td>Medium</td>
-          <td>Hard QoS for memory; requires NVIDIA license</td>
-      </tr>
-      <tr>
-          <td><strong>MIG</strong> (A100 / H100)</td>
-          <td>Hardware partitions GPU into up to 7 instances</td>
-          <td>Strong (separate SMs, L2, memory)</td>
-          <td>Fixed shapes (1g.5gb, 2g.10gb, &hellip;)</td>
-          <td>True isolation, no fractional sharing within a slice</td>
-      </tr>
-      <tr>
-          <td><strong>Passthrough</strong> (VFIO)</td>
-          <td>One whole GPU bound to one VM</td>
-          <td>Native</td>
-          <td>1 VM per GPU</td>
-          <td>Bare-metal speed, no sharing at all</td>
-      </tr>
-  </tbody>
-</table>
-<p>A typical AI cloud uses MIG for inference (many small slices, hard QoS) and passthrough for training (one job, the whole device).</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># VFIO passthrough on Linux</span>
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;vfio-pci&#34;</span> <span class="p">|</span> sudo tee /etc/modules-load.d/vfio.conf
-</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;options vfio-pci ids=10de:2204&#34;</span> <span class="p">|</span> sudo tee /etc/modprobe.d/vfio.conf
-</span></span><span class="line"><span class="cl"><span class="c1"># Then in libvirt XML:</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># &lt;hostdev mode=&#39;subsystem&#39; type=&#39;pci&#39; managed=&#39;yes&#39;&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="c1">#   &lt;source&gt;&lt;address bus=&#39;0x01&#39; slot=&#39;0x00&#39; function=&#39;0x0&#39;/&gt;&lt;/source&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># &lt;/hostdev&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="10-security-and-isolation">10. Security and Isolation</h2>
-<h3 id="101-threat-model">10.1 Threat Model</h3>
-<p>The fundamental promise of a hypervisor is that one tenant cannot read or affect another. Real-world breaks have come from:</p>
-<ul>
-<li><strong>VM escape</strong> via emulated device bugs (Venom, 2015 &ndash; floppy drive emulation in QEMU)</li>
-<li><strong>Side channels</strong> on shared CPU caches (L1TF, MDS, Spectre v2)</li>
-<li><strong>Hypervisor kernel bugs</strong> in the management plane</li>
-</ul>
-<p>Defenses are layered, not perfect.</p>
-<h3 id="102-hypervisor-hardening">10.2 Hypervisor Hardening</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Smallest possible attack surface</span>
-</span></span><span class="line"><span class="cl">sudo systemctl disable --now avahi-daemon cups bluetooth
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Firewall: management plane only, restricted source</span>
-</span></span><span class="line"><span class="cl">sudo ufw <span class="nb">enable</span>
-</span></span><span class="line"><span class="cl">sudo ufw allow from 192.168.1.0/24 to any port <span class="m">22</span>
-</span></span><span class="line"><span class="cl">sudo ufw allow from 192.168.1.0/24 to any port <span class="m">16509</span>   <span class="c1"># libvirt</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># libvirt over TLS only</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># /etc/libvirt/libvirtd.conf</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># listen_tls = 1</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># listen_tcp = 0</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># auth_tls   = &#34;sasl&#34;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Enable CPU side-channel mitigations on the host (<code>spectre_v2=on</code>, <code>l1tf=full</code>) and keep microcode current.</p>
-<h3 id="103-guest-best-practices">10.3 Guest Best Practices</h3>
-<ul>
-<li>Minimal install (no GUI, no <code>cups</code>, no <code>apt-listchanges</code>)</li>
-<li>Automatic security updates (<code>unattended-upgrades</code>)</li>
-<li>Full-disk encryption for sensitive data (LUKS in the guest)</li>
-<li>Per-trust-tier VLANs &ndash; never put PCI workloads on the same broadcast domain as developer VMs</li>
-<li>Keep guest agents (<code>qemu-guest-agent</code>, <code>vmtoolsd</code>, <code>Hyper-V Integration Services</code>) up to date</li>
-</ul>
-<h3 id="104-confidential-computing">10.4 Confidential Computing</h3>
-<p>The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with a key the hypervisor cannot see. Even a fully compromised host cannot read tenant data. Available today on Azure Confidential VMs, GCP Confidential VMs, and Alibaba Cloud ECS gN8v.</p>
-<h2 id="11-troubleshooting-playbook">11. Troubleshooting Playbook</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Symptom</th>
-          <th>First check</th>
-          <th>Likely fix</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>VM won&rsquo;t start</td>
-          <td><code>journalctl -u libvirtd</code>, <code>qemu-img check vm.qcow2</code></td>
-          <td>Disk corruption, permissions, SELinux/AppArmor labels</td>
-      </tr>
-      <tr>
-          <td>Slow CPU</td>
-          <td><code>virt-top</code>, <code>mpstat -P ALL</code> on host</td>
-          <td>CPU pinning, governor = performance, check %steal</td>
-      </tr>
-      <tr>
-          <td>Slow disk</td>
-          <td><code>iostat -xz 1</code>, guest <code>iotop</code></td>
-          <td>Switch to virtio + <code>cache=none io=native</code>, raw format</td>
-      </tr>
-      <tr>
-          <td>Network packet loss</td>
-          <td><code>ethtool -S</code>, <code>tc -s qdisc</code></td>
-          <td>Multi-queue virtio, increase ring buffer, check vhost CPU</td>
-      </tr>
-      <tr>
-          <td>Live migration stalls</td>
-          <td><code>virsh domjobinfo &lt;vm&gt;</code></td>
-          <td>Dirty rate too high &ndash; enable auto-converge or use post-copy</td>
-      </tr>
-      <tr>
-          <td>Memory pressure</td>
-          <td><code>free -h</code>, <code>cat /proc/meminfo</code>, <code>numastat</code></td>
-          <td>Add huge pages, fix NUMA pinning, reduce overcommit</td>
-      </tr>
-      <tr>
-          <td>Random VM crash</td>
-          <td><code>dmesg</code>, <code>/var/log/libvirt/qemu/&lt;vm&gt;.log</code></td>
-          <td>EDAC errors -&gt; bad RAM; otherwise check kernel + microcode</td>
-      </tr>
-      <tr>
-          <td><code>KVM: entry failed, hardware error 0x80000021</code></td>
-          <td>`dmesg</td>
-          <td>grep KVM`</td>
-      </tr>
-  </tbody>
-</table>
-<h2 id="12-resource-sizing-guidelines">12. Resource Sizing Guidelines</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Resource</th>
-          <th>Light</th>
-          <th>Medium</th>
-          <th>Heavy</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>vCPUs</td>
-          <td>1-2</td>
-          <td>2-4</td>
-          <td>4-8+</td>
-      </tr>
-      <tr>
-          <td>Memory</td>
-          <td>2 GB</td>
-          <td>4-8 GB</td>
-          <td>16+ GB</td>
-      </tr>
-      <tr>
-          <td>OS disk</td>
-          <td>20 GB</td>
-          <td>30-50 GB</td>
-          <td>50-100 GB</td>
-      </tr>
-      <tr>
-          <td>Network</td>
-          <td>1 Gbps</td>
-          <td>1-10 Gbps</td>
-          <td>10+ Gbps (SR-IOV)</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>Safe overcommit ratios:</strong></p>
-<ul>
-<li>CPU: 4:1 to 8:1 — drop to 2:1 or 1:1 for latency-sensitive workloads</li>
-<li>Memory: 1.5:1 to 2:1 — never overcommit memory for databases</li>
-<li>Disk: thin provisioning OK if you monitor capacity</li>
-</ul>
-<h2 id="13-case-studies">13. Case Studies</h2>
-<h3 id="131-enterprise-data-center-consolidation">13.1 Enterprise Data Center Consolidation</h3>
-<p>A financial services company consolidated 200 physical servers onto 20 VMware ESXi hosts backed by a shared NVMe SAN. Result: 90 % rack reduction, 60 % cost saving, deployment time from weeks to hours. The bigger win was operational &ndash; a single vCenter cluster replaced four ticket queues.</p>
-<h3 id="132-hpc-research-cluster">13.2 HPC Research Cluster</h3>
-<p>A research institute ran tightly-coupled MPI jobs on KVM with <code>host-passthrough</code> CPU, NUMA pinning, 1 GB huge pages, and SR-IOV InfiniBand. Sustained 95-98 % of bare-metal throughput while gaining the ability to snapshot whole experiments and ship them between sites.</p>
-<h3 id="133-public-cloud-compute-plane">13.3 Public Cloud Compute Plane</h3>
-<p>Hyperscale clouds (AWS Nitro, Alibaba ECS Shenlong) push device emulation off the CPU entirely onto custom DPUs, leaving 100 % of the host CPU for guests and reducing the host&rsquo;s attack surface to a thin KVM. Performance overhead in the single digits, security boundary smaller than any traditional ESXi host.</p>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/en/cloud-computing-fundamentals/">Fundamentals and Architecture</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>2</strong></td>
-          <td><strong>Virtualization Technology Deep Dive (you are here)</strong></td>
-      </tr>
-      <tr>
-          <td>3</td>
-          <td><a href="/en/cloud-computing-storage-systems/">Storage Systems and Distributed Architecture</a>
-</td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/en/cloud-computing-networking-sdn/">Network Architecture and SDN</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/en/cloud-computing-security-privacy/">Security and Privacy Protection</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/en/cloud-computing-operations-devops/">Operations and DevOps Practices</a>
-</td>
-      </tr>
-      <tr>
-          <td>7</td>
-          <td><a href="/en/cloud-computing-cloud-native-containers/">Cloud-Native and Container Technologies</a>
-</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td><a href="/en/cloud-computing-multi-cloud-hybrid/">Multi-Cloud and Hybrid Architecture</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What You Will Learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-virtualization-fundamentals">1. Virtualization Fundamentals</a>
-      <ul>
-        <li><a href="#11-why-it-took-hardware-help">1.1 Why It Took Hardware Help</a></li>
-        <li><a href="#12-type-1-vs-type-2-hypervisors">1.2 Type 1 vs Type 2 Hypervisors</a></li>
-        <li><a href="#13-key-concepts">1.3 Key Concepts</a></li>
-        <li><a href="#14-historical-milestones">1.4 Historical Milestones</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-types-of-virtualization">2. Types of Virtualization</a>
-      <ul>
-        <li><a href="#21-containers-vs-vms-a-different-isolation-boundary">2.1 Containers vs VMs: a Different Isolation Boundary</a></li>
-        <li><a href="#22-startup-latency-and-memory-cost">2.2 Startup Latency and Memory Cost</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-hypervisor-choice">3. Hypervisor Choice</a>
-      <ul>
-        <li><a href="#31-kvm-kernel-based-virtual-machine">3.1 KVM (Kernel-based Virtual Machine)</a></li>
-        <li><a href="#32-vmware-esxi">3.2 VMware ESXi</a></li>
-        <li><a href="#33-xen">3.3 Xen</a></li>
-        <li><a href="#34-microsoft-hyper-v">3.4 Microsoft Hyper-V</a></li>
-        <li><a href="#35-choosing">3.5 Choosing</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-storage-virtualization">4. Storage Virtualization</a>
-      <ul>
-        <li><a href="#41-lvm-logical-volume-manager">4.1 LVM (Logical Volume Manager)</a></li>
-        <li><a href="#42-zfs">4.2 ZFS</a></li>
-        <li><a href="#43-disk-format-and-io-path">4.3 Disk Format and I/O Path</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-network-virtualization">5. Network Virtualization</a>
-      <ul>
-        <li><a href="#51-vlans">5.1 VLANs</a></li>
-        <li><a href="#52-vxlan">5.2 VXLAN</a></li>
-        <li><a href="#53-open-vswitch">5.3 Open vSwitch</a></li>
-        <li><a href="#54-sr-iov-bypass-the-hypervisor">5.4 SR-IOV: Bypass the Hypervisor</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-performance-optimization">6. Performance Optimization</a>
-      <ul>
-        <li><a href="#61-cpu-pinning-numa-topology">6.1 CPU: Pinning, NUMA, Topology</a></li>
-        <li><a href="#62-memory-huge-pages-and-ballooning">6.2 Memory: Huge Pages and Ballooning</a></li>
-        <li><a href="#63-io-virtio-everywhere">6.3 I/O: virtio Everywhere</a></li>
-        <li><a href="#64-tuning-checklist">6.4 Tuning Checklist</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-live-migration-moving-a-running-vm">7. Live Migration: Moving a Running VM</a></li>
-    <li><a href="#8-nested-virtualization">8. Nested Virtualization</a></li>
-    <li><a href="#9-gpu-virtualization">9. GPU Virtualization</a></li>
-    <li><a href="#10-security-and-isolation">10. Security and Isolation</a>
-      <ul>
-        <li><a href="#101-threat-model">10.1 Threat Model</a></li>
-        <li><a href="#102-hypervisor-hardening">10.2 Hypervisor Hardening</a></li>
-        <li><a href="#103-guest-best-practices">10.3 Guest Best Practices</a></li>
-        <li><a href="#104-confidential-computing">10.4 Confidential Computing</a></li>
-      </ul>
-    </li>
-    <li><a href="#11-troubleshooting-playbook">11. Troubleshooting Playbook</a></li>
-    <li><a href="#12-resource-sizing-guidelines">12. Resource Sizing Guidelines</a></li>
-    <li><a href="#13-case-studies">13. Case Studies</a>
-      <ul>
-        <li><a href="#131-enterprise-data-center-consolidation">13.1 Enterprise Data Center Consolidation</a></li>
-        <li><a href="#132-hpc-research-cluster">13.2 HPC Research Cluster</a></li>
-        <li><a href="#133-public-cloud-compute-plane">13.3 Public Cloud Compute Plane</a></li>
-      </ul>
-    </li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Cloud Computing</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3800</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/cloud-computing/virtualization/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Virtualization Technology Deep Dive · Chen Kai Blog</title>
+<meta name=description content="A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/cloud-computing/virtualization/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/cloud-computing/virtualization/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/cloud-computing/virtualization/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/cloud-computing/virtualization/><meta property="og:type" content="article"><meta property="og:title" content="Virtualization Technology Deep Dive"><meta property="og:description" content="A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison."><meta property="og:url" content="https://www.chenk.top/en/cloud-computing/virtualization/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Cloud Computing</a>
+· Chapter 2</div><h1>Virtualization Technology Deep Dive</h1><p class=deck>A hands-on guide to virtualization -- hypervisors (VMware, KVM, Xen, Hyper-V), storage and network virtualization, performance tuning, and container comparison.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-02-20>February 20, 2023</time> · 18 min read · 3747 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/cloud-computing/ class=tag>#Cloud Computing</a><a href=/en/tags/virtualization/ class=tag>#Virtualization</a><a href=/en/tags/kvm/ class=tag>#KVM</a><a href=/en/tags/vmware/ class=tag>#VMware</a><a href=/en/tags/docker/ class=tag>#Docker</a></div><a class="pill pill-outline" href=/zh/cloud-computing/virtualization/>Read in English →</a></div></header><div class=prose><p>Without virtualization, there is no cloud. Every EC2 instance, every Lambda invocation, every Kubernetes pod ultimately stands on the same trick: lying convincingly to an operating system about the hardware underneath it. This article walks the full stack &ndash; from the CPU instructions that make the trick cheap, through the four hypervisors that dominate the market, to the production-grade tuning knobs that decide whether your VMs run at 70 % or 99 % of bare metal.</p><h2 id=what-you-will-learn>What You Will Learn</h2><ul><li>How CPU virtualization actually works (rings, VT-x, EPT) and why Type 1 and Type 2 hypervisors exist</li><li>Hands-on configuration of VMware ESXi, KVM, Xen, and Hyper-V with the right defaults for production</li><li>Storage virtualization with LVM and ZFS, and why disk format choice can change IOPS by 4x</li><li>Network virtualization: VLANs, VXLAN overlays, Open vSwitch and SR-IOV</li><li>Performance tuning: CPU pinning, NUMA, huge pages, virtio, vhost-net</li><li>Live migration internals, nested virtualization, and GPU sharing (vGPU / MIG)</li><li>Security hardening, isolation primitives, and a troubleshooting playbook</li></ul><h2 id=prerequisites>Prerequisites</h2><ul><li>Comfortable on a Linux command line</li><li>Basic OS concepts (processes, kernel vs userspace, page tables)</li><li>Part 1 of this series (<a href=/en/cloud-computing-fundamentals/>Cloud Computing Fundamentals</a>
+)</li></ul><hr><h2 id=1-virtualization-fundamentals>1. Virtualization Fundamentals</h2><p>Virtualization creates virtual versions of hardware resources &ndash; CPU, memory, disks, NICs &ndash; so that multiple operating systems can each believe they own a whole machine. The component that maintains the illusion is the <strong>hypervisor</strong>, also called the Virtual Machine Monitor (VMM).</p><h3 id=11-why-it-took-hardware-help>1.1 Why It Took Hardware Help</h3><p>x86 was not originally virtualizable. The architecture exposes 17 sensitive instructions (e.g. <code>POPF</code>, <code>SGDT</code>) that change global state but do <strong>not</strong> trap when executed in user mode &ndash; which means a naive hypervisor cannot intercept them. Two workarounds emerged in the early 2000s:</p><ul><li><strong>Binary translation</strong> (VMware): rewrite guest kernel code on the fly to replace dangerous instructions with calls into the hypervisor. Clever but slow and complex.</li><li><strong>Para-virtualization</strong> (Xen): modify the guest OS to call the hypervisor directly via &ldquo;hypercalls&rdquo;. Fast but only works for cooperating guests (Linux, BSD).</li></ul><p>In 2005-2006 Intel VT-x and AMD-V added a new CPU mode &ndash; <strong>VMX root</strong> for the hypervisor and <strong>VMX non-root</strong> for the guest &ndash; with hardware-managed transitions (<code>VMENTER</code> / <code>VMEXIT</code>). Suddenly any unmodified OS could run at near-native speed. A few years later, Extended Page Tables (EPT) and Nested Page Tables (NPT) eliminated the second-biggest cost &ndash; shadow page table maintenance &ndash; by giving the MMU two-level translation in hardware.</p><p>This is the moment virtualization became cheap enough to build a public cloud on.</p><h3 id=12-type-1-vs-type-2-hypervisors>1.2 Type 1 vs Type 2 Hypervisors</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig1_hypervisor_types.png alt="Type 1 (Bare-Metal) vs Type 2 (Hosted) Hypervisor Architectures" loading=lazy decoding=async></figure></p><table><thead><tr><th></th><th>Type 1 (bare-metal)</th><th>Type 2 (hosted)</th></tr></thead><tbody><tr><td>Runs on</td><td>Hardware directly</td><td>A host OS</td></tr><tr><td>Examples</td><td>VMware ESXi, KVM, Xen, Hyper-V</td><td>VirtualBox, VMware Workstation, Parallels</td></tr><tr><td>Overhead</td><td>Minimal</td><td>Adds host-OS scheduling layer</td></tr><tr><td>Use case</td><td>Production clouds, data centers</td><td>Dev laptops, training labs</td></tr></tbody></table><p>KVM is a slightly weird case: it is a kernel module that turns Linux <em>into</em> a Type 1 hypervisor &ndash; the host kernel and the hypervisor are the same kernel.</p><h3 id=13-key-concepts>1.3 Key Concepts</h3><ul><li><strong>Hypervisor (VMM):</strong> the layer that schedules vCPUs onto pCPUs, allocates memory, and traps privileged guest operations.</li><li><strong>Guest OS:</strong> the OS running inside a VM, unaware (or barely aware) it is virtualized.</li><li><strong>vCPU:</strong> a thread on the host scheduler that runs guest code in VMX non-root mode.</li><li><strong>Resource overcommit:</strong> allocating more virtual resources than physically exist. Safe within limits because guests rarely peak together. Typical safe ratios: CPU 4:1-8:1, memory 1.5:1-2:1.</li><li><strong>Ballooning:</strong> a guest driver that returns idle memory to the host on demand, enabling memory overcommit.</li></ul><h3 id=14-historical-milestones>1.4 Historical Milestones</h3><table><thead><tr><th>Year</th><th>Event</th></tr></thead><tbody><tr><td>1972</td><td>IBM VM/370 &ndash; first commercial OS-level virtualization</td></tr><tr><td>1999</td><td>VMware Workstation ships, virtualizing x86 via binary translation</td></tr><tr><td>2003</td><td>Xen 1.0 introduces para-virtualization on Linux</td></tr><tr><td>2005</td><td>Intel VT-x and AMD-V bring hardware-assisted virtualization to x86</td></tr><tr><td>2006</td><td>KVM merged into Linux 2.6.20</td></tr><tr><td>2008</td><td>EPT / NPT eliminate shadow page table cost</td></tr><tr><td>2013</td><td>Docker launches; containers become the second wave</td></tr><tr><td>2018</td><td>Firecracker (microVMs) enables sub-second VM boot for serverless</td></tr></tbody></table><h2 id=2-types-of-virtualization>2. Types of Virtualization</h2><table><thead><tr><th>Property</th><th>Full virt (BT)</th><th>Para-virt</th><th>HW-assisted</th><th>Containers</th></tr></thead><tbody><tr><td>Guest OS modified?</td><td>No</td><td>Yes</td><td>No</td><td>N/A</td></tr><tr><td>CPU overhead</td><td>High</td><td>Medium</td><td>~1-3 %</td><td>Near zero</td></tr><tr><td>Isolation</td><td>Strong</td><td>Strong</td><td>Strong</td><td>Process-level</td></tr><tr><td>Boot time</td><td>30-60 s</td><td>30-60 s</td><td>20-45 s</td><td>&lt; 1 s</td></tr><tr><td>Image size</td><td>GB</td><td>GB</td><td>GB</td><td>tens of MB</td></tr><tr><td>Example</td><td>Early VMware</td><td>Xen PV</td><td>KVM, ESXi 6+</td><td>Docker, containerd</td></tr></tbody></table><h3 id=21-containers-vs-vms-a-different-isolation-boundary>2.1 Containers vs VMs: a Different Isolation Boundary</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig2_vm_vs_container.png alt="VM vs container resource isolation: each VM ships its own kernel, containers share the host kernel" loading=lazy decoding=async></figure></p><p>The single most important diagram in this article. A VM virtualizes the <strong>hardware</strong> &ndash; so each guest brings its own kernel. A container virtualizes the <strong>OS</strong> &ndash; it is just a Linux process bundled with namespaces (PID, mount, network, UTS, IPC, user) and cgroups for resource limits. Same kernel for everyone.</p><p>Consequences:</p><ul><li>A container that triggers a kernel bug can compromise the host. A VM that triggers a kernel bug only crashes itself.</li><li>Containers cannot run a different OS (no Windows containers on a Linux host kernel, despite the marketing).</li><li>Containers boot in milliseconds because there is no kernel to initialize.</li></ul><p>This is why production workloads often run <strong>containers inside VMs</strong>: the VM gives you a security boundary, the container gives you density and speed.</p><h3 id=22-startup-latency-and-memory-cost>2.2 Startup Latency and Memory Cost</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig3_startup_and_memory.png alt="Cold-start latency and idle memory footprint: containers vs MicroVMs vs VMs (log scale)" loading=lazy decoding=async></figure></p><p>The numbers above are why &ldquo;serverless&rdquo; works on Firecracker microVMs (~125 ms cold start, ~30 MB overhead) and not on traditional KVM/QEMU VMs. Two orders of magnitude in startup time and memory completely change the economics of bursty workloads.</p><h2 id=3-hypervisor-choice>3. Hypervisor Choice</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig4_hypervisor_matrix.png alt="KVM vs Xen vs VMware ESXi vs Hyper-V across six dimensions" loading=lazy decoding=async></figure></p><p>There is no single best hypervisor &ndash; the right choice depends on what you already run, who runs it, and what you can spend on licensing.</p><h3 id=31-kvm-kernel-based-virtual-machine>3.1 KVM (Kernel-based Virtual Machine)</h3><p>KVM turns Linux itself into a Type 1 hypervisor. It is open-source, ships in every major distro, and powers OpenStack, Proxmox, Amazon EC2 (Nitro), Google Cloud, and most of Alibaba Cloud&rsquo;s ECS fleet.</p><p><strong>Install on Ubuntu/Debian:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt update
+</span></span><span class=line><span class=cl>sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>                    bridge-utils virt-manager
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo usermod -aG libvirt,kvm <span class=nv>$USER</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Verify hardware support and that the kernel module is loaded</span>
+</span></span><span class=line><span class=cl>egrep -c <span class=s1>&#39;(vmx|svm)&#39;</span> /proc/cpuinfo   <span class=c1># &gt; 0 means VT-x/AMD-V available</span>
+</span></span><span class=line><span class=cl>lsmod <span class=p>|</span> grep kvm
+</span></span><span class=line><span class=cl>virsh list --all
+</span></span></code></pre></td></tr></table></div></div><p><strong>Create a VM:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>virt-install <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --name ubuntu-server <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --ram <span class=m>4096</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --vcpus <span class=m>4</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --disk <span class=nv>path</span><span class=o>=</span>/var/lib/libvirt/images/ubuntu-server.qcow2,size<span class=o>=</span>50,bus<span class=o>=</span>virtio,cache<span class=o>=</span>none,io<span class=o>=</span>native <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --os-variant ubuntu22.04 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --network <span class=nv>bridge</span><span class=o>=</span>virbr0,model<span class=o>=</span>virtio <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --graphics none <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --console pty,target_type<span class=o>=</span>serial <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --location <span class=s1>&#39;http://archive.ubuntu.com/ubuntu/dists/jammy/main/installer-amd64/&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --extra-args <span class=s1>&#39;console=ttyS0,115200n8 serial&#39;</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Common <code>virsh</code> commands:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>virsh list --all                <span class=c1># list VMs</span>
+</span></span><span class=line><span class=cl>virsh start &lt;vm&gt;                <span class=c1># start</span>
+</span></span><span class=line><span class=cl>virsh shutdown &lt;vm&gt;             <span class=c1># graceful shutdown</span>
+</span></span><span class=line><span class=cl>virsh destroy &lt;vm&gt;              <span class=c1># force stop (kill -9 equivalent)</span>
+</span></span><span class=line><span class=cl>virsh <span class=nb>suspend</span> &lt;vm&gt;              <span class=c1># freeze in memory</span>
+</span></span><span class=line><span class=cl>virsh snapshot-create-as &lt;vm&gt; snap1
+</span></span><span class=line><span class=cl>virsh domstats &lt;vm&gt;             <span class=c1># live statistics</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=32-vmware-esxi>3.2 VMware ESXi</h3><p>ESXi is a Type 1 hypervisor that runs directly on the server. It is the de facto enterprise standard and pairs with vCenter for cluster management.</p><p>The default VM hardware uses emulated SCSI (LSI Logic) and an emulated 1 Gbps NIC (E1000). This is fine for a Windows installer but cripples production workloads. Switch to paravirtual:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-ini data-lang=ini><span class=line><span class=cl><span class=c1># Optimised .vmx fragment</span>
+</span></span><span class=line><span class=cl><span class=na>virtualHW.version</span> <span class=o>=</span> <span class=s>&#34;19&#34;</span>
+</span></span><span class=line><span class=cl><span class=na>numvcpus</span> <span class=o>=</span> <span class=s>&#34;4&#34;</span>
+</span></span><span class=line><span class=cl><span class=na>cpuid.coresPerSocket</span> <span class=o>=</span> <span class=s>&#34;2&#34;</span>
+</span></span><span class=line><span class=cl><span class=na>memory</span> <span class=o>=</span> <span class=s>&#34;8192&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># PVSCSI: 3-4x the IOPS of LSI Logic</span>
+</span></span><span class=line><span class=cl><span class=na>scsi0.virtualDev</span>   <span class=o>=</span> <span class=s>&#34;pvscsi&#34;</span>
+</span></span><span class=line><span class=cl><span class=na>scsi0:0.fileName</span>   <span class=o>=</span> <span class=s>&#34;Ubuntu-Server-22.04.vmdk&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># VMXNET3: ~9.5 Gbps vs E1000&#39;s 1 Gbps</span>
+</span></span><span class=line><span class=cl><span class=na>ethernet0.virtualDev</span> <span class=o>=</span> <span class=s>&#34;vmxnet3&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>Setting</th><th>Default</th><th>Optimised</th><th>Win</th></tr></thead><tbody><tr><td>SCSI controller</td><td>LSI Logic (~80 K IOPS)</td><td>PVSCSI (~300 K+ IOPS)</td><td>3-4x IOPS</td></tr><tr><td>NIC</td><td>E1000 (~1 Gbps)</td><td>VMXNET3 (~9.5 Gbps)</td><td>~10x throughput</td></tr><tr><td>CPU overhead</td><td>Higher (emulation)</td><td>Lower (paravirtual)</td><td>30-50 % less CPU</td></tr></tbody></table><p>Both PVSCSI and VMXNET3 require the VMware Tools driver in the guest. Install with the legacy controllers, switch after first boot.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Verify in the guest after switch-over</span>
+</span></span><span class=line><span class=cl>lsmod <span class=p>|</span> grep vmw_pvscsi
+</span></span><span class=line><span class=cl>ethtool -i eth0    <span class=c1># should show &#34;vmxnet3&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=33-xen>3.3 Xen</h3><p>Xen is the original open-source Type 1 hypervisor and powered the first generation of AWS EC2. It supports both PV and HVM (hardware-assisted) modes. Today it is most common in security-focused stacks (Qubes OS) and a handful of legacy clouds.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt install -y xen-hypervisor-amd64 xen-tools
+</span></span><span class=line><span class=cl>sudo update-grub <span class=o>&amp;&amp;</span> sudo reboot
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo xen-create-image <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --hostname<span class=o>=</span>debian-pv --memory<span class=o>=</span>1024mb --vcpus<span class=o>=</span><span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>  --lvm<span class=o>=</span>vg0 --size<span class=o>=</span>20gb --dist<span class=o>=</span>bookworm
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo xl create /etc/xen/debian-pv.cfg
+</span></span><span class=line><span class=cl>sudo xl list
+</span></span></code></pre></td></tr></table></div></div><h3 id=34-microsoft-hyper-v>3.4 Microsoft Hyper-V</h3><p>Hyper-V is bundled with Windows Server and the Windows desktop SKUs. The right choice when most of your guests are Windows or your team lives in PowerShell.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=nb>Enable-WindowsOptionalFeature</span> <span class=n>-Online</span> <span class=n>-FeatureName</span> <span class=nb>Microsoft-Hyper</span><span class=n>-V</span> <span class=n>-All</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>New-VM</span> <span class=n>-Name</span> <span class=s2>&#34;WindowsServer2022&#34;</span> <span class=p>`</span>
+</span></span><span class=line><span class=cl>  <span class=n>-MemoryStartupBytes</span> <span class=mf>4</span><span class=p>GB</span> <span class=n>-Generation</span> <span class=mf>2</span> <span class=p>`</span>
+</span></span><span class=line><span class=cl>  <span class=n>-NewVHDPath</span> <span class=s2>&#34;C:\VMs\WindowsServer2022.vhdx&#34;</span> <span class=p>`</span>
+</span></span><span class=line><span class=cl>  <span class=n>-NewVHDSizeBytes</span> <span class=mf>100</span><span class=p>GB</span> <span class=n>-SwitchName</span> <span class=s2>&#34;Default Switch&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>Set-VMProcessor</span> <span class=n>-VMName</span> <span class=s2>&#34;WindowsServer2022&#34;</span> <span class=n>-Count</span> <span class=mf>4</span>
+</span></span><span class=line><span class=cl><span class=nb>Set-VMMemory</span>    <span class=n>-VMName</span> <span class=s2>&#34;WindowsServer2022&#34;</span> <span class=p>`</span>
+</span></span><span class=line><span class=cl>                <span class=n>-DynamicMemoryEnabled</span> <span class=vm>$true</span> <span class=p>`</span>
+</span></span><span class=line><span class=cl>                <span class=n>-MinimumBytes</span> <span class=mf>2</span><span class=p>GB</span> <span class=n>-MaximumBytes</span> <span class=mf>8</span><span class=p>GB</span>
+</span></span><span class=line><span class=cl><span class=nb>Start-VM</span> <span class=n>-Name</span>  <span class=s2>&#34;WindowsServer2022&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=35-choosing>3.5 Choosing</h3><table><thead><tr><th>Criterion</th><th>KVM</th><th>VMware ESXi</th><th>Hyper-V</th><th>Xen</th></tr></thead><tbody><tr><td>Cost</td><td>Free</td><td>$$$ per socket</td><td>Bundled with WS</td><td>Free</td></tr><tr><td>Management</td><td>virsh, OpenStack</td><td>vSphere (excellent GUI)</td><td>PowerShell, Windows Admin Center</td><td>xl, XenCenter</td></tr><tr><td>Performance</td><td>Excellent</td><td>Excellent</td><td>Very good</td><td>Excellent</td></tr><tr><td>Best fit</td><td>Linux clouds, OpenStack</td><td>Enterprise data centers</td><td>Microsoft shops</td><td>Security niches, legacy</td></tr></tbody></table><h2 id=4-storage-virtualization>4. Storage Virtualization</h2><h3 id=41-lvm-logical-volume-manager>4.1 LVM (Logical Volume Manager)</h3><p>LVM abstracts block devices into flexible, resizable logical volumes. The mental model: physical volumes (<code>pv</code>) -> volume groups (<code>vg</code>) -> logical volumes (<code>lv</code>).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo pvcreate /dev/sdb1 /dev/sdc1
+</span></span><span class=line><span class=cl>sudo vgcreate vg_storage /dev/sdb1 /dev/sdc1
+</span></span><span class=line><span class=cl>sudo lvcreate -L 100G -n lv_data vg_storage
+</span></span><span class=line><span class=cl>sudo mkfs.ext4 /dev/vg_storage/lv_data
+</span></span><span class=line><span class=cl>sudo mount /dev/vg_storage/lv_data /mnt/data
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Online expand (no unmount, no downtime)</span>
+</span></span><span class=line><span class=cl>sudo lvextend -L +50G /dev/vg_storage/lv_data
+</span></span><span class=line><span class=cl>sudo resize2fs   /dev/vg_storage/lv_data
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Copy-on-write snapshot</span>
+</span></span><span class=line><span class=cl>sudo lvcreate -L 10G -s -n lv_data_snap /dev/vg_storage/lv_data
+</span></span></code></pre></td></tr></table></div></div><h3 id=42-zfs>4.2 ZFS</h3><p>ZFS combines volume management and filesystem with built-in checksums, compression, snapshots, and send/receive replication. The cost is RAM (rule of thumb: 1 GB per TB for the ARC).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo zpool create tank raidz /dev/sdb /dev/sdc /dev/sdd
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo zfs create tank/data
+</span></span><span class=line><span class=cl>sudo zfs <span class=nb>set</span> <span class=nv>compression</span><span class=o>=</span>lz4 tank/data        <span class=c1># ~30 % space savings, near-free CPU</span>
+</span></span><span class=line><span class=cl>sudo zfs <span class=nb>set</span> <span class=nv>atime</span><span class=o>=</span>off       tank/data        <span class=c1># avoid write amplification</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo zfs snapshot tank/data@2025-01-01
+</span></span><span class=line><span class=cl>sudo zfs send tank/data@2025-01-01 <span class=p>|</span> ssh backup-host <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     sudo zfs receive backup-pool/data
+</span></span></code></pre></td></tr></table></div></div><h3 id=43-disk-format-and-io-path>4.3 Disk Format and I/O Path</h3><p>The format you pick for the virtual disk image &ndash; and the cache mode you give QEMU &ndash; often matters more than which CPU you bought.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=c>&lt;!-- libvirt: production-grade disk for KVM --&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;disk</span> <span class=na>type=</span><span class=s>&#39;file&#39;</span> <span class=na>device=</span><span class=s>&#39;disk&#39;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;driver</span> <span class=na>name=</span><span class=s>&#39;qemu&#39;</span> <span class=na>type=</span><span class=s>&#39;raw&#39;</span> <span class=na>cache=</span><span class=s>&#39;none&#39;</span> <span class=na>io=</span><span class=s>&#39;native&#39;</span> <span class=na>discard=</span><span class=s>&#39;unmap&#39;</span><span class=nt>/&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;source</span> <span class=na>file=</span><span class=s>&#39;/var/lib/libvirt/images/db.raw&#39;</span><span class=nt>/&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;target</span> <span class=na>dev=</span><span class=s>&#39;vda&#39;</span> <span class=na>bus=</span><span class=s>&#39;virtio&#39;</span><span class=nt>/&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/disk&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Use a low-overhead I/O scheduler under the host</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> none <span class=p>|</span> sudo tee /sys/block/nvme0n1/queue/scheduler
+</span></span></code></pre></td></tr></table></div></div><table><thead><tr><th>Format</th><th>Performance</th><th>Features</th><th>Best for</th></tr></thead><tbody><tr><td>Raw</td><td>Best</td><td>None</td><td>Production DBs, latency-critical</td></tr><tr><td>QCOW2</td><td>Very good</td><td>Snapshots, compression, thin</td><td>General use, dev/test</td></tr><tr><td>VMDK</td><td>Good</td><td>VMware ecosystem</td><td>VMware shops</td></tr></tbody></table><p><code>cache=none</code> + <code>io=native</code> bypasses the host page cache and uses asynchronous direct I/O &ndash; the right default for any guest with its own filesystem cache (i.e. all of them). <code>cache=writeback</code> is faster but loses data on host crash; only use it for ephemeral workloads.</p><h2 id=5-network-virtualization>5. Network Virtualization</h2><h3 id=51-vlans>5.1 VLANs</h3><p>A VLAN tag (802.1Q) carves one physical network into many isolated broadcast domains.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo ip link add link eth0 name eth0.100 <span class=nb>type</span> vlan id <span class=m>100</span>
+</span></span><span class=line><span class=cl>sudo ip addr add 192.168.100.1/24 dev eth0.100
+</span></span><span class=line><span class=cl>sudo ip link <span class=nb>set</span> eth0.100 up
+</span></span></code></pre></td></tr></table></div></div><p>Limit: 4 094 VLAN IDs is plenty for a single rack, nowhere near enough for a public cloud.</p><h3 id=52-vxlan>5.2 VXLAN</h3><p>VXLAN tunnels Layer-2 Ethernet frames inside UDP packets, giving you 16 million logical networks (24-bit VNI) over any IP fabric. This is the workhorse of multi-tenant cloud networks and Kubernetes overlays (Flannel, Calico VXLAN mode).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>VM A (10.1.1.10) -- VTEP1 [VNI 100] --IP fabric-- VTEP2 [VNI 100] -- VM B (10.1.1.20)
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo ip link add vxlan100 <span class=nb>type</span> vxlan id <span class=m>100</span> dstport <span class=m>4789</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>     group 239.1.1.1 dev eth0
+</span></span><span class=line><span class=cl>sudo ip addr add 10.1.1.1/24 dev vxlan100
+</span></span><span class=line><span class=cl>sudo ip link <span class=nb>set</span> vxlan100 up
+</span></span></code></pre></td></tr></table></div></div><h3 id=53-open-vswitch>5.3 Open vSwitch</h3><p>OVS is a programmable virtual switch with OpenFlow support, used by OpenStack Neutron, Open Virtual Network (OVN), and many SDN stacks.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo apt install -y openvswitch-switch
+</span></span><span class=line><span class=cl>sudo ovs-vsctl add-br br0
+</span></span><span class=line><span class=cl>sudo ovs-vsctl add-port br0 eth0
+</span></span><span class=line><span class=cl>sudo ovs-vsctl add-port br0 vnet0
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>sudo ovs-ofctl add-flow br0 <span class=s2>&#34;in_port=1,actions=output:2&#34;</span>
+</span></span><span class=line><span class=cl>sudo ovs-vsctl show
+</span></span><span class=line><span class=cl>sudo ovs-ofctl dump-flows br0
+</span></span></code></pre></td></tr></table></div></div><h3 id=54-sr-iov-bypass-the-hypervisor>5.4 SR-IOV: Bypass the Hypervisor</h3><p>SR-IOV (Single Root I/O Virtualization) lets a NIC expose Virtual Functions (VFs) that are mapped directly into VMs, bypassing the host&rsquo;s network stack entirely. Latency drops from ~30 µs (virtio) to ~3 µs (SR-IOV); throughput becomes line-rate.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=nb>echo</span> <span class=m>4</span> <span class=p>|</span> sudo tee /sys/class/net/eth0/device/sriov_numvfs
+</span></span><span class=line><span class=cl>ip link show eth0
+</span></span><span class=line><span class=cl><span class=c1># eth0: ... vf 0 MAC ...  vf 1 MAC ...  vf 2 MAC ...  vf 3 MAC ...</span>
+</span></span></code></pre></td></tr></table></div></div><p>The trade-off: live migration becomes harder (the VM is bound to a specific physical NIC) and you can only have as many VMs on a NIC as it has VFs.</p><h2 id=6-performance-optimization>6. Performance Optimization</h2><h3 id=61-cpu-pinning-numa-topology>6.1 CPU: Pinning, NUMA, Topology</h3><p>On any multi-socket host, the worst case is a vCPU that wakes up on socket A but its memory lives on socket B &ndash; every cache line is a cross-socket round trip. Fix this with <strong>CPU pinning</strong> plus <strong>NUMA pinning</strong>:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Pin each vCPU to a specific physical core</span>
+</span></span><span class=line><span class=cl>virsh vcpupin ubuntu-server <span class=m>0</span> <span class=m>0</span>
+</span></span><span class=line><span class=cl>virsh vcpupin ubuntu-server <span class=m>1</span> <span class=m>1</span>
+</span></span><span class=line><span class=cl>virsh vcpupin ubuntu-server <span class=m>2</span> <span class=m>2</span>
+</span></span><span class=line><span class=cl>virsh vcpupin ubuntu-server <span class=m>3</span> <span class=m>3</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Force memory allocation onto the same NUMA node</span>
+</span></span><span class=line><span class=cl>virsh numatune ubuntu-server --nodeset <span class=m>0</span> --mode strict
+</span></span></code></pre></td></tr></table></div></div><p>Expose the real CPU topology so the guest scheduler can make good decisions:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=nt>&lt;cpu</span> <span class=na>mode=</span><span class=s>&#39;host-passthrough&#39;</span> <span class=na>check=</span><span class=s>&#39;none&#39;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;topology</span> <span class=na>sockets=</span><span class=s>&#39;1&#39;</span> <span class=na>cores=</span><span class=s>&#39;4&#39;</span> <span class=na>threads=</span><span class=s>&#39;2&#39;</span><span class=nt>/&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;cache</span> <span class=na>mode=</span><span class=s>&#39;passthrough&#39;</span><span class=nt>/&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/cpu&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>mode='host-passthrough'</code> exposes every CPU flag (AVX-512, AES-NI, etc.) but breaks live migration to dissimilar hosts; use <code>host-model</code> if you need migration across a heterogeneous fleet.</p><h3 id=62-memory-huge-pages-and-ballooning>6.2 Memory: Huge Pages and Ballooning</h3><p>Each TLB entry maps one page. With 4 KB pages, walking 1 GB of RAM hits 262 144 entries; with 2 MB huge pages, just 512. For databases and JVMs the speedup is 5-15 %.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Allocate 2 048 huge pages * 2 MB = 4 GB</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=m>2048</span> <span class=p>|</span> sudo tee /proc/sys/vm/nr_hugepages
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Tell libvirt to back the VM with huge pages</span>
+</span></span><span class=line><span class=cl><span class=c1># &lt;memoryBacking&gt;&lt;hugepages/&gt;&lt;/memoryBacking&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Ballooning gives memory back dynamically:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>virsh setmaxmem ubuntu-server 8G --config
+</span></span><span class=line><span class=cl>virsh setmem    ubuntu-server 2G --live   <span class=c1># shrink without reboot</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=63-io-virtio-everywhere>6.3 I/O: virtio Everywhere</h3><p>Always use virtio devices in KVM guests. They are paravirtual &ndash; the guest knows it is in a VM and uses ring buffers shared with the hypervisor instead of MMIO emulation. <code>vhost-net</code> moves the network ring processing into the kernel, eliminating one userspace round trip per packet.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=nt>&lt;interface</span> <span class=na>type=</span><span class=s>&#39;bridge&#39;</span><span class=nt>&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;model</span> <span class=na>type=</span><span class=s>&#39;virtio&#39;</span><span class=nt>/&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;driver</span> <span class=na>name=</span><span class=s>&#39;vhost&#39;</span> <span class=na>queues=</span><span class=s>&#39;4&#39;</span><span class=nt>/&gt;</span>   <span class=c>&lt;!-- multi-queue scales with vCPUs --&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/interface&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=64-tuning-checklist>6.4 Tuning Checklist</h3><ul><li><input disabled type=checkbox> VT-x / AMD-V enabled in BIOS</li><li><input disabled type=checkbox> virtio (KVM) or PVSCSI/VMXNET3 (VMware) for disk and NIC</li><li><input disabled type=checkbox> CPU pinning + NUMA pinning for any VM with > 8 vCPUs</li><li><input disabled type=checkbox> Host I/O scheduler = <code>none</code> (NVMe) or <code>mq-deadline</code> (SATA)</li><li><input disabled type=checkbox> Disk format = raw, <code>cache=none</code>, <code>io=native</code> for production</li><li><input disabled type=checkbox> Huge pages backing memory-intensive guests</li><li><input disabled type=checkbox> SR-IOV for network-intensive VMs that do not need live migration</li><li><input disabled type=checkbox> Multi-queue virtio-net with queue count = vCPU count</li><li><input disabled type=checkbox> CPU governor = <code>performance</code> on the host</li></ul><h2 id=7-live-migration-moving-a-running-vm>7. Live Migration: Moving a Running VM</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig5_live_migration.png alt="Pre-copy live migration: full image, then iterative dirty-page rounds, then sub-100ms cutover" loading=lazy decoding=async></figure></p><p>Live migration is the single feature that turned VMs from &ldquo;another way to run a server&rdquo; into a fluid pool. The dominant algorithm is <strong>pre-copy</strong>:</p><ol><li><strong>Initial copy.</strong> Send the entire guest memory image to the destination while the VM keeps running on the source.</li><li><strong>Dirty-page rounds.</strong> The source tracks pages dirtied during step 1 and re-sends them. Repeat until the dirty rate falls below network bandwidth, or you hit the round limit.</li><li><strong>Stop & switch.</strong> Pause the source VM, send the last dirty pages and CPU state, resume on the destination. Pause time is typically &lt; 100 ms &ndash; TCP connections and user sessions survive.</li></ol><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># KVM live migration over TLS</span>
+</span></span><span class=line><span class=cl>virsh migrate --live --persistent --undefinesource <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>              --copy-storage-all <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>              ubuntu-server qemu+tls://dest-host/system
+</span></span></code></pre></td></tr></table></div></div><p>If the guest is dirtying memory faster than the link can move it (a busy in-memory database, for example), pre-copy never converges. The fallbacks are <strong>post-copy</strong> (switch first, page-fault memory across the network &ndash; lower total downtime, higher tail latency) and <strong>auto-converge</strong> (throttle the guest CPU until the dirty rate drops).</p><p>Requirements:</p><ul><li>Shared storage, <strong>or</strong> <code>--copy-storage-all</code> (slower)</li><li>Compatible CPU features on source and destination (use <code>host-model</code>, not <code>host-passthrough</code>)</li><li>A network fast enough that dirty rate &lt; bandwidth &ndash; 10 Gbps is the practical minimum for production VMs</li></ul><h2 id=8-nested-virtualization>8. Nested Virtualization</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig6_nested_virtualization.png alt="Nested virtualization stack: L0 hypervisor, L1 guest hypervisor, L2 guest VM, with throughput cost per level" loading=lazy decoding=async></figure></p><p>Nested virtualization lets a guest VM itself be a hypervisor. Real uses:</p><ul><li>Running a hypervisor lab inside a cloud VM</li><li>CI pipelines that spin up VMs as part of their build</li><li>WSL 2 on Windows (Hyper-V running Linux running containers)</li><li>Confidential computing (one hypervisor inside another for defence in depth)</li></ul><p>Enable on KVM:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Intel</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;options kvm-intel nested=1&#34;</span> <span class=p>|</span> sudo tee /etc/modprobe.d/kvm.conf
+</span></span><span class=line><span class=cl>sudo modprobe -r kvm_intel <span class=o>&amp;&amp;</span> sudo modprobe kvm_intel
+</span></span><span class=line><span class=cl>cat /sys/module/kvm_intel/parameters/nested        <span class=c1># should print Y</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># AMD</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;options kvm-amd nested=1&#34;</span> <span class=p>|</span> sudo tee /etc/modprobe.d/kvm.conf
+</span></span></code></pre></td></tr></table></div></div><p>Then expose <code>vmx</code> (or <code>svm</code>) to the L1 guest:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=nt>&lt;cpu</span> <span class=na>mode=</span><span class=s>&#39;host-passthrough&#39;</span><span class=nt>/&gt;</span>   <span class=c>&lt;!-- simplest way to leak the flag --&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Cost: each nesting level adds VM-exit hops. CPU-bound workloads typically lose 5-10 % at L1 and 25-40 % at L2; I/O-bound workloads can lose much more without paravirt drivers all the way down.</p><h2 id=9-gpu-virtualization>9. GPU Virtualization</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/virtualization/fig7_gpu_virtualization.png alt="Four ways to share a GPU: time-slicing, vGPU, MIG, and full passthrough" loading=lazy decoding=async></figure></p><p>GPUs were designed for one process to own the whole device. Sharing them across VMs requires picking a point on the density-vs-isolation spectrum:</p><table><thead><tr><th>Mode</th><th>How</th><th>Isolation</th><th>Density</th><th>Notes</th></tr></thead><tbody><tr><td><strong>Time-slicing</strong></td><td>Hypervisor round-robins context</td><td>Weak (no perf isolation)</td><td>High</td><td>Cheapest, used in many ML training clusters</td></tr><tr><td><strong>vGPU</strong> (NVIDIA GRID)</td><td>Mediated passthrough, virtual GPU per VM</td><td>Medium</td><td>Medium</td><td>Hard QoS for memory; requires NVIDIA license</td></tr><tr><td><strong>MIG</strong> (A100 / H100)</td><td>Hardware partitions GPU into up to 7 instances</td><td>Strong (separate SMs, L2, memory)</td><td>Fixed shapes (1g.5gb, 2g.10gb, &mldr;)</td><td>True isolation, no fractional sharing within a slice</td></tr><tr><td><strong>Passthrough</strong> (VFIO)</td><td>One whole GPU bound to one VM</td><td>Native</td><td>1 VM per GPU</td><td>Bare-metal speed, no sharing at all</td></tr></tbody></table><p>A typical AI cloud uses MIG for inference (many small slices, hard QoS) and passthrough for training (one job, the whole device).</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># VFIO passthrough on Linux</span>
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;vfio-pci&#34;</span> <span class=p>|</span> sudo tee /etc/modules-load.d/vfio.conf
+</span></span><span class=line><span class=cl><span class=nb>echo</span> <span class=s2>&#34;options vfio-pci ids=10de:2204&#34;</span> <span class=p>|</span> sudo tee /etc/modprobe.d/vfio.conf
+</span></span><span class=line><span class=cl><span class=c1># Then in libvirt XML:</span>
+</span></span><span class=line><span class=cl><span class=c1># &lt;hostdev mode=&#39;subsystem&#39; type=&#39;pci&#39; managed=&#39;yes&#39;&gt;</span>
+</span></span><span class=line><span class=cl><span class=c1>#   &lt;source&gt;&lt;address bus=&#39;0x01&#39; slot=&#39;0x00&#39; function=&#39;0x0&#39;/&gt;&lt;/source&gt;</span>
+</span></span><span class=line><span class=cl><span class=c1># &lt;/hostdev&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=10-security-and-isolation>10. Security and Isolation</h2><h3 id=101-threat-model>10.1 Threat Model</h3><p>The fundamental promise of a hypervisor is that one tenant cannot read or affect another. Real-world breaks have come from:</p><ul><li><strong>VM escape</strong> via emulated device bugs (Venom, 2015 &ndash; floppy drive emulation in QEMU)</li><li><strong>Side channels</strong> on shared CPU caches (L1TF, MDS, Spectre v2)</li><li><strong>Hypervisor kernel bugs</strong> in the management plane</li></ul><p>Defenses are layered, not perfect.</p><h3 id=102-hypervisor-hardening>10.2 Hypervisor Hardening</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Smallest possible attack surface</span>
+</span></span><span class=line><span class=cl>sudo systemctl disable --now avahi-daemon cups bluetooth
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Firewall: management plane only, restricted source</span>
+</span></span><span class=line><span class=cl>sudo ufw <span class=nb>enable</span>
+</span></span><span class=line><span class=cl>sudo ufw allow from 192.168.1.0/24 to any port <span class=m>22</span>
+</span></span><span class=line><span class=cl>sudo ufw allow from 192.168.1.0/24 to any port <span class=m>16509</span>   <span class=c1># libvirt</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># libvirt over TLS only</span>
+</span></span><span class=line><span class=cl><span class=c1># /etc/libvirt/libvirtd.conf</span>
+</span></span><span class=line><span class=cl><span class=c1># listen_tls = 1</span>
+</span></span><span class=line><span class=cl><span class=c1># listen_tcp = 0</span>
+</span></span><span class=line><span class=cl><span class=c1># auth_tls   = &#34;sasl&#34;</span>
+</span></span></code></pre></td></tr></table></div></div><p>Enable CPU side-channel mitigations on the host (<code>spectre_v2=on</code>, <code>l1tf=full</code>) and keep microcode current.</p><h3 id=103-guest-best-practices>10.3 Guest Best Practices</h3><ul><li>Minimal install (no GUI, no <code>cups</code>, no <code>apt-listchanges</code>)</li><li>Automatic security updates (<code>unattended-upgrades</code>)</li><li>Full-disk encryption for sensitive data (LUKS in the guest)</li><li>Per-trust-tier VLANs &ndash; never put PCI workloads on the same broadcast domain as developer VMs</li><li>Keep guest agents (<code>qemu-guest-agent</code>, <code>vmtoolsd</code>, <code>Hyper-V Integration Services</code>) up to date</li></ul><h3 id=104-confidential-computing>10.4 Confidential Computing</h3><p>The newest layer: AMD SEV-SNP, Intel TDX, and ARM CCA encrypt guest memory with a key the hypervisor cannot see. Even a fully compromised host cannot read tenant data. Available today on Azure Confidential VMs, GCP Confidential VMs, and Alibaba Cloud ECS gN8v.</p><h2 id=11-troubleshooting-playbook>11. Troubleshooting Playbook</h2><table><thead><tr><th>Symptom</th><th>First check</th><th>Likely fix</th></tr></thead><tbody><tr><td>VM won&rsquo;t start</td><td><code>journalctl -u libvirtd</code>, <code>qemu-img check vm.qcow2</code></td><td>Disk corruption, permissions, SELinux/AppArmor labels</td></tr><tr><td>Slow CPU</td><td><code>virt-top</code>, <code>mpstat -P ALL</code> on host</td><td>CPU pinning, governor = performance, check %steal</td></tr><tr><td>Slow disk</td><td><code>iostat -xz 1</code>, guest <code>iotop</code></td><td>Switch to virtio + <code>cache=none io=native</code>, raw format</td></tr><tr><td>Network packet loss</td><td><code>ethtool -S</code>, <code>tc -s qdisc</code></td><td>Multi-queue virtio, increase ring buffer, check vhost CPU</td></tr><tr><td>Live migration stalls</td><td><code>virsh domjobinfo &lt;vm></code></td><td>Dirty rate too high &ndash; enable auto-converge or use post-copy</td></tr><tr><td>Memory pressure</td><td><code>free -h</code>, <code>cat /proc/meminfo</code>, <code>numastat</code></td><td>Add huge pages, fix NUMA pinning, reduce overcommit</td></tr><tr><td>Random VM crash</td><td><code>dmesg</code>, <code>/var/log/libvirt/qemu/&lt;vm>.log</code></td><td>EDAC errors -> bad RAM; otherwise check kernel + microcode</td></tr><tr><td><code>KVM: entry failed, hardware error 0x80000021</code></td><td>`dmesg</td><td>grep KVM`</td></tr></tbody></table><h2 id=12-resource-sizing-guidelines>12. Resource Sizing Guidelines</h2><table><thead><tr><th>Resource</th><th>Light</th><th>Medium</th><th>Heavy</th></tr></thead><tbody><tr><td>vCPUs</td><td>1-2</td><td>2-4</td><td>4-8+</td></tr><tr><td>Memory</td><td>2 GB</td><td>4-8 GB</td><td>16+ GB</td></tr><tr><td>OS disk</td><td>20 GB</td><td>30-50 GB</td><td>50-100 GB</td></tr><tr><td>Network</td><td>1 Gbps</td><td>1-10 Gbps</td><td>10+ Gbps (SR-IOV)</td></tr></tbody></table><p><strong>Safe overcommit ratios:</strong></p><ul><li>CPU: 4:1 to 8:1 — drop to 2:1 or 1:1 for latency-sensitive workloads</li><li>Memory: 1.5:1 to 2:1 — never overcommit memory for databases</li><li>Disk: thin provisioning OK if you monitor capacity</li></ul><h2 id=13-case-studies>13. Case Studies</h2><h3 id=131-enterprise-data-center-consolidation>13.1 Enterprise Data Center Consolidation</h3><p>A financial services company consolidated 200 physical servers onto 20 VMware ESXi hosts backed by a shared NVMe SAN. Result: 90 % rack reduction, 60 % cost saving, deployment time from weeks to hours. The bigger win was operational &ndash; a single vCenter cluster replaced four ticket queues.</p><h3 id=132-hpc-research-cluster>13.2 HPC Research Cluster</h3><p>A research institute ran tightly-coupled MPI jobs on KVM with <code>host-passthrough</code> CPU, NUMA pinning, 1 GB huge pages, and SR-IOV InfiniBand. Sustained 95-98 % of bare-metal throughput while gaining the ability to snapshot whole experiments and ship them between sites.</p><h3 id=133-public-cloud-compute-plane>13.3 Public Cloud Compute Plane</h3><p>Hyperscale clouds (AWS Nitro, Alibaba ECS Shenlong) push device emulation off the CPU entirely onto custom DPUs, leaving 100 % of the host CPU for guests and reducing the host&rsquo;s attack surface to a thin KVM. Performance overhead in the single digits, security boundary smaller than any traditional ESXi host.</p><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th></tr></thead><tbody><tr><td>1</td><td><a href=/en/cloud-computing-fundamentals/>Fundamentals and Architecture</a></td></tr><tr><td><strong>2</strong></td><td><strong>Virtualization Technology Deep Dive (you are here)</strong></td></tr><tr><td>3</td><td><a href=/en/cloud-computing-storage-systems/>Storage Systems and Distributed Architecture</a></td></tr><tr><td>4</td><td><a href=/en/cloud-computing-networking-sdn/>Network Architecture and SDN</a></td></tr><tr><td>5</td><td><a href=/en/cloud-computing-security-privacy/>Security and Privacy Protection</a></td></tr><tr><td>6</td><td><a href=/en/cloud-computing-operations-devops/>Operations and DevOps Practices</a></td></tr><tr><td>7</td><td><a href=/en/cloud-computing-cloud-native-containers/>Cloud-Native and Container Technologies</a></td></tr><tr><td>8</td><td><a href=/en/cloud-computing-multi-cloud-hybrid/>Multi-Cloud and Hybrid Architecture</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What You Will Learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-virtualization-fundamentals>1. Virtualization Fundamentals</a><ul><li><a href=#11-why-it-took-hardware-help>1.1 Why It Took Hardware Help</a></li><li><a href=#12-type-1-vs-type-2-hypervisors>1.2 Type 1 vs Type 2 Hypervisors</a></li><li><a href=#13-key-concepts>1.3 Key Concepts</a></li><li><a href=#14-historical-milestones>1.4 Historical Milestones</a></li></ul></li><li><a href=#2-types-of-virtualization>2. Types of Virtualization</a><ul><li><a href=#21-containers-vs-vms-a-different-isolation-boundary>2.1 Containers vs VMs: a Different Isolation Boundary</a></li><li><a href=#22-startup-latency-and-memory-cost>2.2 Startup Latency and Memory Cost</a></li></ul></li><li><a href=#3-hypervisor-choice>3. Hypervisor Choice</a><ul><li><a href=#31-kvm-kernel-based-virtual-machine>3.1 KVM (Kernel-based Virtual Machine)</a></li><li><a href=#32-vmware-esxi>3.2 VMware ESXi</a></li><li><a href=#33-xen>3.3 Xen</a></li><li><a href=#34-microsoft-hyper-v>3.4 Microsoft Hyper-V</a></li><li><a href=#35-choosing>3.5 Choosing</a></li></ul></li><li><a href=#4-storage-virtualization>4. Storage Virtualization</a><ul><li><a href=#41-lvm-logical-volume-manager>4.1 LVM (Logical Volume Manager)</a></li><li><a href=#42-zfs>4.2 ZFS</a></li><li><a href=#43-disk-format-and-io-path>4.3 Disk Format and I/O Path</a></li></ul></li><li><a href=#5-network-virtualization>5. Network Virtualization</a><ul><li><a href=#51-vlans>5.1 VLANs</a></li><li><a href=#52-vxlan>5.2 VXLAN</a></li><li><a href=#53-open-vswitch>5.3 Open vSwitch</a></li><li><a href=#54-sr-iov-bypass-the-hypervisor>5.4 SR-IOV: Bypass the Hypervisor</a></li></ul></li><li><a href=#6-performance-optimization>6. Performance Optimization</a><ul><li><a href=#61-cpu-pinning-numa-topology>6.1 CPU: Pinning, NUMA, Topology</a></li><li><a href=#62-memory-huge-pages-and-ballooning>6.2 Memory: Huge Pages and Ballooning</a></li><li><a href=#63-io-virtio-everywhere>6.3 I/O: virtio Everywhere</a></li><li><a href=#64-tuning-checklist>6.4 Tuning Checklist</a></li></ul></li><li><a href=#7-live-migration-moving-a-running-vm>7. Live Migration: Moving a Running VM</a></li><li><a href=#8-nested-virtualization>8. Nested Virtualization</a></li><li><a href=#9-gpu-virtualization>9. GPU Virtualization</a></li><li><a href=#10-security-and-isolation>10. Security and Isolation</a><ul><li><a href=#101-threat-model>10.1 Threat Model</a></li><li><a href=#102-hypervisor-hardening>10.2 Hypervisor Hardening</a></li><li><a href=#103-guest-best-practices>10.3 Guest Best Practices</a></li><li><a href=#104-confidential-computing>10.4 Confidential Computing</a></li></ul></li><li><a href=#11-troubleshooting-playbook>11. Troubleshooting Playbook</a></li><li><a href=#12-resource-sizing-guidelines>12. Resource Sizing Guidelines</a></li><li><a href=#13-case-studies>13. Case Studies</a><ul><li><a href=#131-enterprise-data-center-consolidation>13.1 Enterprise Data Center Consolidation</a></li><li><a href=#132-hpc-research-cluster>13.2 HPC Research Cluster</a></li><li><a href=#133-public-cloud-compute-plane>13.3 Public Cloud Compute Plane</a></li></ul></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>18 min</strong></div><div class=row><span>Word count</span><strong>3747</strong></div><div class=row><span>Published</span><strong>Feb 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

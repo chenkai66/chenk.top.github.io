@@ -1,478 +1,170 @@
-<!doctype html>
-<html lang="zh" data-translation="/en/aliyun-bailian/02-qwen-llm-api/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法 · Chen Kai Blog</title>
-<meta name="description" content="按延迟和成本选 Qwen 变体、function calling 写对、JSON mode 不再哭、enable_thinking &#43; 流式必绑这条文档没明说的事。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法">
-<meta property="og:description" content="按延迟和成本选 Qwen 变体、function calling 写对、JSON mode 不再哭、enable_thinking &#43; 流式必绑这条文档没明说的事。">
-<meta property="og:url" content="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Aliyun Bailian</a>
-         · Chapter 2
-      </div>
-      <h1>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</h1>
-      <p class="deck">按延迟和成本选 Qwen 变体、function calling 写对、JSON mode 不再哭、enable_thinking &#43; 流式必绑这条文档没明说的事。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-26">February 26, 2026</time> · 5 min read · 2100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC/" class="tag">#阿里云百炼</a><a href="/zh/tags/qwen/" class="tag">#Qwen</a><a href="/zh/tags/llm/" class="tag">#LLM</a><a href="/zh/tags/function-calling/" class="tag">#Function Calling</a><a href="/zh/tags/streaming/" class="tag">#Streaming</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/en/aliyun-bailian/02-qwen-llm-api/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>整个系列里生产收益最大的就是这篇。其它模型有趣，LLM 才是我每个百炼上线产品每分钟都在调的东西。官方 Qwen API reference 详尽但稠密，本文是从中挑一条可读路径走完。</p>
-<h2 id="按场景选-qwen-变体">按场景选 Qwen 变体</h2>
-<p>Qwen 家族很大。多数团队默认 <code>qwen-max</code> 全量花冤枉钱，少数团队默认 <code>qwen-turbo</code> 省了质量。正确答案是&quot;按任务匹配变体&quot;。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig1_qwen_family.png" alt="Qwen 模型家族" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>我的生产经验：</p>
-<ul>
-<li><strong><code>qwen-turbo</code></strong> — 分类、意图识别、短摘要、单次用户请求里调 &gt;10 次的事。最便宜的那档 Qwen，抽取场景出乎意料地好。</li>
-<li><strong><code>qwen-plus</code></strong> — 日常主力。对话、RAG 综合、多步推理。性价比拐点。</li>
-<li><strong><code>qwen-max</code> / <code>qwen3-max</code></strong> — 代码评审、复杂推理、答错代价比答慢大的事。</li>
-<li><strong><code>qwen3-coder-plus</code></strong> — 所有代码任务。同参数规模下比通用 <code>qwen-plus</code> 在代码上明显好。</li>
-<li><strong><code>qwen3-vl-plus</code> / <code>qwen3-omni-flash</code></strong> — 图像/视频/音频输入。第三篇专门讲。</li>
-</ul>
-<blockquote>
-<p><strong>经验：</strong> 常见错误是用 <code>qwen-max</code> 做 embedding 类分类任务。别这么干。<code>qwen-turbo</code> 配紧凑 system prompt 能省 10 倍成本无质量损失。</p>
-</blockquote>
-<h2 id="一次请求实际发的什么">一次请求实际发的什么</h2>
-<p>不论走 OpenAI 兼容还是原生，一次 chat 的本质都一样：模型 ID、messages 数组、参数块。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig2_request_flow.png" alt="Chat completion 请求流" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>最常碰的字段：</p>
-<ul>
-<li><strong><code>messages</code></strong> — <code>{role, content}</code> 数组。role 是 <code>system</code> / <code>user</code> / <code>assistant</code> / <code>tool</code>。文档说多模态模型 <code>content</code> 可以是带类型的部分数组（text、image_url、input_audio、video_url）——见第三篇。</li>
-<li><strong><code>temperature</code></strong> — 0.0-2.0。我抽取/分类用 0.0，默认对话 0.2-0.4，创作 0.7+。文档默认大约 0.7，对多数 agent 用法太高了。</li>
-<li><strong><code>top_p</code></strong> — 不知道为啥要改就别改。<code>temperature</code> 和 <code>top_p</code> 一起调是混乱配方。</li>
-<li><strong><code>max_tokens</code></strong>（兼容）/ <strong><code>parameters.max_tokens</code></strong>（原生）— 是<em>输出</em>上限，不是总上限。要设。否则一次失控算钱。</li>
-<li><strong><code>stream</code></strong> — 切 SSE 流式。</li>
-<li><strong><code>response_format={&quot;type&quot;: &quot;json_object&quot;}</code></strong> — JSON mode。比&quot;请返回 JSON&quot;提示靠谱。</li>
-<li><strong><code>tools</code></strong> / <strong><code>tool_choice</code></strong> — function calling。</li>
-</ul>
-<h2 id="function-calling一来一回">Function calling：一来一回</h2>
-<p>Qwen 的 function calling 协议就是 OpenAI 的 tool-calls。两次 LLM 调用 + 中间你的代码：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig3_function_calling.png" alt="Function calling 一来一回" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>完整可跑示例——一个能查天气的小 agent：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;DASHSCOPE_API_KEY&#39;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">tools</span> <span class="o">=</span> <span class="p">[{</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;function&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;function&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;get_weather&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;description&#34;</span><span class="p">:</span> <span class="s2">&#34;查询某城市当前天气&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;parameters&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;object&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;string&#34;</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;required&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;city&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">        <span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">}]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_weather</span><span class="p">(</span><span class="n">city</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 真实场景：调你自己的 API。这里 stub。</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;city&#34;</span><span class="p">:</span> <span class="n">city</span><span class="p">,</span> <span class="s2">&#34;temp_c&#34;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span> <span class="s2">&#34;conditions&#34;</span><span class="p">:</span> <span class="s2">&#34;晴&#34;</span><span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">messages</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;去上海要带伞吗？&#34;</span><span class="p">}]</span>
-</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen-plus&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">msg</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="n">call</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">result</span> <span class="o">=</span> <span class="n">call_weather</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;tool&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;tool_call_id&#34;</span><span class="p">:</span> <span class="n">call</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">})</span>
-</span></span><span class="line"><span class="cl">    <span class="n">final</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen-plus&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">final</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>三个易踩的坑：</p>
-<ul>
-<li><strong>第一次响应和工具结果之间必须 <code>messages.append(msg)</code></strong>。模型需要在历史里看到自己的 tool_call 消息，否则第二次调用会 400 报&quot;orphan tool result&quot;。</li>
-<li><strong><code>tool_choice=&quot;auto&quot;</code> 是默认。</strong> 必要时强制指定工具：<code>tool_choice={&quot;type&quot;: &quot;function&quot;, &quot;function&quot;: {&quot;name&quot;: &quot;...&quot;}}</code>——工作流首次调用时常用。</li>
-<li><strong><code>parallel_tool_calls=True</code></strong> 支持。工具相互独立时用——模型会一次返回多个 <code>tool_calls</code>。</li>
-</ul>
-<h2 id="json-mode">JSON mode</h2>
-<p>要结构化输出，别靠 prompt。用：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen-plus&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
-</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;system&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s1">&#39;返回 JSON：{&#34;sentiment&#34;: &#34;positive|negative|neutral&#34;}&#39;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;这个产品我超喜欢。&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;json_object&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>生产里两个注意：</p>
-<ul>
-<li>模型有时还是会用 <code>```json</code> 包起来。<code>json.loads</code> 前剥一下围栏更稳。</li>
-<li>要<em>严格</em>结构化（Pydantic schema）改用 function calling。更严格、调试更友好。</li>
-</ul>
-<h2 id="enable_thinking-和流式陷阱">enable_thinking 和流式陷阱</h2>
-<p>Qwen3 系列模型支持 <strong><code>enable_thinking=True</code></strong>——让模型先产推理链再产最终答案。质量提升明显，尤其重推理任务。<strong>但必须开流式</strong>。非流式 400。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig4_thinking_streaming.png" alt="enable_thinking &#43; 流式" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>实操模式——推理链丢日志，答案流到 UI：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-max&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;如果一只表每天慢 5 分钟，10 天后差多少？&#34;</span><span class="p">}],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">extra_body</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;enable_thinking&#34;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">reasoning</span><span class="p">,</span> <span class="n">answer</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span>
-</span></span><span class="line"><span class="cl">    <span class="n">rc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="s2">&#34;reasoning_content&#34;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">rc</span><span class="p">:</span>  <span class="n">reasoning</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rc</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">:</span> <span class="n">answer</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;ANSWER:&#34;</span><span class="p">,</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">answer</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s2">&#34;(推理链已隐藏，&#34;</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reasoning</span><span class="p">),</span> <span class="s2">&#34;字符)&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>我把 <code>reasoning</code> 转给日志系统，永远不给用户看。三个原因：(1) 客户看到了会泄露 chain-of-thought IP，(2) 非技术读者看了会困惑，(3) 让可见响应长度翻倍。</p>
-<h2 id="异步-chat少见但有用">异步 chat（少见但有用）</h2>
-<p>特别长的对话（比如 30k token 的 RAG 综合），可以加 <code>X-DashScope-Async: enable</code> 异步提交后轮询，跟万相一样。Qwen API reference 里&quot;异步调用&quot;章节有。我用它处理不需要立即响应的定时批量摘要任务。</p>
-<h2 id="真正能省钱的成本控制">真正能省钱的成本控制</h2>
-<ul>
-<li><strong>永远设 <code>max_tokens</code>。</strong> 默认上限是&quot;模型最大&quot;，失控循环要命。</li>
-<li><strong>每环境一个工作空间 key。</strong> 控制台里给生产 key 设硬性日预算。</li>
-<li><strong>打印 token 数。</strong> 每个响应都有 <code>usage.prompt_tokens</code> 和 <code>usage.completion_tokens</code>。每周聚合，能发现某个 prompt 不知不觉膨胀了 3 倍。</li>
-<li><strong>边缘缓存相同 prompt。</strong> DashScope 现在没像 Anthropic 那样的 prompt caching 暴露——高 QPS 同前缀场景请自己缓存。</li>
-</ul>
-<h2 id="下一篇">下一篇</h2>
-<p>第三篇 <strong>Qwen-Omni</strong> —— 多模态兄弟。最大区别是：流式<em>必须</em>（不是可选）、content 数组带类型部分（image / audio / video）、还得想清楚像素预算和帧率。如果你的产品涉及非文本内容，这是百炼里杠杆最大的能力。</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/zh/aliyun-bailian/01-platform-overview/"><span class="title">阿里云百炼实战（一）：平台总览与第一个请求</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/"><span class="title">阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#按场景选-qwen-变体">按场景选 Qwen 变体</a></li>
-    <li><a href="#一次请求实际发的什么">一次请求实际发的什么</a></li>
-    <li><a href="#function-calling一来一回">Function calling：一来一回</a></li>
-    <li><a href="#json-mode">JSON mode</a></li>
-    <li><a href="#enable_thinking-和流式陷阱">enable_thinking 和流式陷阱</a></li>
-    <li><a href="#异步-chat少见但有用">异步 chat（少见但有用）</a></li>
-    <li><a href="#真正能省钱的成本控制">真正能省钱的成本控制</a></li>
-    <li><a href="#下一篇">下一篇</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>5 min</strong></div>
-      <div class="row"><span>Word count</span><strong>2100</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation=/en/aliyun-bailian/02-qwen-llm-api/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法 · Chen Kai Blog</title>
+<meta name=description content="按延迟和成本选 Qwen 变体、function calling 写对、JSON mode 不再哭、enable_thinking + 流式必绑这条文档没明说的事。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-bailian/02-qwen-llm-api/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/><meta property="og:type" content="article"><meta property="og:title" content="阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法"><meta property="og:description" content="按延迟和成本选 Qwen 变体、function calling 写对、JSON mode 不再哭、enable_thinking + 流式必绑这条文档没明说的事。"><meta property="og:url" content="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Aliyun Bailian</a>
+· Chapter 2</div><h1>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</h1><p class=deck>按延迟和成本选 Qwen 变体、function calling 写对、JSON mode 不再哭、enable_thinking + 流式必绑这条文档没明说的事。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-26>February 26, 2026</time> · 5 min read · 2045 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC/ class=tag>#阿里云百炼</a><a href=/zh/tags/qwen/ class=tag>#Qwen</a><a href=/zh/tags/llm/ class=tag>#LLM</a><a href=/zh/tags/function-calling/ class=tag>#Function Calling</a><a href=/zh/tags/streaming/ class=tag>#Streaming</a></div><a class="pill pill-outline" href=/en/aliyun-bailian/02-qwen-llm-api/>Read in English →</a></div></header><div class=prose><p>整个系列里生产收益最大的就是这篇。其它模型有趣，LLM 才是我每个百炼上线产品每分钟都在调的东西。官方 Qwen API reference 详尽但稠密，本文是从中挑一条可读路径走完。</p><h2 id=按场景选-qwen-变体>按场景选 Qwen 变体</h2><p>Qwen 家族很大。多数团队默认 <code>qwen-max</code> 全量花冤枉钱，少数团队默认 <code>qwen-turbo</code> 省了质量。正确答案是"按任务匹配变体"。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig1_qwen_family.png alt="Qwen 模型家族" loading=lazy decoding=async></figure></p><p>我的生产经验：</p><ul><li><strong><code>qwen-turbo</code></strong> — 分类、意图识别、短摘要、单次用户请求里调 >10 次的事。最便宜的那档 Qwen，抽取场景出乎意料地好。</li><li><strong><code>qwen-plus</code></strong> — 日常主力。对话、RAG 综合、多步推理。性价比拐点。</li><li><strong><code>qwen-max</code> / <code>qwen3-max</code></strong> — 代码评审、复杂推理、答错代价比答慢大的事。</li><li><strong><code>qwen3-coder-plus</code></strong> — 所有代码任务。同参数规模下比通用 <code>qwen-plus</code> 在代码上明显好。</li><li><strong><code>qwen3-vl-plus</code> / <code>qwen3-omni-flash</code></strong> — 图像/视频/音频输入。第三篇专门讲。</li></ul><blockquote><p><strong>经验：</strong> 常见错误是用 <code>qwen-max</code> 做 embedding 类分类任务。别这么干。<code>qwen-turbo</code> 配紧凑 system prompt 能省 10 倍成本无质量损失。</p></blockquote><h2 id=一次请求实际发的什么>一次请求实际发的什么</h2><p>不论走 OpenAI 兼容还是原生，一次 chat 的本质都一样：模型 ID、messages 数组、参数块。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig2_request_flow.png alt="Chat completion 请求流" loading=lazy decoding=async></figure></p><p>最常碰的字段：</p><ul><li><strong><code>messages</code></strong> — <code>{role, content}</code> 数组。role 是 <code>system</code> / <code>user</code> / <code>assistant</code> / <code>tool</code>。文档说多模态模型 <code>content</code> 可以是带类型的部分数组（text、image_url、input_audio、video_url）——见第三篇。</li><li><strong><code>temperature</code></strong> — 0.0-2.0。我抽取/分类用 0.0，默认对话 0.2-0.4，创作 0.7+。文档默认大约 0.7，对多数 agent 用法太高了。</li><li><strong><code>top_p</code></strong> — 不知道为啥要改就别改。<code>temperature</code> 和 <code>top_p</code> 一起调是混乱配方。</li><li><strong><code>max_tokens</code></strong>（兼容）/ <strong><code>parameters.max_tokens</code></strong>（原生）— 是<em>输出</em>上限，不是总上限。要设。否则一次失控算钱。</li><li><strong><code>stream</code></strong> — 切 SSE 流式。</li><li><strong><code>response_format={"type": "json_object"}</code></strong> — JSON mode。比"请返回 JSON"提示靠谱。</li><li><strong><code>tools</code></strong> / <strong><code>tool_choice</code></strong> — function calling。</li></ul><h2 id=function-calling一来一回>Function calling：一来一回</h2><p>Qwen 的 function calling 协议就是 OpenAI 的 tool-calls。两次 LLM 调用 + 中间你的代码：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig3_function_calling.png alt="Function calling 一来一回" loading=lazy decoding=async></figure></p><p>完整可跑示例——一个能查天气的小 agent：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span><span class=o>,</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>openai</span> <span class=kn>import</span> <span class=n>OpenAI</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>api_key</span><span class=o>=</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s1>&#39;DASHSCOPE_API_KEY&#39;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>base_url</span><span class=o>=</span><span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>tools</span> <span class=o>=</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;function&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;function&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;name&#34;</span><span class=p>:</span> <span class=s2>&#34;get_weather&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;description&#34;</span><span class=p>:</span> <span class=s2>&#34;查询某城市当前天气&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;parameters&#34;</span><span class=p>:</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;object&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;properties&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;city&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;string&#34;</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;required&#34;</span><span class=p>:</span> <span class=p>[</span><span class=s2>&#34;city&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>        <span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>}]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>call_weather</span><span class=p>(</span><span class=n>city</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 真实场景：调你自己的 API。这里 stub。</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;city&#34;</span><span class=p>:</span> <span class=n>city</span><span class=p>,</span> <span class=s2>&#34;temp_c&#34;</span><span class=p>:</span> <span class=mi>22</span><span class=p>,</span> <span class=s2>&#34;conditions&#34;</span><span class=p>:</span> <span class=s2>&#34;晴&#34;</span><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>messages</span> <span class=o>=</span> <span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;去上海要带伞吗？&#34;</span><span class=p>}]</span>
+</span></span><span class=line><span class=cl><span class=n>resp</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span> <span class=n>tools</span><span class=o>=</span><span class=n>tools</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>msg</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=n>msg</span><span class=o>.</span><span class=n>tool_calls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=n>call</span> <span class=ow>in</span> <span class=n>msg</span><span class=o>.</span><span class=n>tool_calls</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>args</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>call</span><span class=o>.</span><span class=n>function</span><span class=o>.</span><span class=n>arguments</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>result</span> <span class=o>=</span> <span class=n>call_weather</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>msg</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>messages</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;tool&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;tool_call_id&#34;</span><span class=p>:</span> <span class=n>call</span><span class=o>.</span><span class=n>id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>json</span><span class=o>.</span><span class=n>dumps</span><span class=p>(</span><span class=n>result</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>    <span class=n>final</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span><span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>final</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=n>msg</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>三个易踩的坑：</p><ul><li><strong>第一次响应和工具结果之间必须 <code>messages.append(msg)</code></strong>。模型需要在历史里看到自己的 tool_call 消息，否则第二次调用会 400 报"orphan tool result"。</li><li><strong><code>tool_choice="auto"</code> 是默认。</strong> 必要时强制指定工具：<code>tool_choice={"type": "function", "function": {"name": "..."}}</code>——工作流首次调用时常用。</li><li><strong><code>parallel_tool_calls=True</code></strong> 支持。工具相互独立时用——模型会一次返回多个 <code>tool_calls</code>。</li></ul><h2 id=json-mode>JSON mode</h2><p>要结构化输出，别靠 prompt。用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>resp</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen-plus&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;system&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s1>&#39;返回 JSON：{&#34;sentiment&#34;: &#34;positive|negative|neutral&#34;}&#39;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;这个产品我超喜欢。&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>response_format</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;json_object&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>data</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>resp</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>生产里两个注意：</p><ul><li>模型有时还是会用 <code>```json</code> 包起来。<code>json.loads</code> 前剥一下围栏更稳。</li><li>要<em>严格</em>结构化（Pydantic schema）改用 function calling。更严格、调试更友好。</li></ul><h2 id=enable_thinking-和流式陷阱>enable_thinking 和流式陷阱</h2><p>Qwen3 系列模型支持 <strong><code>enable_thinking=True</code></strong>——让模型先产推理链再产最终答案。质量提升明显，尤其重推理任务。<strong>但必须开流式</strong>。非流式 400。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/02-qwen-llm-api/fig4_thinking_streaming.png alt="enable_thinking + 流式" loading=lazy decoding=async></figure></p><p>实操模式——推理链丢日志，答案流到 UI：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3-max&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;如果一只表每天慢 5 分钟，10 天后差多少？&#34;</span><span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=n>extra_body</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;enable_thinking&#34;</span><span class=p>:</span> <span class=kc>True</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>reasoning</span><span class=p>,</span> <span class=n>answer</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>chunk</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>delta</span> <span class=o>=</span> <span class=n>chunk</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span>
+</span></span><span class=line><span class=cl>    <span class=n>rc</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>delta</span><span class=p>,</span> <span class=s2>&#34;reasoning_content&#34;</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>rc</span><span class=p>:</span>  <span class=n>reasoning</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>rc</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>delta</span><span class=o>.</span><span class=n>content</span><span class=p>:</span> <span class=n>answer</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;ANSWER:&#34;</span><span class=p>,</span> <span class=s2>&#34;&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>answer</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s2>&#34;(推理链已隐藏，&#34;</span><span class=p>,</span> <span class=nb>sum</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>r</span><span class=p>)</span> <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>reasoning</span><span class=p>),</span> <span class=s2>&#34;字符)&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>我把 <code>reasoning</code> 转给日志系统，永远不给用户看。三个原因：(1) 客户看到了会泄露 chain-of-thought IP，(2) 非技术读者看了会困惑，(3) 让可见响应长度翻倍。</p><h2 id=异步-chat少见但有用>异步 chat（少见但有用）</h2><p>特别长的对话（比如 30k token 的 RAG 综合），可以加 <code>X-DashScope-Async: enable</code> 异步提交后轮询，跟万相一样。Qwen API reference 里"异步调用"章节有。我用它处理不需要立即响应的定时批量摘要任务。</p><h2 id=真正能省钱的成本控制>真正能省钱的成本控制</h2><ul><li><strong>永远设 <code>max_tokens</code>。</strong> 默认上限是"模型最大"，失控循环要命。</li><li><strong>每环境一个工作空间 key。</strong> 控制台里给生产 key 设硬性日预算。</li><li><strong>打印 token 数。</strong> 每个响应都有 <code>usage.prompt_tokens</code> 和 <code>usage.completion_tokens</code>。每周聚合，能发现某个 prompt 不知不觉膨胀了 3 倍。</li><li><strong>边缘缓存相同 prompt。</strong> DashScope 现在没像 Anthropic 那样的 prompt caching 暴露——高 QPS 同前缀场景请自己缓存。</li></ul><h2 id=下一篇>下一篇</h2><p>第三篇 <strong>Qwen-Omni</strong> —— 多模态兄弟。最大区别是：流式<em>必须</em>（不是可选）、content 数组带类型部分（image / audio / video）、还得想清楚像素预算和帧率。如果你的产品涉及非文本内容，这是百炼里杠杆最大的能力。</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/zh/aliyun-bailian/01-platform-overview/><span class=title>阿里云百炼实战（一）：平台总览与第一个请求</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><span class=title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#按场景选-qwen-变体>按场景选 Qwen 变体</a></li><li><a href=#一次请求实际发的什么>一次请求实际发的什么</a></li><li><a href=#function-calling一来一回>Function calling：一来一回</a></li><li><a href=#json-mode>JSON mode</a></li><li><a href=#enable_thinking-和流式陷阱>enable_thinking 和流式陷阱</a></li><li><a href=#异步-chat少见但有用>异步 chat（少见但有用）</a></li><li><a href=#真正能省钱的成本控制>真正能省钱的成本控制</a></li><li><a href=#下一篇>下一篇</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/zh/series/ class=series-name>Aliyun Bailian</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云百炼实战（一）：平台总览与第一个请求</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云百炼实战（四）：万相视频生成端到端</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/05-qwen-tts-voice/><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云百炼实战（五）：Qwen-TTS 多语言语音合成</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>5 min</strong></div><div class=row><span>Word count</span><strong>2045</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

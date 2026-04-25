@@ -1,479 +1,152 @@
-<!doctype html>
-<html lang="zh" data-translation="/en/aliyun-bailian/03-qwen-omni-multimodal/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解 · Chen Kai Blog</title>
-<meta name="description" content="Qwen-Omni 生产实践：四种输入、文档没强调的流式必填、配上一个真实可跑的视频理解示例和合理的像素预算。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解">
-<meta property="og:description" content="Qwen-Omni 生产实践：四种输入、文档没强调的流式必填、配上一个真实可跑的视频理解示例和合理的像素预算。">
-<meta property="og:url" content="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Aliyun Bailian</a>
-         · Chapter 3
-      </div>
-      <h1>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</h1>
-      <p class="deck">Qwen-Omni 生产实践：四种输入、文档没强调的流式必填、配上一个真实可跑的视频理解示例和合理的像素预算。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-02-27">February 27, 2026</time> · 4 min read · 1700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC/" class="tag">#阿里云百炼</a><a href="/zh/tags/qwen-omni/" class="tag">#Qwen-Omni</a><a href="/zh/tags/%E5%A4%9A%E6%A8%A1%E6%80%81/" class="tag">#多模态</a><a href="/zh/tags/%E8%A7%86%E9%A2%91%E7%90%86%E8%A7%A3/" class="tag">#视频理解</a><a href="/zh/tags/streaming/" class="tag">#Streaming</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/en/aliyun-bailian/03-qwen-omni-multimodal/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>百炼里把我从最多产品坑里拽出来的就是 Qwen-Omni。&ldquo;能告诉我这条 2 分钟广告片在讲什么吗&quot;以前是个 3 周项目——抽帧、逐帧 caption、再 stitch。Qwen-Omni 一次 HTTP 请求搞定。但文档对踩坑警告稀疏，有一个（流式必填）让不止一个团队损失了半天。咱们别成为下一个。</p>
-<h2 id="qwen-omni-接受什么">Qwen-Omni 接受什么</h2>
-<p>按 Qwen API reference 的多模态部分，单条 user 消息的 <code>content</code> 数组里可以混 text、image、audio、video 部分。这个能力的核心不是&quot;支持图像&rdquo;，而是&quot;任意组合&quot;：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png" alt="Qwen-Omni 输入" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>每种类型的结构（来自 API reference）：</p>
-<table>
-  <thead>
-      <tr>
-          <th>类型</th>
-          <th>字段</th>
-          <th>备注</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><code>text</code></td>
-          <td><code>text: &quot;...&quot;</code></td>
-          <td>纯字符串。</td>
-      </tr>
-      <tr>
-          <td><code>image_url</code></td>
-          <td><code>image_url: {url}</code></td>
-          <td>URL 或 base64 data URI。<code>min_pixels</code> / <code>max_pixels</code> 控缩放。</td>
-      </tr>
-      <tr>
-          <td><code>input_audio</code></td>
-          <td><code>data, format</code></td>
-          <td><code>mp3</code>、<code>wav</code> 等。URL 或本地 base64。</td>
-      </tr>
-      <tr>
-          <td><code>video_url</code></td>
-          <td><code>video_url: {url}</code></td>
-          <td>URL 或 data URI。或 <code>video</code> 数组形式的帧图列表。</td>
-      </tr>
-  </tbody>
-</table>
-<p>真实调用：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;DASHSCOPE_API_KEY&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-omni-flash&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="s2">&#34;用两句话描述这条视频在讲什么。&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;video_url&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">             <span class="s2">&#34;video_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="s2">&#34;https://your-bucket.oss-cn-shanghai.aliyuncs.com/clips/promo.mp4&#34;</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="p">}],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>           <span class="c1"># &lt;- 必须</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="n">delta</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">print</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&#34;&#34;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="流式不是可选这是陷阱">流式不是可选——这是陷阱</h2>
-<p>文档把流式当成功能特性写的，但<strong>对 Qwen-Omni 是必填</strong>。设 <code>stream=False</code> 直接 400。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png" alt="流式必填" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>理由想想就知道：模型在处理几 MB 视频和产长响应。协议假设增量送达。攒成一坨发，客户端阻塞几十秒、毫无进度信号。</p>
-<p>下游想拿完整字符串就自己 buffer：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">call_omni_buffered</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3-omni-flash&#34;</span><span class="p">,</span> <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span> <span class="s2">&#34;&#34;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>一个函数，写一次以后用。</p>
-<h2 id="像素和帧率预算花钱的地方">像素和帧率预算——花钱的地方</h2>
-<p>文档对成本旋钮含糊：图像的 <code>min_pixels</code> / <code>max_pixels</code>，视频的 fps / resize。默认 Qwen-Omni 按原始分辨率和默认帧率处理。一段 2 分钟 1080p 等价的 token <em>很多</em>，账单跟着膨胀。</p>
-<p>我生产里的做法：</p>
-<ul>
-<li><strong>理解任务的图像</strong> — <code>max_pixels: 1280*720</code>。&ldquo;图里有什么&quot;几乎无质量损失，省钱可观。<code>min_pixels: 640*480</code> 防止小图被放大。</li>
-<li><strong>描述任务的视频</strong> — 上传前预先 resize 到 720p，静态内容（人讲话）downsample 到 4 fps，动态内容（运动、快剪）8 fps。8 fps 以上多半在为冗余帧付钱。</li>
-<li><strong>长视频</strong> — 切。模型有上下文上限。3 分钟以上切 90 秒一段，每段 summarize，再用 <code>qwen-plus</code> summary-of-summary。和长文档 RAG 同模式。</li>
-</ul>
-<h2 id="发本地视频">发本地视频</h2>
-<p>两条路，文档都讲了。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png" alt="把本地视频发给 Qwen-Omni" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><strong>路径 1（推荐）：上传 OSS，发签名 URL。</strong></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">oss2</span><span class="o">,</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl"><span class="n">auth</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Auth</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_AK&#34;</span><span class="p">],</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;OSS_SK&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl"><span class="n">bucket</span> <span class="o">=</span> <span class="n">oss2</span><span class="o">.</span><span class="n">Bucket</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="s2">&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class="p">,</span> <span class="s2">&#34;your-bucket&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">bucket</span><span class="o">.</span><span class="n">put_object_from_file</span><span class="p">(</span><span class="s2">&#34;clips/promo.mp4&#34;</span><span class="p">,</span> <span class="s2">&#34;/tmp/promo.mp4&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">signed</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">sign_url</span><span class="p">(</span><span class="s2">&#34;GET&#34;</span><span class="p">,</span> <span class="s2">&#34;clips/promo.mp4&#34;</span><span class="p">,</span> <span class="mi">600</span><span class="p">)</span>  <span class="c1"># 10 分钟过期</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>把 <code>signed</code> 当 <code>url</code> 字段传。30 秒以上的视频走这条——base64 把 payload 撑大 33%。</p>
-<p><strong>路径 2：base64 内联。</strong> 短片、想省 OSS 一来一回时用。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">base64</span>
-</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/tmp/short.mp4&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">content</span> <span class="o">=</span> <span class="p">[{</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;video_url&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;video_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&#34;data:video/mp4;base64,</span><span class="si">{</span><span class="n">b64</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">}]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><blockquote>
-<p><strong>真实经验：</strong> Qwen-Omni 报 400 时先确认 URL 在公网能拿到。模型服务进不了你的 VPC。签名 URL 行；不签名的私有 OSS 不行。</p>
-</blockquote>
-<h2 id="音频理解">音频理解</h2>
-<p>形状基本一样，<code>type: &quot;input_audio&quot;</code>：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="s2">&#34;text&#34;</span><span class="p">:</span> <span class="s2">&#34;把这段转写出来，并判断说话人情绪。&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;input_audio&#34;</span><span class="p">,</span> <span class="s2">&#34;input_audio&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;data&#34;</span><span class="p">:</span> <span class="n">signed_audio_url</span><span class="p">,</span> <span class="s2">&#34;format&#34;</span><span class="p">:</span> <span class="s2">&#34;mp3&#34;</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl"><span class="p">]</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>纯转写百炼有更便宜的 <strong>Paraformer</strong> 专用 ASR 模型。转写用 Paraformer，需要理解（情感、摘要、&ldquo;是否提到价格&rdquo;）才上 Qwen-Omni。</p>
-<h2 id="一个真实产品场景">一个真实产品场景</h2>
-<p>我在 AI 营销里反复用的模式：创意团队上传 60 秒产品片；要一段结构化字幕（<code>scene_description</code>、<code>product_features</code>、<code>target_audience</code>、<code>music_style</code>）。一次 Qwen-Omni 调用，开 JSON mode（多模态也支持），720p 输入 4 秒之内出结果。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">sys</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&#34;分析这段产品视频，返回 JSON，键为：scene_description、product_features（列表）、&#34;</span>
-</span></span><span class="line"><span class="cl">       <span class="s2">&#34;target_audience、music_style。&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;qwen3.5-omni-plus&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
-</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;system&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="n">sys</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;video_url&#34;</span><span class="p">,</span> <span class="s2">&#34;video_url&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;url&#34;</span><span class="p">:</span> <span class="n">signed_url</span><span class="p">}},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">]},</span>
-</span></span><span class="line"><span class="cl">    <span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;type&#34;</span><span class="p">:</span> <span class="s2">&#34;json_object&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">text</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span> <span class="s2">&#34;&#34;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">json</span><span class="p">;</span> <span class="n">result</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="下一篇">下一篇</h2>
-<p>第四篇跳到<em>生产</em>侧——<strong>万相文生视频</strong>。完全异步、只能原生协议、失败模式完全不同（队列深度、输出 URL 过期）。也是我花最多时间调 prompt 的 API。</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/"><span class="title">阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/"><span class="title">阿里云百炼实战（四）：万相视频生成端到端</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#qwen-omni-接受什么">Qwen-Omni 接受什么</a></li>
-    <li><a href="#流式不是可选这是陷阱">流式不是可选——这是陷阱</a></li>
-    <li><a href="#像素和帧率预算花钱的地方">像素和帧率预算——花钱的地方</a></li>
-    <li><a href="#发本地视频">发本地视频</a></li>
-    <li><a href="#音频理解">音频理解</a></li>
-    <li><a href="#一个真实产品场景">一个真实产品场景</a></li>
-    <li><a href="#下一篇">下一篇</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Aliyun Bailian</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>4 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1700</strong></div>
-      <div class="row"><span>Published</span><strong>Feb 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=zh data-translation=/en/aliyun-bailian/03-qwen-omni-multimodal/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解 · Chen Kai Blog</title>
+<meta name=description content="Qwen-Omni 生产实践：四种输入、文档没强调的流式必填、配上一个真实可跑的视频理解示例和合理的像素预算。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-bailian/03-qwen-omni-multimodal/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><link rel=alternate hreflang=x-default href=https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/><meta property="og:type" content="article"><meta property="og:title" content="阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解"><meta property="og:description" content="Qwen-Omni 生产实践：四种输入、文档没强调的流式必填、配上一个真实可跑的视频理解示例和合理的像素预算。"><meta property="og:url" content="https://www.chenk.top/zh/aliyun-bailian/03-qwen-omni-multimodal/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Aliyun Bailian</a>
+· Chapter 3</div><h1>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</h1><p class=deck>Qwen-Omni 生产实践：四种输入、文档没强调的流式必填、配上一个真实可跑的视频理解示例和合理的像素预算。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-02-27>February 27, 2026</time> · 4 min read · 1657 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E9%98%BF%E9%87%8C%E4%BA%91%E7%99%BE%E7%82%BC/ class=tag>#阿里云百炼</a><a href=/zh/tags/qwen-omni/ class=tag>#Qwen-Omni</a><a href=/zh/tags/%E5%A4%9A%E6%A8%A1%E6%80%81/ class=tag>#多模态</a><a href=/zh/tags/%E8%A7%86%E9%A2%91%E7%90%86%E8%A7%A3/ class=tag>#视频理解</a><a href=/zh/tags/streaming/ class=tag>#Streaming</a></div><a class="pill pill-outline" href=/en/aliyun-bailian/03-qwen-omni-multimodal/>Read in English →</a></div></header><div class=prose><p>百炼里把我从最多产品坑里拽出来的就是 Qwen-Omni。&ldquo;能告诉我这条 2 分钟广告片在讲什么吗"以前是个 3 周项目——抽帧、逐帧 caption、再 stitch。Qwen-Omni 一次 HTTP 请求搞定。但文档对踩坑警告稀疏，有一个（流式必填）让不止一个团队损失了半天。咱们别成为下一个。</p><h2 id=qwen-omni-接受什么>Qwen-Omni 接受什么</h2><p>按 Qwen API reference 的多模态部分，单条 user 消息的 <code>content</code> 数组里可以混 text、image、audio、video 部分。这个能力的核心不是"支持图像&rdquo;，而是"任意组合"：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig1_omni_inputs.png alt="Qwen-Omni 输入" loading=lazy decoding=async></figure></p><p>每种类型的结构（来自 API reference）：</p><table><thead><tr><th>类型</th><th>字段</th><th>备注</th></tr></thead><tbody><tr><td><code>text</code></td><td><code>text: "..."</code></td><td>纯字符串。</td></tr><tr><td><code>image_url</code></td><td><code>image_url: {url}</code></td><td>URL 或 base64 data URI。<code>min_pixels</code> / <code>max_pixels</code> 控缩放。</td></tr><tr><td><code>input_audio</code></td><td><code>data, format</code></td><td><code>mp3</code>、<code>wav</code> 等。URL 或本地 base64。</td></tr><tr><td><code>video_url</code></td><td><code>video_url: {url}</code></td><td>URL 或 data URI。或 <code>video</code> 数组形式的帧图列表。</td></tr></tbody></table><p>真实调用：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>openai</span> <span class=kn>import</span> <span class=n>OpenAI</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>api_key</span><span class=o>=</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;DASHSCOPE_API_KEY&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>base_url</span><span class=o>=</span><span class=s2>&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3-omni-flash&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;text&#34;</span><span class=p>,</span> <span class=s2>&#34;text&#34;</span><span class=p>:</span> <span class=s2>&#34;用两句话描述这条视频在讲什么。&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;video_url&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>             <span class=s2>&#34;video_url&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=s2>&#34;https://your-bucket.oss-cn-shanghai.aliyuncs.com/clips/promo.mp4&#34;</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl>        <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=p>}],</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>           <span class=c1># &lt;- 必须</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>chunk</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>delta</span> <span class=o>=</span> <span class=n>chunk</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=n>delta</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=nb>print</span><span class=p>(</span><span class=n>delta</span><span class=p>,</span> <span class=n>end</span><span class=o>=</span><span class=s2>&#34;&#34;</span><span class=p>,</span> <span class=n>flush</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=流式不是可选这是陷阱>流式不是可选——这是陷阱</h2><p>文档把流式当成功能特性写的，但<strong>对 Qwen-Omni 是必填</strong>。设 <code>stream=False</code> 直接 400。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig2_omni_streaming.png alt=流式必填 loading=lazy decoding=async></figure></p><p>理由想想就知道：模型在处理几 MB 视频和产长响应。协议假设增量送达。攒成一坨发，客户端阻塞几十秒、毫无进度信号。</p><p>下游想拿完整字符串就自己 buffer：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>call_omni_buffered</span><span class=p>(</span><span class=n>messages</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3-omni-flash&#34;</span><span class=p>,</span> <span class=n>messages</span><span class=o>=</span><span class=n>messages</span><span class=p>,</span> <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=s2>&#34;&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>c</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span> <span class=ow>or</span> <span class=s2>&#34;&#34;</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>一个函数，写一次以后用。</p><h2 id=像素和帧率预算花钱的地方>像素和帧率预算——花钱的地方</h2><p>文档对成本旋钮含糊：图像的 <code>min_pixels</code> / <code>max_pixels</code>，视频的 fps / resize。默认 Qwen-Omni 按原始分辨率和默认帧率处理。一段 2 分钟 1080p 等价的 token <em>很多</em>，账单跟着膨胀。</p><p>我生产里的做法：</p><ul><li><strong>理解任务的图像</strong> — <code>max_pixels: 1280*720</code>。&ldquo;图里有什么"几乎无质量损失，省钱可观。<code>min_pixels: 640*480</code> 防止小图被放大。</li><li><strong>描述任务的视频</strong> — 上传前预先 resize 到 720p，静态内容（人讲话）downsample 到 4 fps，动态内容（运动、快剪）8 fps。8 fps 以上多半在为冗余帧付钱。</li><li><strong>长视频</strong> — 切。模型有上下文上限。3 分钟以上切 90 秒一段，每段 summarize，再用 <code>qwen-plus</code> summary-of-summary。和长文档 RAG 同模式。</li></ul><h2 id=发本地视频>发本地视频</h2><p>两条路，文档都讲了。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/aliyun-bailian/03-qwen-omni-multimodal/fig3_video_pipeline.png alt="把本地视频发给 Qwen-Omni" loading=lazy decoding=async></figure></p><p><strong>路径 1（推荐）：上传 OSS，发签名 URL。</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>oss2</span><span class=o>,</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl><span class=n>auth</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Auth</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_AK&#34;</span><span class=p>],</span> <span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;OSS_SK&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span> <span class=o>=</span> <span class=n>oss2</span><span class=o>.</span><span class=n>Bucket</span><span class=p>(</span><span class=n>auth</span><span class=p>,</span> <span class=s2>&#34;https://oss-cn-shanghai.aliyuncs.com&#34;</span><span class=p>,</span> <span class=s2>&#34;your-bucket&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>bucket</span><span class=o>.</span><span class=n>put_object_from_file</span><span class=p>(</span><span class=s2>&#34;clips/promo.mp4&#34;</span><span class=p>,</span> <span class=s2>&#34;/tmp/promo.mp4&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>signed</span> <span class=o>=</span> <span class=n>bucket</span><span class=o>.</span><span class=n>sign_url</span><span class=p>(</span><span class=s2>&#34;GET&#34;</span><span class=p>,</span> <span class=s2>&#34;clips/promo.mp4&#34;</span><span class=p>,</span> <span class=mi>600</span><span class=p>)</span>  <span class=c1># 10 分钟过期</span>
+</span></span></code></pre></td></tr></table></div></div><p>把 <code>signed</code> 当 <code>url</code> 字段传。30 秒以上的视频走这条——base64 把 payload 撑大 33%。</p><p><strong>路径 2：base64 内联。</strong> 短片、想省 OSS 一来一回时用。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>base64</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>&#34;/tmp/short.mp4&#34;</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>b64</span> <span class=o>=</span> <span class=n>base64</span><span class=o>.</span><span class=n>b64encode</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>())</span><span class=o>.</span><span class=n>decode</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>content</span> <span class=o>=</span> <span class=p>[{</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;video_url&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;video_url&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=sa>f</span><span class=s2>&#34;data:video/mp4;base64,</span><span class=si>{</span><span class=n>b64</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>}]</span>
+</span></span></code></pre></td></tr></table></div></div><blockquote><p><strong>真实经验：</strong> Qwen-Omni 报 400 时先确认 URL 在公网能拿到。模型服务进不了你的 VPC。签名 URL 行；不签名的私有 OSS 不行。</p></blockquote><h2 id=音频理解>音频理解</h2><p>形状基本一样，<code>type: "input_audio"</code>：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>content</span> <span class=o>=</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;text&#34;</span><span class=p>,</span> <span class=s2>&#34;text&#34;</span><span class=p>:</span> <span class=s2>&#34;把这段转写出来，并判断说话人情绪。&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;input_audio&#34;</span><span class=p>,</span> <span class=s2>&#34;input_audio&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;data&#34;</span><span class=p>:</span> <span class=n>signed_audio_url</span><span class=p>,</span> <span class=s2>&#34;format&#34;</span><span class=p>:</span> <span class=s2>&#34;mp3&#34;</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl><span class=p>]</span>
+</span></span></code></pre></td></tr></table></div></div><p>纯转写百炼有更便宜的 <strong>Paraformer</strong> 专用 ASR 模型。转写用 Paraformer，需要理解（情感、摘要、&ldquo;是否提到价格&rdquo;）才上 Qwen-Omni。</p><h2 id=一个真实产品场景>一个真实产品场景</h2><p>我在 AI 营销里反复用的模式：创意团队上传 60 秒产品片；要一段结构化字幕（<code>scene_description</code>、<code>product_features</code>、<code>target_audience</code>、<code>music_style</code>）。一次 Qwen-Omni 调用，开 JSON mode（多模态也支持），720p 输入 4 秒之内出结果。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>sys</span> <span class=o>=</span> <span class=p>(</span><span class=s2>&#34;分析这段产品视频，返回 JSON，键为：scene_description、product_features（列表）、&#34;</span>
+</span></span><span class=line><span class=cl>       <span class=s2>&#34;target_audience、music_style。&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>stream</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;qwen3.5-omni-plus&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;system&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=n>sys</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;video_url&#34;</span><span class=p>,</span> <span class=s2>&#34;video_url&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;url&#34;</span><span class=p>:</span> <span class=n>signed_url</span><span class=p>}},</span>
+</span></span><span class=line><span class=cl>        <span class=p>]},</span>
+</span></span><span class=line><span class=cl>    <span class=p>],</span>
+</span></span><span class=line><span class=cl>    <span class=n>response_format</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;type&#34;</span><span class=p>:</span> <span class=s2>&#34;json_object&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=n>stream</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>text</span> <span class=o>=</span> <span class=s2>&#34;&#34;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>c</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>delta</span><span class=o>.</span><span class=n>content</span> <span class=ow>or</span> <span class=s2>&#34;&#34;</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>json</span><span class=p>;</span> <span class=n>result</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>loads</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=下一篇>下一篇</h2><p>第四篇跳到<em>生产</em>侧——<strong>万相文生视频</strong>。完全异步、只能原生协议、失败模式完全不同（队列深度、输出 URL 过期）。也是我花最多时间调 prompt 的 API。</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/><span class=title>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><span class=title>阿里云百炼实战（四）：万相视频生成端到端</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#qwen-omni-接受什么>Qwen-Omni 接受什么</a></li><li><a href=#流式不是可选这是陷阱>流式不是可选——这是陷阱</a></li><li><a href=#像素和帧率预算花钱的地方>像素和帧率预算——花钱的地方</a></li><li><a href=#发本地视频>发本地视频</a></li><li><a href=#音频理解>音频理解</a></li><li><a href=#一个真实产品场景>一个真实产品场景</a></li><li><a href=#下一篇>下一篇</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/zh/series/ class=series-name>Aliyun Bailian</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>阿里云百炼实战（一）：平台总览与第一个请求</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/02-qwen-llm-api/><span class=chapter-num>02</span>
+<span class=chapter-title>阿里云百炼实战（二）：Qwen 文本大模型在生产环境的用法</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>03</span>
+<span class=chapter-title>阿里云百炼实战（三）：Qwen-Omni 多模态——视频、音频、图像理解</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/04-wanxiang-video-generation/><span class=chapter-num>04</span>
+<span class=chapter-title>阿里云百炼实战（四）：万相视频生成端到端</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/zh/aliyun-bailian/05-qwen-tts-voice/><span class=chapter-num>05</span>
+<span class=chapter-title>阿里云百炼实战（五）：Qwen-TTS 多语言语音合成</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>4 min</strong></div><div class=row><span>Word count</span><strong>1657</strong></div><div class=row><span>Published</span><strong>Feb 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

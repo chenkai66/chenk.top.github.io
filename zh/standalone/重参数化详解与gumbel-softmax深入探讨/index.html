@@ -1,802 +1,269 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>重参数化技巧与 Gumbel-Softmax 详解 · Chen Kai Blog</title>
-<meta name="description" content="讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="重参数化技巧与 Gumbel-Softmax 详解">
-<meta property="og:description" content="讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。">
-<meta property="og:url" content="https://www.chenk.top/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">Standalone</a>
-        
-      </div>
-      <h1>重参数化技巧与 Gumbel-Softmax 详解</h1>
-      <p class="deck">讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-01-22">January 22, 2024</time> · 14 min read · 6600 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/ml/" class="tag">#ML</a><a href="/zh/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/zh/tags/generative-models/" class="tag">#Generative Models</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>一旦模型里出现&quot;采样&quot;，训练立刻就会撞上一个硬问题：<strong>梯度怎么穿过随机节点？</strong></p>
-<p>重参数化（reparameterization）给出的答案非常直接——把 $z\sim p_\theta(z)$ 改写成 $z=g_\theta(\epsilon)$，把随机性隔离到与参数无关的噪声 $\epsilon$ 里，于是反向传播可以顺着 $g_\theta$ 走下去。麻烦在于离散变量：$\arg\max$ 一类操作不可导，梯度会断掉。<strong>Gumbel-Softmax</strong>（也叫 Concrete 分布）用&quot;带温度的 softmax + Gumbel 噪声&quot;把离散采样变成可微近似，让你在保留离散结构的同时仍能端到端训练。</p>
-<p>本文把推导、直觉、实现细节、温度参数下的偏差-方差权衡，以及训练里最常见的坑都讲清楚。</p>
-<h2 id="你将学到">你将学到</h2>
-<ul>
-<li>为什么梯度无法穿过 $z\sim\mathcal N(\mu,\sigma^2)$，而 $z=\mu+\sigma\epsilon$ 就可以</li>
-<li>Gumbel 分布从何而来，以及&quot;加 Gumbel 噪声后取 argmax = 从 softmax 中采样&quot;为什么严格成立</li>
-<li>Gumbel-Softmax 的温度 $\tau$ 如何在偏差与方差之间权衡，以及退火策略</li>
-<li>Straight-Through 估计器（ST-GS）：前向硬采样、反向用软梯度</li>
-<li>与 REINFORCE / Score Function 估计器对比：方差差几个数量级</li>
-<li>VAE 与离散 VAE 的完整 PyTorch 实现要点，以及训练时的常见坑</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>期望、概率密度、变量替换公式</li>
-<li>PyTorch 基本用法、自动微分链式法则</li>
-<li>变分自编码器 VAE 的基本概念（可参考站内 <a href="../%e5%8f%98%e5%88%86%e8%87%aa%e7%bc%96%e7%a0%81%e5%99%a8-vae-%e8%af%a6%e8%a7%a3/">《变分自编码器 (VAE)：从直觉到实现与调试》</a>
-）</li>
-</ul>
-<hr>
-<h1 id="一为什么需要重参数化">一、为什么需要重参数化？</h1>
-<p>考虑一个非常一般的训练目标：在某个分布 $q_\theta(z)$ 上对函数 $f(z)$ 求期望，并对参数 $\theta$ 求导：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>重参数化技巧与 Gumbel-Softmax 详解 · Chen Kai Blog</title>
+<meta name=description content="讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/><meta property="og:type" content="article"><meta property="og:title" content="重参数化技巧与 Gumbel-Softmax 详解"><meta property="og:description" content="讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。"><meta property="og:url" content="https://www.chenk.top/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>Standalone</a></div><h1>重参数化技巧与 Gumbel-Softmax 详解</h1><p class=deck>讲清楚连续重参数化与 Gumbel-Softmax 的推导、直觉与实现：为什么梯度能穿过采样节点，温度参数如何权衡偏差-方差，以及离散变量端到端训练的常见坑。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-01-22>January 22, 2024</time> · 14 min read · 6561 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ml/ class=tag>#ML</a><a href=/zh/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/zh/tags/generative-models/ class=tag>#Generative Models</a></div></div></header><div class=prose><p>一旦模型里出现"采样"，训练立刻就会撞上一个硬问题：<strong>梯度怎么穿过随机节点？</strong></p><p>重参数化（reparameterization）给出的答案非常直接——把 $z\sim p_\theta(z)$ 改写成 $z=g_\theta(\epsilon)$，把随机性隔离到与参数无关的噪声 $\epsilon$ 里，于是反向传播可以顺着 $g_\theta$ 走下去。麻烦在于离散变量：$\arg\max$ 一类操作不可导，梯度会断掉。<strong>Gumbel-Softmax</strong>（也叫 Concrete 分布）用"带温度的 softmax + Gumbel 噪声"把离散采样变成可微近似，让你在保留离散结构的同时仍能端到端训练。</p><p>本文把推导、直觉、实现细节、温度参数下的偏差-方差权衡，以及训练里最常见的坑都讲清楚。</p><h2 id=你将学到>你将学到</h2><ul><li>为什么梯度无法穿过 $z\sim\mathcal N(\mu,\sigma^2)$，而 $z=\mu+\sigma\epsilon$ 就可以</li><li>Gumbel 分布从何而来，以及"加 Gumbel 噪声后取 argmax = 从 softmax 中采样"为什么严格成立</li><li>Gumbel-Softmax 的温度 $\tau$ 如何在偏差与方差之间权衡，以及退火策略</li><li>Straight-Through 估计器（ST-GS）：前向硬采样、反向用软梯度</li><li>与 REINFORCE / Score Function 估计器对比：方差差几个数量级</li><li>VAE 与离散 VAE 的完整 PyTorch 实现要点，以及训练时的常见坑</li></ul><h2 id=前置知识>前置知识</h2><ul><li>期望、概率密度、变量替换公式</li><li>PyTorch 基本用法、自动微分链式法则</li><li>变分自编码器 VAE 的基本概念（可参考站内 <a href=../%e5%8f%98%e5%88%86%e8%87%aa%e7%bc%96%e7%a0%81%e5%99%a8-vae-%e8%af%a6%e8%a7%a3/>《变分自编码器 (VAE)：从直觉到实现与调试》</a>
+）</li></ul><hr><h1 id=一为什么需要重参数化>一、为什么需要重参数化？</h1><p>考虑一个非常一般的训练目标：在某个分布 $q_\theta(z)$ 上对函数 $f(z)$ 求期望，并对参数 $\theta$ 求导：</p>$$
 \mathcal L(\theta) \;=\; \mathbb E_{z\sim q_\theta(z)}\,[\,f(z)\,].
-$$<p>VAE 里 $f$ 是重建对数似然，强化学习里 $f$ 是回报，离散结构学习里 $f$ 是下游模型的损失。<strong>问题在于</strong>：$\theta$ 同时藏在被积函数和分布里，朴素地&quot;先采一个 $z$，再算 $f(z)$，再 backward&quot;——计算图在采样那一步就断了。</p>
-<p>直接看一段 PyTorch：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># 错误写法 1：直接采样</span>
-</span></span><span class="line"><span class="cl"><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>        <span class="c1"># &lt;- 采样节点不可微</span>
-</span></span><span class="line"><span class="cl"><span class="n">recon</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">recon</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl"><span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>                    <span class="c1"># mu, sigma 拿不到任何梯度</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><code>torch.normal(mu, sigma)</code> 是一个<strong>随机操作</strong>，它的输出 $z$ 与输入 $\mu,\sigma$ 之间没有可微关系——你换一个 $\mu$，同一个 $z$ 不会&quot;平滑地变&quot;，而是整个分布换了一个，梯度无从定义。</p>
-<blockquote>
-<p><strong>核心问题</strong>：训练过程要求 $\nabla_\theta \mathbb E_{q_\theta}[f(z)]$，但采样这一步切断了反向传播。</p>
-</blockquote>
-<p>可行的解法有两类：</p>
-<ol>
-<li><strong>Score Function / REINFORCE</strong>：用对数似然的导数把期望写成 $\mathbb E[f(z)\nabla_\theta\log q_\theta(z)]$。通用、不要求 $z$ 可微，但<strong>方差极大</strong>。</li>
-<li><strong>重参数化</strong>：把随机性从参数里&quot;挪出去&quot;，换成与参数无关的噪声，让计算图保持可微。<strong>方差小、可端到端训练，但要求分布形式可重参数化</strong>。</li>
-</ol>
-<h1 id="二连续分布的重参数化">二、连续分布的重参数化</h1>
-<h2 id="21-数学表达">2.1 数学表达</h2>
-<p>重参数化的基本思想：用一个<strong>确定性、可微</strong>的函数 $g_\theta$ 把简单分布的样本 $\epsilon\sim p(\epsilon)$ 变成目标分布的样本：</p>
-$$
+$$<p>VAE 里 $f$ 是重建对数似然，强化学习里 $f$ 是回报，离散结构学习里 $f$ 是下游模型的损失。<strong>问题在于</strong>：$\theta$ 同时藏在被积函数和分布里，朴素地"先采一个 $z$，再算 $f(z)$，再 backward"——计算图在采样那一步就断了。</p><p>直接看一段 PyTorch：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># 错误写法 1：直接采样</span>
+</span></span><span class=line><span class=cl><span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span> <span class=o>=</span> <span class=n>encoder</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>sigma</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>logvar</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>z</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=n>sigma</span><span class=p>)</span>        <span class=c1># &lt;- 采样节点不可微</span>
+</span></span><span class=line><span class=cl><span class=n>recon</span> <span class=o>=</span> <span class=n>decoder</span><span class=p>(</span><span class=n>z</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>loss</span> <span class=o>=</span> <span class=p>(</span><span class=n>recon</span> <span class=o>-</span> <span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl><span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>                    <span class=c1># mu, sigma 拿不到任何梯度</span>
+</span></span></code></pre></td></tr></table></div></div><p><code>torch.normal(mu, sigma)</code> 是一个<strong>随机操作</strong>，它的输出 $z$ 与输入 $\mu,\sigma$ 之间没有可微关系——你换一个 $\mu$，同一个 $z$ 不会"平滑地变"，而是整个分布换了一个，梯度无从定义。</p><blockquote><p><strong>核心问题</strong>：训练过程要求 $\nabla_\theta \mathbb E_{q_\theta}[f(z)]$，但采样这一步切断了反向传播。</p></blockquote><p>可行的解法有两类：</p><ol><li><strong>Score Function / REINFORCE</strong>：用对数似然的导数把期望写成 $\mathbb E[f(z)\nabla_\theta\log q_\theta(z)]$。通用、不要求 $z$ 可微，但<strong>方差极大</strong>。</li><li><strong>重参数化</strong>：把随机性从参数里"挪出去"，换成与参数无关的噪声，让计算图保持可微。<strong>方差小、可端到端训练，但要求分布形式可重参数化</strong>。</li></ol><h1 id=二连续分布的重参数化>二、连续分布的重参数化</h1><h2 id=21-数学表达>2.1 数学表达</h2><p>重参数化的基本思想：用一个<strong>确定性、可微</strong>的函数 $g_\theta$ 把简单分布的样本 $\epsilon\sim p(\epsilon)$ 变成目标分布的样本：</p>$$
 z \;=\; g_\theta(\epsilon),\qquad \epsilon \sim p(\epsilon),
-$$<p>其中 $p(\epsilon)$ 是一个<strong>与 $\theta$ 无关</strong>的&quot;基准分布&quot;（如 $\mathcal N(0,I)$、$\mathrm{Uniform}(0,1)$）。代回目标：</p>
-$$
+$$<p>其中 $p(\epsilon)$ 是一个<strong>与 $\theta$ 无关</strong>的"基准分布"（如 $\mathcal N(0,I)$、$\mathrm{Uniform}(0,1)$）。代回目标：</p>$$
 \mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,f(g_\theta(\epsilon))\,].
-$$<p>期望算子里<strong>没有 $\theta$ 了</strong>，求导可以直接进期望里：</p>
-$$
+$$<p>期望算子里<strong>没有 $\theta$ 了</strong>，求导可以直接进期望里：</p>$$
 \nabla_\theta\,\mathcal L(\theta) \;=\; \mathbb E_{\epsilon\sim p(\epsilon)}\,[\,\nabla_\theta\, f(g_\theta(\epsilon))\,].
-$$<p>蒙特卡洛估计就是采一个或几个 $\epsilon$，对 $f(g_\theta(\epsilon))$ 反向传播即可。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig1_reparam_trick.png" alt="Reparameterization trick" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<blockquote>
-<p><strong>图示对比</strong>：左图 $z$ 从 $\mathcal N(\mu,\sigma^2)$ 直接采样，是计算图里的随机节点，梯度无法穿过；右图 $z=\mu+\sigma\epsilon$ 是关于 $\mu,\sigma$ 的确定性函数，梯度顺利沿绿色路径回到 encoder。</p>
-</blockquote>
-<h2 id="22-正态分布的重参数化">2.2 正态分布的重参数化</h2>
-<p>最常见的例子是 $z\sim\mathcal N(\mu,\sigma^2)$。重参数化为：</p>
-$$
+$$<p>蒙特卡洛估计就是采一个或几个 $\epsilon$，对 $f(g_\theta(\epsilon))$ 反向传播即可。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig1_reparam_trick.png alt="Reparameterization trick" loading=lazy decoding=async></figure></p><blockquote><p><strong>图示对比</strong>：左图 $z$ 从 $\mathcal N(\mu,\sigma^2)$ 直接采样，是计算图里的随机节点，梯度无法穿过；右图 $z=\mu+\sigma\epsilon$ 是关于 $\mu,\sigma$ 的确定性函数，梯度顺利沿绿色路径回到 encoder。</p></blockquote><h2 id=22-正态分布的重参数化>2.2 正态分布的重参数化</h2><p>最常见的例子是 $z\sim\mathcal N(\mu,\sigma^2)$。重参数化为：</p>$$
 z \;=\; \mu \;+\; \sigma \odot \epsilon,\qquad \epsilon \sim \mathcal N(0,I).
-$$<p>可以从两侧验证：(i) $\mathbb E[z]=\mu$，$\mathrm{Var}(z)=\sigma^2$；(ii) 由于线性变换保持正态性，$z$ 的边际分布严格是 $\mathcal N(\mu,\sigma^2)$。<strong>关键是</strong>：$\frac{\partial z}{\partial\mu}=1$、$\frac{\partial z}{\partial\sigma}=\epsilon$，都是常数级表达式，梯度通畅。</p>
-<p>PyTorch 实现里我们一般直接学 $\log\sigma^2$（保数值稳定，避免 $\sigma$ 为负）：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">logvar</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;z = mu + sigma * eps,  eps ~ N(0, I).&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>        <span class="c1"># sigma &gt;= 0 by construction</span>
-</span></span><span class="line"><span class="cl">    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>          <span class="c1"># 唯一的随机源，与 mu/logvar 无关</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">eps</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h2 id="23-在-vae-中的应用">2.3 在 VAE 中的应用</h2>
-<p>VAE 优化证据下界（ELBO）：</p>
-$$
+$$<p>可以从两侧验证：(i) $\mathbb E[z]=\mu$，$\mathrm{Var}(z)=\sigma^2$；(ii) 由于线性变换保持正态性，$z$ 的边际分布严格是 $\mathcal N(\mu,\sigma^2)$。<strong>关键是</strong>：$\frac{\partial z}{\partial\mu}=1$、$\frac{\partial z}{\partial\sigma}=\epsilon$，都是常数级表达式，梯度通畅。</p><p>PyTorch 实现里我们一般直接学 $\log\sigma^2$（保数值稳定，避免 $\sigma$ 为负）：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>reparameterize</span><span class=p>(</span><span class=n>mu</span><span class=p>:</span> <span class=n>Tensor</span><span class=p>,</span> <span class=n>logvar</span><span class=p>:</span> <span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;z = mu + sigma * eps,  eps ~ N(0, I).&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>logvar</span><span class=p>)</span>        <span class=c1># sigma &gt;= 0 by construction</span>
+</span></span><span class=line><span class=cl>    <span class=n>eps</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>std</span><span class=p>)</span>          <span class=c1># 唯一的随机源，与 mu/logvar 无关</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>mu</span> <span class=o>+</span> <span class=n>std</span> <span class=o>*</span> <span class=n>eps</span>
+</span></span></code></pre></td></tr></table></div></div><h2 id=23-在-vae-中的应用>2.3 在 VAE 中的应用</h2><p>VAE 优化证据下界（ELBO）：</p>$$
 \mathcal L_{\text{ELBO}}(\theta,\phi;x)
 \;=\; \mathbb E_{q_\phi(z|x)}\!\bigl[\log p_\theta(x|z)\bigr]
 \;-\;\mathrm{KL}\!\bigl(q_\phi(z|x)\,\Vert\,p(z)\bigr).
-$$<p>第一项的期望是关于 $q_\phi(z|x)$ 的，参数 $\phi$ 在分布里。<strong>重参数化就是让这一项可微的关键</strong>：写成 $z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon$ 之后，</p>
-$$
+$$<p>第一项的期望是关于 $q_\phi(z|x)$ 的，参数 $\phi$ 在分布里。<strong>重参数化就是让这一项可微的关键</strong>：写成 $z=\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon$ 之后，</p>$$
 \nabla_\phi\,\mathbb E_{q_\phi(z|x)}[\log p_\theta(x|z)]
 \;=\;\mathbb E_{\epsilon\sim\mathcal N(0,I)}\!\bigl[\,\nabla_\phi\log p_\theta(x\mid \mu_\phi+\sigma_\phi\epsilon)\,\bigr].
-$$<p>对 $\phi$ 的梯度可以顺着 decoder 一路传回 encoder。第二项 KL 在 $q_\phi=\mathcal N(\mu,\sigma^2)$、$p=\mathcal N(0,I)$ 时有闭式：</p>
-$$
+$$<p>对 $\phi$ 的梯度可以顺着 decoder 一路传回 encoder。第二项 KL 在 $q_\phi=\mathcal N(\mu,\sigma^2)$、$p=\mathcal N(0,I)$ 时有闭式：</p>$$
 \mathrm{KL}=\tfrac12\sum_j\!\bigl(\mu_j^2+\sigma_j^2-1-\log\sigma_j^2\bigr),
-$$<p>不需要采样。</p>
-<h2 id="24-哪些连续分布天然可重参数化">2.4 哪些连续分布&quot;天然可重参数化&quot;？</h2>
-<p>凡是能写成&quot;位置-尺度族&quot;或&quot;基础噪声 + 可微变换&quot;的都可以：</p>
-<table>
-  <thead>
-      <tr>
-          <th>分布</th>
-          <th>重参数化形式</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$\mathcal N(\mu,\sigma^2)$</td>
-          <td>$z=\mu+\sigma\epsilon$, $\epsilon\sim\mathcal N(0,1)$</td>
-      </tr>
-      <tr>
-          <td>$\mathrm{Logistic}(\mu,s)$</td>
-          <td>$z=\mu+s\,\log\frac{u}{1-u}$, $u\sim\mathrm U(0,1)$</td>
-      </tr>
-      <tr>
-          <td>$\mathrm{Laplace}(\mu,b)$</td>
-          <td>$z=\mu-b,\mathrm{sign}(u)\log(1-2</td>
-      </tr>
-      <tr>
-          <td>$\mathrm{Exp}(\lambda)$</td>
-          <td>$z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$</td>
-      </tr>
-      <tr>
-          <td>$\mathrm{Gumbel}(\mu,\beta)$</td>
-          <td>$z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$</td>
-      </tr>
-  </tbody>
-</table>
-<p><strong>反例</strong>：Gamma、Beta、Dirichlet、Student-t 这些没有简单的位置-尺度形式，需要&quot;隐式重参数化（implicit reparameterization gradients）&ldquo;或路径求导技巧——这是 NeurIPS 2018 Figurnov 等人的工作（详见 §7）。</p>
-<h1 id="三离散分布的重参数化gumbel-max-技巧">三、离散分布的重参数化：Gumbel-Max 技巧</h1>
-<h2 id="31-难点">3.1 难点</h2>
-<p>设 $K$ 类的分类分布 $\mathrm{Cat}(\pi_1,\dots,\pi_K)$，其中 $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$。直接的&quot;采样&quot;是：先算概率 $\pi$，再做多项式采样得到一个类别索引 $k$。这一步<strong>完全不可导</strong>——它的输出是离散的 one-hot，没有平滑变化的概念。</p>
-<p>朴素估计器只能依赖 REINFORCE：</p>
-$$
+$$<p>不需要采样。</p><h2 id=24-哪些连续分布天然可重参数化>2.4 哪些连续分布"天然可重参数化"？</h2><p>凡是能写成"位置-尺度族"或"基础噪声 + 可微变换"的都可以：</p><table><thead><tr><th>分布</th><th>重参数化形式</th></tr></thead><tbody><tr><td>$\mathcal N(\mu,\sigma^2)$</td><td>$z=\mu+\sigma\epsilon$, $\epsilon\sim\mathcal N(0,1)$</td></tr><tr><td>$\mathrm{Logistic}(\mu,s)$</td><td>$z=\mu+s\,\log\frac{u}{1-u}$, $u\sim\mathrm U(0,1)$</td></tr><tr><td>$\mathrm{Laplace}(\mu,b)$</td><td>$z=\mu-b,\mathrm{sign}(u)\log(1-2</td></tr><tr><td>$\mathrm{Exp}(\lambda)$</td><td>$z=-\tfrac1\lambda\log(1-u)$, $u\sim\mathrm U(0,1)$</td></tr><tr><td>$\mathrm{Gumbel}(\mu,\beta)$</td><td>$z=\mu-\beta\log(-\log u)$, $u\sim\mathrm U(0,1)$</td></tr></tbody></table><p><strong>反例</strong>：Gamma、Beta、Dirichlet、Student-t 这些没有简单的位置-尺度形式，需要"隐式重参数化（implicit reparameterization gradients）&ldquo;或路径求导技巧——这是 NeurIPS 2018 Figurnov 等人的工作（详见 §7）。</p><h1 id=三离散分布的重参数化gumbel-max-技巧>三、离散分布的重参数化：Gumbel-Max 技巧</h1><h2 id=31-难点>3.1 难点</h2><p>设 $K$ 类的分类分布 $\mathrm{Cat}(\pi_1,\dots,\pi_K)$，其中 $\pi_i=\mathrm{softmax}(\alpha)_i=\frac{\exp(\alpha_i)}{\sum_j\exp(\alpha_j)}$。直接的"采样"是：先算概率 $\pi$，再做多项式采样得到一个类别索引 $k$。这一步<strong>完全不可导</strong>——它的输出是离散的 one-hot，没有平滑变化的概念。</p><p>朴素估计器只能依赖 REINFORCE：</p>$$
 \nabla_\alpha\,\mathbb E_{k\sim\mathrm{Cat}(\pi)}[f(k)]
 \;=\;\mathbb E_{k}\bigl[f(k)\,\nabla_\alpha\log\pi_k\bigr],
-$$<p>通用但方差大到没法稳定训练。能不能像正态分布那样，把&quot;采样&quot;分解成&quot;噪声 + 确定性变换&rdquo;？答案就是 Gumbel-Max 技巧。</p>
-<h2 id="32-gumbel-分布速览">3.2 Gumbel 分布速览</h2>
-<p>标准 Gumbel 分布 $\mathrm{Gumbel}(0,1)$ 的 CDF/PDF：</p>
-$$
+$$<p>通用但方差大到没法稳定训练。能不能像正态分布那样，把"采样"分解成"噪声 + 确定性变换&rdquo;？答案就是 Gumbel-Max 技巧。</p><h2 id=32-gumbel-分布速览>3.2 Gumbel 分布速览</h2><p>标准 Gumbel 分布 $\mathrm{Gumbel}(0,1)$ 的 CDF/PDF：</p>$$
 F(g)=\exp(-e^{-g}),\qquad f(g)=\exp\!\bigl(-(g+e^{-g})\bigr).
-$$<p>它的众数在 $0$，均值在 $\gamma\approx 0.5772$（欧拉-马歇罗尼常数）。重要的是它是<strong>极值分布</strong>——独立同分布样本的最大值（在合适的标准化下）服从 Gumbel。Gumbel-Max 正是利用这一点。</p>
-<p>利用逆 CDF 采样很方便：</p>
-$$
+$$<p>它的众数在 $0$，均值在 $\gamma\approx 0.5772$（欧拉-马歇罗尼常数）。重要的是它是<strong>极值分布</strong>——独立同分布样本的最大值（在合适的标准化下）服从 Gumbel。Gumbel-Max 正是利用这一点。</p><p>利用逆 CDF 采样很方便：</p>$$
 u\sim\mathrm U(0,1) \;\Rightarrow\; g=-\log(-\log u)\sim\mathrm{Gumbel}(0,1).
-$$<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig2_gumbel_pdf.png" alt="Gumbel distribution PDF/CDF/empirical" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<blockquote>
-<p><strong>左</strong>：Gumbel(0,1) 的 PDF；<strong>中</strong>：通过 inverse-CDF 采样的几何示意；<strong>右</strong>：用 $-\log(-\log u)$ 生成 2 万样本，直方图与解析 PDF 完美吻合。</p>
-</blockquote>
-<h2 id="33-gumbel-max-技巧">3.3 Gumbel-Max 技巧</h2>
-<p><strong>核心命题</strong>：设 $g_1,\dots,g_K\overset{iid}{\sim}\mathrm{Gumbel}(0,1)$，令</p>
-$$
+$$<p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig2_gumbel_pdf.png alt="Gumbel distribution PDF/CDF/empirical" loading=lazy decoding=async></figure></p><blockquote><p><strong>左</strong>：Gumbel(0,1) 的 PDF；<strong>中</strong>：通过 inverse-CDF 采样的几何示意；<strong>右</strong>：用 $-\log(-\log u)$ 生成 2 万样本，直方图与解析 PDF 完美吻合。</p></blockquote><h2 id=33-gumbel-max-技巧>3.3 Gumbel-Max 技巧</h2><p><strong>核心命题</strong>：设 $g_1,\dots,g_K\overset{iid}{\sim}\mathrm{Gumbel}(0,1)$，令</p>$$
 k^\star \;=\; \arg\max_i\,(\alpha_i + g_i),
-$$<p>则 $k^\star\sim\mathrm{Cat}(\mathrm{softmax}(\alpha))$。也就是说，<strong>给 logits 加 Gumbel 噪声再取 argmax，等价于从 softmax 分布中采样</strong>。</p>
-<h3 id="推导以采到类别-1-为例">推导（以采到类别 1 为例）</h3>
-<p>$\Pr[k^\star=1] = \Pr\bigl[\,\forall i\neq 1:\;\alpha_1+g_1>\alpha_i+g_i\,\bigr] = \Pr\bigl[\,\forall i\neq 1:\;g_i<\alpha_1-\alpha_i+g_1\,\bigr]$.</p>
-<p>给定 $g_1=t$：</p>
-$$
+$$<p>则 $k^\star\sim\mathrm{Cat}(\mathrm{softmax}(\alpha))$。也就是说，<strong>给 logits 加 Gumbel 噪声再取 argmax，等价于从 softmax 分布中采样</strong>。</p><h3 id=推导以采到类别-1-为例>推导（以采到类别 1 为例）</h3><p>$\Pr[k^\star=1] = \Pr\bigl[\,\forall i\neq 1:\;\alpha_1+g_1>\alpha_i+g_i\,\bigr] = \Pr\bigl[\,\forall i\neq 1:\;g_i<\alpha_1-\alpha_i+g_1\,\bigr]$.</p><p>给定 $g_1=t$：</p>$$
 \Pr[k^\star=1\mid g_1=t]=\prod_{i\neq 1}F(\alpha_1-\alpha_i+t)
 =\prod_{i\neq 1}\exp\!\bigl(-e^{-(\alpha_1-\alpha_i+t)}\bigr)
 =\exp\!\Bigl(-e^{-t}\!\!\sum_{i\neq 1}e^{\alpha_i-\alpha_1}\Bigr).
-$$<p>记 $S=\sum_{i\neq 1}e^{\alpha_i-\alpha_1}$，对 $g_1$ 取期望：</p>
-$$
+$$<p>记 $S=\sum_{i\neq 1}e^{\alpha_i-\alpha_1}$，对 $g_1$ 取期望：</p>$$
 \Pr[k^\star=1]=\int e^{-(t+e^{-t})}\cdot\exp(-S e^{-t})\,dt
 =\int e^{-t}\exp\!\bigl(-(1+S)e^{-t}\bigr)\,dt.
-$$<p>令 $u=(1+S)e^{-t}$，$du=-(1+S)e^{-t}dt$，积分化为 $\frac{1}{1+S}\int_0^\infty e^{-u}du=\frac{1}{1+S}$。</p>
-<p>而 $1+S=1+\sum_{i\neq 1}e^{\alpha_i-\alpha_1}=e^{-\alpha_1}\sum_i e^{\alpha_i}$，所以</p>
-$$
+$$<p>令 $u=(1+S)e^{-t}$，$du=-(1+S)e^{-t}dt$，积分化为 $\frac{1}{1+S}\int_0^\infty e^{-u}du=\frac{1}{1+S}$。</p><p>而 $1+S=1+\sum_{i\neq 1}e^{\alpha_i-\alpha_1}=e^{-\alpha_1}\sum_i e^{\alpha_i}$，所以</p>$$
 \Pr[k^\star=1]=\frac{e^{\alpha_1}}{\sum_i e^{\alpha_i}}=\mathrm{softmax}(\alpha)_1. \quad\blacksquare
-$$<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig3_gumbel_max_trick.png" alt="Gumbel-Max trick" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<blockquote>
-<p><strong>左</strong>：目标 categorical 分布；<strong>中</strong>：单次实验，加 Gumbel 噪声后的 argmax 选中 c2；<strong>右</strong>：8000 次重复采样的经验频率与目标 softmax 高度吻合，验证了 Gumbel-Max 在期望意义下严格等价。</p>
-</blockquote>
-<h3 id="为什么这一招有用">为什么这一招有用？</h3>
-<ul>
-<li><strong>采样高效</strong>：只需 $K$ 个独立 Uniform 样本，一次 argmax，没有显式归一化、没有累积分布查找。</li>
-<li><strong>数值稳定</strong>：在 logits 上做加法后取 argmax，对常数平移免疫——softmax 中的 $\max$ 减法稳定性同理可得。</li>
-<li><strong>更重要的</strong>：这个表达把&quot;采样的随机性&quot;全部装进 $g$ 里，logits $\alpha$ 出现在确定性的 $\alpha+g$ 上——离&quot;可微&quot;只剩最后一步：把 $\arg\max$ 换成可微近似。</li>
-</ul>
-<h1 id="四gumbel-softmax把-argmax-软化">四、Gumbel-Softmax：把 argmax 软化</h1>
-<h2 id="41-定义">4.1 定义</h2>
-<p>把 $\arg\max$ 替换为带温度 $\tau$ 的 softmax，得到 <strong>Gumbel-Softmax / Concrete</strong> 分布的样本：</p>
-$$
+$$<p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig3_gumbel_max_trick.png alt="Gumbel-Max trick" loading=lazy decoding=async></figure></p><blockquote><p><strong>左</strong>：目标 categorical 分布；<strong>中</strong>：单次实验，加 Gumbel 噪声后的 argmax 选中 c2；<strong>右</strong>：8000 次重复采样的经验频率与目标 softmax 高度吻合，验证了 Gumbel-Max 在期望意义下严格等价。</p></blockquote><h3 id=为什么这一招有用>为什么这一招有用？</h3><ul><li><strong>采样高效</strong>：只需 $K$ 个独立 Uniform 样本，一次 argmax，没有显式归一化、没有累积分布查找。</li><li><strong>数值稳定</strong>：在 logits 上做加法后取 argmax，对常数平移免疫——softmax 中的 $\max$ 减法稳定性同理可得。</li><li><strong>更重要的</strong>：这个表达把"采样的随机性"全部装进 $g$ 里，logits $\alpha$ 出现在确定性的 $\alpha+g$ 上——离"可微"只剩最后一步：把 $\arg\max$ 换成可微近似。</li></ul><h1 id=四gumbel-softmax把-argmax-软化>四、Gumbel-Softmax：把 argmax 软化</h1><h2 id=41-定义>4.1 定义</h2><p>把 $\arg\max$ 替换为带温度 $\tau$ 的 softmax，得到 <strong>Gumbel-Softmax / Concrete</strong> 分布的样本：</p>$$
 y_i \;=\; \frac{\exp\!\bigl((\alpha_i + g_i)/\tau\bigr)}{\sum_{j=1}^K\exp\!\bigl((\alpha_j + g_j)/\tau\bigr)},
 \qquad g_i\overset{iid}{\sim}\mathrm{Gumbel}(0,1).
-$$<p>其中 $y\in\Delta^{K-1}$（$K-1$ 维概率单纯形），是一个连续向量。两端极限给出直观理解：</p>
-<ul>
-<li>$\tau\to 0^+$：softmax 退化为 argmax 的指示向量，$y$ 趋于 one-hot，<strong>接近真离散采样</strong>；</li>
-<li>$\tau\to\infty$：$(\alpha_i+g_i)/\tau\to 0$，$y$ 趋于均匀向量 $(1/K,\dots,1/K)$。</li>
-</ul>
-<p>由于 $g$ 与 $\alpha$ 无关、并且 softmax 是处处可微的，$y$ 关于 $\alpha$（也就是关于上游网络参数 $\theta$）<strong>可微</strong>。这就是 Gumbel-Softmax 的核心：用一个连续可微的 $y$ 当作离散 one-hot 的&quot;代理&quot;。</p>
-<h2 id="42-温度的偏差-方差权衡">4.2 温度的偏差-方差权衡</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig4_gumbel_softmax_temp.png" alt="Gumbel-Softmax temperature effect" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<blockquote>
-<p><strong>四个温度下的样本</strong>：每个面板里浅蓝柱是目标 softmax，橙色折线是 5 次独立的 Gumbel-Softmax 采样。</p>
-<ul>
-<li>$\tau=5$：极平滑、几乎均匀，<strong>梯度方差小</strong>但<strong>严重偏离</strong>真实离散采样；</li>
-<li>$\tau=1$：折中；</li>
-<li>$\tau=0.5$：开始接近 one-hot；</li>
-<li>$\tau=0.1$：几乎是 one-hot（看起来像柱状），<strong>偏差小</strong>但<strong>方差大</strong>（且 softmax 内部数值容易上下溢）。</li>
-</ul>
-</blockquote>
-<p>可以从估计器层面写出这件事：用 Gumbel-Softmax 做 $\nabla_\alpha\,\mathbb E[f(z)]$ 的估计时，温度 $\tau$ 越小，$y$ 越接近真实 one-hot $z$，偏差越小；但 softmax 在 logit 差别大时的雅可比矩阵 $\partial y/\partial\alpha$ 元素呈 $1/\tau$ 量级，方差按 $\tau^{-2}$ 放大。</p>
-<p><strong>实践退火（annealing）建议</strong>：</p>
-<ul>
-<li>起始 $\tau=1.0\sim 2.0$，end $\tau=0.1\sim 0.5$；</li>
-<li>指数退火 $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$，每 $\sim 1000$ 步衰减一次；</li>
-<li><strong>不要</strong>直接训到 $\tau\to 0$——softmax 数值会爆掉，且梯度方差会主导；让模型早期&quot;看清楚&quot;分布形状，后期再&quot;硬化&quot;。</li>
-</ul>
-<h2 id="43-straight-through-gumbel-softmax-st-gs">4.3 Straight-Through Gumbel-Softmax (ST-GS)</h2>
-<p>很多任务（例如 hard attention、离散 token 选择、稀疏 routing）<strong>前向需要严格 one-hot</strong>——比如下游是一个 lookup table，必须是整数索引。这时用 <strong>Straight-Through 估计器</strong>：</p>
-$$
+$$<p>其中 $y\in\Delta^{K-1}$（$K-1$ 维概率单纯形），是一个连续向量。两端极限给出直观理解：</p><ul><li>$\tau\to 0^+$：softmax 退化为 argmax 的指示向量，$y$ 趋于 one-hot，<strong>接近真离散采样</strong>；</li><li>$\tau\to\infty$：$(\alpha_i+g_i)/\tau\to 0$，$y$ 趋于均匀向量 $(1/K,\dots,1/K)$。</li></ul><p>由于 $g$ 与 $\alpha$ 无关、并且 softmax 是处处可微的，$y$ 关于 $\alpha$（也就是关于上游网络参数 $\theta$）<strong>可微</strong>。这就是 Gumbel-Softmax 的核心：用一个连续可微的 $y$ 当作离散 one-hot 的"代理"。</p><h2 id=42-温度的偏差-方差权衡>4.2 温度的偏差-方差权衡</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig4_gumbel_softmax_temp.png alt="Gumbel-Softmax temperature effect" loading=lazy decoding=async></figure></p><blockquote><p><strong>四个温度下的样本</strong>：每个面板里浅蓝柱是目标 softmax，橙色折线是 5 次独立的 Gumbel-Softmax 采样。</p><ul><li>$\tau=5$：极平滑、几乎均匀，<strong>梯度方差小</strong>但<strong>严重偏离</strong>真实离散采样；</li><li>$\tau=1$：折中；</li><li>$\tau=0.5$：开始接近 one-hot；</li><li>$\tau=0.1$：几乎是 one-hot（看起来像柱状），<strong>偏差小</strong>但<strong>方差大</strong>（且 softmax 内部数值容易上下溢）。</li></ul></blockquote><p>可以从估计器层面写出这件事：用 Gumbel-Softmax 做 $\nabla_\alpha\,\mathbb E[f(z)]$ 的估计时，温度 $\tau$ 越小，$y$ 越接近真实 one-hot $z$，偏差越小；但 softmax 在 logit 差别大时的雅可比矩阵 $\partial y/\partial\alpha$ 元素呈 $1/\tau$ 量级，方差按 $\tau^{-2}$ 放大。</p><p><strong>实践退火（annealing）建议</strong>：</p><ul><li>起始 $\tau=1.0\sim 2.0$，end $\tau=0.1\sim 0.5$；</li><li>指数退火 $\tau_t=\max(\tau_{\min},\tau_0\,e^{-rt})$，每 $\sim 1000$ 步衰减一次；</li><li><strong>不要</strong>直接训到 $\tau\to 0$——softmax 数值会爆掉，且梯度方差会主导；让模型早期"看清楚"分布形状，后期再"硬化"。</li></ul><h2 id=43-straight-through-gumbel-softmax-st-gs>4.3 Straight-Through Gumbel-Softmax (ST-GS)</h2><p>很多任务（例如 hard attention、离散 token 选择、稀疏 routing）<strong>前向需要严格 one-hot</strong>——比如下游是一个 lookup table，必须是整数索引。这时用 <strong>Straight-Through 估计器</strong>：</p>$$
 \boxed{
 \;\;y_{\text{hard}}=\mathrm{onehot}(\arg\max_i y_i),
 \qquad
 \tilde y \;=\; y_{\text{hard}}\;-\;\mathrm{stop\_grad}(y_{\text{soft}})\;+\;y_{\text{soft}}.\;\;
 }
-$$<p>在前向，$\tilde y=y_{\text{hard}}$（严格 one-hot）；在反向，$\partial\tilde y/\partial\alpha=\partial y_{\text{soft}}/\partial\alpha$（用软的 Jacobian）。本质是<strong>一种有偏的、低方差的近似</strong>：用 hard 样本去算损失，用 soft 样本去算梯度。</p>
-<p>PyTorch 一行就能写：</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">gumbel_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                   <span class="n">hard</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;y = softmax((logits + g) / tau); 可选 ST-hard。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 1) 采 Gumbel 噪声，clamp 防止 log(0)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="mf">1e-9</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1e-9</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">g</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 2) 软样本</span>
-</span></span><span class="line"><span class="cl">    <span class="n">y_soft</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">((</span><span class="n">logits</span> <span class="o">+</span> <span class="n">g</span><span class="p">)</span> <span class="o">/</span> <span class="n">tau</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="ow">not</span> <span class="n">hard</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">y_soft</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 3) Straight-Through:前向硬,反向软</span>
-</span></span><span class="line"><span class="cl">    <span class="n">idx</span> <span class="o">=</span> <span class="n">y_soft</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">y_hard</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">y_soft</span><span class="p">)</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">y_hard</span> <span class="o">-</span> <span class="n">y_soft</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">+</span> <span class="n">y_soft</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>PyTorch 官方有 <code>torch.nn.functional.gumbel_softmax(logits, tau, hard)</code>，实现等价；自己写一遍是为了理解每一步。</p>
-<h1 id="五与-reinforce-的对比方差差几个数量级">五、与 REINFORCE 的对比：方差差几个数量级</h1>
-<h2 id="51-score-function--reinforce-估计器">5.1 Score Function / REINFORCE 估计器</h2>
-<p>通用形式：</p>
-$$
+$$<p>在前向，$\tilde y=y_{\text{hard}}$（严格 one-hot）；在反向，$\partial\tilde y/\partial\alpha=\partial y_{\text{soft}}/\partial\alpha$（用软的 Jacobian）。本质是<strong>一种有偏的、低方差的近似</strong>：用 hard 样本去算损失，用 soft 样本去算梯度。</p><p>PyTorch 一行就能写：</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>def</span> <span class=nf>gumbel_softmax</span><span class=p>(</span><span class=n>logits</span><span class=p>:</span> <span class=n>Tensor</span><span class=p>,</span> <span class=n>tau</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                   <span class=n>hard</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;y = softmax((logits + g) / tau); 可选 ST-hard。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 1) 采 Gumbel 噪声，clamp 防止 log(0)</span>
+</span></span><span class=line><span class=cl>    <span class=n>u</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>rand_like</span><span class=p>(</span><span class=n>logits</span><span class=p>)</span><span class=o>.</span><span class=n>clamp_</span><span class=p>(</span><span class=mf>1e-9</span><span class=p>,</span> <span class=mf>1.0</span> <span class=o>-</span> <span class=mf>1e-9</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>g</span> <span class=o>=</span> <span class=o>-</span><span class=n>torch</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=o>-</span><span class=n>torch</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>u</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 2) 软样本</span>
+</span></span><span class=line><span class=cl>    <span class=n>y_soft</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>softmax</span><span class=p>((</span><span class=n>logits</span> <span class=o>+</span> <span class=n>g</span><span class=p>)</span> <span class=o>/</span> <span class=n>tau</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=ow>not</span> <span class=n>hard</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>y_soft</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 3) Straight-Through:前向硬,反向软</span>
+</span></span><span class=line><span class=cl>    <span class=n>idx</span> <span class=o>=</span> <span class=n>y_soft</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>,</span> <span class=n>keepdim</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>y_hard</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>zeros_like</span><span class=p>(</span><span class=n>y_soft</span><span class=p>)</span><span class=o>.</span><span class=n>scatter_</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=n>idx</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>y_hard</span> <span class=o>-</span> <span class=n>y_soft</span><span class=o>.</span><span class=n>detach</span><span class=p>()</span> <span class=o>+</span> <span class=n>y_soft</span>
+</span></span></code></pre></td></tr></table></div></div><p>PyTorch 官方有 <code>torch.nn.functional.gumbel_softmax(logits, tau, hard)</code>，实现等价；自己写一遍是为了理解每一步。</p><h1 id=五与-reinforce-的对比方差差几个数量级>五、与 REINFORCE 的对比：方差差几个数量级</h1><h2 id=51-score-function--reinforce-估计器>5.1 Score Function / REINFORCE 估计器</h2><p>通用形式：</p>$$
 \nabla_\theta\,\mathbb E_{z\sim q_\theta}[f(z)]
 =\mathbb E_{z\sim q_\theta}\!\bigl[f(z)\,\nabla_\theta\log q_\theta(z)\bigr].
-$$<p>它的最大优点是<strong>完全不要求</strong> $z$ 与 $\theta$ 的可微关系——离散、流程控制、调用外部黑盒都行。代价是<strong>方差非常大</strong>：直觉上，$f(z)$ 的整个数值都进了梯度，没有可微路径帮忙抵消符号。</p>
-<p>降方差的常见手段：</p>
-<ul>
-<li><strong>Baseline / Control variate</strong>：把 $f(z)-b$ 代入，$b$ 是与 $z$ 无关的基线（如运行平均）；</li>
-<li><strong>Rao-Blackwellization、antithetic、importance sampling</strong>……</li>
-</ul>
-<p>但即使各种 trick 上身，REINFORCE 的方差通常仍比重参数化高 $1\sim 3$ 个数量级。</p>
-<h2 id="52-实测对比">5.2 实测对比</h2>
-<p>我们在合成 8 类 categorical 上估计 $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$（其中 $r$ 是固定 reward 向量）。每条曲线对 200 次重复试验取梯度方差：</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig5_discrete_pipeline.png" alt="Variance: REINFORCE vs Gumbel-Softmax" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<blockquote>
-<p><strong>左侧管线</strong>：logits → +Gumbel 噪声 → /τ → softmax → $y_{\text{soft}}$；可选 argmax → $y_{\text{hard}}$，结合 STE，即可前向硬、反向软。<strong>右侧曲线</strong>：横轴是每次梯度估计使用的样本数，纵轴是估计的方差（log-log）。Gumbel-Softmax（$\tau=0.5$）始终低 REINFORCE 一个数量级以上，且两者方差都按 $1/n$ 下降（斜率 $-1$）。</p>
-</blockquote>
-<p>这就是为什么有了重参数化，离散变量的端到端训练才真正可用。</p>
-<h1 id="六完整-pytorch-实现连续-vae-与离散-vae">六、完整 PyTorch 实现：连续 VAE 与离散 VAE</h1>
-<h2 id="61-连续-vae重参数化">6.1 连续 VAE（重参数化）</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">VAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">784</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">400</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">z_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># encoder</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">x_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">z_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">fc_lv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">z_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># decoder</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">z_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">x_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_mu</span><span class="p">(</span><span class="n">h</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc_lv</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">std</span> <span class="o">*</span> <span class="n">eps</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">vae_loss</span><span class="p">(</span><span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 重建损失:用 logits + BCE 比 sigmoid + BCE 数值更稳</span>
-</span></span><span class="line"><span class="cl">    <span class="n">recon</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;sum&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="c1"># 闭式 KL: KL(N(mu,sigma^2) || N(0,I))</span>
-</span></span><span class="line"><span class="cl">    <span class="n">kl</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mu</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">logvar</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">recon</span> <span class="o">+</span> <span class="n">kl</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>实现要点</strong>：</p>
-<ul>
-<li>用 <code>binary_cross_entropy_with_logits</code> 而不是 <code>BCELoss + sigmoid</code>，避免饱和区数值不稳；</li>
-<li>KL 项闭式而非采样，减少梯度方差；</li>
-<li>可选 KL 退火（$\beta$-VAE 的 $\beta$ 从 0 慢慢升到 1）以缓解后验坍塌。</li>
-</ul>
-<h2 id="62-离散隐变量-vaecategorical--gumbel-softmax">6.2 离散隐变量 VAE（Categorical + Gumbel-Softmax）</h2>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">CategoricalVAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">h_dim</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">n_cat</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_dim</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;n_cat 个独立 categorical, 每个 K = n_dim 类。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_cat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dim</span> <span class="o">=</span> <span class="n">n_cat</span><span class="p">,</span> <span class="n">n_dim</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">x_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                                 <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">n_cat</span> <span class="o">*</span> <span class="n">n_dim</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_cat</span> <span class="o">*</span> <span class="n">n_dim</span><span class="p">,</span> <span class="n">h_dim</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">                                 <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">h_dim</span><span class="p">,</span> <span class="n">x_dim</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">hard</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 在最后一维(类别维)做 Gumbel-Softmax</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">gumbel_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="n">tau</span><span class="p">,</span> <span class="n">hard</span><span class="o">=</span><span class="n">hard</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">z_flat</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cat</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">z_flat</span><span class="p">),</span> <span class="n">logits</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">cat_vae_loss</span><span class="p">(</span><span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">q_logits</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;KL 用解析形式: KL(q || Uniform(K)) = log K - H(q)。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">recon</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy_with_logits</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">logits_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&#34;sum&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">K</span> <span class="o">=</span> <span class="n">q_logits</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">log_q</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">q_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">q</span> <span class="o">=</span> <span class="n">log_q</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="n">kl</span> <span class="o">=</span> <span class="p">(</span><span class="n">q</span> <span class="o">*</span> <span class="p">(</span><span class="n">log_q</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">K</span><span class="p">)))))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">recon</span> <span class="o">+</span> <span class="n">kl</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># 训练循环里温度退火:</span>
-</span></span><span class="line"><span class="cl"><span class="c1"># tau = max(tau_min, tau0 * exp(-r * step))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>实现要点</strong>：</p>
-<ul>
-<li>把每个隐变量看作 $K$-类分类，logits 形状 <code>[B, n_cat, K]</code>，<strong>最后一维</strong> softmax；</li>
-<li>KL 用 categorical 闭式 $\mathrm{KL}(q\|\mathrm{Uniform})=\log K - H(q)$，不用采样；</li>
-<li><code>hard=True</code> 走 ST-GS，能保证下游真离散；<code>hard=False</code> 走纯 soft，梯度更稳；</li>
-<li>退火：<code>tau0=1.0</code>，<code>tau_min=0.5</code>，<code>r=1e-5</code>（每 1000 步检查一次）。</li>
-</ul>
-<h1 id="七训练里的常见坑">七、训练里的常见坑</h1>
-<table>
-  <thead>
-      <tr>
-          <th>现象</th>
-          <th>可能原因</th>
-          <th>修复</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>NaN loss</strong></td>
-          <td>$\tau$ 退到太小，softmax 上下溢；或 $\log(-\log u)$ 中 $u=0$</td>
-          <td>clamp $u\in[\epsilon, 1-\epsilon]$；$\tau_{\min}\ge 0.1$</td>
-      </tr>
-      <tr>
-          <td><strong>梯度方差炸</strong></td>
-          <td>一次只采 1 个样本 + $\tau$ 过小</td>
-          <td>增加每 batch 的 MC 样本数；$\tau$ 退火节奏放慢</td>
-      </tr>
-      <tr>
-          <td><strong>离散结构不&quot;硬&quot;</strong></td>
-          <td>一直用 soft 输出做评估</td>
-          <td>推断时 <code>hard=True</code> 或 <code>argmax</code>；训练后期切 ST-GS</td>
-      </tr>
-      <tr>
-          <td><strong>后验坍塌</strong>（连续 VAE）</td>
-          <td>KL 一开始就太强</td>
-          <td>$\beta$ 从 0 退到 1；用 free-bits</td>
-      </tr>
-      <tr>
-          <td><strong>离散 VAE 不学结构</strong></td>
-          <td>解码器太强、KL 太弱</td>
-          <td>弱化 decoder 容量；降 KL 权重再升回来</td>
-      </tr>
-      <tr>
-          <td><strong>梯度对 logit 不敏感</strong></td>
-          <td>$\tau$ 过大，输出趋均匀</td>
-          <td>降 $\tau$ 或加大学习率</td>
-      </tr>
-      <tr>
-          <td><strong>forward/backward 不一致</strong></td>
-          <td>用了 ST-GS 却没把 <code>.detach()</code> 写对</td>
-          <td>复查 <code>y_hard - y_soft.detach() + y_soft</code> 这一行</td>
-      </tr>
-  </tbody>
-</table>
-<h1 id="八最新研究进展recent-work">八、最新研究进展（Recent Work）</h1>
-<ul>
-<li><strong>Implicit Reparameterization Gradients</strong>（Figurnov et al., NeurIPS 2018）：用隐函数定理把 Gamma、Beta、Dirichlet、Student-t 等非位置-尺度族变成可重参数化，公式简洁、误差低。</li>
-<li><strong>Rebar / Relax</strong>（Tucker et al., NeurIPS 2017；Grathwohl et al., ICLR 2018）：把 Gumbel-Softmax 与 REINFORCE 结合，用神经网络学习控制变量，方差更低、估计无偏。</li>
-<li><strong>Hard Concrete Gates</strong>（Louizos et al., ICLR 2018）：把 Concrete/Gumbel-Softmax 拉伸 + 截断到 $[0,1]$，得到带&quot;严格 0&quot;的可微门控，用于 $L_0$ 正则化与稀疏化。</li>
-<li><strong>Top-$k$ Gumbel</strong> 与 <strong>Plackett-Luce</strong>：把 Gumbel-Max 推广到&quot;无放回采样 $k$ 个类别&quot;，用于稀疏注意力与 routing。</li>
-<li><strong>Permutation-equivariant relaxations</strong>（Mena et al., ICLR 2018）：Sinkhorn 算子 + Gumbel 噪声，对<strong>置换矩阵</strong>做可微近似。</li>
-</ul>
-<h1 id="总结">总结</h1>
-<ul>
-<li>连续场景下，重参数化把&quot;随机变量 $z$&ldquo;改写为&quot;噪声 $\epsilon$ + 可微变换 $g_\theta$&quot;，让梯度顺着确定性路径回到参数；这是 VAE 等深度生成模型可以用 SGD 稳定训练的关键。</li>
-<li>离散场景下，Gumbel-Max 给出&quot;加 Gumbel 噪声后取 argmax = softmax 采样&quot;的精确等价；Gumbel-Softmax 把 argmax 软化成温度 $\tau$ 的 softmax，让整个采样可微。</li>
-<li>温度 $\tau$ 是核心超参：小 $\tau$ 偏差小但方差大；大 $\tau$ 反之。退火策略（先大后小）是训练稳定的关键。</li>
-<li>需要严格离散输出时用 ST-GS：前向 hard、反向 soft，是工程上最常用的折中。</li>
-<li>与 REINFORCE 相比，重参数化路径估计的梯度方差小 $1\sim 3$ 个数量级，是离散结构能端到端训练的物质基础。</li>
-</ul>
-<h1 id="参考文献">参考文献</h1>
-<ul>
-<li>E. Jang, S. Gu, B. Poole. &ldquo;Categorical Reparameterization with Gumbel-Softmax.&rdquo; <em>ICLR</em>, 2017.</li>
-<li>C. Maddison, A. Mnih, Y. W. Teh. &ldquo;The Concrete Distribution: A Continuous Relaxation of Discrete Random Variables.&rdquo; <em>ICLR</em>, 2017.</li>
-<li>D. P. Kingma, M. Welling. &ldquo;Auto-Encoding Variational Bayes.&rdquo; <em>ICLR</em>, 2014.</li>
-<li>M. Figurnov, S. Mohamed, A. Mnih. &ldquo;Implicit Reparameterization Gradients.&rdquo; <em>NeurIPS</em>, 2018.</li>
-<li>G. Tucker et al. &ldquo;REBAR: Low-variance, unbiased gradient estimates for discrete latent variable models.&rdquo; <em>NeurIPS</em>, 2017.</li>
-<li>C. Louizos, M. Welling, D. P. Kingma. &ldquo;Learning Sparse Neural Networks through $L_0$ Regularization.&rdquo; <em>ICLR</em>, 2018.</li>
-<li>W. Kool, H. van Hoof, M. Welling. &ldquo;Stochastic Beams and Where to Find Them: The Gumbel-Top-$k$ Trick for Sampling Sequences Without Replacement.&rdquo; <em>ICML</em>, 2019.</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到">你将学到</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#21-数学表达">2.1 数学表达</a></li>
-    <li><a href="#22-正态分布的重参数化">2.2 正态分布的重参数化</a></li>
-    <li><a href="#23-在-vae-中的应用">2.3 在 VAE 中的应用</a></li>
-    <li><a href="#24-哪些连续分布天然可重参数化">2.4 哪些连续分布&quot;天然可重参数化&quot;？</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#31-难点">3.1 难点</a></li>
-    <li><a href="#32-gumbel-分布速览">3.2 Gumbel 分布速览</a></li>
-    <li><a href="#33-gumbel-max-技巧">3.3 Gumbel-Max 技巧</a>
-      <ul>
-        <li><a href="#推导以采到类别-1-为例">推导（以采到类别 1 为例）</a></li>
-        <li><a href="#为什么这一招有用">为什么这一招有用？</a></li>
-      </ul>
-    </li>
-  </ul>
-
-  <ul>
-    <li><a href="#41-定义">4.1 定义</a></li>
-    <li><a href="#42-温度的偏差-方差权衡">4.2 温度的偏差-方差权衡</a></li>
-    <li><a href="#43-straight-through-gumbel-softmax-st-gs">4.3 Straight-Through Gumbel-Softmax (ST-GS)</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#51-score-function--reinforce-估计器">5.1 Score Function / REINFORCE 估计器</a></li>
-    <li><a href="#52-实测对比">5.2 实测对比</a></li>
-  </ul>
-
-  <ul>
-    <li><a href="#61-连续-vae重参数化">6.1 连续 VAE（重参数化）</a></li>
-    <li><a href="#62-离散隐变量-vaecategorical--gumbel-softmax">6.2 离散隐变量 VAE（Categorical + Gumbel-Softmax）</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">Standalone</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>14 min</strong></div>
-      <div class="row"><span>Word count</span><strong>6600</strong></div>
-      <div class="row"><span>Published</span><strong>Jan 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>它的最大优点是<strong>完全不要求</strong> $z$ 与 $\theta$ 的可微关系——离散、流程控制、调用外部黑盒都行。代价是<strong>方差非常大</strong>：直觉上，$f(z)$ 的整个数值都进了梯度，没有可微路径帮忙抵消符号。</p><p>降方差的常见手段：</p><ul><li><strong>Baseline / Control variate</strong>：把 $f(z)-b$ 代入，$b$ 是与 $z$ 无关的基线（如运行平均）；</li><li><strong>Rao-Blackwellization、antithetic、importance sampling</strong>……</li></ul><p>但即使各种 trick 上身，REINFORCE 的方差通常仍比重参数化高 $1\sim 3$ 个数量级。</p><h2 id=52-实测对比>5.2 实测对比</h2><p>我们在合成 8 类 categorical 上估计 $\nabla_{\alpha_0}\,\mathbb E_z[r^\top z]$（其中 $r$ 是固定 reward 向量）。每条曲线对 200 次重复试验取梯度方差：</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/standalone/%E9%87%8D%E5%8F%82%E6%95%B0%E5%8C%96%E8%AF%A6%E8%A7%A3%E4%B8%8Egumbel-softmax%E6%B7%B1%E5%85%A5%E6%8E%A2%E8%AE%A8/fig5_discrete_pipeline.png alt="Variance: REINFORCE vs Gumbel-Softmax" loading=lazy decoding=async></figure></p><blockquote><p><strong>左侧管线</strong>：logits → +Gumbel 噪声 → /τ → softmax → $y_{\text{soft}}$；可选 argmax → $y_{\text{hard}}$，结合 STE，即可前向硬、反向软。<strong>右侧曲线</strong>：横轴是每次梯度估计使用的样本数，纵轴是估计的方差（log-log）。Gumbel-Softmax（$\tau=0.5$）始终低 REINFORCE 一个数量级以上，且两者方差都按 $1/n$ 下降（斜率 $-1$）。</p></blockquote><p>这就是为什么有了重参数化，离散变量的端到端训练才真正可用。</p><h1 id=六完整-pytorch-实现连续-vae-与离散-vae>六、完整 PyTorch 实现：连续 VAE 与离散 VAE</h1><h2 id=61-连续-vae重参数化>6.1 连续 VAE（重参数化）</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn.functional</span> <span class=k>as</span> <span class=nn>F</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>VAE</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>784</span><span class=p>,</span> <span class=n>h_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>400</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>z_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=c1># encoder</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>enc</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>x_dim</span><span class=p>,</span> <span class=n>h_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc_mu</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>h_dim</span><span class=p>,</span> <span class=n>z_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>fc_lv</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>h_dim</span><span class=p>,</span> <span class=n>z_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># decoder</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dec</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>z_dim</span><span class=p>,</span> <span class=n>h_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>h_dim</span><span class=p>,</span> <span class=n>x_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>encode</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>enc</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc_mu</span><span class=p>(</span><span class=n>h</span><span class=p>),</span> <span class=bp>self</span><span class=o>.</span><span class=n>fc_lv</span><span class=p>(</span><span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>reparameterize</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>std</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>logvar</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>eps</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>randn_like</span><span class=p>(</span><span class=n>std</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>mu</span> <span class=o>+</span> <span class=n>std</span> <span class=o>*</span> <span class=n>eps</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>encode</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>reparameterize</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>dec</span><span class=p>(</span><span class=n>z</span><span class=p>),</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>vae_loss</span><span class=p>(</span><span class=n>logits_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>logvar</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 重建损失:用 logits + BCE 比 sigmoid + BCE 数值更稳</span>
+</span></span><span class=line><span class=cl>    <span class=n>recon</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>binary_cross_entropy_with_logits</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>reduction</span><span class=o>=</span><span class=s2>&#34;sum&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=c1># 闭式 KL: KL(N(mu,sigma^2) || N(0,I))</span>
+</span></span><span class=line><span class=cl>    <span class=n>kl</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>torch</span><span class=o>.</span><span class=n>sum</span><span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>logvar</span> <span class=o>-</span> <span class=n>mu</span><span class=o>.</span><span class=n>pow</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o>-</span> <span class=n>logvar</span><span class=o>.</span><span class=n>exp</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>recon</span> <span class=o>+</span> <span class=n>kl</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>实现要点</strong>：</p><ul><li>用 <code>binary_cross_entropy_with_logits</code> 而不是 <code>BCELoss + sigmoid</code>，避免饱和区数值不稳；</li><li>KL 项闭式而非采样，减少梯度方差；</li><li>可选 KL 退火（$\beta$-VAE 的 $\beta$ 从 0 慢慢升到 1）以缓解后验坍塌。</li></ul><h2 id=62-离散隐变量-vaecategorical--gumbel-softmax>6.2 离散隐变量 VAE（Categorical + Gumbel-Softmax）</h2><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=k>class</span> <span class=nc>CategoricalVAE</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x_dim</span><span class=o>=</span><span class=mi>784</span><span class=p>,</span> <span class=n>h_dim</span><span class=o>=</span><span class=mi>400</span><span class=p>,</span> <span class=n>n_cat</span><span class=o>=</span><span class=mi>10</span><span class=p>,</span> <span class=n>n_dim</span><span class=o>=</span><span class=mi>20</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;n_cat 个独立 categorical, 每个 K = n_dim 类。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_cat</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_dim</span> <span class=o>=</span> <span class=n>n_cat</span><span class=p>,</span> <span class=n>n_dim</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>enc</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>x_dim</span><span class=p>,</span> <span class=n>h_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                                 <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>h_dim</span><span class=p>,</span> <span class=n>n_cat</span> <span class=o>*</span> <span class=n>n_dim</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dec</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>n_cat</span> <span class=o>*</span> <span class=n>n_dim</span><span class=p>,</span> <span class=n>h_dim</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>                                 <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>h_dim</span><span class=p>,</span> <span class=n>x_dim</span><span class=p>))</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>tau</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>hard</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>enc</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_cat</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 在最后一维(类别维)做 Gumbel-Softmax</span>
+</span></span><span class=line><span class=cl>        <span class=n>z</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>gumbel_softmax</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>tau</span><span class=o>=</span><span class=n>tau</span><span class=p>,</span> <span class=n>hard</span><span class=o>=</span><span class=n>hard</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>z_flat</span> <span class=o>=</span> <span class=n>z</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_cat</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>dec</span><span class=p>(</span><span class=n>z_flat</span><span class=p>),</span> <span class=n>logits</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>cat_vae_loss</span><span class=p>(</span><span class=n>logits_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>q_logits</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;KL 用解析形式: KL(q || Uniform(K)) = log K - H(q)。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>recon</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>binary_cross_entropy_with_logits</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>logits_x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>reduction</span><span class=o>=</span><span class=s2>&#34;sum&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>K</span> <span class=o>=</span> <span class=n>q_logits</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>log_q</span> <span class=o>=</span> <span class=n>F</span><span class=o>.</span><span class=n>log_softmax</span><span class=p>(</span><span class=n>q_logits</span><span class=p>,</span> <span class=n>dim</span><span class=o>=-</span><span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>q</span> <span class=o>=</span> <span class=n>log_q</span><span class=o>.</span><span class=n>exp</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=n>kl</span> <span class=o>=</span> <span class=p>(</span><span class=n>q</span> <span class=o>*</span> <span class=p>(</span><span class=n>log_q</span> <span class=o>+</span> <span class=n>torch</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>K</span><span class=p>)))))</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>recon</span> <span class=o>+</span> <span class=n>kl</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># 训练循环里温度退火:</span>
+</span></span><span class=line><span class=cl><span class=c1># tau = max(tau_min, tau0 * exp(-r * step))</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>实现要点</strong>：</p><ul><li>把每个隐变量看作 $K$-类分类，logits 形状 <code>[B, n_cat, K]</code>，<strong>最后一维</strong> softmax；</li><li>KL 用 categorical 闭式 $\mathrm{KL}(q\|\mathrm{Uniform})=\log K - H(q)$，不用采样；</li><li><code>hard=True</code> 走 ST-GS，能保证下游真离散；<code>hard=False</code> 走纯 soft，梯度更稳；</li><li>退火：<code>tau0=1.0</code>，<code>tau_min=0.5</code>，<code>r=1e-5</code>（每 1000 步检查一次）。</li></ul><h1 id=七训练里的常见坑>七、训练里的常见坑</h1><table><thead><tr><th>现象</th><th>可能原因</th><th>修复</th></tr></thead><tbody><tr><td><strong>NaN loss</strong></td><td>$\tau$ 退到太小，softmax 上下溢；或 $\log(-\log u)$ 中 $u=0$</td><td>clamp $u\in[\epsilon, 1-\epsilon]$；$\tau_{\min}\ge 0.1$</td></tr><tr><td><strong>梯度方差炸</strong></td><td>一次只采 1 个样本 + $\tau$ 过小</td><td>增加每 batch 的 MC 样本数；$\tau$ 退火节奏放慢</td></tr><tr><td><strong>离散结构不"硬"</strong></td><td>一直用 soft 输出做评估</td><td>推断时 <code>hard=True</code> 或 <code>argmax</code>；训练后期切 ST-GS</td></tr><tr><td><strong>后验坍塌</strong>（连续 VAE）</td><td>KL 一开始就太强</td><td>$\beta$ 从 0 退到 1；用 free-bits</td></tr><tr><td><strong>离散 VAE 不学结构</strong></td><td>解码器太强、KL 太弱</td><td>弱化 decoder 容量；降 KL 权重再升回来</td></tr><tr><td><strong>梯度对 logit 不敏感</strong></td><td>$\tau$ 过大，输出趋均匀</td><td>降 $\tau$ 或加大学习率</td></tr><tr><td><strong>forward/backward 不一致</strong></td><td>用了 ST-GS 却没把 <code>.detach()</code> 写对</td><td>复查 <code>y_hard - y_soft.detach() + y_soft</code> 这一行</td></tr></tbody></table><h1 id=八最新研究进展recent-work>八、最新研究进展（Recent Work）</h1><ul><li><strong>Implicit Reparameterization Gradients</strong>（Figurnov et al., NeurIPS 2018）：用隐函数定理把 Gamma、Beta、Dirichlet、Student-t 等非位置-尺度族变成可重参数化，公式简洁、误差低。</li><li><strong>Rebar / Relax</strong>（Tucker et al., NeurIPS 2017；Grathwohl et al., ICLR 2018）：把 Gumbel-Softmax 与 REINFORCE 结合，用神经网络学习控制变量，方差更低、估计无偏。</li><li><strong>Hard Concrete Gates</strong>（Louizos et al., ICLR 2018）：把 Concrete/Gumbel-Softmax 拉伸 + 截断到 $[0,1]$，得到带"严格 0"的可微门控，用于 $L_0$ 正则化与稀疏化。</li><li><strong>Top-$k$ Gumbel</strong> 与 <strong>Plackett-Luce</strong>：把 Gumbel-Max 推广到"无放回采样 $k$ 个类别"，用于稀疏注意力与 routing。</li><li><strong>Permutation-equivariant relaxations</strong>（Mena et al., ICLR 2018）：Sinkhorn 算子 + Gumbel 噪声，对<strong>置换矩阵</strong>做可微近似。</li></ul><h1 id=总结>总结</h1><ul><li>连续场景下，重参数化把"随机变量 $z$&ldquo;改写为"噪声 $\epsilon$ + 可微变换 $g_\theta$"，让梯度顺着确定性路径回到参数；这是 VAE 等深度生成模型可以用 SGD 稳定训练的关键。</li><li>离散场景下，Gumbel-Max 给出"加 Gumbel 噪声后取 argmax = softmax 采样"的精确等价；Gumbel-Softmax 把 argmax 软化成温度 $\tau$ 的 softmax，让整个采样可微。</li><li>温度 $\tau$ 是核心超参：小 $\tau$ 偏差小但方差大；大 $\tau$ 反之。退火策略（先大后小）是训练稳定的关键。</li><li>需要严格离散输出时用 ST-GS：前向 hard、反向 soft，是工程上最常用的折中。</li><li>与 REINFORCE 相比，重参数化路径估计的梯度方差小 $1\sim 3$ 个数量级，是离散结构能端到端训练的物质基础。</li></ul><h1 id=参考文献>参考文献</h1><ul><li>E. Jang, S. Gu, B. Poole. &ldquo;Categorical Reparameterization with Gumbel-Softmax.&rdquo; <em>ICLR</em>, 2017.</li><li>C. Maddison, A. Mnih, Y. W. Teh. &ldquo;The Concrete Distribution: A Continuous Relaxation of Discrete Random Variables.&rdquo; <em>ICLR</em>, 2017.</li><li>D. P. Kingma, M. Welling. &ldquo;Auto-Encoding Variational Bayes.&rdquo; <em>ICLR</em>, 2014.</li><li>M. Figurnov, S. Mohamed, A. Mnih. &ldquo;Implicit Reparameterization Gradients.&rdquo; <em>NeurIPS</em>, 2018.</li><li>G. Tucker et al. &ldquo;REBAR: Low-variance, unbiased gradient estimates for discrete latent variable models.&rdquo; <em>NeurIPS</em>, 2017.</li><li>C. Louizos, M. Welling, D. P. Kingma. &ldquo;Learning Sparse Neural Networks through $L_0$ Regularization.&rdquo; <em>ICLR</em>, 2018.</li><li>W. Kool, H. van Hoof, M. Welling. &ldquo;Stochastic Beams and Where to Find Them: The Gumbel-Top-$k$ Trick for Sampling Sequences Without Replacement.&rdquo; <em>ICML</em>, 2019.</li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到>你将学到</a></li><li><a href=#前置知识>前置知识</a></li></ul><ul><li><a href=#21-数学表达>2.1 数学表达</a></li><li><a href=#22-正态分布的重参数化>2.2 正态分布的重参数化</a></li><li><a href=#23-在-vae-中的应用>2.3 在 VAE 中的应用</a></li><li><a href=#24-哪些连续分布天然可重参数化>2.4 哪些连续分布"天然可重参数化"？</a></li></ul><ul><li><a href=#31-难点>3.1 难点</a></li><li><a href=#32-gumbel-分布速览>3.2 Gumbel 分布速览</a></li><li><a href=#33-gumbel-max-技巧>3.3 Gumbel-Max 技巧</a><ul><li><a href=#推导以采到类别-1-为例>推导（以采到类别 1 为例）</a></li><li><a href=#为什么这一招有用>为什么这一招有用？</a></li></ul></li></ul><ul><li><a href=#41-定义>4.1 定义</a></li><li><a href=#42-温度的偏差-方差权衡>4.2 温度的偏差-方差权衡</a></li><li><a href=#43-straight-through-gumbel-softmax-st-gs>4.3 Straight-Through Gumbel-Softmax (ST-GS)</a></li></ul><ul><li><a href=#51-score-function--reinforce-估计器>5.1 Score Function / REINFORCE 估计器</a></li><li><a href=#52-实测对比>5.2 实测对比</a></li></ul><ul><li><a href=#61-连续-vae重参数化>6.1 连续 VAE（重参数化）</a></li><li><a href=#62-离散隐变量-vaecategorical--gumbel-softmax>6.2 离散隐变量 VAE（Categorical + Gumbel-Softmax）</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>14 min</strong></div><div class=row><span>Word count</span><strong>6561</strong></div><div class=row><span>Published</span><strong>Jan 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

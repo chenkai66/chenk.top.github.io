@@ -1,1073 +1,449 @@
-<!doctype html>
-<html lang="en" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Transfer Learning (2): Pre-training and Fine-tuning · Chen Kai Blog</title>
-<meta name="description" content="Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Transfer Learning (2): Pre-training and Fine-tuning">
-<meta property="og:description" content="Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation.">
-<meta property="og:url" content="https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Transfer Learning</a>
-         · Chapter 2
-      </div>
-      <h1>Transfer Learning (2): Pre-training and Fine-tuning</h1>
-      <p class="deck">Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-05-07">May 7, 2025</time> · 18 min read · 3700 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/deep-learning/" class="tag">#Deep Learning</a><a href="/en/tags/transfer-learning/" class="tag">#Transfer Learning</a><a href="/en/tags/bert/" class="tag">#BERT</a><a href="/en/tags/fine-tuning/" class="tag">#Fine-tuning</a><a href="/en/tags/pre-training/" class="tag">#Pre-training</a><a href="/en/tags/self-supervised-learning/" class="tag">#Self-Supervised Learning</a><a href="/en/tags/gpt/" class="tag">#GPT</a><a href="/en/tags/lora/" class="tag">#LoRA</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>BERT changed NLP overnight. A model pre-trained on Wikipedia and BookCorpus could be fine-tuned on a few thousand labelled examples and beat task-specific architectures that researchers had spent years hand-crafting. The same pattern repeated in vision (ImageNet pre-training, then SimCLR, MAE), in speech (wav2vec 2.0), and in code (Codex). Today, &ldquo;pre-train once, fine-tune everywhere&rdquo; is the default recipe of modern deep learning.</p>
-<p>But <em>why</em> does pre-training work? When should you freeze layers, when should you LoRA, and how small does your learning rate need to be? This article unpacks both the theory and the engineering practice behind the most successful transfer paradigm we have.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ul>
-<li>Why pre-training works, viewed through both a Bayesian and an information-theoretic lens</li>
-<li>Self-supervised pretext tasks: contrastive learning (SimCLR, MoCo) and masked language modelling (BERT MLM)</li>
-<li>Fine-tuning strategies: full fine-tuning, layer freezing, gradual unfreezing, linear probing, discriminative learning rates</li>
-<li>Catastrophic forgetting and how to keep source-task knowledge alive</li>
-<li>Parameter-efficient adaptation: Adapters and LoRA</li>
-<li>A complete BERT fine-tuning implementation with discriminative LR, gradient accumulation, mixed precision, and warmup scheduling</li>
-</ul>
-<p><strong>Prerequisites:</strong> Part 1 of this series (or equivalent transfer-learning intuition), basic familiarity with the Transformer architecture.</p>
-<hr>
-<h2 id="why-pre-train">Why pre-train?</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig1_pretrain_finetune_pipeline.png" alt="Pre-train then fine-tune pipeline" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The pipeline above captures the entire idea in one picture. Stage 1 burns enormous compute <em>once</em> on a generic, unlabelled corpus to produce a base model $\theta_{\mathrm{pre}}$. Stage 2 takes that base model and bends it to a specific task with a small labelled dataset, cheaply, and as many times as you want.</p>
-<h3 id="the-data-asymmetry">The data asymmetry</h3>
-<p>Labels are expensive:</p>
-<ul>
-<li><strong>Medical imaging:</strong> $100&ndash;500 per CT scan for a radiologist&rsquo;s annotation.</li>
-<li><strong>Legal text:</strong> lawyers reviewing each document at billable rates.</li>
-<li><strong>Low-resource languages:</strong> parallel corpora barely exist at all.</li>
-</ul>
-<p>Meanwhile, the internet stores petabytes of <em>unlabelled</em> text, images, and video. Pre-training exploits this asymmetry directly: <strong>learn general representations from what is abundant; specialise on what is scarce.</strong></p>
-<h3 id="a-bayesian-view-pre-training-is-a-prior">A Bayesian view: pre-training is a prior</h3>
-<p>Let $\theta$ be the model parameters, $\mathcal{D}_{\mathrm{pre}}$ the pre-training corpus, and $\mathcal{D}_{\mathrm{task}}$ the labelled task data. Standard supervised training looks for</p>
-$$
+<!doctype html><html lang=en data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Transfer Learning (2): Pre-training and Fine-tuning · Chen Kai Blog</title>
+<meta name=description content="Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/><meta property="og:type" content="article"><meta property="og:title" content="Transfer Learning (2): Pre-training and Fine-tuning"><meta property="og:description" content="Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation."><meta property="og:url" content="https://www.chenk.top/en/transfer-learning/02-pre-training-and-fine-tuning/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Transfer Learning</a>
+· Chapter 2</div><h1>Transfer Learning (2): Pre-training and Fine-tuning</h1><p class=deck>Why pre-training learns a powerful prior from unlabeled data and how fine-tuning adapts it to your task. Covers contrastive learning, masked language models, discriminative learning rates, layer freezing, catastrophic forgetting, LoRA, and a production-ready BERT fine-tuning implementation.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-05-07>May 7, 2025</time> · 18 min read · 3683 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/deep-learning/ class=tag>#Deep Learning</a><a href=/en/tags/transfer-learning/ class=tag>#Transfer Learning</a><a href=/en/tags/bert/ class=tag>#BERT</a><a href=/en/tags/fine-tuning/ class=tag>#Fine-tuning</a><a href=/en/tags/pre-training/ class=tag>#Pre-training</a><a href=/en/tags/self-supervised-learning/ class=tag>#Self-Supervised Learning</a><a href=/en/tags/gpt/ class=tag>#GPT</a><a href=/en/tags/lora/ class=tag>#LoRA</a></div></div></header><div class=prose><p>BERT changed NLP overnight. A model pre-trained on Wikipedia and BookCorpus could be fine-tuned on a few thousand labelled examples and beat task-specific architectures that researchers had spent years hand-crafting. The same pattern repeated in vision (ImageNet pre-training, then SimCLR, MAE), in speech (wav2vec 2.0), and in code (Codex). Today, &ldquo;pre-train once, fine-tune everywhere&rdquo; is the default recipe of modern deep learning.</p><p>But <em>why</em> does pre-training work? When should you freeze layers, when should you LoRA, and how small does your learning rate need to be? This article unpacks both the theory and the engineering practice behind the most successful transfer paradigm we have.</p><h2 id=what-you-will-learn>What you will learn</h2><ul><li>Why pre-training works, viewed through both a Bayesian and an information-theoretic lens</li><li>Self-supervised pretext tasks: contrastive learning (SimCLR, MoCo) and masked language modelling (BERT MLM)</li><li>Fine-tuning strategies: full fine-tuning, layer freezing, gradual unfreezing, linear probing, discriminative learning rates</li><li>Catastrophic forgetting and how to keep source-task knowledge alive</li><li>Parameter-efficient adaptation: Adapters and LoRA</li><li>A complete BERT fine-tuning implementation with discriminative LR, gradient accumulation, mixed precision, and warmup scheduling</li></ul><p><strong>Prerequisites:</strong> Part 1 of this series (or equivalent transfer-learning intuition), basic familiarity with the Transformer architecture.</p><hr><h2 id=why-pre-train>Why pre-train?</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig1_pretrain_finetune_pipeline.png alt="Pre-train then fine-tune pipeline" loading=lazy decoding=async></figure></p><p>The pipeline above captures the entire idea in one picture. Stage 1 burns enormous compute <em>once</em> on a generic, unlabelled corpus to produce a base model $\theta_{\mathrm{pre}}$. Stage 2 takes that base model and bends it to a specific task with a small labelled dataset, cheaply, and as many times as you want.</p><h3 id=the-data-asymmetry>The data asymmetry</h3><p>Labels are expensive:</p><ul><li><strong>Medical imaging:</strong> $100&ndash;500 per CT scan for a radiologist&rsquo;s annotation.</li><li><strong>Legal text:</strong> lawyers reviewing each document at billable rates.</li><li><strong>Low-resource languages:</strong> parallel corpora barely exist at all.</li></ul><p>Meanwhile, the internet stores petabytes of <em>unlabelled</em> text, images, and video. Pre-training exploits this asymmetry directly: <strong>learn general representations from what is abundant; specialise on what is scarce.</strong></p><h3 id=a-bayesian-view-pre-training-is-a-prior>A Bayesian view: pre-training is a prior</h3><p>Let $\theta$ be the model parameters, $\mathcal{D}_{\mathrm{pre}}$ the pre-training corpus, and $\mathcal{D}_{\mathrm{task}}$ the labelled task data. Standard supervised training looks for</p>$$
 \theta^{*} = \arg\max_{\theta} \log P(\mathcal{D}_{\mathrm{task}} \mid \theta).
-$$<p>Pre-training plus fine-tuning instead does two stages of inference:</p>
-<ol>
-<li><strong>Pre-train:</strong> estimate the prior $P(\theta \mid \mathcal{D}_{\mathrm{pre}})$.</li>
-<li><strong>Fine-tune:</strong> Bayesian update with the task likelihood,</li>
-</ol>
-$$
+$$<p>Pre-training plus fine-tuning instead does two stages of inference:</p><ol><li><strong>Pre-train:</strong> estimate the prior $P(\theta \mid \mathcal{D}_{\mathrm{pre}})$.</li><li><strong>Fine-tune:</strong> Bayesian update with the task likelihood,</li></ol>$$
 P(\theta \mid \mathcal{D}_{\mathrm{task}}, \mathcal{D}_{\mathrm{pre}}) \;\propto\; P(\mathcal{D}_{\mathrm{task}} \mid \theta) \cdot P(\theta \mid \mathcal{D}_{\mathrm{pre}}).
-$$<p>When $\mathcal{D}_{\mathrm{task}}$ is small, the likelihood is noisy and the posterior is dominated by the prior. A <em>good</em> prior - one that already concentrates probability in plausible regions of parameter space - dramatically improves the posterior estimate. That is exactly what a pre-trained checkpoint gives you.</p>
-<h3 id="an-information-theoretic-view-features-that-transfer">An information-theoretic view: features that transfer</h3>
-<p>Define a feature extractor $f_{\theta}: \mathcal{X} \to \mathbb{R}^{d}$. Pre-training searches for a $\theta$ such that the mutual information</p>
-$$
+$$<p>When $\mathcal{D}_{\mathrm{task}}$ is small, the likelihood is noisy and the posterior is dominated by the prior. A <em>good</em> prior - one that already concentrates probability in plausible regions of parameter space - dramatically improves the posterior estimate. That is exactly what a pre-trained checkpoint gives you.</p><h3 id=an-information-theoretic-view-features-that-transfer>An information-theoretic view: features that transfer</h3><p>Define a feature extractor $f_{\theta}: \mathcal{X} \to \mathbb{R}^{d}$. Pre-training searches for a $\theta$ such that the mutual information</p>$$
 I(f_{\theta}(X); Y_{i})
-$$<p>is high for many downstream label spaces $Y_{1}, Y_{2}, \dots$. ImageNet edges, textures, and object parts are useful far beyond classification - they help detection, segmentation, and even medical imaging. BERT&rsquo;s syntactic and semantic representations help across NLP. <strong>A pre-trained model is, in effect, a compression of the data into features that retain transferable information.</strong></p>
-<h3 id="faster-convergence-better-minima">Faster convergence, better minima</h3>
-<p>Pre-trained parameters land in a low-loss basin of the landscape. Fine-tuning only needs <em>local</em> adjustments - so it converges faster and tends to find flatter, better-generalising minima than random initialisation.</p>
-<hr>
-<h2 id="self-supervised-pretext-tasks">Self-supervised pretext tasks</h2>
-<p>The trick of self-supervision is to design a task whose labels can be generated <em>automatically</em> from the data. The model learns by predicting parts of its input from other parts.</p>
-<h3 id="contrastive-learning-vision">Contrastive learning (vision)</h3>
-<p>Core idea: <strong>pull representations of similar samples together and push dissimilar samples apart.</strong></p>
-<h4 id="simclr">SimCLR</h4>
-<p>For each image $x$ in a batch, apply two random augmentations (crop, colour jitter, blur) to get a positive pair $(x_{i}, x_{i'})$. Let $f$ be the encoder and $g$ a small projection head; write $z = g(f(x))$. The NT-Xent loss for one positive pair is</p>
-$$
+$$<p>is high for many downstream label spaces $Y_{1}, Y_{2}, \dots$. ImageNet edges, textures, and object parts are useful far beyond classification - they help detection, segmentation, and even medical imaging. BERT&rsquo;s syntactic and semantic representations help across NLP. <strong>A pre-trained model is, in effect, a compression of the data into features that retain transferable information.</strong></p><h3 id=faster-convergence-better-minima>Faster convergence, better minima</h3><p>Pre-trained parameters land in a low-loss basin of the landscape. Fine-tuning only needs <em>local</em> adjustments - so it converges faster and tends to find flatter, better-generalising minima than random initialisation.</p><hr><h2 id=self-supervised-pretext-tasks>Self-supervised pretext tasks</h2><p>The trick of self-supervision is to design a task whose labels can be generated <em>automatically</em> from the data. The model learns by predicting parts of its input from other parts.</p><h3 id=contrastive-learning-vision>Contrastive learning (vision)</h3><p>Core idea: <strong>pull representations of similar samples together and push dissimilar samples apart.</strong></p><h4 id=simclr>SimCLR</h4><p>For each image $x$ in a batch, apply two random augmentations (crop, colour jitter, blur) to get a positive pair $(x_{i}, x_{i'})$. Let $f$ be the encoder and $g$ a small projection head; write $z = g(f(x))$. The NT-Xent loss for one positive pair is</p>$$
 \mathcal{L}_{i} = -\log \frac{\exp(\operatorname{sim}(z_{i}, z_{i'}) / \tau)}{\sum_{k \neq i} \exp(\operatorname{sim}(z_{i}, z_{k}) / \tau)},
-$$<p>where $\operatorname{sim}$ is cosine similarity and $\tau$ is a temperature.</p>
-<ul>
-<li><strong>Numerator:</strong> wants the positive pair to be similar.</li>
-<li><strong>Denominator:</strong> normalises against every other sample in the batch as a negative.</li>
-<li><strong>Temperature $\tau$:</strong> small $\tau$ sharpens the softmax and focuses the loss on the <em>hardest</em> negatives.</li>
-</ul>
-<p>The catch: you need lots of negatives. SimCLR uses batch sizes of 4096&ndash;8192 and a TPU pod to keep them all in memory.</p>
-<h4 id="moco-momentum-updated-queue">MoCo: momentum-updated queue</h4>
-<p>MoCo decouples the negative count from the batch size. Two encoders are kept: a <em>query</em> encoder $f_{q}$ updated by gradients, and a <em>key</em> encoder $f_{k}$ updated by exponential moving average,</p>
-$$
+$$<p>where $\operatorname{sim}$ is cosine similarity and $\tau$ is a temperature.</p><ul><li><strong>Numerator:</strong> wants the positive pair to be similar.</li><li><strong>Denominator:</strong> normalises against every other sample in the batch as a negative.</li><li><strong>Temperature $\tau$:</strong> small $\tau$ sharpens the softmax and focuses the loss on the <em>hardest</em> negatives.</li></ul><p>The catch: you need lots of negatives. SimCLR uses batch sizes of 4096&ndash;8192 and a TPU pod to keep them all in memory.</p><h4 id=moco-momentum-updated-queue>MoCo: momentum-updated queue</h4><p>MoCo decouples the negative count from the batch size. Two encoders are kept: a <em>query</em> encoder $f_{q}$ updated by gradients, and a <em>key</em> encoder $f_{k}$ updated by exponential moving average,</p>$$
 \theta_{k} \leftarrow m \cdot \theta_{k} + (1 - m) \cdot \theta_{q}, \qquad m \approx 0.999.
-$$<p>Old keys are stashed in a <strong>queue</strong> of size 65 536. The dictionary is large <em>and</em> the encoder is consistent (because $f_{k}$ moves slowly). You get SimCLR-quality contrastive learning on a single GPU.</p>
-<h3 id="masked-language-modelling-nlp">Masked language modelling (NLP)</h3>
-<h4 id="berts-mlm-objective">BERT&rsquo;s MLM objective</h4>
-<p>Take a sentence, replace 15 % of the tokens with a special <code>[MASK]</code>, and ask the model to recover the originals from the surrounding context:</p>
-$$
+$$<p>Old keys are stashed in a <strong>queue</strong> of size 65 536. The dictionary is large <em>and</em> the encoder is consistent (because $f_{k}$ moves slowly). You get SimCLR-quality contrastive learning on a single GPU.</p><h3 id=masked-language-modelling-nlp>Masked language modelling (NLP)</h3><h4 id=berts-mlm-objective>BERT&rsquo;s MLM objective</h4><p>Take a sentence, replace 15 % of the tokens with a special <code>[MASK]</code>, and ask the model to recover the originals from the surrounding context:</p>$$
 \mathcal{L}_{\mathrm{MLM}} = -\sum_{i \in \mathcal{M}} \log P(x_{i} \mid x_{\setminus \mathcal{M}}).
-$$<p>The 15 % is split as <strong>80 % <code>[MASK]</code>, 10 % random token, 10 % unchanged</strong>. That mixture is not aesthetic; it closes the train-test distribution gap. At fine-tuning time there are no <code>[MASK]</code> tokens, so a model that has only ever seen <code>[MASK]</code> would underperform. The 10 % random and 10 % unchanged force the model to build a representation that is robust whether the position is masked or not.</p>
-<p><strong>Why 15 % and not 5 % or 50 %?</strong> Too few masks gives a weak learning signal per sentence; too many destroys the context the model needs to predict from. Empirically, 15 % is the sweet spot, although recent work (Wettig et al., 2023) shows you can push to 40 % with the right architecture.</p>
-<h4 id="next-sentence-prediction-nsp-and-its-replacement">Next-Sentence Prediction (NSP) and its replacement</h4>
-<p>BERT also pre-trained on NSP: given sentences A and B, predict whether B actually follows A. Later work (RoBERTa) showed NSP adds little - the model can solve it via topic similarity rather than discourse reasoning. ALBERT replaced NSP with <strong>Sentence Order Prediction (SOP)</strong>, where the negative is the same two sentences in reversed order. SOP forces real inter-sentence reasoning.</p>
-<hr>
-<h2 id="fine-tuning-why-it-converges-so-fast">Fine-tuning: why it converges so fast</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig2_loss_curves_comparison.png" alt="Loss curves: from scratch vs. fine-tuning" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The plot above is the empirical evidence behind the Bayesian argument. With identical model, dataset, and optimiser, the pre-trained model</p>
-<ul>
-<li>starts at a much lower loss (its prior is already good),</li>
-<li>reaches the from-scratch model&rsquo;s <em>best</em> validation loss in a handful of epochs, and</li>
-<li>ends at a noticeably lower floor.</li>
-</ul>
-<p>Now the practical question: how exactly do you adapt hundreds of millions of pre-trained parameters without trampling them?</p>
-<h3 id="full-fine-tuning">Full fine-tuning</h3>
-<p>The simplest recipe: unfreeze everything and train end-to-end on the downstream task. To stop the parameters from drifting too far from the pre-trained checkpoint, you can add an L2 anchor:</p>
-$$
+$$<p>The 15 % is split as <strong>80 % <code>[MASK]</code>, 10 % random token, 10 % unchanged</strong>. That mixture is not aesthetic; it closes the train-test distribution gap. At fine-tuning time there are no <code>[MASK]</code> tokens, so a model that has only ever seen <code>[MASK]</code> would underperform. The 10 % random and 10 % unchanged force the model to build a representation that is robust whether the position is masked or not.</p><p><strong>Why 15 % and not 5 % or 50 %?</strong> Too few masks gives a weak learning signal per sentence; too many destroys the context the model needs to predict from. Empirically, 15 % is the sweet spot, although recent work (Wettig et al., 2023) shows you can push to 40 % with the right architecture.</p><h4 id=next-sentence-prediction-nsp-and-its-replacement>Next-Sentence Prediction (NSP) and its replacement</h4><p>BERT also pre-trained on NSP: given sentences A and B, predict whether B actually follows A. Later work (RoBERTa) showed NSP adds little - the model can solve it via topic similarity rather than discourse reasoning. ALBERT replaced NSP with <strong>Sentence Order Prediction (SOP)</strong>, where the negative is the same two sentences in reversed order. SOP forces real inter-sentence reasoning.</p><hr><h2 id=fine-tuning-why-it-converges-so-fast>Fine-tuning: why it converges so fast</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig2_loss_curves_comparison.png alt="Loss curves: from scratch vs. fine-tuning" loading=lazy decoding=async></figure></p><p>The plot above is the empirical evidence behind the Bayesian argument. With identical model, dataset, and optimiser, the pre-trained model</p><ul><li>starts at a much lower loss (its prior is already good),</li><li>reaches the from-scratch model&rsquo;s <em>best</em> validation loss in a handful of epochs, and</li><li>ends at a noticeably lower floor.</li></ul><p>Now the practical question: how exactly do you adapt hundreds of millions of pre-trained parameters without trampling them?</p><h3 id=full-fine-tuning>Full fine-tuning</h3><p>The simplest recipe: unfreeze everything and train end-to-end on the downstream task. To stop the parameters from drifting too far from the pre-trained checkpoint, you can add an L2 anchor:</p>$$
 \theta^{*} = \arg\min_{\theta} \; \mathcal{L}_{\mathrm{task}}(\theta) + \lambda \lVert \theta - \theta_{\mathrm{pre}} \rVert^{2}.
-$$<p>This is a simplified Elastic Weight Consolidation. In practice the implicit regularisation from a small learning rate plus early stopping is usually enough.</p>
-<h3 id="discriminative-learning-rates">Discriminative learning rates</h3>
-<p>Different layers carry different kinds of knowledge:</p>
-<ul>
-<li><strong>Bottom layers</strong> (embeddings, early Transformer blocks) capture nearly universal features - tokenisation, basic syntax, low-level vision primitives. Touch them gently.</li>
-<li><strong>Top layers</strong> (the classifier, the last block or two) are task-specific. Train them aggressively.</li>
-</ul>
-<p>ULMFiT formalised this as <strong>discriminative fine-tuning</strong>. For an $L$-layer model, layer $\ell$ gets</p>
-$$
+$$<p>This is a simplified Elastic Weight Consolidation. In practice the implicit regularisation from a small learning rate plus early stopping is usually enough.</p><h3 id=discriminative-learning-rates>Discriminative learning rates</h3><p>Different layers carry different kinds of knowledge:</p><ul><li><strong>Bottom layers</strong> (embeddings, early Transformer blocks) capture nearly universal features - tokenisation, basic syntax, low-level vision primitives. Touch them gently.</li><li><strong>Top layers</strong> (the classifier, the last block or two) are task-specific. Train them aggressively.</li></ul><p>ULMFiT formalised this as <strong>discriminative fine-tuning</strong>. For an $L$-layer model, layer $\ell$ gets</p>$$
 \eta_{\ell} = \frac{\eta_{L}}{\xi^{\,L - \ell}}, \qquad \xi \approx 2.6.
-$$<p>The bottom layer ends up roughly $\xi^{L}$ times smaller than the top.</p>
-<h3 id="warmup-then-decay">Warmup, then decay</h3>
-<p>A schedule that just works for fine-tuning:</p>
-<ol>
-<li><strong>Warmup</strong> for the first $T_{w}$ steps - linearly grow the LR from $0$ to $\eta_{\max}$.</li>
-<li><strong>Decay</strong> the LR with either a cosine curve or linear ramp down to (near) zero.</li>
-</ol>
-<p>Warmup matters because the freshly-attached classifier head emits noisy gradients in the first few steps. A large LR at that moment will smash through the pre-trained weights. Warmup gives the head time to settle before the rest of the network starts to move.</p>
-<p><strong>Rule of thumb:</strong> fine-tuning LR is usually 1&ndash;2 orders of magnitude smaller than pre-training LR. Pre-training BERT ran at about $10^{-4}$; fine-tuning typically lives at $2 \times 10^{-5}$.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig6_lr_schedules.png" alt="LR schedules and discriminative LR" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="layer-freezing">Layer freezing</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig3_layer_freezing_strategies.png" alt="Layer freezing strategies" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Freezing means setting <code>requires_grad = False</code> on a layer&rsquo;s parameters. The layer still computes a forward pass, but it is invisible to the optimiser. Mathematically, freezing is the limit of an infinitely strong L2 anchor: $\lambda \to \infty$ on the frozen subset.</p>
-<p><strong>Four common patterns:</strong></p>
-<ol>
-<li><strong>Full fine-tune.</strong> Everything trainable. Best when you have plenty of labels.</li>
-<li><strong>Freeze bottom, train top.</strong> Common default for small datasets that are similar to the pre-training domain.</li>
-<li><strong>Gradual unfreezing (ULMFiT).</strong> Start with only the head trainable, then unfreeze one layer per epoch from the top down. Robust against catastrophic forgetting.</li>
-<li><strong>Linear probe.</strong> Head only, backbone frozen. Cheapest possible adapter; often a strong baseline.</li>
-</ol>
-<p>A quick decision matrix:</p>
-<table>
-  <thead>
-      <tr>
-          <th>Task vs. pre-training similarity</th>
-          <th>Labelled examples</th>
-          <th>Recommended</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>High</td>
-          <td>Few (&lt; 1 k / class)</td>
-          <td>Freeze bottom, fine-tune top</td>
-      </tr>
-      <tr>
-          <td>High</td>
-          <td>Many</td>
-          <td>Full fine-tuning</td>
-      </tr>
-      <tr>
-          <td>Low</td>
-          <td>Few</td>
-          <td>Freeze middle, fine-tune bottom and top, or use LoRA</td>
-      </tr>
-      <tr>
-          <td>Low</td>
-          <td>Many</td>
-          <td>Full fine-tuning + discriminative LR</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="linear-probing-vs-full-fine-tuning">Linear probing vs. full fine-tuning</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig4_linear_probe_vs_full.png" alt="Linear probing vs. full fine-tuning" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Linear probing trains <em>only</em> a linear classifier on top of frozen features. It is the purest test of representation quality - and in the very-low-data regime it often beats full fine-tuning, because there are simply not enough labels to safely move 110 M parameters. As the dataset grows, full fine-tuning crosses over and pulls away. Knowing where the crossover sits for your domain is worth a few quick experiments before you commit to a serving strategy.</p>
-<h3 id="catastrophic-forgetting">Catastrophic forgetting</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig5_catastrophic_forgetting.png" alt="Catastrophic forgetting during fine-tuning" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>Aggressive fine-tuning is a one-way street: gains on the target task come at the cost of competence on the source. McCloskey and Cohen (1989) named this <em>catastrophic forgetting</em>; it is the central pain point of sequential transfer.</p>
-<p>Three families of remedies:</p>
-<ul>
-<li><strong>Regularisation</strong> (Elastic Weight Consolidation): penalise changes to parameters that mattered most for the source task, weighted by the diagonal Fisher information.</li>
-<li><strong>Replay:</strong> keep a small buffer of source-task examples and mix them into each fine-tuning batch.</li>
-<li><strong>Architectural isolation:</strong> keep the backbone frozen and add per-task adapters or LoRA modules - the source weights cannot be overwritten because they are never touched.</li>
-</ul>
-<h3 id="adapters-parameter-efficient-fine-tuning">Adapters: parameter-efficient fine-tuning</h3>
-<p>Insert a small bottleneck module into each Transformer block:</p>
-$$
+$$<p>The bottom layer ends up roughly $\xi^{L}$ times smaller than the top.</p><h3 id=warmup-then-decay>Warmup, then decay</h3><p>A schedule that just works for fine-tuning:</p><ol><li><strong>Warmup</strong> for the first $T_{w}$ steps - linearly grow the LR from $0$ to $\eta_{\max}$.</li><li><strong>Decay</strong> the LR with either a cosine curve or linear ramp down to (near) zero.</li></ol><p>Warmup matters because the freshly-attached classifier head emits noisy gradients in the first few steps. A large LR at that moment will smash through the pre-trained weights. Warmup gives the head time to settle before the rest of the network starts to move.</p><p><strong>Rule of thumb:</strong> fine-tuning LR is usually 1&ndash;2 orders of magnitude smaller than pre-training LR. Pre-training BERT ran at about $10^{-4}$; fine-tuning typically lives at $2 \times 10^{-5}$.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig6_lr_schedules.png alt="LR schedules and discriminative LR" loading=lazy decoding=async></figure></p><h3 id=layer-freezing>Layer freezing</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig3_layer_freezing_strategies.png alt="Layer freezing strategies" loading=lazy decoding=async></figure></p><p>Freezing means setting <code>requires_grad = False</code> on a layer&rsquo;s parameters. The layer still computes a forward pass, but it is invisible to the optimiser. Mathematically, freezing is the limit of an infinitely strong L2 anchor: $\lambda \to \infty$ on the frozen subset.</p><p><strong>Four common patterns:</strong></p><ol><li><strong>Full fine-tune.</strong> Everything trainable. Best when you have plenty of labels.</li><li><strong>Freeze bottom, train top.</strong> Common default for small datasets that are similar to the pre-training domain.</li><li><strong>Gradual unfreezing (ULMFiT).</strong> Start with only the head trainable, then unfreeze one layer per epoch from the top down. Robust against catastrophic forgetting.</li><li><strong>Linear probe.</strong> Head only, backbone frozen. Cheapest possible adapter; often a strong baseline.</li></ol><p>A quick decision matrix:</p><table><thead><tr><th>Task vs. pre-training similarity</th><th>Labelled examples</th><th>Recommended</th></tr></thead><tbody><tr><td>High</td><td>Few (&lt; 1 k / class)</td><td>Freeze bottom, fine-tune top</td></tr><tr><td>High</td><td>Many</td><td>Full fine-tuning</td></tr><tr><td>Low</td><td>Few</td><td>Freeze middle, fine-tune bottom and top, or use LoRA</td></tr><tr><td>Low</td><td>Many</td><td>Full fine-tuning + discriminative LR</td></tr></tbody></table><h3 id=linear-probing-vs-full-fine-tuning>Linear probing vs. full fine-tuning</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig4_linear_probe_vs_full.png alt="Linear probing vs. full fine-tuning" loading=lazy decoding=async></figure></p><p>Linear probing trains <em>only</em> a linear classifier on top of frozen features. It is the purest test of representation quality - and in the very-low-data regime it often beats full fine-tuning, because there are simply not enough labels to safely move 110 M parameters. As the dataset grows, full fine-tuning crosses over and pulls away. Knowing where the crossover sits for your domain is worth a few quick experiments before you commit to a serving strategy.</p><h3 id=catastrophic-forgetting>Catastrophic forgetting</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig5_catastrophic_forgetting.png alt="Catastrophic forgetting during fine-tuning" loading=lazy decoding=async></figure></p><p>Aggressive fine-tuning is a one-way street: gains on the target task come at the cost of competence on the source. McCloskey and Cohen (1989) named this <em>catastrophic forgetting</em>; it is the central pain point of sequential transfer.</p><p>Three families of remedies:</p><ul><li><strong>Regularisation</strong> (Elastic Weight Consolidation): penalise changes to parameters that mattered most for the source task, weighted by the diagonal Fisher information.</li><li><strong>Replay:</strong> keep a small buffer of source-task examples and mix them into each fine-tuning batch.</li><li><strong>Architectural isolation:</strong> keep the backbone frozen and add per-task adapters or LoRA modules - the source weights cannot be overwritten because they are never touched.</li></ul><h3 id=adapters-parameter-efficient-fine-tuning>Adapters: parameter-efficient fine-tuning</h3><p>Insert a small bottleneck module into each Transformer block:</p>$$
 \operatorname{Adapter}(h) = h + W_{\mathrm{up}}\, \sigma\big(W_{\mathrm{down}}\, h\big),
-$$<p>with $W_{\mathrm{down}} \in \mathbb{R}^{m \times d}$, $W_{\mathrm{up}} \in \mathbb{R}^{d \times m}$, and $m \ll d$ (typically $m = 64$, $d = 768$). The residual connection means an untrained adapter is the identity, so you start exactly where the pre-trained model left off. You only train the adapter - per task you store $\sim 1\%$ of the full model&rsquo;s parameters.</p>
-<h3 id="lora-low-rank-weight-updates">LoRA: low-rank weight updates</h3>
-<p>LoRA goes one step further. Instead of inserting a non-linear bottleneck, it directly decomposes the <em>update</em> to a frozen weight matrix:</p>
-$$
+$$<p>with $W_{\mathrm{down}} \in \mathbb{R}^{m \times d}$, $W_{\mathrm{up}} \in \mathbb{R}^{d \times m}$, and $m \ll d$ (typically $m = 64$, $d = 768$). The residual connection means an untrained adapter is the identity, so you start exactly where the pre-trained model left off. You only train the adapter - per task you store $\sim 1\%$ of the full model&rsquo;s parameters.</p><h3 id=lora-low-rank-weight-updates>LoRA: low-rank weight updates</h3><p>LoRA goes one step further. Instead of inserting a non-linear bottleneck, it directly decomposes the <em>update</em> to a frozen weight matrix:</p>$$
 W' = W_{0} + \Delta W = W_{0} + B A, \qquad A \in \mathbb{R}^{r \times d}, \; B \in \mathbb{R}^{d \times r}, \; r \ll d.
-$$<p>During fine-tuning $W_{0}$ is frozen and only $A, B$ are trained. Three properties make LoRA the de-facto PEFT method today:</p>
-<ul>
-<li><strong>Tiny.</strong> Only $2dr$ parameters per adapted matrix - usually $r = 4$&ndash;$16$.</li>
-<li><strong>Zero inference overhead.</strong> At deployment you can fold $BA$ into $W_{0}$ and serve a single matrix.</li>
-<li><strong>Trivially composable.</strong> Swapping tasks is swapping a 10 MB delta, not loading a 1 GB checkpoint.</li>
-</ul>
-<p>The implicit assumption - and it is often true - is that <strong>task adaptation lives in a low-dimensional subspace of weight space.</strong></p>
-<hr>
-<h2 id="how-much-labelled-data-do-you-actually-need">How much labelled data do you actually need?</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig7_data_size_scaling.png" alt="Performance vs. target dataset size" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The figure consolidates the practical choices. On the same target task, with the same backbone:</p>
-<ul>
-<li><strong>From scratch</strong> is a flat line until you have many thousands of labels. Below that point the model essentially memorises noise.</li>
-<li><strong>Linear probing</strong> wins immediately - frozen pre-trained features already separate the classes, and the only thing being learned is a hyperplane.</li>
-<li><strong>LoRA</strong> tracks full fine-tuning closely with a small handicap and a fraction of the parameter budget.</li>
-<li><strong>Full fine-tuning</strong> has the highest ceiling, but only justifies its cost once you have enough labels to safely move every parameter.</li>
-</ul>
-<p>The horizontal arrow is the headline number: pre-training shifts the data-efficiency curve up and to the <em>left</em> by roughly an order of magnitude - the same accuracy with 10x fewer labels.</p>
-<hr>
-<h2 id="bert-in-practice">BERT in practice</h2>
-<h3 id="architecture-recap">Architecture recap</h3>
-<p>BERT is a stack of bidirectional Transformer encoder blocks. Given input tokens, each block produces contextual representations through multi-head self-attention plus a feed-forward network, with residuals and LayerNorm.</p>
-<h3 id="adapting-to-different-tasks">Adapting to different tasks</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Task</th>
-          <th>How BERT handles it</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Text classification</td>
-          <td>Take the <code>[CLS]</code> representation, feed it to a linear head.</td>
-      </tr>
-      <tr>
-          <td>Sequence labelling (NER)</td>
-          <td>Per-token linear head over the final layer.</td>
-      </tr>
-      <tr>
-          <td>Question answering (SQuAD)</td>
-          <td>Two heads predicting the start and end positions of the answer span.</td>
-      </tr>
-      <tr>
-          <td>Sentence-pair tasks (NLI)</td>
-          <td>Concatenate sentences with <code>[SEP]</code>, classify on <code>[CLS]</code>.</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="gpt-the-autoregressive-cousin">GPT: the autoregressive cousin</h3>
-<p>GPT pre-trains by left-to-right next-token prediction:</p>
-$$
+$$<p>During fine-tuning $W_{0}$ is frozen and only $A, B$ are trained. Three properties make LoRA the de-facto PEFT method today:</p><ul><li><strong>Tiny.</strong> Only $2dr$ parameters per adapted matrix - usually $r = 4$&ndash;$16$.</li><li><strong>Zero inference overhead.</strong> At deployment you can fold $BA$ into $W_{0}$ and serve a single matrix.</li><li><strong>Trivially composable.</strong> Swapping tasks is swapping a 10 MB delta, not loading a 1 GB checkpoint.</li></ul><p>The implicit assumption - and it is often true - is that <strong>task adaptation lives in a low-dimensional subspace of weight space.</strong></p><hr><h2 id=how-much-labelled-data-do-you-actually-need>How much labelled data do you actually need?</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/transfer-learning/02-pre-training-and-fine-tuning/fig7_data_size_scaling.png alt="Performance vs. target dataset size" loading=lazy decoding=async></figure></p><p>The figure consolidates the practical choices. On the same target task, with the same backbone:</p><ul><li><strong>From scratch</strong> is a flat line until you have many thousands of labels. Below that point the model essentially memorises noise.</li><li><strong>Linear probing</strong> wins immediately - frozen pre-trained features already separate the classes, and the only thing being learned is a hyperplane.</li><li><strong>LoRA</strong> tracks full fine-tuning closely with a small handicap and a fraction of the parameter budget.</li><li><strong>Full fine-tuning</strong> has the highest ceiling, but only justifies its cost once you have enough labels to safely move every parameter.</li></ul><p>The horizontal arrow is the headline number: pre-training shifts the data-efficiency curve up and to the <em>left</em> by roughly an order of magnitude - the same accuracy with 10x fewer labels.</p><hr><h2 id=bert-in-practice>BERT in practice</h2><h3 id=architecture-recap>Architecture recap</h3><p>BERT is a stack of bidirectional Transformer encoder blocks. Given input tokens, each block produces contextual representations through multi-head self-attention plus a feed-forward network, with residuals and LayerNorm.</p><h3 id=adapting-to-different-tasks>Adapting to different tasks</h3><table><thead><tr><th>Task</th><th>How BERT handles it</th></tr></thead><tbody><tr><td>Text classification</td><td>Take the <code>[CLS]</code> representation, feed it to a linear head.</td></tr><tr><td>Sequence labelling (NER)</td><td>Per-token linear head over the final layer.</td></tr><tr><td>Question answering (SQuAD)</td><td>Two heads predicting the start and end positions of the answer span.</td></tr><tr><td>Sentence-pair tasks (NLI)</td><td>Concatenate sentences with <code>[SEP]</code>, classify on <code>[CLS]</code>.</td></tr></tbody></table><h3 id=gpt-the-autoregressive-cousin>GPT: the autoregressive cousin</h3><p>GPT pre-trains by left-to-right next-token prediction:</p>$$
 \mathcal{L}_{\mathrm{GPT}} = -\sum_{t} \log P(x_{t} \mid x_{< t}).
-$$<p>For <em>understanding</em> tasks BERT&rsquo;s bidirectional context wins. For <em>generation</em> tasks GPT&rsquo;s autoregressive structure is the natural fit. Modern decoder-only LLMs (LLaMA, Qwen, GPT-4) are GPT&rsquo;s lineage - and the same fine-tuning principles transfer almost entirely, just with smaller LRs and heavier reliance on LoRA.</p>
-<hr>
-<h2 id="complete-implementation-bert-fine-tuning">Complete implementation: BERT fine-tuning</h2>
-<p>A production-ready trainer with discriminative learning rates, gradient accumulation, mixed precision, and warmup + linear decay scheduling.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">  1
-</span><span class="lnt">  2
-</span><span class="lnt">  3
-</span><span class="lnt">  4
-</span><span class="lnt">  5
-</span><span class="lnt">  6
-</span><span class="lnt">  7
-</span><span class="lnt">  8
-</span><span class="lnt">  9
-</span><span class="lnt"> 10
-</span><span class="lnt"> 11
-</span><span class="lnt"> 12
-</span><span class="lnt"> 13
-</span><span class="lnt"> 14
-</span><span class="lnt"> 15
-</span><span class="lnt"> 16
-</span><span class="lnt"> 17
-</span><span class="lnt"> 18
-</span><span class="lnt"> 19
-</span><span class="lnt"> 20
-</span><span class="lnt"> 21
-</span><span class="lnt"> 22
-</span><span class="lnt"> 23
-</span><span class="lnt"> 24
-</span><span class="lnt"> 25
-</span><span class="lnt"> 26
-</span><span class="lnt"> 27
-</span><span class="lnt"> 28
-</span><span class="lnt"> 29
-</span><span class="lnt"> 30
-</span><span class="lnt"> 31
-</span><span class="lnt"> 32
-</span><span class="lnt"> 33
-</span><span class="lnt"> 34
-</span><span class="lnt"> 35
-</span><span class="lnt"> 36
-</span><span class="lnt"> 37
-</span><span class="lnt"> 38
-</span><span class="lnt"> 39
-</span><span class="lnt"> 40
-</span><span class="lnt"> 41
-</span><span class="lnt"> 42
-</span><span class="lnt"> 43
-</span><span class="lnt"> 44
-</span><span class="lnt"> 45
-</span><span class="lnt"> 46
-</span><span class="lnt"> 47
-</span><span class="lnt"> 48
-</span><span class="lnt"> 49
-</span><span class="lnt"> 50
-</span><span class="lnt"> 51
-</span><span class="lnt"> 52
-</span><span class="lnt"> 53
-</span><span class="lnt"> 54
-</span><span class="lnt"> 55
-</span><span class="lnt"> 56
-</span><span class="lnt"> 57
-</span><span class="lnt"> 58
-</span><span class="lnt"> 59
-</span><span class="lnt"> 60
-</span><span class="lnt"> 61
-</span><span class="lnt"> 62
-</span><span class="lnt"> 63
-</span><span class="lnt"> 64
-</span><span class="lnt"> 65
-</span><span class="lnt"> 66
-</span><span class="lnt"> 67
-</span><span class="lnt"> 68
-</span><span class="lnt"> 69
-</span><span class="lnt"> 70
-</span><span class="lnt"> 71
-</span><span class="lnt"> 72
-</span><span class="lnt"> 73
-</span><span class="lnt"> 74
-</span><span class="lnt"> 75
-</span><span class="lnt"> 76
-</span><span class="lnt"> 77
-</span><span class="lnt"> 78
-</span><span class="lnt"> 79
-</span><span class="lnt"> 80
-</span><span class="lnt"> 81
-</span><span class="lnt"> 82
-</span><span class="lnt"> 83
-</span><span class="lnt"> 84
-</span><span class="lnt"> 85
-</span><span class="lnt"> 86
-</span><span class="lnt"> 87
-</span><span class="lnt"> 88
-</span><span class="lnt"> 89
-</span><span class="lnt"> 90
-</span><span class="lnt"> 91
-</span><span class="lnt"> 92
-</span><span class="lnt"> 93
-</span><span class="lnt"> 94
-</span><span class="lnt"> 95
-</span><span class="lnt"> 96
-</span><span class="lnt"> 97
-</span><span class="lnt"> 98
-</span><span class="lnt"> 99
-</span><span class="lnt">100
-</span><span class="lnt">101
-</span><span class="lnt">102
-</span><span class="lnt">103
-</span><span class="lnt">104
-</span><span class="lnt">105
-</span><span class="lnt">106
-</span><span class="lnt">107
-</span><span class="lnt">108
-</span><span class="lnt">109
-</span><span class="lnt">110
-</span><span class="lnt">111
-</span><span class="lnt">112
-</span><span class="lnt">113
-</span><span class="lnt">114
-</span><span class="lnt">115
-</span><span class="lnt">116
-</span><span class="lnt">117
-</span><span class="lnt">118
-</span><span class="lnt">119
-</span><span class="lnt">120
-</span><span class="lnt">121
-</span><span class="lnt">122
-</span><span class="lnt">123
-</span><span class="lnt">124
-</span><span class="lnt">125
-</span><span class="lnt">126
-</span><span class="lnt">127
-</span><span class="lnt">128
-</span><span class="lnt">129
-</span><span class="lnt">130
-</span><span class="lnt">131
-</span><span class="lnt">132
-</span><span class="lnt">133
-</span><span class="lnt">134
-</span><span class="lnt">135
-</span><span class="lnt">136
-</span><span class="lnt">137
-</span><span class="lnt">138
-</span><span class="lnt">139
-</span><span class="lnt">140
-</span><span class="lnt">141
-</span><span class="lnt">142
-</span><span class="lnt">143
-</span><span class="lnt">144
-</span><span class="lnt">145
-</span><span class="lnt">146
-</span><span class="lnt">147
-</span><span class="lnt">148
-</span><span class="lnt">149
-</span><span class="lnt">150
-</span><span class="lnt">151
-</span><span class="lnt">152
-</span><span class="lnt">153
-</span><span class="lnt">154
-</span><span class="lnt">155
-</span><span class="lnt">156
-</span><span class="lnt">157
-</span><span class="lnt">158
-</span><span class="lnt">159
-</span><span class="lnt">160
-</span><span class="lnt">161
-</span><span class="lnt">162
-</span><span class="lnt">163
-</span><span class="lnt">164
-</span><span class="lnt">165
-</span><span class="lnt">166
-</span><span class="lnt">167
-</span><span class="lnt">168
-</span><span class="lnt">169
-</span><span class="lnt">170
-</span><span class="lnt">171
-</span><span class="lnt">172
-</span><span class="lnt">173
-</span><span class="lnt">174
-</span><span class="lnt">175
-</span><span class="lnt">176
-</span><span class="lnt">177
-</span><span class="lnt">178
-</span><span class="lnt">179
-</span><span class="lnt">180
-</span><span class="lnt">181
-</span><span class="lnt">182
-</span><span class="lnt">183
-</span><span class="lnt">184
-</span><span class="lnt">185
-</span><span class="lnt">186
-</span><span class="lnt">187
-</span><span class="lnt">188
-</span><span class="lnt">189
-</span><span class="lnt">190
-</span><span class="lnt">191
-</span><span class="lnt">192
-</span><span class="lnt">193
-</span><span class="lnt">194
-</span><span class="lnt">195
-</span><span class="lnt">196
-</span><span class="lnt">197
-</span><span class="lnt">198
-</span><span class="lnt">199
-</span><span class="lnt">200
-</span><span class="lnt">201
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">BertTokenizer</span><span class="p">,</span> <span class="n">BertModel</span><span class="p">,</span> <span class="n">AdamW</span><span class="p">,</span> <span class="n">get_linear_schedule_with_warmup</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">autocast</span><span class="p">,</span> <span class="n">GradScaler</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">accuracy_score</span><span class="p">,</span> <span class="n">f1_score</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BERTClassifier</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;BERT backbone + a linear classification head on the [CLS] token.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bert_model_name</span><span class="o">=</span><span class="s2">&#34;bert-base-uncased&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">num_classes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">bert</span> <span class="o">=</span> <span class="n">BertModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">bert_model_name</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bert</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bert</span><span class="p">(</span><span class="n">input_ids</span><span class="o">=</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">pooled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">pooler_output</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="p">(</span><span class="n">pooled</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">TextDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Tokenises and pads texts for BERT.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">texts</span> <span class="o">=</span> <span class="n">texts</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">=</span> <span class="n">max_length</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">texts</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">encoding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode_plus</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">texts</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">add_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">max_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">padding</span><span class="o">=</span><span class="s2">&#34;max_length&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">return_attention_mask</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&#34;pt&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;input_ids&#34;</span><span class="p">:</span> <span class="n">encoding</span><span class="p">[</span><span class="s2">&#34;input_ids&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;attention_mask&#34;</span><span class="p">:</span> <span class="n">encoding</span><span class="p">[</span><span class="s2">&#34;attention_mask&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;label&#34;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">BERTFineTuner</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;Trainer with discriminative LR, gradient accumulation and AMP.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">2e-5</span><span class="p">,</span> <span class="n">warmup_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">gradient_accumulation_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_grad_norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">device</span><span class="o">=</span><span class="s2">&#34;cuda&#34;</span><span class="p">,</span> <span class="n">use_amp</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                 <span class="n">discriminative_lr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">lr_decay</span><span class="o">=</span><span class="mf">2.6</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">train_loader</span> <span class="o">=</span> <span class="n">train_loader</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">val_loader</span> <span class="o">=</span> <span class="n">val_loader</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">=</span> <span class="n">num_epochs</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">use_amp</span> <span class="o">=</span> <span class="n">use_amp</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">gradient_accumulation_steps</span> <span class="o">=</span> <span class="n">gradient_accumulation_steps</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">max_grad_norm</span> <span class="o">=</span> <span class="n">max_grad_norm</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">total_steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_epochs</span> <span class="o">//</span> <span class="n">gradient_accumulation_steps</span>
-</span></span><span class="line"><span class="cl">        <span class="n">warmup_steps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_steps</span> <span class="o">*</span> <span class="n">warmup_ratio</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">discriminative_lr</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discriminative_optimizer</span><span class="p">(</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">lr_decay</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">get_linear_schedule_with_warmup</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">warmup_steps</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span> <span class="o">=</span> <span class="n">GradScaler</span><span class="p">()</span> <span class="k">if</span> <span class="n">use_amp</span> <span class="k">else</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_discriminative_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">decay</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;Bottom layers get exponentially smaller LRs than the top.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layer</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">groups</span> <span class="o">=</span> <span class="p">[]</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Embeddings -- smallest LR.</span>
-</span></span><span class="line"><span class="cl">        <span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;lr&#34;</span><span class="p">:</span> <span class="n">lr</span> <span class="o">/</span> <span class="p">(</span><span class="n">decay</span> <span class="o">**</span> <span class="n">num_layers</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">})</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Each Transformer layer.</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layer</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;lr&#34;</span><span class="p">:</span> <span class="n">lr</span> <span class="o">/</span> <span class="p">(</span><span class="n">decay</span> <span class="o">**</span> <span class="p">(</span><span class="n">num_layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span>
-</span></span><span class="line"><span class="cl">            <span class="p">})</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># Pooler + classifier -- highest LR.</span>
-</span></span><span class="line"><span class="cl">        <span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;params&#34;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">bert</span><span class="o">.</span><span class="n">pooler</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">                      <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">parameters</span><span class="p">()),</span>
-</span></span><span class="line"><span class="cl">            <span class="s2">&#34;lr&#34;</span><span class="p">:</span> <span class="n">lr</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">})</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">AdamW</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">total_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&#34;Training&#34;</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">input_ids</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&#34;input_ids&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">mask</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&#34;attention_mask&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&#34;label&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_amp</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">with</span> <span class="n">autocast</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">mask</span><span class="p">),</span> <span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_accumulation_steps</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">mask</span><span class="p">),</span> <span class="n">labels</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_accumulation_steps</span>
-</span></span><span class="line"><span class="cl">                <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_amp</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">unscale_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                                             <span class="bp">self</span><span class="o">.</span><span class="n">max_grad_norm</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="k">else</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">                                             <span class="bp">self</span><span class="o">.</span><span class="n">max_grad_norm</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                    <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_accumulation_steps</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_loader</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@torch.no_grad</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="n">all_preds</span><span class="p">,</span> <span class="n">all_labels</span><span class="p">,</span> <span class="n">total_loss</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_loader</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&#34;Evaluating&#34;</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">input_ids</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&#34;input_ids&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">mask</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&#34;attention_mask&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&#34;label&#34;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">all_preds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">            <span class="n">all_labels</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">total_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_loader</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">accuracy_score</span><span class="p">(</span><span class="n">all_labels</span><span class="p">,</span> <span class="n">all_preds</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">f1_score</span><span class="p">(</span><span class="n">all_labels</span><span class="p">,</span> <span class="n">all_preds</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="s2">&#34;weighted&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="n">best_val_loss</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&#34;inf&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">train_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_epoch</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="n">val_loss</span><span class="p">,</span> <span class="n">val_acc</span><span class="p">,</span> <span class="n">val_f1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;Epoch </span><span class="si">{</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">: train_loss=</span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  &#34;</span>
-</span></span><span class="line"><span class="cl">                  <span class="sa">f</span><span class="s2">&#34;val_loss=</span><span class="si">{</span><span class="n">val_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  acc=</span><span class="si">{</span><span class="n">val_acc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  f1=</span><span class="si">{</span><span class="n">val_f1</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="n">val_loss</span> <span class="o">&lt;</span> <span class="n">best_val_loss</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">                <span class="n">best_val_loss</span> <span class="o">=</span> <span class="n">val_loss</span>
-</span></span><span class="line"><span class="cl">                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s2">&#34;best_model.pt&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">                <span class="nb">print</span><span class="p">(</span><span class="s2">&#34;  -&gt; saved best model&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
-</span></span><span class="line"><span class="cl">    <span class="n">BERT_MODEL</span> <span class="o">=</span> <span class="s2">&#34;bert-base-uncased&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">BERT_MODEL</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1"># Dummy data; replace with your real dataset.</span>
-</span></span><span class="line"><span class="cl">    <span class="n">texts</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;This movie is great!&#34;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">500</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&#34;This movie is terrible!&#34;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">500</span>
-</span></span><span class="line"><span class="cl">    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">500</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">500</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TextDataset</span><span class="p">(</span><span class="n">texts</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">val_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">model</span> <span class="o">=</span> <span class="n">BERTClassifier</span><span class="p">(</span><span class="n">BERT_MODEL</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">trainer</span> <span class="o">=</span> <span class="n">BERTFineTuner</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">num_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">2e-5</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">gradient_accumulation_steps</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">discriminative_lr</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">use_amp</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&#34;__main__&#34;</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">main</span><span class="p">()</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="why-these-knobs-matter">Why these knobs matter</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Technique</th>
-          <th>What it does</th>
-          <th>When to keep it on</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Discriminative LR</td>
-          <td>Embeddings see LR / $2.6^{12}$, classifier sees full LR.</td>
-          <td>Always for BERT-style stacks; the bottom rarely needs to move.</td>
-      </tr>
-      <tr>
-          <td>Gradient accumulation</td>
-          <td>Simulates a larger effective batch on a small GPU.</td>
-          <td>Whenever a single batch would OOM.</td>
-      </tr>
-      <tr>
-          <td>Mixed precision (AMP)</td>
-          <td>FP16 forward, FP32 master weights. ~2x speed and ~50 % memory.</td>
-          <td>Always on modern GPUs (Volta+).</td>
-      </tr>
-      <tr>
-          <td>Warmup + decay</td>
-          <td>Stabilises the first hundred steps, anneals at the end.</td>
-          <td>Always for fine-tuning.</td>
-      </tr>
-      <tr>
-          <td>Gradient clipping</td>
-          <td>Caps the global norm to prevent rare gradient blow-ups.</td>
-          <td>Always; cost is negligible.</td>
-      </tr>
-  </tbody>
-</table>
-<hr>
-<h2 id="faq">FAQ</h2>
-<h3 id="why-does-warmup-help-so-much-during-fine-tuning">Why does warmup help so much during fine-tuning?</h3>
-<p>The freshly-attached head produces noisy gradients in the first few steps. Pushing those gradients into the pre-trained backbone at full LR partially overwrites useful weights before the head has stabilised. Warmup keeps the LR small while the head settles, then ramps up.</p>
-<h3 id="how-much-pre-training-data-do-i-need">How much pre-training data do I need?</h3>
-<p>At minimum: hundreds of MB of text for NLP, or millions of images for vision. But <em>diversity</em> matters more than raw size. 10 M images of one species is worse than 1 M images covering many. Scaling laws (Kaplan et al., 2020) say performance grows roughly as a power of corpus size, but only when the data stays diverse and the model grows alongside.</p>
-<h3 id="how-do-i-detect-overfitting-during-fine-tuning">How do I detect overfitting during fine-tuning?</h3>
-<p>Three signals: (1) train loss falls while validation loss rises; (2) train accuracy is high but validation accuracy plateaus; (3) the model becomes overconfident, with predicted probabilities clustering near 0 or 1. Remedies: more dropout, early stopping, data augmentation, freeze more layers, or switch to LoRA.</p>
-<h3 id="lora-vs-full-fine-tuning---when-to-use-which">LoRA vs. full fine-tuning - when to use which?</h3>
-<p>Use LoRA when you serve many tasks from one base model (swap a small delta per task), when GPU memory is tight, or when you want to iterate quickly. Use full fine-tuning when you have a single target task, plenty of labels, and you care about the last point of accuracy.</p>
-<h3 id="why-do-bottom-layers-get-such-a-small-lr-under-discriminative-fine-tuning">Why do bottom layers get such a small LR under discriminative fine-tuning?</h3>
-<p>Bottom layers encode features that are nearly task-independent - subword statistics, low-level grammar, simple visual primitives. Moving them costs you transferability with little gain on the target task. The top, where task-specific decisions live, is where most of the learning should happen.</p>
-<hr>
-<h2 id="summary">Summary</h2>
-<p>Pre-training compresses the world&rsquo;s unlabelled data into a strong prior. Fine-tuning is the Bayesian update with whatever labelled data you can afford. Together they turned deep learning from &ldquo;needs millions of labels per task&rdquo; into &ldquo;a single base model serves a thousand specialisations.&rdquo;</p>
-<p>Key takeaways:</p>
-<ul>
-<li><strong>Self-supervised objectives</strong> (contrastive learning, MLM) generate supervision automatically - that is what unlocks the unlabelled web.</li>
-<li><strong>Discriminative LRs</strong> and <strong>gradual unfreezing</strong> adapt different layers at appropriate speeds.</li>
-<li><strong>Linear probing</strong> is a strong, cheap baseline; <strong>full fine-tuning</strong> wins when you have the data.</li>
-<li><strong>LoRA and Adapters</strong> make fine-tuning parameter-efficient and trivially composable.</li>
-<li><strong>Warmup, decay, and gradient clipping</strong> keep training stable. Almost every fine-tuning recipe uses all three.</li>
-<li><strong>Catastrophic forgetting</strong> is real - protect the source task with regularisation, replay, or isolation.</li>
-</ul>
-<p>Next up: <a href="/en/transfer-learning-3-domain-adaptation/">Part 3 - Domain Adaptation</a>
-, where the pre-training data and the deployment data live in different distributions and your fine-tuning recipes alone are not enough.</p>
-<hr>
-<h2 id="references">References</h2>
-<ol>
-<li>Devlin et al. (2019). <em>BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.</em> NAACL. <a href="https://arxiv.org/abs/1810.04805" target="_blank" rel="noopener noreferrer">arXiv:1810.04805 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Chen et al. (2020). <em>A Simple Framework for Contrastive Learning of Visual Representations (SimCLR).</em> ICML. <a href="https://arxiv.org/abs/2002.05709" target="_blank" rel="noopener noreferrer">arXiv:2002.05709 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>He et al. (2020). <em>Momentum Contrast for Unsupervised Visual Representation Learning (MoCo).</em> CVPR. <a href="https://arxiv.org/abs/1911.05722" target="_blank" rel="noopener noreferrer">arXiv:1911.05722 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Howard and Ruder (2018). <em>Universal Language Model Fine-tuning for Text Classification (ULMFiT).</em> ACL. <a href="https://arxiv.org/abs/1801.06146" target="_blank" rel="noopener noreferrer">arXiv:1801.06146 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Hu et al. (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models.</em> ICLR. <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener noreferrer">arXiv:2106.09685 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Liu et al. (2019). <em>RoBERTa: A Robustly Optimized BERT Pretraining Approach.</em> <a href="https://arxiv.org/abs/1907.11692" target="_blank" rel="noopener noreferrer">arXiv:1907.11692 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Houlsby et al. (2019). <em>Parameter-Efficient Transfer Learning for NLP (Adapters).</em> ICML. <a href="https://arxiv.org/abs/1902.00751" target="_blank" rel="noopener noreferrer">arXiv:1902.00751 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Kirkpatrick et al. (2017). <em>Overcoming Catastrophic Forgetting in Neural Networks (EWC).</em> PNAS. <a href="https://arxiv.org/abs/1612.00796" target="_blank" rel="noopener noreferrer">arXiv:1612.00796 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Kaplan et al. (2020). <em>Scaling Laws for Neural Language Models.</em> <a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noopener noreferrer">arXiv:2001.08361 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Wettig et al. (2023). <em>Should You Mask 15 % in Masked Language Modeling?</em> EACL. <a href="https://arxiv.org/abs/2202.08005" target="_blank" rel="noopener noreferrer">arXiv:2202.08005 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ol>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><a href="/en/transfer-learning-1-fundamentals-and-core-concepts/">1</a>
-</td>
-          <td>Fundamentals and Core Concepts</td>
-      </tr>
-      <tr>
-          <td><strong>2</strong></td>
-          <td><strong>Pre-training and Fine-tuning</strong> (you are here)</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-3-domain-adaptation/">3</a>
-</td>
-          <td>Domain Adaptation</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-4-few-shot-learning/">4</a>
-</td>
-          <td>Few-Shot Learning</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-5-knowledge-distillation/">5</a>
-</td>
-          <td>Knowledge Distillation</td>
-      </tr>
-      <tr>
-          <td><a href="/en/transfer-learning-6-multi-task-learning/">6</a>
-</td>
-          <td>Multi-Task Learning</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#why-pre-train">Why pre-train?</a>
-      <ul>
-        <li><a href="#the-data-asymmetry">The data asymmetry</a></li>
-        <li><a href="#a-bayesian-view-pre-training-is-a-prior">A Bayesian view: pre-training is a prior</a></li>
-        <li><a href="#an-information-theoretic-view-features-that-transfer">An information-theoretic view: features that transfer</a></li>
-        <li><a href="#faster-convergence-better-minima">Faster convergence, better minima</a></li>
-      </ul>
-    </li>
-    <li><a href="#self-supervised-pretext-tasks">Self-supervised pretext tasks</a>
-      <ul>
-        <li><a href="#contrastive-learning-vision">Contrastive learning (vision)</a>
-          <ul>
-            <li><a href="#simclr">SimCLR</a></li>
-            <li><a href="#moco-momentum-updated-queue">MoCo: momentum-updated queue</a></li>
-          </ul>
-        </li>
-        <li><a href="#masked-language-modelling-nlp">Masked language modelling (NLP)</a>
-          <ul>
-            <li><a href="#berts-mlm-objective">BERT&rsquo;s MLM objective</a></li>
-            <li><a href="#next-sentence-prediction-nsp-and-its-replacement">Next-Sentence Prediction (NSP) and its replacement</a></li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li><a href="#fine-tuning-why-it-converges-so-fast">Fine-tuning: why it converges so fast</a>
-      <ul>
-        <li><a href="#full-fine-tuning">Full fine-tuning</a></li>
-        <li><a href="#discriminative-learning-rates">Discriminative learning rates</a></li>
-        <li><a href="#warmup-then-decay">Warmup, then decay</a></li>
-        <li><a href="#layer-freezing">Layer freezing</a></li>
-        <li><a href="#linear-probing-vs-full-fine-tuning">Linear probing vs. full fine-tuning</a></li>
-        <li><a href="#catastrophic-forgetting">Catastrophic forgetting</a></li>
-        <li><a href="#adapters-parameter-efficient-fine-tuning">Adapters: parameter-efficient fine-tuning</a></li>
-        <li><a href="#lora-low-rank-weight-updates">LoRA: low-rank weight updates</a></li>
-      </ul>
-    </li>
-    <li><a href="#how-much-labelled-data-do-you-actually-need">How much labelled data do you actually need?</a></li>
-    <li><a href="#bert-in-practice">BERT in practice</a>
-      <ul>
-        <li><a href="#architecture-recap">Architecture recap</a></li>
-        <li><a href="#adapting-to-different-tasks">Adapting to different tasks</a></li>
-        <li><a href="#gpt-the-autoregressive-cousin">GPT: the autoregressive cousin</a></li>
-      </ul>
-    </li>
-    <li><a href="#complete-implementation-bert-fine-tuning">Complete implementation: BERT fine-tuning</a>
-      <ul>
-        <li><a href="#why-these-knobs-matter">Why these knobs matter</a></li>
-      </ul>
-    </li>
-    <li><a href="#faq">FAQ</a>
-      <ul>
-        <li><a href="#why-does-warmup-help-so-much-during-fine-tuning">Why does warmup help so much during fine-tuning?</a></li>
-        <li><a href="#how-much-pre-training-data-do-i-need">How much pre-training data do I need?</a></li>
-        <li><a href="#how-do-i-detect-overfitting-during-fine-tuning">How do I detect overfitting during fine-tuning?</a></li>
-        <li><a href="#lora-vs-full-fine-tuning---when-to-use-which">LoRA vs. full fine-tuning - when to use which?</a></li>
-        <li><a href="#why-do-bottom-layers-get-such-a-small-lr-under-discriminative-fine-tuning">Why do bottom layers get such a small LR under discriminative fine-tuning?</a></li>
-      </ul>
-    </li>
-    <li><a href="#summary">Summary</a></li>
-    <li><a href="#references">References</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Transfer Learning</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3700</strong></div>
-      <div class="row"><span>Published</span><strong>May 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>For <em>understanding</em> tasks BERT&rsquo;s bidirectional context wins. For <em>generation</em> tasks GPT&rsquo;s autoregressive structure is the natural fit. Modern decoder-only LLMs (LLaMA, Qwen, GPT-4) are GPT&rsquo;s lineage - and the same fine-tuning principles transfer almost entirely, just with smaller LRs and heavier reliance on LoRA.</p><hr><h2 id=complete-implementation-bert-fine-tuning>Complete implementation: BERT fine-tuning</h2><p>A production-ready trainer with discriminative learning rates, gradient accumulation, mixed precision, and warmup + linear decay scheduling.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>  1
+</span><span class=lnt>  2
+</span><span class=lnt>  3
+</span><span class=lnt>  4
+</span><span class=lnt>  5
+</span><span class=lnt>  6
+</span><span class=lnt>  7
+</span><span class=lnt>  8
+</span><span class=lnt>  9
+</span><span class=lnt> 10
+</span><span class=lnt> 11
+</span><span class=lnt> 12
+</span><span class=lnt> 13
+</span><span class=lnt> 14
+</span><span class=lnt> 15
+</span><span class=lnt> 16
+</span><span class=lnt> 17
+</span><span class=lnt> 18
+</span><span class=lnt> 19
+</span><span class=lnt> 20
+</span><span class=lnt> 21
+</span><span class=lnt> 22
+</span><span class=lnt> 23
+</span><span class=lnt> 24
+</span><span class=lnt> 25
+</span><span class=lnt> 26
+</span><span class=lnt> 27
+</span><span class=lnt> 28
+</span><span class=lnt> 29
+</span><span class=lnt> 30
+</span><span class=lnt> 31
+</span><span class=lnt> 32
+</span><span class=lnt> 33
+</span><span class=lnt> 34
+</span><span class=lnt> 35
+</span><span class=lnt> 36
+</span><span class=lnt> 37
+</span><span class=lnt> 38
+</span><span class=lnt> 39
+</span><span class=lnt> 40
+</span><span class=lnt> 41
+</span><span class=lnt> 42
+</span><span class=lnt> 43
+</span><span class=lnt> 44
+</span><span class=lnt> 45
+</span><span class=lnt> 46
+</span><span class=lnt> 47
+</span><span class=lnt> 48
+</span><span class=lnt> 49
+</span><span class=lnt> 50
+</span><span class=lnt> 51
+</span><span class=lnt> 52
+</span><span class=lnt> 53
+</span><span class=lnt> 54
+</span><span class=lnt> 55
+</span><span class=lnt> 56
+</span><span class=lnt> 57
+</span><span class=lnt> 58
+</span><span class=lnt> 59
+</span><span class=lnt> 60
+</span><span class=lnt> 61
+</span><span class=lnt> 62
+</span><span class=lnt> 63
+</span><span class=lnt> 64
+</span><span class=lnt> 65
+</span><span class=lnt> 66
+</span><span class=lnt> 67
+</span><span class=lnt> 68
+</span><span class=lnt> 69
+</span><span class=lnt> 70
+</span><span class=lnt> 71
+</span><span class=lnt> 72
+</span><span class=lnt> 73
+</span><span class=lnt> 74
+</span><span class=lnt> 75
+</span><span class=lnt> 76
+</span><span class=lnt> 77
+</span><span class=lnt> 78
+</span><span class=lnt> 79
+</span><span class=lnt> 80
+</span><span class=lnt> 81
+</span><span class=lnt> 82
+</span><span class=lnt> 83
+</span><span class=lnt> 84
+</span><span class=lnt> 85
+</span><span class=lnt> 86
+</span><span class=lnt> 87
+</span><span class=lnt> 88
+</span><span class=lnt> 89
+</span><span class=lnt> 90
+</span><span class=lnt> 91
+</span><span class=lnt> 92
+</span><span class=lnt> 93
+</span><span class=lnt> 94
+</span><span class=lnt> 95
+</span><span class=lnt> 96
+</span><span class=lnt> 97
+</span><span class=lnt> 98
+</span><span class=lnt> 99
+</span><span class=lnt>100
+</span><span class=lnt>101
+</span><span class=lnt>102
+</span><span class=lnt>103
+</span><span class=lnt>104
+</span><span class=lnt>105
+</span><span class=lnt>106
+</span><span class=lnt>107
+</span><span class=lnt>108
+</span><span class=lnt>109
+</span><span class=lnt>110
+</span><span class=lnt>111
+</span><span class=lnt>112
+</span><span class=lnt>113
+</span><span class=lnt>114
+</span><span class=lnt>115
+</span><span class=lnt>116
+</span><span class=lnt>117
+</span><span class=lnt>118
+</span><span class=lnt>119
+</span><span class=lnt>120
+</span><span class=lnt>121
+</span><span class=lnt>122
+</span><span class=lnt>123
+</span><span class=lnt>124
+</span><span class=lnt>125
+</span><span class=lnt>126
+</span><span class=lnt>127
+</span><span class=lnt>128
+</span><span class=lnt>129
+</span><span class=lnt>130
+</span><span class=lnt>131
+</span><span class=lnt>132
+</span><span class=lnt>133
+</span><span class=lnt>134
+</span><span class=lnt>135
+</span><span class=lnt>136
+</span><span class=lnt>137
+</span><span class=lnt>138
+</span><span class=lnt>139
+</span><span class=lnt>140
+</span><span class=lnt>141
+</span><span class=lnt>142
+</span><span class=lnt>143
+</span><span class=lnt>144
+</span><span class=lnt>145
+</span><span class=lnt>146
+</span><span class=lnt>147
+</span><span class=lnt>148
+</span><span class=lnt>149
+</span><span class=lnt>150
+</span><span class=lnt>151
+</span><span class=lnt>152
+</span><span class=lnt>153
+</span><span class=lnt>154
+</span><span class=lnt>155
+</span><span class=lnt>156
+</span><span class=lnt>157
+</span><span class=lnt>158
+</span><span class=lnt>159
+</span><span class=lnt>160
+</span><span class=lnt>161
+</span><span class=lnt>162
+</span><span class=lnt>163
+</span><span class=lnt>164
+</span><span class=lnt>165
+</span><span class=lnt>166
+</span><span class=lnt>167
+</span><span class=lnt>168
+</span><span class=lnt>169
+</span><span class=lnt>170
+</span><span class=lnt>171
+</span><span class=lnt>172
+</span><span class=lnt>173
+</span><span class=lnt>174
+</span><span class=lnt>175
+</span><span class=lnt>176
+</span><span class=lnt>177
+</span><span class=lnt>178
+</span><span class=lnt>179
+</span><span class=lnt>180
+</span><span class=lnt>181
+</span><span class=lnt>182
+</span><span class=lnt>183
+</span><span class=lnt>184
+</span><span class=lnt>185
+</span><span class=lnt>186
+</span><span class=lnt>187
+</span><span class=lnt>188
+</span><span class=lnt>189
+</span><span class=lnt>190
+</span><span class=lnt>191
+</span><span class=lnt>192
+</span><span class=lnt>193
+</span><span class=lnt>194
+</span><span class=lnt>195
+</span><span class=lnt>196
+</span><span class=lnt>197
+</span><span class=lnt>198
+</span><span class=lnt>199
+</span><span class=lnt>200
+</span><span class=lnt>201
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.utils.data</span> <span class=kn>import</span> <span class=n>DataLoader</span><span class=p>,</span> <span class=n>Dataset</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>transformers</span> <span class=kn>import</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>BertTokenizer</span><span class=p>,</span> <span class=n>BertModel</span><span class=p>,</span> <span class=n>AdamW</span><span class=p>,</span> <span class=n>get_linear_schedule_with_warmup</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>torch.cuda.amp</span> <span class=kn>import</span> <span class=n>autocast</span><span class=p>,</span> <span class=n>GradScaler</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>tqdm</span> <span class=kn>import</span> <span class=n>tqdm</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>sklearn.metrics</span> <span class=kn>import</span> <span class=n>accuracy_score</span><span class=p>,</span> <span class=n>f1_score</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BERTClassifier</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;BERT backbone + a linear classification head on the [CLS] token.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>bert_model_name</span><span class=o>=</span><span class=s2>&#34;bert-base-uncased&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>num_classes</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span> <span class=n>dropout</span><span class=o>=</span><span class=mf>0.1</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>bert</span> <span class=o>=</span> <span class=n>BertModel</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>bert_model_name</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Dropout</span><span class=p>(</span><span class=n>dropout</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>classifier</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>config</span><span class=o>.</span><span class=n>hidden_size</span><span class=p>,</span> <span class=n>num_classes</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>outputs</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>bert</span><span class=p>(</span><span class=n>input_ids</span><span class=o>=</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>attention_mask</span><span class=o>=</span><span class=n>attention_mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>pooled</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dropout</span><span class=p>(</span><span class=n>outputs</span><span class=o>.</span><span class=n>pooler_output</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>classifier</span><span class=p>(</span><span class=n>pooled</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>TextDataset</span><span class=p>(</span><span class=n>Dataset</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Tokenises and pads texts for BERT.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>texts</span><span class=p>,</span> <span class=n>labels</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>texts</span> <span class=o>=</span> <span class=n>texts</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>labels</span> <span class=o>=</span> <span class=n>labels</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span> <span class=o>=</span> <span class=n>tokenizer</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_length</span> <span class=o>=</span> <span class=n>max_length</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__len__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>texts</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__getitem__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>idx</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>encoding</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>tokenizer</span><span class=o>.</span><span class=n>encode_plus</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=nb>str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>texts</span><span class=p>[</span><span class=n>idx</span><span class=p>]),</span>
+</span></span><span class=line><span class=cl>            <span class=n>add_special_tokens</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>max_length</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>max_length</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>padding</span><span class=o>=</span><span class=s2>&#34;max_length&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>truncation</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>return_attention_mask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>return_tensors</span><span class=o>=</span><span class=s2>&#34;pt&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;input_ids&#34;</span><span class=p>:</span> <span class=n>encoding</span><span class=p>[</span><span class=s2>&#34;input_ids&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;attention_mask&#34;</span><span class=p>:</span> <span class=n>encoding</span><span class=p>[</span><span class=s2>&#34;attention_mask&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;label&#34;</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>tensor</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>labels</span><span class=p>[</span><span class=n>idx</span><span class=p>],</span> <span class=n>dtype</span><span class=o>=</span><span class=n>torch</span><span class=o>.</span><span class=n>long</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>BERTFineTuner</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;Trainer with discriminative LR, gradient accumulation and AMP.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>num_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>learning_rate</span><span class=o>=</span><span class=mf>2e-5</span><span class=p>,</span> <span class=n>warmup_ratio</span><span class=o>=</span><span class=mf>0.1</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>gradient_accumulation_steps</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_grad_norm</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>device</span><span class=o>=</span><span class=s2>&#34;cuda&#34;</span><span class=p>,</span> <span class=n>use_amp</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                 <span class=n>discriminative_lr</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>lr_decay</span><span class=o>=</span><span class=mf>2.6</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span> <span class=o>=</span> <span class=n>model</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>train_loader</span> <span class=o>=</span> <span class=n>train_loader</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>val_loader</span> <span class=o>=</span> <span class=n>val_loader</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>num_epochs</span> <span class=o>=</span> <span class=n>num_epochs</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>device</span> <span class=o>=</span> <span class=n>device</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>use_amp</span> <span class=o>=</span> <span class=n>use_amp</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span> <span class=o>=</span> <span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>max_grad_norm</span> <span class=o>=</span> <span class=n>max_grad_norm</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>total_steps</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>train_loader</span><span class=p>)</span> <span class=o>*</span> <span class=n>num_epochs</span> <span class=o>//</span> <span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>        <span class=n>warmup_steps</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>total_steps</span> <span class=o>*</span> <span class=n>warmup_ratio</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>discriminative_lr</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_discriminative_optimizer</span><span class=p>(</span><span class=n>learning_rate</span><span class=p>,</span> <span class=n>lr_decay</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span> <span class=o>=</span> <span class=n>AdamW</span><span class=p>(</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span> <span class=n>lr</span><span class=o>=</span><span class=n>learning_rate</span><span class=p>,</span> <span class=n>eps</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scheduler</span> <span class=o>=</span> <span class=n>get_linear_schedule_with_warmup</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=p>,</span> <span class=n>warmup_steps</span><span class=p>,</span> <span class=n>total_steps</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span> <span class=o>=</span> <span class=n>GradScaler</span><span class=p>()</span> <span class=k>if</span> <span class=n>use_amp</span> <span class=k>else</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>CrossEntropyLoss</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_discriminative_optimizer</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lr</span><span class=p>,</span> <span class=n>decay</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;Bottom layers get exponentially smaller LRs than the top.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_layers</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>encoder</span><span class=o>.</span><span class=n>layer</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>groups</span> <span class=o>=</span> <span class=p>[]</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Embeddings -- smallest LR.</span>
+</span></span><span class=line><span class=cl>        <span class=n>groups</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>embeddings</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;lr&#34;</span><span class=p>:</span> <span class=n>lr</span> <span class=o>/</span> <span class=p>(</span><span class=n>decay</span> <span class=o>**</span> <span class=n>num_layers</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Each Transformer layer.</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>num_layers</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>groups</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>encoder</span><span class=o>.</span><span class=n>layer</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;lr&#34;</span><span class=p>:</span> <span class=n>lr</span> <span class=o>/</span> <span class=p>(</span><span class=n>decay</span> <span class=o>**</span> <span class=p>(</span><span class=n>num_layers</span> <span class=o>-</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)),</span>
+</span></span><span class=line><span class=cl>            <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=c1># Pooler + classifier -- highest LR.</span>
+</span></span><span class=line><span class=cl>        <span class=n>groups</span><span class=o>.</span><span class=n>append</span><span class=p>({</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;params&#34;</span><span class=p>:</span> <span class=nb>list</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>bert</span><span class=o>.</span><span class=n>pooler</span><span class=o>.</span><span class=n>parameters</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>                      <span class=o>+</span> <span class=nb>list</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>classifier</span><span class=o>.</span><span class=n>parameters</span><span class=p>()),</span>
+</span></span><span class=line><span class=cl>            <span class=s2>&#34;lr&#34;</span><span class=p>:</span> <span class=n>lr</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>})</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>AdamW</span><span class=p>(</span><span class=n>groups</span><span class=p>,</span> <span class=n>eps</span><span class=o>=</span><span class=mf>1e-8</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>train_epoch</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>total_loss</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>step</span><span class=p>,</span> <span class=n>batch</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>tqdm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>train_loader</span><span class=p>,</span> <span class=n>desc</span><span class=o>=</span><span class=s2>&#34;Training&#34;</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>            <span class=n>input_ids</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;input_ids&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>mask</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;attention_mask&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>labels</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;label&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>use_amp</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>with</span> <span class=n>autocast</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>                    <span class=n>loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>mask</span><span class=p>),</span> <span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=n>loss</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>scale</span><span class=p>(</span><span class=n>loss</span><span class=p>)</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>mask</span><span class=p>),</span> <span class=n>labels</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span> <span class=o>=</span> <span class=n>loss</span> <span class=o>/</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>                <span class=n>loss</span><span class=o>.</span><span class=n>backward</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>step</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>%</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>use_amp</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>unscale_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                                             <span class=bp>self</span><span class=o>.</span><span class=n>max_grad_norm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>scaler</span><span class=o>.</span><span class=n>update</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=k>else</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                    <span class=n>nn</span><span class=o>.</span><span class=n>utils</span><span class=o>.</span><span class=n>clip_grad_norm_</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>parameters</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>                                             <span class=bp>self</span><span class=o>.</span><span class=n>max_grad_norm</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                    <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>scheduler</span><span class=o>.</span><span class=n>step</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>                <span class=bp>self</span><span class=o>.</span><span class=n>optimizer</span><span class=o>.</span><span class=n>zero_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=n>loss</span><span class=o>.</span><span class=n>item</span><span class=p>()</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>gradient_accumulation_steps</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>total_loss</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>train_loader</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@torch.no_grad</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>eval</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=n>all_preds</span><span class=p>,</span> <span class=n>all_labels</span><span class=p>,</span> <span class=n>total_loss</span> <span class=o>=</span> <span class=p>[],</span> <span class=p>[],</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>batch</span> <span class=ow>in</span> <span class=n>tqdm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>val_loader</span><span class=p>,</span> <span class=n>desc</span><span class=o>=</span><span class=s2>&#34;Evaluating&#34;</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>input_ids</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;input_ids&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>mask</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;attention_mask&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>labels</span> <span class=o>=</span> <span class=n>batch</span><span class=p>[</span><span class=s2>&#34;label&#34;</span><span class=p>]</span><span class=o>.</span><span class=n>to</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>device</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>logits</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=p>(</span><span class=n>input_ids</span><span class=p>,</span> <span class=n>mask</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>+=</span> <span class=bp>self</span><span class=o>.</span><span class=n>criterion</span><span class=p>(</span><span class=n>logits</span><span class=p>,</span> <span class=n>labels</span><span class=p>)</span><span class=o>.</span><span class=n>item</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>all_preds</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>logits</span><span class=o>.</span><span class=n>argmax</span><span class=p>(</span><span class=n>dim</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>            <span class=n>all_labels</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>labels</span><span class=o>.</span><span class=n>cpu</span><span class=p>()</span><span class=o>.</span><span class=n>numpy</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>total_loss</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>val_loader</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>accuracy_score</span><span class=p>(</span><span class=n>all_labels</span><span class=p>,</span> <span class=n>all_preds</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>            <span class=n>f1_score</span><span class=p>(</span><span class=n>all_labels</span><span class=p>,</span> <span class=n>all_preds</span><span class=p>,</span> <span class=n>average</span><span class=o>=</span><span class=s2>&#34;weighted&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>train</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=n>best_val_loss</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=s2>&#34;inf&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>epoch</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>num_epochs</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>train_loss</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>train_epoch</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=n>val_loss</span><span class=p>,</span> <span class=n>val_acc</span><span class=p>,</span> <span class=n>val_f1</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>            <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;Epoch </span><span class=si>{</span><span class=n>epoch</span> <span class=o>+</span> <span class=mi>1</span><span class=si>}</span><span class=s2>: train_loss=</span><span class=si>{</span><span class=n>train_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  &#34;</span>
+</span></span><span class=line><span class=cl>                  <span class=sa>f</span><span class=s2>&#34;val_loss=</span><span class=si>{</span><span class=n>val_loss</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  acc=</span><span class=si>{</span><span class=n>val_acc</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>  f1=</span><span class=si>{</span><span class=n>val_f1</span><span class=si>:</span><span class=s2>.4f</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=n>val_loss</span> <span class=o>&lt;</span> <span class=n>best_val_loss</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>                <span class=n>best_val_loss</span> <span class=o>=</span> <span class=n>val_loss</span>
+</span></span><span class=line><span class=cl>                <span class=n>torch</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>model</span><span class=o>.</span><span class=n>state_dict</span><span class=p>(),</span> <span class=s2>&#34;best_model.pt&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>                <span class=nb>print</span><span class=p>(</span><span class=s2>&#34;  -&gt; saved best model&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>main</span><span class=p>():</span>
+</span></span><span class=line><span class=cl>    <span class=n>BERT_MODEL</span> <span class=o>=</span> <span class=s2>&#34;bert-base-uncased&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>tokenizer</span> <span class=o>=</span> <span class=n>BertTokenizer</span><span class=o>.</span><span class=n>from_pretrained</span><span class=p>(</span><span class=n>BERT_MODEL</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=c1># Dummy data; replace with your real dataset.</span>
+</span></span><span class=line><span class=cl>    <span class=n>texts</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;This movie is great!&#34;</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span> <span class=o>+</span> <span class=p>[</span><span class=s2>&#34;This movie is terrible!&#34;</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span>
+</span></span><span class=line><span class=cl>    <span class=n>labels</span> <span class=o>=</span> <span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span> <span class=o>+</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=mi>500</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>dataset</span> <span class=o>=</span> <span class=n>TextDataset</span><span class=p>(</span><span class=n>texts</span><span class=p>,</span> <span class=n>labels</span><span class=p>,</span> <span class=n>tokenizer</span><span class=p>,</span> <span class=n>max_length</span><span class=o>=</span><span class=mi>128</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>train_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>dataset</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>shuffle</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>val_loader</span> <span class=o>=</span> <span class=n>DataLoader</span><span class=p>(</span><span class=n>dataset</span><span class=p>,</span> <span class=n>batch_size</span><span class=o>=</span><span class=mi>16</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>model</span> <span class=o>=</span> <span class=n>BERTClassifier</span><span class=p>(</span><span class=n>BERT_MODEL</span><span class=p>,</span> <span class=n>num_classes</span><span class=o>=</span><span class=mi>2</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>trainer</span> <span class=o>=</span> <span class=n>BERTFineTuner</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>model</span><span class=p>,</span> <span class=n>train_loader</span><span class=p>,</span> <span class=n>val_loader</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>num_epochs</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span> <span class=n>learning_rate</span><span class=o>=</span><span class=mf>2e-5</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>gradient_accumulation_steps</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>discriminative_lr</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>use_amp</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>trainer</span><span class=o>.</span><span class=n>train</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>&#34;__main__&#34;</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>main</span><span class=p>()</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=why-these-knobs-matter>Why these knobs matter</h3><table><thead><tr><th>Technique</th><th>What it does</th><th>When to keep it on</th></tr></thead><tbody><tr><td>Discriminative LR</td><td>Embeddings see LR / $2.6^{12}$, classifier sees full LR.</td><td>Always for BERT-style stacks; the bottom rarely needs to move.</td></tr><tr><td>Gradient accumulation</td><td>Simulates a larger effective batch on a small GPU.</td><td>Whenever a single batch would OOM.</td></tr><tr><td>Mixed precision (AMP)</td><td>FP16 forward, FP32 master weights. ~2x speed and ~50 % memory.</td><td>Always on modern GPUs (Volta+).</td></tr><tr><td>Warmup + decay</td><td>Stabilises the first hundred steps, anneals at the end.</td><td>Always for fine-tuning.</td></tr><tr><td>Gradient clipping</td><td>Caps the global norm to prevent rare gradient blow-ups.</td><td>Always; cost is negligible.</td></tr></tbody></table><hr><h2 id=faq>FAQ</h2><h3 id=why-does-warmup-help-so-much-during-fine-tuning>Why does warmup help so much during fine-tuning?</h3><p>The freshly-attached head produces noisy gradients in the first few steps. Pushing those gradients into the pre-trained backbone at full LR partially overwrites useful weights before the head has stabilised. Warmup keeps the LR small while the head settles, then ramps up.</p><h3 id=how-much-pre-training-data-do-i-need>How much pre-training data do I need?</h3><p>At minimum: hundreds of MB of text for NLP, or millions of images for vision. But <em>diversity</em> matters more than raw size. 10 M images of one species is worse than 1 M images covering many. Scaling laws (Kaplan et al., 2020) say performance grows roughly as a power of corpus size, but only when the data stays diverse and the model grows alongside.</p><h3 id=how-do-i-detect-overfitting-during-fine-tuning>How do I detect overfitting during fine-tuning?</h3><p>Three signals: (1) train loss falls while validation loss rises; (2) train accuracy is high but validation accuracy plateaus; (3) the model becomes overconfident, with predicted probabilities clustering near 0 or 1. Remedies: more dropout, early stopping, data augmentation, freeze more layers, or switch to LoRA.</p><h3 id=lora-vs-full-fine-tuning---when-to-use-which>LoRA vs. full fine-tuning - when to use which?</h3><p>Use LoRA when you serve many tasks from one base model (swap a small delta per task), when GPU memory is tight, or when you want to iterate quickly. Use full fine-tuning when you have a single target task, plenty of labels, and you care about the last point of accuracy.</p><h3 id=why-do-bottom-layers-get-such-a-small-lr-under-discriminative-fine-tuning>Why do bottom layers get such a small LR under discriminative fine-tuning?</h3><p>Bottom layers encode features that are nearly task-independent - subword statistics, low-level grammar, simple visual primitives. Moving them costs you transferability with little gain on the target task. The top, where task-specific decisions live, is where most of the learning should happen.</p><hr><h2 id=summary>Summary</h2><p>Pre-training compresses the world&rsquo;s unlabelled data into a strong prior. Fine-tuning is the Bayesian update with whatever labelled data you can afford. Together they turned deep learning from &ldquo;needs millions of labels per task&rdquo; into &ldquo;a single base model serves a thousand specialisations.&rdquo;</p><p>Key takeaways:</p><ul><li><strong>Self-supervised objectives</strong> (contrastive learning, MLM) generate supervision automatically - that is what unlocks the unlabelled web.</li><li><strong>Discriminative LRs</strong> and <strong>gradual unfreezing</strong> adapt different layers at appropriate speeds.</li><li><strong>Linear probing</strong> is a strong, cheap baseline; <strong>full fine-tuning</strong> wins when you have the data.</li><li><strong>LoRA and Adapters</strong> make fine-tuning parameter-efficient and trivially composable.</li><li><strong>Warmup, decay, and gradient clipping</strong> keep training stable. Almost every fine-tuning recipe uses all three.</li><li><strong>Catastrophic forgetting</strong> is real - protect the source task with regularisation, replay, or isolation.</li></ul><p>Next up: <a href=/en/transfer-learning-3-domain-adaptation/>Part 3 - Domain Adaptation</a>
+, where the pre-training data and the deployment data live in different distributions and your fine-tuning recipes alone are not enough.</p><hr><h2 id=references>References</h2><ol><li>Devlin et al. (2019). <em>BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.</em> NAACL. <a href=https://arxiv.org/abs/1810.04805 target=_blank rel="noopener noreferrer">arXiv:1810.04805 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Chen et al. (2020). <em>A Simple Framework for Contrastive Learning of Visual Representations (SimCLR).</em> ICML. <a href=https://arxiv.org/abs/2002.05709 target=_blank rel="noopener noreferrer">arXiv:2002.05709 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>He et al. (2020). <em>Momentum Contrast for Unsupervised Visual Representation Learning (MoCo).</em> CVPR. <a href=https://arxiv.org/abs/1911.05722 target=_blank rel="noopener noreferrer">arXiv:1911.05722 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Howard and Ruder (2018). <em>Universal Language Model Fine-tuning for Text Classification (ULMFiT).</em> ACL. <a href=https://arxiv.org/abs/1801.06146 target=_blank rel="noopener noreferrer">arXiv:1801.06146 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Hu et al. (2022). <em>LoRA: Low-Rank Adaptation of Large Language Models.</em> ICLR. <a href=https://arxiv.org/abs/2106.09685 target=_blank rel="noopener noreferrer">arXiv:2106.09685 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Liu et al. (2019). <em>RoBERTa: A Robustly Optimized BERT Pretraining Approach.</em> <a href=https://arxiv.org/abs/1907.11692 target=_blank rel="noopener noreferrer">arXiv:1907.11692 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Houlsby et al. (2019). <em>Parameter-Efficient Transfer Learning for NLP (Adapters).</em> ICML. <a href=https://arxiv.org/abs/1902.00751 target=_blank rel="noopener noreferrer">arXiv:1902.00751 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Kirkpatrick et al. (2017). <em>Overcoming Catastrophic Forgetting in Neural Networks (EWC).</em> PNAS. <a href=https://arxiv.org/abs/1612.00796 target=_blank rel="noopener noreferrer">arXiv:1612.00796 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Kaplan et al. (2020). <em>Scaling Laws for Neural Language Models.</em> <a href=https://arxiv.org/abs/2001.08361 target=_blank rel="noopener noreferrer">arXiv:2001.08361 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Wettig et al. (2023). <em>Should You Mask 15 % in Masked Language Modeling?</em> EACL. <a href=https://arxiv.org/abs/2202.08005 target=_blank rel="noopener noreferrer">arXiv:2202.08005 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ol><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th></tr></thead><tbody><tr><td><a href=/en/transfer-learning-1-fundamentals-and-core-concepts/>1</a></td><td>Fundamentals and Core Concepts</td></tr><tr><td><strong>2</strong></td><td><strong>Pre-training and Fine-tuning</strong> (you are here)</td></tr><tr><td><a href=/en/transfer-learning-3-domain-adaptation/>3</a></td><td>Domain Adaptation</td></tr><tr><td><a href=/en/transfer-learning-4-few-shot-learning/>4</a></td><td>Few-Shot Learning</td></tr><tr><td><a href=/en/transfer-learning-5-knowledge-distillation/>5</a></td><td>Knowledge Distillation</td></tr><tr><td><a href=/en/transfer-learning-6-multi-task-learning/>6</a></td><td>Multi-Task Learning</td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#why-pre-train>Why pre-train?</a><ul><li><a href=#the-data-asymmetry>The data asymmetry</a></li><li><a href=#a-bayesian-view-pre-training-is-a-prior>A Bayesian view: pre-training is a prior</a></li><li><a href=#an-information-theoretic-view-features-that-transfer>An information-theoretic view: features that transfer</a></li><li><a href=#faster-convergence-better-minima>Faster convergence, better minima</a></li></ul></li><li><a href=#self-supervised-pretext-tasks>Self-supervised pretext tasks</a><ul><li><a href=#contrastive-learning-vision>Contrastive learning (vision)</a><ul><li><a href=#simclr>SimCLR</a></li><li><a href=#moco-momentum-updated-queue>MoCo: momentum-updated queue</a></li></ul></li><li><a href=#masked-language-modelling-nlp>Masked language modelling (NLP)</a><ul><li><a href=#berts-mlm-objective>BERT&rsquo;s MLM objective</a></li><li><a href=#next-sentence-prediction-nsp-and-its-replacement>Next-Sentence Prediction (NSP) and its replacement</a></li></ul></li></ul></li><li><a href=#fine-tuning-why-it-converges-so-fast>Fine-tuning: why it converges so fast</a><ul><li><a href=#full-fine-tuning>Full fine-tuning</a></li><li><a href=#discriminative-learning-rates>Discriminative learning rates</a></li><li><a href=#warmup-then-decay>Warmup, then decay</a></li><li><a href=#layer-freezing>Layer freezing</a></li><li><a href=#linear-probing-vs-full-fine-tuning>Linear probing vs. full fine-tuning</a></li><li><a href=#catastrophic-forgetting>Catastrophic forgetting</a></li><li><a href=#adapters-parameter-efficient-fine-tuning>Adapters: parameter-efficient fine-tuning</a></li><li><a href=#lora-low-rank-weight-updates>LoRA: low-rank weight updates</a></li></ul></li><li><a href=#how-much-labelled-data-do-you-actually-need>How much labelled data do you actually need?</a></li><li><a href=#bert-in-practice>BERT in practice</a><ul><li><a href=#architecture-recap>Architecture recap</a></li><li><a href=#adapting-to-different-tasks>Adapting to different tasks</a></li><li><a href=#gpt-the-autoregressive-cousin>GPT: the autoregressive cousin</a></li></ul></li><li><a href=#complete-implementation-bert-fine-tuning>Complete implementation: BERT fine-tuning</a><ul><li><a href=#why-these-knobs-matter>Why these knobs matter</a></li></ul></li><li><a href=#faq>FAQ</a><ul><li><a href=#why-does-warmup-help-so-much-during-fine-tuning>Why does warmup help so much during fine-tuning?</a></li><li><a href=#how-much-pre-training-data-do-i-need>How much pre-training data do I need?</a></li><li><a href=#how-do-i-detect-overfitting-during-fine-tuning>How do I detect overfitting during fine-tuning?</a></li><li><a href=#lora-vs-full-fine-tuning---when-to-use-which>LoRA vs. full fine-tuning - when to use which?</a></li><li><a href=#why-do-bottom-layers-get-such-a-small-lr-under-discriminative-fine-tuning>Why do bottom layers get such a small LR under discriminative fine-tuning?</a></li></ul></li><li><a href=#summary>Summary</a></li><li><a href=#references>References</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>18 min</strong></div><div class=row><span>Word count</span><strong>3683</strong></div><div class=row><span>Published</span><strong>May 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

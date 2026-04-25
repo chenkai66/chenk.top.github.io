@@ -1,732 +1,361 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/terraform-agents/05-storage-for-agent-memory/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory · Chen Kai Blog</title>
-<meta name="description" content="An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory">
-<meta property="og:description" content="An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat.">
-<meta property="og:url" content="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-3);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Terraform Agents</a>
-         · Chapter 5
-      </div>
-      <h1>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</h1>
-      <p class="deck">An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-20">March 20, 2026</time> · 9 min read · 1800 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/terraform/" class="tag">#Terraform</a><a href="/en/tags/alibaba-cloud/" class="tag">#Alibaba Cloud</a><a href="/en/tags/oss/" class="tag">#OSS</a><a href="/en/tags/rds/" class="tag">#RDS</a><a href="/en/tags/opensearch/" class="tag">#OpenSearch</a><a href="/en/tags/ai-agents/" class="tag">#AI Agents</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/terraform-agents/05-storage-for-agent-memory/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>An agent&rsquo;s memory is the part most tutorials hand-wave. &ldquo;Just put the embeddings in Pinecone, the sessions in Postgres, the screenshots in S3.&rdquo; On Aliyun, all three exist as managed services, and Terraform-provisioning them right is the difference between &ldquo;memory works&rdquo; and &ldquo;we lost three weeks of conversation history because the disk filled up at 4am&rdquo;.</p>
-<p>This article covers all three layers, the Terraform for each, and the boring-but-critical lifecycle and backup rules.</p>
-<h2 id="the-three-layer-memory-model">The three-layer memory model</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png" alt="An agent&rsquo;s three kinds of memory map onto three Aliyun services" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The mental model:</p>
-<ul>
-<li><strong>Short-term / session</strong> — what the agent did in the current run and the last few runs. Conversation turns, tool calls, intermediate state. Schema-stable, low-latency, transactional. Goes in a relational database.</li>
-<li><strong>Long-term / semantic</strong> — embeddings of documents, prior outputs, and recall corpus. Hybrid lexical + vector search. Goes in a vector store.</li>
-<li><strong>Artifact / blob</strong> — generated images, PDFs, screenshots, run snapshots. Sometimes large, often write-once-read-rarely. Goes in object storage.</li>
-</ul>
-<p>Don&rsquo;t conflate them. I have watched a team try to put 50 GB of generated PDFs in Postgres because &ldquo;it has a <code>bytea</code> column&rdquo;. Cost ten times what OSS would have, query latency went to mush, backups took hours.</p>
-<h2 id="layer-1-relational-rds-for-postgresql">Layer 1: relational, RDS for PostgreSQL</h2>
-<p>For session state — turn-by-turn conversation, tool-call traces, user identity — you want a real RDBMS. PostgreSQL is my default; MySQL works fine if your team prefers it. PolarDB is the next step up when you need horizontal scale.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span><span class="lnt">48
-</span><span class="lnt">49
-</span><span class="lnt">50
-</span><span class="lnt">51
-</span><span class="lnt">52
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;random_password&#34; &#34;rds_admin&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  length</span>  <span class="o">=</span> <span class="m">32</span>
-</span></span><span class="line"><span class="cl"><span class="n">  special</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_kms_secret&#34; &#34;rds_admin&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  secret_name</span>              <span class="o">=</span> <span class="s2">&#34;agents-${terraform.workspace}-rds-admin&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  secret_data</span>              <span class="o">=</span> <span class="k">random_password</span><span class="p">.</span><span class="k">rds_admin</span><span class="p">.</span><span class="k">result</span>
-</span></span><span class="line"><span class="cl"><span class="n">  version_id</span>               <span class="o">=</span> <span class="s2">&#34;v1&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  description</span>              <span class="o">=</span> <span class="s2">&#34;RDS admin password for agents-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  encryption_key_id</span>        <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;secrets&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  recovery_window_in_days</span>  <span class="o">=</span> <span class="m">7</span>
-</span></span><span class="line"><span class="cl"><span class="n">  force_delete_without_recovery</span> <span class="o">=</span> <span class="kt">false</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_instance&#34; &#34;memory&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  engine</span>           <span class="o">=</span> <span class="s2">&#34;PostgreSQL&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  engine_version</span>   <span class="o">=</span> <span class="s2">&#34;16.0&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_type</span>    <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34; ? &#34;pg.x4.large.2c&#34; : &#34;pg.n2.medium.1c&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_storage</span> <span class="o">=</span> <span class="m">100</span>
-</span></span><span class="line"><span class="cl"><span class="n">  instance_name</span>    <span class="o">=</span> <span class="s2">&#34;agents-memory-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  vswitch_id</span>          <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">private_vswitch_ids</span><span class="p">[</span><span class="m">0</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  security_ips</span>        <span class="o">=</span> <span class="p">[</span><span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">vpc_cidr_block</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  db_instance_storage_type</span> <span class="o">=</span> <span class="s2">&#34;cloud_essd&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  encryption_key</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;memory&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  backup_period</span>   <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;Monday&#34;, &#34;Wednesday&#34;, &#34;Friday&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl"><span class="n">  backup_time</span>     <span class="o">=</span> <span class="s2">&#34;02:00Z-03:00Z&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  retention_period</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span> <span class="err">?</span> <span class="m">30</span> <span class="err">:</span> <span class="m">7</span>
-</span></span><span class="line"><span class="cl"><span class="n">  log_backup_retention_period</span> <span class="o">=</span> <span class="m">30</span>
-</span></span><span class="line"><span class="cl"><span class="n">  preferred_backup_period</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&#34;Monday&#34;, &#34;Wednesday&#34;, &#34;Friday&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  deletion_protection</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  zone_id</span> <span class="o">=</span> <span class="s2">&#34;cn-shanghai-l&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  zone_id_slave_a</span> <span class="o">=</span><span class="n"> terraform.workspace</span> <span class="o">==</span> <span class="s2">&#34;prod&#34; ? &#34;cn-shanghai-m&#34;</span> <span class="err">:</span> <span class="k">null</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_account&#34; &#34;agent&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  db_instance_id</span>   <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  account_name</span>     <span class="o">=</span> <span class="s2">&#34;agent&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  account_password</span> <span class="o">=</span> <span class="k">random_password</span><span class="p">.</span><span class="k">rds_admin</span><span class="p">.</span><span class="k">result</span>
-</span></span><span class="line"><span class="cl"><span class="n">  account_type</span>     <span class="o">=</span> <span class="s2">&#34;Super&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_database&#34; &#34;session&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  instance_id</span>   <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>          <span class="o">=</span> <span class="s2">&#34;agent_sessions&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  character_set</span> <span class="o">=</span> <span class="s2">&#34;UTF8&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Highlights:</p>
-<ul>
-<li><strong>Password lives in KMS Secrets Manager from birth.</strong> Generated by <code>random_password</code>, written to <code>alicloud_kms_secret</code>, retrieved by the agent at startup via STS. The plaintext password never leaves Terraform&rsquo;s memory and isn&rsquo;t in tfstate (it&rsquo;s referenced via <code>secret_id</code>).</li>
-<li><strong><code>encryption_key</code></strong> ties the disk to the <code>memory</code> CMK. At-rest encryption, no extra cost.</li>
-<li><strong><code>backup_period</code> + <code>retention_period</code></strong> create automated backups three times a week, kept 30 days in prod, 7 in dev. RDS backups are stored on OSS; you don&rsquo;t manage the bucket.</li>
-<li><strong><code>zone_id_slave_a</code></strong> in prod creates a hot standby in a second zone. Failover is sub-30s. The cost is 2× — worth it for prod, overkill for dev.</li>
-<li><strong><code>deletion_protection</code></strong> in prod blocks <code>terraform destroy</code> from killing the database. Always.</li>
-</ul>
-<blockquote>
-<p><strong>Real-world tip:</strong> PolarDB is the right choice once your sessions table crosses ~10M rows or you need read replicas without downtime. Migration from RDS to PolarDB is well-documented and Terraform handles both. Don&rsquo;t start there — RDS is simpler and cheaper at small scale.</p>
-</blockquote>
-<h2 id="layer-2-vector-store">Layer 2: vector store</h2>
-<p>You have two reasonable choices on Aliyun for the vector layer:</p>
-<ol>
-<li><strong>OpenSearch Vector Search Edition</strong> — managed, Lucene-backed, supports HNSW + IVF, billed per QPS quota</li>
-<li><strong>PolarDB or RDS PostgreSQL with <code>pgvector</code></strong> — co-located with your relational data, free in terms of new infra, slower past ~1M vectors</li>
-</ol>
-<p>For anything past prototype, I prefer OpenSearch. The cost is real (~¥800/mo for the smallest instance), but you get hybrid lexical+vector search out of the box, which is the right shape for retrieval.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_opensearch_app_group&#34; &#34;vector&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  app_group_name</span>  <span class="o">=</span> <span class="s2">&#34;agent-vec-${terraform.workspace}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  payment_type</span>    <span class="o">=</span> <span class="s2">&#34;PayAsYouGo&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  type</span>            <span class="o">=</span> <span class="s2">&#34;vector&#34;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">quota</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    doc_size</span>   <span class="o">=</span> <span class="m">100</span>
-</span></span><span class="line"><span class="cl"><span class="n">    compute_resource</span> <span class="o">=</span> <span class="m">20</span>
-</span></span><span class="line"><span class="cl"><span class="n">    spec</span>       <span class="o">=</span> <span class="s2">&#34;opensearch.share.junior&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl"><span class="n">  description</span> <span class="o">=</span> <span class="s2">&#34;Long-term semantic memory for agents&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The app group is the OpenSearch concept that holds an index. From here you create the index schema via the OpenSearch console or SDK — the <code>alicloud_opensearch_app</code> resource exists but the schema bit is operational, not provisional.</p>
-<p>If you go the pgvector route instead, add this to the RDS database creation:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_db_database&#34; &#34;vectors&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  instance_id</span>   <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">  name</span>          <span class="o">=</span> <span class="s2">&#34;agent_vectors&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  character_set</span> <span class="o">=</span> <span class="s2">&#34;UTF8&#34;</span>
-</span></span><span class="line"><span class="cl">}<span class="c1">
-</span></span></span><span class="line"><span class="cl"><span class="c1">
-</span></span></span><span class="line"><span class="cl"><span class="c1"># pgvector extension is created via your migration tool, not Terraform:
-</span></span></span><span class="line"><span class="cl"><span class="c1"># CREATE EXTENSION IF NOT EXISTS vector;
-</span></span></span><span class="line"><span class="cl"><span class="c1"># CREATE TABLE embeddings (id bigserial primary key, vec vector(1536), meta jsonb);
-</span></span></span><span class="line"><span class="cl"><span class="c1"># CREATE INDEX embeddings_vec_idx ON embeddings USING hnsw (vec vector_cosine_ops);
-</span></span></span></code></pre></td></tr></table>
-</div>
-</div><p>The Terraform half is just the database; the schema is application code (Alembic, Flyway, sqlx-migrate — pick one). Don&rsquo;t try to manage table schemas in Terraform; that path leads to madness.</p>
-<h2 id="layer-3-object-storage">Layer 3: object storage</h2>
-<p>OSS is where artifacts go: generated images, PDFs, screenshots, run-trace tarballs, model checkpoints if you fine-tune.</p>
-<p>The official &ldquo;Create a bucket with Terraform&rdquo; practice doc covers the basics. For an agent stack:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span><span class="lnt">41
-</span><span class="lnt">42
-</span><span class="lnt">43
-</span><span class="lnt">44
-</span><span class="lnt">45
-</span><span class="lnt">46
-</span><span class="lnt">47
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket&#34; &#34;artifacts&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  bucket</span> <span class="o">=</span> <span class="s2">&#34;agents-artifacts-${terraform.workspace}-${random_id.suffix.hex}&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  acl</span>    <span class="o">=</span> <span class="s2">&#34;private&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">versioning</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    status</span> <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">server_side_encryption_rule</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    sse_algorithm</span>   <span class="o">=</span> <span class="s2">&#34;KMS&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    kms_master_key_id</span> <span class="o">=</span> <span class="k">module</span><span class="p">.</span><span class="k">vpc</span><span class="p">.</span><span class="k">kms_keys</span><span class="p">[</span><span class="s2">&#34;memory&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">lifecycle_rule</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    id</span>      <span class="o">=</span> <span class="s2">&#34;agent-artifacts-tiering&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">    enabled</span> <span class="o">=</span> <span class="kt">true</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">transitions</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      days</span>          <span class="o">=</span> <span class="m">30</span>
-</span></span><span class="line"><span class="cl"><span class="n">      storage_class</span> <span class="o">=</span> <span class="s2">&#34;IA&#34;</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">    <span class="k">transitions</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      days</span>          <span class="o">=</span> <span class="m">90</span>
-</span></span><span class="line"><span class="cl"><span class="n">      storage_class</span> <span class="o">=</span> <span class="s2">&#34;Archive&#34;</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">    <span class="k">transitions</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      days</span>          <span class="o">=</span> <span class="m">365</span>
-</span></span><span class="line"><span class="cl"><span class="n">      storage_class</span> <span class="o">=</span> <span class="s2">&#34;ColdArchive&#34;</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">    <span class="k">expiration</span> {
-</span></span><span class="line"><span class="cl"><span class="n">      days</span> <span class="o">=</span> <span class="m">730</span>
-</span></span><span class="line"><span class="cl">    }
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">logging</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    target_bucket</span> <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">access_logs</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl"><span class="n">    target_prefix</span> <span class="o">=</span> <span class="s2">&#34;artifacts-access/&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  tags</span> <span class="o">=</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    Domain</span> <span class="o">=</span> <span class="s2">&#34;agent-artifacts&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;random_id&#34; &#34;suffix&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  byte_length</span> <span class="o">=</span> <span class="m">4</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Three things worth a closer look:</p>
-<h3 id="bucket-name-uniqueness">Bucket-name uniqueness</h3>
-<p>OSS bucket names are globally unique across all Aliyun customers. The <code>random_id</code> suffix avoids the &ldquo;name already taken&rdquo; plan failure that bites every first-time user. Once the bucket is created, the name is stable.</p>
-<h3 id="lifecycle-tiering">Lifecycle tiering</h3>
-<p>The <code>lifecycle_rule</code> block is the single biggest cost lever in OSS:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png" alt="OSS lifecycle for agent artifacts" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li><strong>Standard</strong> (0-30 days, ~¥0.12/GB/mo) — what you write to by default</li>
-<li><strong>Infrequent Access</strong> (30-90 days, ~¥0.08/GB/mo) — cheaper storage, $0.0125 per GB retrieval</li>
-<li><strong>Archive</strong> (90-365 days, ~¥0.033/GB/mo) — minutes-to-hours retrieval</li>
-<li><strong>Cold Archive</strong> (365+ days, ~¥0.015/GB/mo) — hours retrieval, the cheapest</li>
-</ul>
-<p>For agent artifacts, this rule says: keep 30 days hot, then move to IA, then Archive at 3 months, then Cold Archive at a year, then delete at two years. For a 1 TB artifact corpus, this is the difference between ¥1500/mo (all Standard) and ~¥250/mo. Codify it in HCL once, save 5 figures over a year.</p>
-<h3 id="versioning">Versioning</h3>
-<p><code>versioning { status = &quot;Enabled&quot; }</code> keeps every object version. An agent that overwrites <code>artifacts/run-123/output.pdf</code> doesn&rsquo;t actually destroy the previous version — it&rsquo;s still there with a different version ID. Two reasons this matters:</p>
-<ol>
-<li><strong>Recovery.</strong> A bug overwrote 50,000 objects with garbage? Restore the previous versions in a script.</li>
-<li><strong>Tamper-evidence.</strong> Combined with WORM (Write-Once-Read-Many) policies, this gives you regulatory compliance for free.</li>
-</ol>
-<p>The cost is real — versioned objects accumulate. Pair versioning with a <code>noncurrent_version_expiration</code> rule in the lifecycle to prune old versions after, say, 180 days.</p>
-<h2 id="the-backup-story">The backup story</h2>
-<p>A Terraform-managed backup setup looks like this:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png" alt="Backups: not optional, just budgeted" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li>RDS: built-in automated backups (already in our HCL above)</li>
-<li>OSS: versioning + cross-region replication for disaster recovery</li>
-<li>OpenSearch: snapshot to OSS via the <code>alicloud_opensearch_*</code> snapshot resources</li>
-</ul>
-<p>Cross-region replication for OSS is one resource:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket&#34; &#34;artifacts_dr&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  provider</span> <span class="o">=</span> <span class="k">alicloud</span><span class="p">.</span><span class="k">beijing</span><span class="c1">       # second-region provider alias
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">  bucket</span>   <span class="o">=</span> <span class="s2">&#34;${alicloud_oss_bucket.artifacts.bucket}-dr&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  acl</span>      <span class="o">=</span> <span class="s2">&#34;private&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">versioning</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    status</span> <span class="o">=</span> <span class="s2">&#34;Enabled&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">server_side_encryption_rule</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    sse_algorithm</span> <span class="o">=</span> <span class="s2">&#34;AES256&#34;</span><span class="c1">        # KMS keys are region-scoped, simpler to use AES256 for DR
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>  }
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">resource</span> <span class="s2">&#34;alicloud_oss_bucket_replication&#34; &#34;artifacts&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  bucket</span> <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">artifacts</span><span class="p">.</span><span class="k">id</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">  action</span> <span class="o">=</span> <span class="s2">&#34;ALL&#34;</span>
-</span></span><span class="line"><span class="cl">  <span class="k">destination</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    bucket</span>   <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">artifacts_dr</span><span class="p">.</span><span class="k">bucket</span>
-</span></span><span class="line"><span class="cl"><span class="n">    location</span> <span class="o">=</span> <span class="s2">&#34;oss-cn-beijing&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl"><span class="n">  enable_historical_object_replication</span> <span class="o">=</span> <span class="s2">&#34;enabled&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">  <span class="k">encryption_configuration</span> {
-</span></span><span class="line"><span class="cl"><span class="n">    replica_kms_key_id</span> <span class="o">=</span> <span class="s2">&#34;alias/agents-prod-memory-dr&#34;</span>
-</span></span><span class="line"><span class="cl">  }
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The aliased provider lets one Terraform run touch two regions:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">provider</span> <span class="s2">&#34;alicloud&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  alias</span>  <span class="o">=</span> <span class="s2">&#34;beijing&#34;</span>
-</span></span><span class="line"><span class="cl"><span class="n">  region</span> <span class="o">=</span> <span class="s2">&#34;cn-beijing&#34;</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>For a research agent that&rsquo;s mainly stateless, you might decide DR isn&rsquo;t worth the storage doubling. For a customer-facing one with conversation history that legally must persist, it&rsquo;s mandatory.</p>
-<blockquote>
-<p><strong>Real-world tip:</strong> Test the restore quarterly. A backup you have never restored is just an expensive hope. I run a <code>restore-drill.sh</code> script monthly that pulls a random RDS backup into a <code>cn-shanghai-dr</code> instance and runs schema/checksum verification. It is the most useful 30 minutes I spend each month.</p>
-</blockquote>
-<h2 id="connecting-compute-to-storage">Connecting compute to storage</h2>
-<p>The ECS instance from article 4 needs to actually reach this storage. Three pieces:</p>
-<ol>
-<li><strong>Network</strong> — already done. The <code>agent_runtime_sg_id</code> from the VPC module is the source for the <code>memory_rds_sg</code> and <code>vector_store_sg</code> ingress rules.</li>
-<li><strong>Credentials</strong> — the agent reads the DB password from KMS Secrets Manager via STS:
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">alibabacloud_kms20160120.client</span> <span class="kn">import</span> <span class="n">Client</span> <span class="k">as</span> <span class="n">KmsClient</span>
-</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">kms_client</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">(</span><span class="n">GetSecretValueRequest</span><span class="p">(</span><span class="n">secret_name</span><span class="o">=</span><span class="s2">&#34;agents-prod-rds-admin&#34;</span><span class="p">))</span>
-</span></span><span class="line"><span class="cl"><span class="n">db_password</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">secret_data</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div></li>
-<li><strong>Endpoints</strong> — Terraform outputs them:
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span><span class="lnt">7
-</span><span class="lnt">8
-</span><span class="lnt">9
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-hcl" data-lang="hcl"><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;rds_endpoint&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_db_instance</span><span class="p">.</span><span class="k">memory</span><span class="p">.</span><span class="k">connection_string</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;vector_endpoint&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_opensearch_app_group</span><span class="p">.</span><span class="k">vector</span><span class="p">.</span><span class="k">api_domain</span>
-</span></span><span class="line"><span class="cl">}
-</span></span><span class="line"><span class="cl"><span class="k">output</span> <span class="s2">&#34;artifacts_bucket&#34;</span> {
-</span></span><span class="line"><span class="cl"><span class="n">  value</span> <span class="o">=</span> <span class="k">alicloud_oss_bucket</span><span class="p">.</span><span class="k">artifacts</span><span class="p">.</span><span class="k">bucket</span>
-</span></span><span class="line"><span class="cl">}
-</span></span></code></pre></td></tr></table>
-</div>
-</div></li>
-</ol>
-<p>The agent reads these from environment variables that cloud-init sets from the Terraform outputs. No hardcoded endpoints, no manual config files.</p>
-<h2 id="what-it-costs-monthly-dev-workspace-low-traffic">What it costs (monthly, dev workspace, low traffic)</h2>
-<ul>
-<li>RDS PostgreSQL (<code>pg.n2.medium.1c</code>, 100 GB ESSD): ~¥350/mo</li>
-<li>OpenSearch vector (smallest): ~¥800/mo</li>
-<li>OSS (10 GB Standard, lifecycle on): ~¥1.5/mo + traffic</li>
-<li>KMS (covered in article 3): ~¥10/mo</li>
-</ul>
-<p>Roughly ¥1200/mo for the storage layer in dev. Prod with HA RDS, larger OpenSearch, more OSS will be ¥3000-5000/mo. This is where the cost pressure starts being real — article 7 shows how to track and alert on it.</p>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 6 builds the LLM gateway in front of the compute we provisioned in article 4 and the storage we just provisioned. That&rsquo;s the place where API keys live, quotas get enforced, and per-agent cost gets attributed. By the end of article 6 you&rsquo;ll have a complete agent-runnable stack — the last two articles wire observability and cost control over the top.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/"><span class="title">Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/"><span class="title">Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#the-three-layer-memory-model">The three-layer memory model</a></li>
-    <li><a href="#layer-1-relational-rds-for-postgresql">Layer 1: relational, RDS for PostgreSQL</a></li>
-    <li><a href="#layer-2-vector-store">Layer 2: vector store</a></li>
-    <li><a href="#layer-3-object-storage">Layer 3: object storage</a>
-      <ul>
-        <li><a href="#bucket-name-uniqueness">Bucket-name uniqueness</a></li>
-        <li><a href="#lifecycle-tiering">Lifecycle tiering</a></li>
-        <li><a href="#versioning">Versioning</a></li>
-      </ul>
-    </li>
-    <li><a href="#the-backup-story">The backup story</a></li>
-    <li><a href="#connecting-compute-to-storage">Connecting compute to storage</a></li>
-    <li><a href="#what-it-costs-monthly-dev-workspace-low-traffic">What it costs (monthly, dev workspace, low traffic)</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Terraform Agents</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>9 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1800</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/terraform-agents/05-storage-for-agent-memory/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory · Chen Kai Blog</title>
+<meta name=description content="An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/terraform-agents/05-storage-for-agent-memory/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/><meta property="og:type" content="article"><meta property="og:title" content="Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory"><meta property="og:description" content="An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat."><meta property="og:url" content="https://www.chenk.top/en/terraform-agents/05-storage-for-agent-memory/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-3)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Terraform Agents</a>
+· Chapter 5</div><h1>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</h1><p class=deck>An agent has three kinds of memory and they map onto three Aliyun services: PolarDB/RDS for sessions, OpenSearch (vector edition) or pgvector for embeddings, OSS for artifacts. Real Terraform for each, plus the lifecycle and backup rules that keep the bill flat.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-20>March 20, 2026</time> · 9 min read · 1792 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/terraform/ class=tag>#Terraform</a><a href=/en/tags/alibaba-cloud/ class=tag>#Alibaba Cloud</a><a href=/en/tags/oss/ class=tag>#OSS</a><a href=/en/tags/rds/ class=tag>#RDS</a><a href=/en/tags/opensearch/ class=tag>#OpenSearch</a><a href=/en/tags/ai-agents/ class=tag>#AI Agents</a></div><a class="pill pill-outline" href=/zh/terraform-agents/05-storage-for-agent-memory/>Read in English →</a></div></header><div class=prose><p>An agent&rsquo;s memory is the part most tutorials hand-wave. &ldquo;Just put the embeddings in Pinecone, the sessions in Postgres, the screenshots in S3.&rdquo; On Aliyun, all three exist as managed services, and Terraform-provisioning them right is the difference between &ldquo;memory works&rdquo; and &ldquo;we lost three weeks of conversation history because the disk filled up at 4am&rdquo;.</p><p>This article covers all three layers, the Terraform for each, and the boring-but-critical lifecycle and backup rules.</p><h2 id=the-three-layer-memory-model>The three-layer memory model</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig1_memory_three_layers.png alt="An agent&rsquo;s three kinds of memory map onto three Aliyun services" loading=lazy decoding=async></figure></p><p>The mental model:</p><ul><li><strong>Short-term / session</strong> — what the agent did in the current run and the last few runs. Conversation turns, tool calls, intermediate state. Schema-stable, low-latency, transactional. Goes in a relational database.</li><li><strong>Long-term / semantic</strong> — embeddings of documents, prior outputs, and recall corpus. Hybrid lexical + vector search. Goes in a vector store.</li><li><strong>Artifact / blob</strong> — generated images, PDFs, screenshots, run snapshots. Sometimes large, often write-once-read-rarely. Goes in object storage.</li></ul><p>Don&rsquo;t conflate them. I have watched a team try to put 50 GB of generated PDFs in Postgres because &ldquo;it has a <code>bytea</code> column&rdquo;. Cost ten times what OSS would have, query latency went to mush, backups took hours.</p><h2 id=layer-1-relational-rds-for-postgresql>Layer 1: relational, RDS for PostgreSQL</h2><p>For session state — turn-by-turn conversation, tool-call traces, user identity — you want a real RDBMS. PostgreSQL is my default; MySQL works fine if your team prefers it. PolarDB is the next step up when you need horizontal scale.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span><span class=lnt>48
+</span><span class=lnt>49
+</span><span class=lnt>50
+</span><span class=lnt>51
+</span><span class=lnt>52
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;random_password&#34; &#34;rds_admin&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  length</span>  <span class=o>=</span> <span class=m>32</span>
+</span></span><span class=line><span class=cl><span class=n>  special</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_kms_secret&#34; &#34;rds_admin&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  secret_name</span>              <span class=o>=</span> <span class=s2>&#34;agents-${terraform.workspace}-rds-admin&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  secret_data</span>              <span class=o>=</span> <span class=k>random_password</span><span class=p>.</span><span class=k>rds_admin</span><span class=p>.</span><span class=k>result</span>
+</span></span><span class=line><span class=cl><span class=n>  version_id</span>               <span class=o>=</span> <span class=s2>&#34;v1&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  description</span>              <span class=o>=</span> <span class=s2>&#34;RDS admin password for agents-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  encryption_key_id</span>        <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;secrets&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  recovery_window_in_days</span>  <span class=o>=</span> <span class=m>7</span>
+</span></span><span class=line><span class=cl><span class=n>  force_delete_without_recovery</span> <span class=o>=</span> <span class=kt>false</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_instance&#34; &#34;memory&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  engine</span>           <span class=o>=</span> <span class=s2>&#34;PostgreSQL&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  engine_version</span>   <span class=o>=</span> <span class=s2>&#34;16.0&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_type</span>    <span class=o>=</span><span class=n> terraform.workspace</span> <span class=o>==</span> <span class=s2>&#34;prod&#34; ? &#34;pg.x4.large.2c&#34; : &#34;pg.n2.medium.1c&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_storage</span> <span class=o>=</span> <span class=m>100</span>
+</span></span><span class=line><span class=cl><span class=n>  instance_name</span>    <span class=o>=</span> <span class=s2>&#34;agents-memory-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  vswitch_id</span>          <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>private_vswitch_ids</span><span class=p>[</span><span class=m>0</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  security_ips</span>        <span class=o>=</span> <span class=p>[</span><span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>vpc_cidr_block</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  db_instance_storage_type</span> <span class=o>=</span> <span class=s2>&#34;cloud_essd&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  encryption_key</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;memory&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  backup_period</span>   <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;Monday&#34;, &#34;Wednesday&#34;, &#34;Friday&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl><span class=n>  backup_time</span>     <span class=o>=</span> <span class=s2>&#34;02:00Z-03:00Z&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  retention_period</span> <span class=o>=</span><span class=n> terraform.workspace</span> <span class=o>==</span> <span class=s2>&#34;prod&#34;</span> <span class=err>?</span> <span class=m>30</span> <span class=err>:</span> <span class=m>7</span>
+</span></span><span class=line><span class=cl><span class=n>  log_backup_retention_period</span> <span class=o>=</span> <span class=m>30</span>
+</span></span><span class=line><span class=cl><span class=n>  preferred_backup_period</span> <span class=o>=</span> <span class=p>[</span><span class=s2>&#34;Monday&#34;, &#34;Wednesday&#34;, &#34;Friday&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  deletion_protection</span> <span class=o>=</span><span class=n> terraform.workspace</span> <span class=o>==</span> <span class=s2>&#34;prod&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  zone_id</span> <span class=o>=</span> <span class=s2>&#34;cn-shanghai-l&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  zone_id_slave_a</span> <span class=o>=</span><span class=n> terraform.workspace</span> <span class=o>==</span> <span class=s2>&#34;prod&#34; ? &#34;cn-shanghai-m&#34;</span> <span class=err>:</span> <span class=k>null</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_account&#34; &#34;agent&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  db_instance_id</span>   <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  account_name</span>     <span class=o>=</span> <span class=s2>&#34;agent&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  account_password</span> <span class=o>=</span> <span class=k>random_password</span><span class=p>.</span><span class=k>rds_admin</span><span class=p>.</span><span class=k>result</span>
+</span></span><span class=line><span class=cl><span class=n>  account_type</span>     <span class=o>=</span> <span class=s2>&#34;Super&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_database&#34; &#34;session&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  instance_id</span>   <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>          <span class=o>=</span> <span class=s2>&#34;agent_sessions&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  character_set</span> <span class=o>=</span> <span class=s2>&#34;UTF8&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Highlights:</p><ul><li><strong>Password lives in KMS Secrets Manager from birth.</strong> Generated by <code>random_password</code>, written to <code>alicloud_kms_secret</code>, retrieved by the agent at startup via STS. The plaintext password never leaves Terraform&rsquo;s memory and isn&rsquo;t in tfstate (it&rsquo;s referenced via <code>secret_id</code>).</li><li><strong><code>encryption_key</code></strong> ties the disk to the <code>memory</code> CMK. At-rest encryption, no extra cost.</li><li><strong><code>backup_period</code> + <code>retention_period</code></strong> create automated backups three times a week, kept 30 days in prod, 7 in dev. RDS backups are stored on OSS; you don&rsquo;t manage the bucket.</li><li><strong><code>zone_id_slave_a</code></strong> in prod creates a hot standby in a second zone. Failover is sub-30s. The cost is 2× — worth it for prod, overkill for dev.</li><li><strong><code>deletion_protection</code></strong> in prod blocks <code>terraform destroy</code> from killing the database. Always.</li></ul><blockquote><p><strong>Real-world tip:</strong> PolarDB is the right choice once your sessions table crosses ~10M rows or you need read replicas without downtime. Migration from RDS to PolarDB is well-documented and Terraform handles both. Don&rsquo;t start there — RDS is simpler and cheaper at small scale.</p></blockquote><h2 id=layer-2-vector-store>Layer 2: vector store</h2><p>You have two reasonable choices on Aliyun for the vector layer:</p><ol><li><strong>OpenSearch Vector Search Edition</strong> — managed, Lucene-backed, supports HNSW + IVF, billed per QPS quota</li><li><strong>PolarDB or RDS PostgreSQL with <code>pgvector</code></strong> — co-located with your relational data, free in terms of new infra, slower past ~1M vectors</li></ol><p>For anything past prototype, I prefer OpenSearch. The cost is real (~¥800/mo for the smallest instance), but you get hybrid lexical+vector search out of the box, which is the right shape for retrieval.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_opensearch_app_group&#34; &#34;vector&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  app_group_name</span>  <span class=o>=</span> <span class=s2>&#34;agent-vec-${terraform.workspace}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  payment_type</span>    <span class=o>=</span> <span class=s2>&#34;PayAsYouGo&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  type</span>            <span class=o>=</span> <span class=s2>&#34;vector&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>quota</span> {
+</span></span><span class=line><span class=cl><span class=n>    doc_size</span>   <span class=o>=</span> <span class=m>100</span>
+</span></span><span class=line><span class=cl><span class=n>    compute_resource</span> <span class=o>=</span> <span class=m>20</span>
+</span></span><span class=line><span class=cl><span class=n>    spec</span>       <span class=o>=</span> <span class=s2>&#34;opensearch.share.junior&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl><span class=n>  description</span> <span class=o>=</span> <span class=s2>&#34;Long-term semantic memory for agents&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>The app group is the OpenSearch concept that holds an index. From here you create the index schema via the OpenSearch console or SDK — the <code>alicloud_opensearch_app</code> resource exists but the schema bit is operational, not provisional.</p><p>If you go the pgvector route instead, add this to the RDS database creation:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_db_database&#34; &#34;vectors&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  instance_id</span>   <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>  name</span>          <span class=o>=</span> <span class=s2>&#34;agent_vectors&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  character_set</span> <span class=o>=</span> <span class=s2>&#34;UTF8&#34;</span>
+</span></span><span class=line><span class=cl>}<span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1>
+</span></span></span><span class=line><span class=cl><span class=c1># pgvector extension is created via your migration tool, not Terraform:
+</span></span></span><span class=line><span class=cl><span class=c1># CREATE EXTENSION IF NOT EXISTS vector;
+</span></span></span><span class=line><span class=cl><span class=c1># CREATE TABLE embeddings (id bigserial primary key, vec vector(1536), meta jsonb);
+</span></span></span><span class=line><span class=cl><span class=c1># CREATE INDEX embeddings_vec_idx ON embeddings USING hnsw (vec vector_cosine_ops);
+</span></span></span></code></pre></td></tr></table></div></div><p>The Terraform half is just the database; the schema is application code (Alembic, Flyway, sqlx-migrate — pick one). Don&rsquo;t try to manage table schemas in Terraform; that path leads to madness.</p><h2 id=layer-3-object-storage>Layer 3: object storage</h2><p>OSS is where artifacts go: generated images, PDFs, screenshots, run-trace tarballs, model checkpoints if you fine-tune.</p><p>The official &ldquo;Create a bucket with Terraform&rdquo; practice doc covers the basics. For an agent stack:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span><span class=lnt>42
+</span><span class=lnt>43
+</span><span class=lnt>44
+</span><span class=lnt>45
+</span><span class=lnt>46
+</span><span class=lnt>47
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_oss_bucket&#34; &#34;artifacts&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  bucket</span> <span class=o>=</span> <span class=s2>&#34;agents-artifacts-${terraform.workspace}-${random_id.suffix.hex}&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  acl</span>    <span class=o>=</span> <span class=s2>&#34;private&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>versioning</span> {
+</span></span><span class=line><span class=cl><span class=n>    status</span> <span class=o>=</span> <span class=s2>&#34;Enabled&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>server_side_encryption_rule</span> {
+</span></span><span class=line><span class=cl><span class=n>    sse_algorithm</span>   <span class=o>=</span> <span class=s2>&#34;KMS&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    kms_master_key_id</span> <span class=o>=</span> <span class=k>module</span><span class=p>.</span><span class=k>vpc</span><span class=p>.</span><span class=k>kms_keys</span><span class=p>[</span><span class=s2>&#34;memory&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>lifecycle_rule</span> {
+</span></span><span class=line><span class=cl><span class=n>    id</span>      <span class=o>=</span> <span class=s2>&#34;agent-artifacts-tiering&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>    enabled</span> <span class=o>=</span> <span class=kt>true</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>transitions</span> {
+</span></span><span class=line><span class=cl><span class=n>      days</span>          <span class=o>=</span> <span class=m>30</span>
+</span></span><span class=line><span class=cl><span class=n>      storage_class</span> <span class=o>=</span> <span class=s2>&#34;IA&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>    <span class=k>transitions</span> {
+</span></span><span class=line><span class=cl><span class=n>      days</span>          <span class=o>=</span> <span class=m>90</span>
+</span></span><span class=line><span class=cl><span class=n>      storage_class</span> <span class=o>=</span> <span class=s2>&#34;Archive&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>    <span class=k>transitions</span> {
+</span></span><span class=line><span class=cl><span class=n>      days</span>          <span class=o>=</span> <span class=m>365</span>
+</span></span><span class=line><span class=cl><span class=n>      storage_class</span> <span class=o>=</span> <span class=s2>&#34;ColdArchive&#34;</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>    <span class=k>expiration</span> {
+</span></span><span class=line><span class=cl><span class=n>      days</span> <span class=o>=</span> <span class=m>730</span>
+</span></span><span class=line><span class=cl>    }
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>logging</span> {
+</span></span><span class=line><span class=cl><span class=n>    target_bucket</span> <span class=o>=</span> <span class=k>alicloud_oss_bucket</span><span class=p>.</span><span class=k>access_logs</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl><span class=n>    target_prefix</span> <span class=o>=</span> <span class=s2>&#34;artifacts-access/&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  tags</span> <span class=o>=</span> {
+</span></span><span class=line><span class=cl><span class=n>    Domain</span> <span class=o>=</span> <span class=s2>&#34;agent-artifacts&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;random_id&#34; &#34;suffix&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  byte_length</span> <span class=o>=</span> <span class=m>4</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>Three things worth a closer look:</p><h3 id=bucket-name-uniqueness>Bucket-name uniqueness</h3><p>OSS bucket names are globally unique across all Aliyun customers. The <code>random_id</code> suffix avoids the &ldquo;name already taken&rdquo; plan failure that bites every first-time user. Once the bucket is created, the name is stable.</p><h3 id=lifecycle-tiering>Lifecycle tiering</h3><p>The <code>lifecycle_rule</code> block is the single biggest cost lever in OSS:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig2_oss_lifecycle.png alt="OSS lifecycle for agent artifacts" loading=lazy decoding=async></figure></p><ul><li><strong>Standard</strong> (0-30 days, ~¥0.12/GB/mo) — what you write to by default</li><li><strong>Infrequent Access</strong> (30-90 days, ~¥0.08/GB/mo) — cheaper storage, $0.0125 per GB retrieval</li><li><strong>Archive</strong> (90-365 days, ~¥0.033/GB/mo) — minutes-to-hours retrieval</li><li><strong>Cold Archive</strong> (365+ days, ~¥0.015/GB/mo) — hours retrieval, the cheapest</li></ul><p>For agent artifacts, this rule says: keep 30 days hot, then move to IA, then Archive at 3 months, then Cold Archive at a year, then delete at two years. For a 1 TB artifact corpus, this is the difference between ¥1500/mo (all Standard) and ~¥250/mo. Codify it in HCL once, save 5 figures over a year.</p><h3 id=versioning>Versioning</h3><p><code>versioning { status = "Enabled" }</code> keeps every object version. An agent that overwrites <code>artifacts/run-123/output.pdf</code> doesn&rsquo;t actually destroy the previous version — it&rsquo;s still there with a different version ID. Two reasons this matters:</p><ol><li><strong>Recovery.</strong> A bug overwrote 50,000 objects with garbage? Restore the previous versions in a script.</li><li><strong>Tamper-evidence.</strong> Combined with WORM (Write-Once-Read-Many) policies, this gives you regulatory compliance for free.</li></ol><p>The cost is real — versioned objects accumulate. Pair versioning with a <code>noncurrent_version_expiration</code> rule in the lifecycle to prune old versions after, say, 180 days.</p><h2 id=the-backup-story>The backup story</h2><p>A Terraform-managed backup setup looks like this:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/terraform-agents/05-storage-for-agent-memory/fig3_backup_topology.png alt="Backups: not optional, just budgeted" loading=lazy decoding=async></figure></p><ul><li>RDS: built-in automated backups (already in our HCL above)</li><li>OSS: versioning + cross-region replication for disaster recovery</li><li>OpenSearch: snapshot to OSS via the <code>alicloud_opensearch_*</code> snapshot resources</li></ul><p>Cross-region replication for OSS is one resource:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_oss_bucket&#34; &#34;artifacts_dr&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  provider</span> <span class=o>=</span> <span class=k>alicloud</span><span class=p>.</span><span class=k>beijing</span><span class=c1>       # second-region provider alias
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=n>  bucket</span>   <span class=o>=</span> <span class=s2>&#34;${alicloud_oss_bucket.artifacts.bucket}-dr&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  acl</span>      <span class=o>=</span> <span class=s2>&#34;private&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>versioning</span> {
+</span></span><span class=line><span class=cl><span class=n>    status</span> <span class=o>=</span> <span class=s2>&#34;Enabled&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>server_side_encryption_rule</span> {
+</span></span><span class=line><span class=cl><span class=n>    sse_algorithm</span> <span class=o>=</span> <span class=s2>&#34;AES256&#34;</span><span class=c1>        # KMS keys are region-scoped, simpler to use AES256 for DR
+</span></span></span><span class=line><span class=cl><span class=c1></span>  }
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>resource</span> <span class=s2>&#34;alicloud_oss_bucket_replication&#34; &#34;artifacts&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  bucket</span> <span class=o>=</span> <span class=k>alicloud_oss_bucket</span><span class=p>.</span><span class=k>artifacts</span><span class=p>.</span><span class=k>id</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>  action</span> <span class=o>=</span> <span class=s2>&#34;ALL&#34;</span>
+</span></span><span class=line><span class=cl>  <span class=k>destination</span> {
+</span></span><span class=line><span class=cl><span class=n>    bucket</span>   <span class=o>=</span> <span class=k>alicloud_oss_bucket</span><span class=p>.</span><span class=k>artifacts_dr</span><span class=p>.</span><span class=k>bucket</span>
+</span></span><span class=line><span class=cl><span class=n>    location</span> <span class=o>=</span> <span class=s2>&#34;oss-cn-beijing&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl><span class=n>  enable_historical_object_replication</span> <span class=o>=</span> <span class=s2>&#34;enabled&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>  <span class=k>encryption_configuration</span> {
+</span></span><span class=line><span class=cl><span class=n>    replica_kms_key_id</span> <span class=o>=</span> <span class=s2>&#34;alias/agents-prod-memory-dr&#34;</span>
+</span></span><span class=line><span class=cl>  }
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>The aliased provider lets one Terraform run touch two regions:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>provider</span> <span class=s2>&#34;alicloud&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  alias</span>  <span class=o>=</span> <span class=s2>&#34;beijing&#34;</span>
+</span></span><span class=line><span class=cl><span class=n>  region</span> <span class=o>=</span> <span class=s2>&#34;cn-beijing&#34;</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div><p>For a research agent that&rsquo;s mainly stateless, you might decide DR isn&rsquo;t worth the storage doubling. For a customer-facing one with conversation history that legally must persist, it&rsquo;s mandatory.</p><blockquote><p><strong>Real-world tip:</strong> Test the restore quarterly. A backup you have never restored is just an expensive hope. I run a <code>restore-drill.sh</code> script monthly that pulls a random RDS backup into a <code>cn-shanghai-dr</code> instance and runs schema/checksum verification. It is the most useful 30 minutes I spend each month.</p></blockquote><h2 id=connecting-compute-to-storage>Connecting compute to storage</h2><p>The ECS instance from article 4 needs to actually reach this storage. Three pieces:</p><ol><li><strong>Network</strong> — already done. The <code>agent_runtime_sg_id</code> from the VPC module is the source for the <code>memory_rds_sg</code> and <code>vector_store_sg</code> ingress rules.</li><li><strong>Credentials</strong> — the agent reads the DB password from KMS Secrets Manager via STS:<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>alibabacloud_kms20160120.client</span> <span class=kn>import</span> <span class=n>Client</span> <span class=k>as</span> <span class=n>KmsClient</span>
+</span></span><span class=line><span class=cl><span class=n>resp</span> <span class=o>=</span> <span class=n>kms_client</span><span class=o>.</span><span class=n>get_secret_value</span><span class=p>(</span><span class=n>GetSecretValueRequest</span><span class=p>(</span><span class=n>secret_name</span><span class=o>=</span><span class=s2>&#34;agents-prod-rds-admin&#34;</span><span class=p>))</span>
+</span></span><span class=line><span class=cl><span class=n>db_password</span> <span class=o>=</span> <span class=n>resp</span><span class=o>.</span><span class=n>body</span><span class=o>.</span><span class=n>secret_data</span>
+</span></span></code></pre></td></tr></table></div></div></li><li><strong>Endpoints</strong> — Terraform outputs them:<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-hcl data-lang=hcl><span class=line><span class=cl><span class=k>output</span> <span class=s2>&#34;rds_endpoint&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  value</span> <span class=o>=</span> <span class=k>alicloud_db_instance</span><span class=p>.</span><span class=k>memory</span><span class=p>.</span><span class=k>connection_string</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl><span class=k>output</span> <span class=s2>&#34;vector_endpoint&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  value</span> <span class=o>=</span> <span class=k>alicloud_opensearch_app_group</span><span class=p>.</span><span class=k>vector</span><span class=p>.</span><span class=k>api_domain</span>
+</span></span><span class=line><span class=cl>}
+</span></span><span class=line><span class=cl><span class=k>output</span> <span class=s2>&#34;artifacts_bucket&#34;</span> {
+</span></span><span class=line><span class=cl><span class=n>  value</span> <span class=o>=</span> <span class=k>alicloud_oss_bucket</span><span class=p>.</span><span class=k>artifacts</span><span class=p>.</span><span class=k>bucket</span>
+</span></span><span class=line><span class=cl>}
+</span></span></code></pre></td></tr></table></div></div></li></ol><p>The agent reads these from environment variables that cloud-init sets from the Terraform outputs. No hardcoded endpoints, no manual config files.</p><h2 id=what-it-costs-monthly-dev-workspace-low-traffic>What it costs (monthly, dev workspace, low traffic)</h2><ul><li>RDS PostgreSQL (<code>pg.n2.medium.1c</code>, 100 GB ESSD): ~¥350/mo</li><li>OpenSearch vector (smallest): ~¥800/mo</li><li>OSS (10 GB Standard, lifecycle on): ~¥1.5/mo + traffic</li><li>KMS (covered in article 3): ~¥10/mo</li></ul><p>Roughly ¥1200/mo for the storage layer in dev. Prod with HA RDS, larger OpenSearch, more OSS will be ¥3000-5000/mo. This is where the cost pressure starts being real — article 7 shows how to track and alert on it.</p><h2 id=whats-next>What&rsquo;s next</h2><p>Article 6 builds the LLM gateway in front of the compute we provisioned in article 4 and the storage we just provisioned. That&rsquo;s the place where API keys live, quotas get enforced, and per-agent cost gets attributed. By the end of article 6 you&rsquo;ll have a complete agent-runnable stack — the last two articles wire observability and cost control over the top.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><span class=title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#the-three-layer-memory-model>The three-layer memory model</a></li><li><a href=#layer-1-relational-rds-for-postgresql>Layer 1: relational, RDS for PostgreSQL</a></li><li><a href=#layer-2-vector-store>Layer 2: vector store</a></li><li><a href=#layer-3-object-storage>Layer 3: object storage</a><ul><li><a href=#bucket-name-uniqueness>Bucket-name uniqueness</a></li><li><a href=#lifecycle-tiering>Lifecycle tiering</a></li><li><a href=#versioning>Versioning</a></li></ul></li><li><a href=#the-backup-story>The backup story</a></li><li><a href=#connecting-compute-to-storage>Connecting compute to storage</a></li><li><a href=#what-it-costs-monthly-dev-workspace-low-traffic>What it costs (monthly, dev workspace, low traffic)</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Terraform Agents</a>
+<span class=count>8</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/01-why-terraform-for-agents/><span class=chapter-num>01</span>
+<span class=chapter-title>Terraform for AI Agents (1): Why IaC Is the Only Sane Way to Ship Agents</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/02-provider-and-state-setup/><span class=chapter-num>02</span>
+<span class=chapter-title>Terraform for AI Agents (2): Provider, Auth, and Remote State on OSS</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/03-vpc-and-security-baseline/><span class=chapter-num>03</span>
+<span class=chapter-title>Terraform for AI Agents (3): A Reusable VPC and Security Baseline</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/04-compute-for-agent-runtime/><span class=chapter-num>04</span>
+<span class=chapter-title>Terraform for AI Agents (4): Compute — ECS, ACK, or Function Compute?</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>05</span>
+<span class=chapter-title>Terraform for AI Agents (5): Storage — Vector, Relational, and Object Memory</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/06-llm-gateway-and-secrets/><span class=chapter-num>06</span>
+<span class=chapter-title>Terraform for AI Agents (6): LLM Gateway and Secrets Management</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/07-observability-and-cost-control/><span class=chapter-num>07</span>
+<span class=chapter-title>Terraform for AI Agents (7): Observability, SLS Dashboards, and Cost Alarms</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/terraform-agents/08-end-to-end-walkthrough/><span class=chapter-num>08</span>
+<span class=chapter-title>Terraform for AI Agents (8): End-to-End — research-agent-stack in One Apply</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>9 min</strong></div><div class=row><span>Word count</span><strong>1792</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

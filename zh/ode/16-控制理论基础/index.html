@@ -1,473 +1,128 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>常微分方程（十六）：控制理论基础 · Chen Kai Blog</title>
-<meta name="description" content="从经典 PID 控制器、根轨迹、Bode 图，到现代状态空间方法、极点配置、LQR 最优控制和 Luenberger 观测器：本章用 ODE 把控制理论的核心串成一个完整的设计闭环。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="常微分方程（十六）：控制理论基础">
-<meta property="og:description" content="从经典 PID 控制器、根轨迹、Bode 图，到现代状态空间方法、极点配置、LQR 最优控制和 Luenberger 观测器：本章用 ODE 把控制理论的核心串成一个完整的设计闭环。">
-<meta property="og:url" content="https://www.chenk.top/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">常微分方程</a>
-         · Chapter 16
-      </div>
-      <h1>常微分方程（十六）：控制理论基础</h1>
-      <p class="deck">从经典 PID 控制器、根轨迹、Bode 图，到现代状态空间方法、极点配置、LQR 最优控制和 Luenberger 观测器：本章用 ODE 把控制理论的核心串成一个完整的设计闭环。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2024-03-12">March 12, 2024</time> · 8 min read · 3900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/ode/" class="tag">#ODE</a><a href="/zh/tags/%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA/" class="tag">#控制理论</a><a href="/zh/tags/pid-%E6%8E%A7%E5%88%B6/" class="tag">#PID 控制</a><a href="/zh/tags/%E7%8A%B6%E6%80%81%E7%A9%BA%E9%97%B4/" class="tag">#状态空间</a><a href="/zh/tags/%E5%8F%8D%E9%A6%88%E7%B3%BB%E7%BB%9F/" class="tag">#反馈系统</a><a href="/zh/tags/%E7%A8%B3%E5%AE%9A%E6%80%A7/" class="tag">#稳定性</a><a href="/zh/tags/python/" class="tag">#Python</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p><strong>当你开车时不断根据车道位置纠正方向；恒温器对比室温和设定值后调节加热器；火箭通过摆动喷管让箭体保持垂直。</strong> 把硬件全部抽掉，剩下的是同一个想法：<em>测量、比较、动作</em>。控制理论就是研究这个闭环的数学，而它的母语正是常微分方程。</p>
-<p>本章把整个 ODE 工具链——拉普拉斯变换（第 4 章）、线性方程组（第 6 章）、特征值稳定性（第 7 章）、非线性稳定性（第 8 章）——熔在一起：它们的目标不再是 <em>描述</em> 动力学，而是 <em>设计</em> 动力学。</p>
-<h2 id="本章要点">本章要点</h2>
-<ul>
-<li>开环 vs 闭环：为什么反馈是最核心的思想</li>
-<li>传递函数：把 ODE 变成代数</li>
-<li>PID 控制器与 Ziegler-Nichols 整定法</li>
-<li>根轨迹：闭环极点随增益的变化</li>
-<li>Bode 图、增益裕度、相位裕度</li>
-<li>状态空间表示与多入多出（MIMO）系统</li>
-<li>能控性、能观性及其秩条件</li>
-<li>极点配置和 LQR 最优控制（倒立摆案例）</li>
-<li>Luenberger 观测器与分离原理</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>第 4 章 ── 拉普拉斯变换（传递函数的来源）</li>
-<li>第 6 章 ── 线性方程组与矩阵指数</li>
-<li>第 7 章 ── 特征值与线性稳定性</li>
-</ul>
-<hr>
-<h2 id="1-开环-vs-闭环">1. 开环 vs 闭环</h2>
-<p>让加热器把房间从 15℃ 升到 22℃。</p>
-<p><strong>开环</strong>：通电固定功率 $u(t)$、固定时间。如果窗户开着、或室外比预期更冷，最终温度就会偏离目标——而你毫无补救手段。</p>
-<p><strong>闭环</strong>：测量当前温度，计算误差 $e(t) = r(t) - y(t)$，把控制量 $u(t)$ 设计成误差的函数。系统会 <em>自动纠正</em> 模型误差和外部扰动。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig5_feedback_loop.png" alt="闭环反馈结构图，包含扰动 d 和测量噪声 n 的入口。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>闭环结构。参考信号 $r$ 进入求和点，控制器 $C(s)$ 作用于误差 $e = r - y_\text{measured}$，被控对象 $G(s)$ 产生输出 $y$，传感器（含噪声 $n$）反馈测量值。下方对比展示了：开环响应在扰动出现后永远偏离设定，闭环 PI 则迅速将误差拉回零。</em></p>
-<p>反馈带来的两个核心后果，下文将逐步推出：</p>
-<ul>
-<li><strong>扰动抑制</strong>——一个常值扰动不再会让稳态误差发散。</li>
-<li><strong>灵敏度降低</strong>——被控对象 $G$ 的相对偏差只通过 $S = 1/(1+CGH)$ 的因子（<strong>灵敏度函数</strong>）影响闭环传递函数 $T = CG/(1+CGH)$。</li>
-</ul>
-<hr>
-<h2 id="2-传递函数">2. 传递函数</h2>
-<p>对线性时不变（LTI）系统，输入 $u(t)$、输出 $y(t)$，零初始条件下的拉普拉斯比</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>常微分方程（十六）：控制理论基础 · Chen Kai Blog</title>
+<meta name=description content="从经典 PID 控制器、根轨迹、Bode 图，到现代状态空间方法、极点配置、LQR 最优控制和 Luenberger 观测器：本章用 ODE 把控制理论的核心串成一个完整的设计闭环。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/><meta property="og:type" content="article"><meta property="og:title" content="常微分方程（十六）：控制理论基础"><meta property="og:description" content="从经典 PID 控制器、根轨迹、Bode 图，到现代状态空间方法、极点配置、LQR 最优控制和 Luenberger 观测器：本章用 ODE 把控制理论的核心串成一个完整的设计闭环。"><meta property="og:url" content="https://www.chenk.top/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>常微分方程</a>
+· Chapter 16</div><h1>常微分方程（十六）：控制理论基础</h1><p class=deck>从经典 PID 控制器、根轨迹、Bode 图，到现代状态空间方法、极点配置、LQR 最优控制和 Luenberger 观测器：本章用 ODE 把控制理论的核心串成一个完整的设计闭环。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2024-03-12>March 12, 2024</time> · 8 min read · 3896 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/ode/ class=tag>#ODE</a><a href=/zh/tags/%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA/ class=tag>#控制理论</a><a href=/zh/tags/pid-%E6%8E%A7%E5%88%B6/ class=tag>#PID 控制</a><a href=/zh/tags/%E7%8A%B6%E6%80%81%E7%A9%BA%E9%97%B4/ class=tag>#状态空间</a><a href=/zh/tags/%E5%8F%8D%E9%A6%88%E7%B3%BB%E7%BB%9F/ class=tag>#反馈系统</a><a href=/zh/tags/%E7%A8%B3%E5%AE%9A%E6%80%A7/ class=tag>#稳定性</a><a href=/zh/tags/python/ class=tag>#Python</a></div></div></header><div class=prose><p><strong>当你开车时不断根据车道位置纠正方向；恒温器对比室温和设定值后调节加热器；火箭通过摆动喷管让箭体保持垂直。</strong> 把硬件全部抽掉，剩下的是同一个想法：<em>测量、比较、动作</em>。控制理论就是研究这个闭环的数学，而它的母语正是常微分方程。</p><p>本章把整个 ODE 工具链——拉普拉斯变换（第 4 章）、线性方程组（第 6 章）、特征值稳定性（第 7 章）、非线性稳定性（第 8 章）——熔在一起：它们的目标不再是 <em>描述</em> 动力学，而是 <em>设计</em> 动力学。</p><h2 id=本章要点>本章要点</h2><ul><li>开环 vs 闭环：为什么反馈是最核心的思想</li><li>传递函数：把 ODE 变成代数</li><li>PID 控制器与 Ziegler-Nichols 整定法</li><li>根轨迹：闭环极点随增益的变化</li><li>Bode 图、增益裕度、相位裕度</li><li>状态空间表示与多入多出（MIMO）系统</li><li>能控性、能观性及其秩条件</li><li>极点配置和 LQR 最优控制（倒立摆案例）</li><li>Luenberger 观测器与分离原理</li></ul><h2 id=前置知识>前置知识</h2><ul><li>第 4 章 ── 拉普拉斯变换（传递函数的来源）</li><li>第 6 章 ── 线性方程组与矩阵指数</li><li>第 7 章 ── 特征值与线性稳定性</li></ul><hr><h2 id=1-开环-vs-闭环>1. 开环 vs 闭环</h2><p>让加热器把房间从 15℃ 升到 22℃。</p><p><strong>开环</strong>：通电固定功率 $u(t)$、固定时间。如果窗户开着、或室外比预期更冷，最终温度就会偏离目标——而你毫无补救手段。</p><p><strong>闭环</strong>：测量当前温度，计算误差 $e(t) = r(t) - y(t)$，把控制量 $u(t)$ 设计成误差的函数。系统会 <em>自动纠正</em> 模型误差和外部扰动。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig5_feedback_loop.png alt="闭环反馈结构图，包含扰动 d 和测量噪声 n 的入口。" loading=lazy decoding=async></figure><em>闭环结构。参考信号 $r$ 进入求和点，控制器 $C(s)$ 作用于误差 $e = r - y_\text{measured}$，被控对象 $G(s)$ 产生输出 $y$，传感器（含噪声 $n$）反馈测量值。下方对比展示了：开环响应在扰动出现后永远偏离设定，闭环 PI 则迅速将误差拉回零。</em></p><p>反馈带来的两个核心后果，下文将逐步推出：</p><ul><li><strong>扰动抑制</strong>——一个常值扰动不再会让稳态误差发散。</li><li><strong>灵敏度降低</strong>——被控对象 $G$ 的相对偏差只通过 $S = 1/(1+CGH)$ 的因子（<strong>灵敏度函数</strong>）影响闭环传递函数 $T = CG/(1+CGH)$。</li></ul><hr><h2 id=2-传递函数>2. 传递函数</h2><p>对线性时不变（LTI）系统，输入 $u(t)$、输出 $y(t)$，零初始条件下的拉普拉斯比</p>$$
 G(s) \;=\; \frac{Y(s)}{U(s)}
-$$<p>把 ODE 中的求导变成乘 $s$、积分变成除 $s$——代数取代了微积分。</p>
-<h3 id="一阶系统">一阶系统</h3>
-$$
+$$<p>把 ODE 中的求导变成乘 $s$、积分变成除 $s$——代数取代了微积分。</p><h3 id=一阶系统>一阶系统</h3>$$
 \tau\dot y + y = K u \;\;\Longleftrightarrow\;\; G(s) = \frac{K}{\tau s + 1}.
-$$<p>阶跃响应：$y(t) = K(1 - e^{-t/\tau})$。时间常数 $\tau$ 决定追踪速度。</p>
-<h3 id="二阶系统">二阶系统</h3>
-$$
+$$<p>阶跃响应：$y(t) = K(1 - e^{-t/\tau})$。时间常数 $\tau$ 决定追踪速度。</p><h3 id=二阶系统>二阶系统</h3>$$
 \ddot y + 2\zeta\omega_n \dot y + \omega_n^2 y = K\omega_n^2 u
 \;\;\Longleftrightarrow\;\;
 G(s) = \frac{K\omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}.
-$$<p>阻尼比 $\zeta$ 决定 <em>定性</em> 行为：</p>
-<table>
-  <thead>
-      <tr>
-          <th>$\zeta$</th>
-          <th>极点结构</th>
-          <th>阶跃响应</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>$0$</td>
-          <td>纯虚根 $\pm j\omega_n$</td>
-          <td>等幅振荡</td>
-      </tr>
-      <tr>
-          <td>$0 < \zeta < 1$</td>
-          <td>共轭复根，实部 $<0$</td>
-          <td>欠阻尼，超调+振铃</td>
-      </tr>
-      <tr>
-          <td>$1$</td>
-          <td>实重根</td>
-          <td>临界阻尼（最快不超调）</td>
-      </tr>
-      <tr>
-          <td>$> 1$</td>
-          <td>两个实根</td>
-          <td>过阻尼（响应缓慢）</td>
-      </tr>
-  </tbody>
-</table>
-<p>这四种情形覆盖了几乎所有 <em>稳定平衡点附近</em> 的线性系统——电路、机械、生物，皆是如此。</p>
-<hr>
-<h2 id="3-pid-控制器">3. PID 控制器</h2>
-<p>工业领域占绝对统治地位的控制器。控制律：</p>
-$$
+$$<p>阻尼比 $\zeta$ 决定 <em>定性</em> 行为：</p><table><thead><tr><th>$\zeta$</th><th>极点结构</th><th>阶跃响应</th></tr></thead><tbody><tr><td>$0$</td><td>纯虚根 $\pm j\omega_n$</td><td>等幅振荡</td></tr><tr><td>$0 < \zeta < 1$</td><td>共轭复根，实部 $<0$</td><td>欠阻尼，超调+振铃</td></tr><tr><td>$1$</td><td>实重根</td><td>临界阻尼（最快不超调）</td></tr><tr><td>$> 1$</td><td>两个实根</td><td>过阻尼（响应缓慢）</td></tr></tbody></table><p>这四种情形覆盖了几乎所有 <em>稳定平衡点附近</em> 的线性系统——电路、机械、生物，皆是如此。</p><hr><h2 id=3-pid-控制器>3. PID 控制器</h2><p>工业领域占绝对统治地位的控制器。控制律：</p>$$
 u(t) \;=\; K_p\,e(t) \;+\; K_i\!\int_0^t e(\tau)\,d\tau \;+\; K_d\,\dot e(t),
 \qquad e = r - y.
-$$<p>每一项都有清晰的物理意义：</p>
-<ul>
-<li><strong>比例项 $K_p$</strong>：像一个&quot;弹簧&quot;，把输出拉向设定值。响应快但无法消除常值扰动下的稳态误差。</li>
-<li><strong>积分项 $K_i$</strong>：误差的&quot;记忆&quot;，只要误差非零就持续累积。把稳态误差精确推向 <em>零</em>，但增加一个原点处的极点（减慢响应、可能引起超调）。</li>
-<li><strong>微分项 $K_d$</strong>：作用于 <em>预测</em> 的未来误差，提供阻尼。改善暂态但放大测量噪声。</li>
-</ul>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig1_pid_step_response.png" alt="二阶被控对象上 PID 各组合的阶跃响应，及单纯 P 控制下提高 Kp 的代价。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>左：闭环阶跃响应随控制器逐步丰富（无控制 → P → PI → PD → PID）。无控制时欠阻尼对象永远振铃且无法跟踪；PID 精确达到设定值，无稳态误差且超调极小。右：经典 P 单控制权衡——提高 $K_p$ 加快响应、缩小稳态误差，但振铃最终会主导。</em></p>
-<h3 id="ziegler-nichols-整定不需要模型的起手式">Ziegler-Nichols 整定（不需要模型的起手式）</h3>
-<ol>
-<li>令 $K_i = K_d = 0$，逐渐提高 $K_p$ 直到出现持续等幅振荡。记下 <strong>临界增益</strong> $K_u$ 和 <strong>振荡周期</strong> $T_u$。</li>
-<li>PID 参数：</li>
-</ol>
-<table>
-  <thead>
-      <tr>
-          <th>控制器</th>
-          <th>$K_p$</th>
-          <th>$K_i$</th>
-          <th>$K_d$</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>P</td>
-          <td>$0.5\,K_u$</td>
-          <td>&ndash;</td>
-          <td>&ndash;</td>
-      </tr>
-      <tr>
-          <td>PI</td>
-          <td>$0.45\,K_u$</td>
-          <td>$1.2\,K_p / T_u$</td>
-          <td>&ndash;</td>
-      </tr>
-      <tr>
-          <td>PID</td>
-          <td>$0.6\,K_u$</td>
-          <td>$2\,K_p / T_u$</td>
-          <td>$K_p T_u / 8$</td>
-      </tr>
-  </tbody>
-</table>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">PIDController</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;带反饱和（anti-windup）的离散 PID。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Kp</span><span class="p">,</span> <span class="n">Ki</span><span class="p">,</span> <span class="n">Kd</span><span class="p">,</span> <span class="n">u_min</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">u_max</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">Kp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ki</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Kd</span> <span class="o">=</span> <span class="n">Kp</span><span class="p">,</span> <span class="n">Ki</span><span class="p">,</span> <span class="n">Kd</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">u_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span> <span class="o">=</span> <span class="n">u_min</span><span class="p">,</span> <span class="n">u_max</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">integral</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">prev_error</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">integral</span> <span class="o">+=</span> <span class="n">error</span> <span class="o">*</span> <span class="n">dt</span>
-</span></span><span class="line"><span class="cl">        <span class="n">deriv</span> <span class="o">=</span> <span class="p">(</span><span class="n">error</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_error</span><span class="p">)</span> <span class="o">/</span> <span class="n">dt</span> <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">prev_error</span> <span class="o">=</span> <span class="n">error</span>
-</span></span><span class="line"><span class="cl">        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Kp</span><span class="o">*</span><span class="n">error</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ki</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">integral</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Kd</span><span class="o">*</span><span class="n">deriv</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="n">u</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">integral</span> <span class="o">-=</span> <span class="n">error</span> <span class="o">*</span> <span class="n">dt</span>
-</span></span><span class="line"><span class="cl">            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_max</span>
-</span></span><span class="line"><span class="cl">        <span class="k">elif</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_min</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">integral</span> <span class="o">-=</span> <span class="n">error</span> <span class="o">*</span> <span class="n">dt</span>
-</span></span><span class="line"><span class="cl">            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u_min</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">u</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><hr>
-<h2 id="4-根轨迹--闭环极点的轨迹">4. 根轨迹 ── 闭环极点的轨迹</h2>
-<p>单位反馈下，开环传递为 $K\,L(s)$，闭环特征方程</p>
-$$
+$$<p>每一项都有清晰的物理意义：</p><ul><li><strong>比例项 $K_p$</strong>：像一个"弹簧"，把输出拉向设定值。响应快但无法消除常值扰动下的稳态误差。</li><li><strong>积分项 $K_i$</strong>：误差的"记忆"，只要误差非零就持续累积。把稳态误差精确推向 <em>零</em>，但增加一个原点处的极点（减慢响应、可能引起超调）。</li><li><strong>微分项 $K_d$</strong>：作用于 <em>预测</em> 的未来误差，提供阻尼。改善暂态但放大测量噪声。</li></ul><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig1_pid_step_response.png alt="二阶被控对象上 PID 各组合的阶跃响应，及单纯 P 控制下提高 Kp 的代价。" loading=lazy decoding=async></figure><em>左：闭环阶跃响应随控制器逐步丰富（无控制 → P → PI → PD → PID）。无控制时欠阻尼对象永远振铃且无法跟踪；PID 精确达到设定值，无稳态误差且超调极小。右：经典 P 单控制权衡——提高 $K_p$ 加快响应、缩小稳态误差，但振铃最终会主导。</em></p><h3 id=ziegler-nichols-整定不需要模型的起手式>Ziegler-Nichols 整定（不需要模型的起手式）</h3><ol><li>令 $K_i = K_d = 0$，逐渐提高 $K_p$ 直到出现持续等幅振荡。记下 <strong>临界增益</strong> $K_u$ 和 <strong>振荡周期</strong> $T_u$。</li><li>PID 参数：</li></ol><table><thead><tr><th>控制器</th><th>$K_p$</th><th>$K_i$</th><th>$K_d$</th></tr></thead><tbody><tr><td>P</td><td>$0.5\,K_u$</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>PI</td><td>$0.45\,K_u$</td><td>$1.2\,K_p / T_u$</td><td>&ndash;</td></tr><tr><td>PID</td><td>$0.6\,K_u$</td><td>$2\,K_p / T_u$</td><td>$K_p T_u / 8$</td></tr></tbody></table><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>PIDController</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;带反饱和（anti-windup）的离散 PID。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>Kp</span><span class=p>,</span> <span class=n>Ki</span><span class=p>,</span> <span class=n>Kd</span><span class=p>,</span> <span class=n>u_min</span><span class=o>=-</span><span class=n>np</span><span class=o>.</span><span class=n>inf</span><span class=p>,</span> <span class=n>u_max</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>inf</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>Kp</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>Ki</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>Kd</span> <span class=o>=</span> <span class=n>Kp</span><span class=p>,</span> <span class=n>Ki</span><span class=p>,</span> <span class=n>Kd</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>u_min</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>u_max</span> <span class=o>=</span> <span class=n>u_min</span><span class=p>,</span> <span class=n>u_max</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>integral</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>prev_error</span> <span class=o>=</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>compute</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>error</span><span class=p>,</span> <span class=n>dt</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>integral</span> <span class=o>+=</span> <span class=n>error</span> <span class=o>*</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>        <span class=n>deriv</span> <span class=o>=</span> <span class=p>(</span><span class=n>error</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>prev_error</span><span class=p>)</span> <span class=o>/</span> <span class=n>dt</span> <span class=k>if</span> <span class=n>dt</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=mf>0.0</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>prev_error</span> <span class=o>=</span> <span class=n>error</span>
+</span></span><span class=line><span class=cl>        <span class=n>u</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>Kp</span><span class=o>*</span><span class=n>error</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>Ki</span><span class=o>*</span><span class=bp>self</span><span class=o>.</span><span class=n>integral</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>Kd</span><span class=o>*</span><span class=n>deriv</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=n>u</span> <span class=o>&gt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>u_max</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>integral</span> <span class=o>-=</span> <span class=n>error</span> <span class=o>*</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>            <span class=n>u</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>u_max</span>
+</span></span><span class=line><span class=cl>        <span class=k>elif</span> <span class=n>u</span> <span class=o>&lt;</span> <span class=bp>self</span><span class=o>.</span><span class=n>u_min</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>integral</span> <span class=o>-=</span> <span class=n>error</span> <span class=o>*</span> <span class=n>dt</span>
+</span></span><span class=line><span class=cl>            <span class=n>u</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>u_min</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>u</span>
+</span></span></code></pre></td></tr></table></div></div><hr><h2 id=4-根轨迹--闭环极点的轨迹>4. 根轨迹 ── 闭环极点的轨迹</h2><p>单位反馈下，开环传递为 $K\,L(s)$，闭环特征方程</p>$$
 1 + K\,L(s) = 0.
-$$<p><strong>根轨迹</strong>画出闭环极点随 $K$ 从 $0$ 到 $\infty$ 在复平面上扫过的曲线，<em>直观地</em> 告诉你速度（极点更左）和阻尼（极点更靠近实轴）的取舍。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig2_root_locus.png" alt="$K/(s(s&#43;2)(s&#43;5))$ 的根轨迹与对应三种增益下的阶跃响应。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>左：三条分支从开环极点 $0,-2,-5$ 出发，其中两条最终进入右半平面，临界增益约 $K \approx 70$——越过即失稳。右：$K$ 穿越临界值时的闭环阶跃响应——阻尼良好、轻阻尼、最后在 $K=70$ 处出现等幅振荡。</em></p>
-<p>两条好用的事实：</p>
-<ul>
-<li>根轨迹有 $n_p - n_z$ 条渐近线，从重心 $\sigma_a = (\sum p_i - \sum z_i)/(n_p - n_z)$ 出发，方向角为 $(2k+1)\pi/(n_p - n_z)$。</li>
-<li>根轨迹与虚轴的交点对应闭环极点 $\pm j\omega_c$，即 <em>中性</em> 稳定点。Routh-Hurwitz 可以直接给出 $K_\text{crit}$。</li>
-</ul>
-<hr>
-<h2 id="5-bode-图与稳定裕度">5. Bode 图与稳定裕度</h2>
-<p>频率响应 $L(j\omega)$ 是同一个传递函数在虚轴上的取值。两个最自然的读数：幅值（dB）和相位（度），都画在对数频率轴上。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig3_bode_plot.png" alt="Bode 幅频/相频、Nyquist 图与稳定性总结表。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>幅值穿越频率 $\omega_g$：$|L|$ 等于 1（0 dB）的频率；相位穿越频率 $\omega_p$：相位等于 $-180^\circ$ 的频率。两个鲁棒性指标：</em></p>
-<ul>
-<li><em>增益裕度（GM）：在失稳前还能把 $L$ 放大多少倍——读取 $\omega_p$ 处的幅值。</em></li>
-<li><em>相位裕度（PM）：在 $\omega_g$ 处还能容忍多少额外相位滞后。</em></li>
-</ul>
-<p>工程经验：<strong>GM &gt; 6 dB</strong>（约两倍）、<strong>PM &gt; 30 度</strong>（最好 &gt; 45 度）才算稳健。右侧 Nyquist 图是几何视角：稳定的充要条件是曲线 <em>不</em> 包围临界点 $-1+0j$。</p>
-<hr>
-<h2 id="6-状态空间表示">6. 状态空间表示</h2>
-<p>对多入多出（MIMO）系统，我们不再用传递函数兜圈子，直接写：</p>
-$$
+$$<p><strong>根轨迹</strong>画出闭环极点随 $K$ 从 $0$ 到 $\infty$ 在复平面上扫过的曲线，<em>直观地</em> 告诉你速度（极点更左）和阻尼（极点更靠近实轴）的取舍。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig2_root_locus.png alt="$K/(s(s+2)(s+5))$ 的根轨迹与对应三种增益下的阶跃响应。" loading=lazy decoding=async></figure><em>左：三条分支从开环极点 $0,-2,-5$ 出发，其中两条最终进入右半平面，临界增益约 $K \approx 70$——越过即失稳。右：$K$ 穿越临界值时的闭环阶跃响应——阻尼良好、轻阻尼、最后在 $K=70$ 处出现等幅振荡。</em></p><p>两条好用的事实：</p><ul><li>根轨迹有 $n_p - n_z$ 条渐近线，从重心 $\sigma_a = (\sum p_i - \sum z_i)/(n_p - n_z)$ 出发，方向角为 $(2k+1)\pi/(n_p - n_z)$。</li><li>根轨迹与虚轴的交点对应闭环极点 $\pm j\omega_c$，即 <em>中性</em> 稳定点。Routh-Hurwitz 可以直接给出 $K_\text{crit}$。</li></ul><hr><h2 id=5-bode-图与稳定裕度>5. Bode 图与稳定裕度</h2><p>频率响应 $L(j\omega)$ 是同一个传递函数在虚轴上的取值。两个最自然的读数：幅值（dB）和相位（度），都画在对数频率轴上。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig3_bode_plot.png alt="Bode 幅频/相频、Nyquist 图与稳定性总结表。" loading=lazy decoding=async></figure><em>幅值穿越频率 $\omega_g$：$|L|$ 等于 1（0 dB）的频率；相位穿越频率 $\omega_p$：相位等于 $-180^\circ$ 的频率。两个鲁棒性指标：</em></p><ul><li><em>增益裕度（GM）：在失稳前还能把 $L$ 放大多少倍——读取 $\omega_p$ 处的幅值。</em></li><li><em>相位裕度（PM）：在 $\omega_g$ 处还能容忍多少额外相位滞后。</em></li></ul><p>工程经验：<strong>GM > 6 dB</strong>（约两倍）、<strong>PM > 30 度</strong>（最好 > 45 度）才算稳健。右侧 Nyquist 图是几何视角：稳定的充要条件是曲线 <em>不</em> 包围临界点 $-1+0j$。</p><hr><h2 id=6-状态空间表示>6. 状态空间表示</h2><p>对多入多出（MIMO）系统，我们不再用传递函数兜圈子，直接写：</p>$$
 \dot{\mathbf x} = A\mathbf x + B\mathbf u, \qquad
 \mathbf y = C\mathbf x + D\mathbf u.
-$$<p>$\mathbf x \in \mathbb R^n$ 是 <strong>状态向量</strong>——只要给出 $\mathbf u(t)$，它就足以预测未来。$A$ 是动力学矩阵，$B$ 把输入耦合进来，$C$ 抽取测量输出，$D$ 是直通项（通常为 0）。</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig4_state_space.png" alt="状态空间方框图、能控/能观秩判据及倒立摆上 LQR 与极点配置的对比。" loading="lazy" decoding="async">
-  
-</figure>
-
-<em>上：通用方框图与两个关键秩判据。下：从 $0.2$ 弧度倾角起平衡倒立摆。LQR（蓝）通过最小化代价泛函选择增益；极点配置（红）将闭环特征值放在 $\{-1,-2,-3,-4\}$。两者都能稳定，但 LQR 用更小的控制量。</em></p>
-<h3 id="稳定性能控性能观性">稳定性、能控性、能观性</h3>
-<p>三个秩条件回答了&quot;能否设计控制器&quot;这个根本问题：</p>
-<table>
-  <thead>
-      <tr>
-          <th>判据</th>
-          <th>构造</th>
-          <th>成立条件</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>稳定性</td>
-          <td>$A$ 的特征值</td>
-          <td>全部实部 &lt; 0</td>
-      </tr>
-      <tr>
-          <td>能控性</td>
-          <td>$\mathcal C = [B,\; AB,\; \ldots,\; A^{n-1}B]$</td>
-          <td>秩 $= n$</td>
-      </tr>
-      <tr>
-          <td>能观性</td>
-          <td>$\mathcal O = [C;\; CA;\; \ldots;\; CA^{n-1}]$</td>
-          <td>秩 $= n$</td>
-      </tr>
-  </tbody>
-</table>
-<p>能控性意味着可以用合适的输入把状态驱动到 <em>任意</em> 目标；能观性意味着可以从输出历史还原全部状态。它们在 $A \leftrightarrow A^T,\,B \leftrightarrow C^T$ 下互为对偶。</p>
-<hr>
-<h2 id="7-极点配置与-lqr">7. 极点配置与 LQR</h2>
-<p>如果 $(A, B)$ 能控，状态反馈 $\mathbf u = -K\mathbf x$ 让闭环变为 $\dot{\mathbf x} = (A - BK)\mathbf x$。可以选 $K$ 使闭环特征值落在 <em>任意</em> 期望位置。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="kn">import</span> <span class="n">place_poles</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.96</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">23.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>  <span class="c1"># 倒立摆（线性化）</span>
-</span></span><span class="line"><span class="cl"><span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]])</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">K_pp</span> <span class="o">=</span> <span class="n">place_poles</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">])</span><span class="o">.</span><span class="n">gain_matrix</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;极点配置增益 K =&#39;</span><span class="p">,</span> <span class="n">K_pp</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;闭环特征值 =&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvals</span><span class="p">(</span><span class="n">A</span> <span class="o">-</span> <span class="n">B</span> <span class="o">@</span> <span class="n">K_pp</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>LQR</strong>（线性二次型调节器）通过最小化二次代价</p>
-$$
+$$<p>$\mathbf x \in \mathbb R^n$ 是 <strong>状态向量</strong>——只要给出 $\mathbf u(t)$，它就足以预测未来。$A$ 是动力学矩阵，$B$ 把输入耦合进来，$C$ 抽取测量输出，$D$ 是直通项（通常为 0）。</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/ode/16-%E6%8E%A7%E5%88%B6%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80/fig4_state_space.png alt="状态空间方框图、能控/能观秩判据及倒立摆上 LQR 与极点配置的对比。" loading=lazy decoding=async></figure><em>上：通用方框图与两个关键秩判据。下：从 $0.2$ 弧度倾角起平衡倒立摆。LQR（蓝）通过最小化代价泛函选择增益；极点配置（红）将闭环特征值放在 $\{-1,-2,-3,-4\}$。两者都能稳定，但 LQR 用更小的控制量。</em></p><h3 id=稳定性能控性能观性>稳定性、能控性、能观性</h3><p>三个秩条件回答了"能否设计控制器"这个根本问题：</p><table><thead><tr><th>判据</th><th>构造</th><th>成立条件</th></tr></thead><tbody><tr><td>稳定性</td><td>$A$ 的特征值</td><td>全部实部 &lt; 0</td></tr><tr><td>能控性</td><td>$\mathcal C = [B,\; AB,\; \ldots,\; A^{n-1}B]$</td><td>秩 $= n$</td></tr><tr><td>能观性</td><td>$\mathcal O = [C;\; CA;\; \ldots;\; CA^{n-1}]$</td><td>秩 $= n$</td></tr></tbody></table><p>能控性意味着可以用合适的输入把状态驱动到 <em>任意</em> 目标；能观性意味着可以从输出历史还原全部状态。它们在 $A \leftrightarrow A^T,\,B \leftrightarrow C^T$ 下互为对偶。</p><hr><h2 id=7-极点配置与-lqr>7. 极点配置与 LQR</h2><p>如果 $(A, B)$ 能控，状态反馈 $\mathbf u = -K\mathbf x$ 让闭环变为 $\dot{\mathbf x} = (A - BK)\mathbf x$。可以选 $K$ 使闭环特征值落在 <em>任意</em> 期望位置。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>numpy</span> <span class=k>as</span> <span class=nn>np</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.signal</span> <span class=kn>import</span> <span class=n>place_poles</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>A</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>              <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mf>0.1</span><span class=p>,</span> <span class=o>-</span><span class=mf>1.96</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>              <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>              <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mf>0.2</span><span class=p>,</span> <span class=mf>23.5</span><span class=p>,</span> <span class=mi>0</span><span class=p>]])</span>  <span class=c1># 倒立摆（线性化）</span>
+</span></span><span class=line><span class=cl><span class=n>B</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]])</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>K_pp</span> <span class=o>=</span> <span class=n>place_poles</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>B</span><span class=p>,</span> <span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>2</span><span class=p>,</span> <span class=o>-</span><span class=mi>3</span><span class=p>,</span> <span class=o>-</span><span class=mi>4</span><span class=p>])</span><span class=o>.</span><span class=n>gain_matrix</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s1>&#39;极点配置增益 K =&#39;</span><span class=p>,</span> <span class=n>K_pp</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=s1>&#39;闭环特征值 =&#39;</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>eigvals</span><span class=p>(</span><span class=n>A</span> <span class=o>-</span> <span class=n>B</span> <span class=o>@</span> <span class=n>K_pp</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>LQR</strong>（线性二次型调节器）通过最小化二次代价</p>$$
 J \;=\; \int_0^\infty \bigl(\mathbf x^T Q \mathbf x + \mathbf u^T R \mathbf u\bigr)\,dt
-$$<p>来选择 $K$，在状态偏差和控制能量之间权衡。解来自 <strong>代数 Riccati 方程</strong></p>
-$$
+$$<p>来选择 $K$，在状态偏差和控制能量之间权衡。解来自 <strong>代数 Riccati 方程</strong></p>$$
 A^T P + P A - P B R^{-1} B^T P + Q = 0, \qquad K = R^{-1} B^T P.
-$$<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">solve_continuous_are</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>      <span class="c1"># 重罚位置和角度</span>
-</span></span><span class="line"><span class="cl"><span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">]])</span>              <span class="c1"># 控制能量惩罚适中</span>
-</span></span><span class="line"><span class="cl"><span class="n">P</span> <span class="o">=</span> <span class="n">solve_continuous_are</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Q</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">K_lqr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">B</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">P</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>相比极点配置，LQR 几乎总能用更少的执行量达到同等的扰动抑制效果，并且只要 $(A, B)$ 可镇定、$(A, \sqrt Q)$ 可观测，就 <em>保证</em> 稳定。</p>
-<hr>
-<h2 id="8-观测器与分离原理">8. 观测器与分离原理</h2>
-<p>状态反馈假设我们能 <em>测量</em> $\mathbf x$ 的每一个分量；现实中只能看到 $\mathbf y$。<strong>Luenberger 观测器</strong> 用输出去估计未测量的状态：</p>
-$$
+$$<div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>scipy.linalg</span> <span class=kn>import</span> <span class=n>solve_continuous_are</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Q</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>diag</span><span class=p>([</span><span class=mi>10</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>,</span> <span class=mi>1</span><span class=p>])</span>      <span class=c1># 重罚位置和角度</span>
+</span></span><span class=line><span class=cl><span class=n>R</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mf>1.0</span><span class=p>]])</span>              <span class=c1># 控制能量惩罚适中</span>
+</span></span><span class=line><span class=cl><span class=n>P</span> <span class=o>=</span> <span class=n>solve_continuous_are</span><span class=p>(</span><span class=n>A</span><span class=p>,</span> <span class=n>B</span><span class=p>,</span> <span class=n>Q</span><span class=p>,</span> <span class=n>R</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>K_lqr</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linalg</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>R</span><span class=p>,</span> <span class=n>B</span><span class=o>.</span><span class=n>T</span> <span class=o>@</span> <span class=n>P</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>相比极点配置，LQR 几乎总能用更少的执行量达到同等的扰动抑制效果，并且只要 $(A, B)$ 可镇定、$(A, \sqrt Q)$ 可观测，就 <em>保证</em> 稳定。</p><hr><h2 id=8-观测器与分离原理>8. 观测器与分离原理</h2><p>状态反馈假设我们能 <em>测量</em> $\mathbf x$ 的每一个分量；现实中只能看到 $\mathbf y$。<strong>Luenberger 观测器</strong> 用输出去估计未测量的状态：</p>$$
 \dot{\hat{\mathbf x}} \;=\; A\hat{\mathbf x} + B\mathbf u + L\bigl(\mathbf y - C\hat{\mathbf x}\bigr).
-$$<p>估计误差 $\tilde{\mathbf x} = \mathbf x - \hat{\mathbf x}$ 满足 $\dot{\tilde{\mathbf x}} = (A - LC)\tilde{\mathbf x}$。如果 $(A, C)$ 能观，可以把 $A - LC$ 的特征值放在任意位置——通常比控制器极点更靠左，使估计先于控制收敛。</p>
-<p>奇妙的 <strong>分离原理</strong>：控制器与观测器组合后的闭环极点，恰好等于 $A - BK$ 的特征值与 $A - LC$ 的特征值的并集。这意味着两部分可以 <em>独立</em> 设计。</p>
-<hr>
-<h2 id="9-实战案例小车上的倒立摆">9. 实战案例：小车上的倒立摆</h2>
-<p>线性化后状态 $\mathbf x = [x,\; \dot x,\; \theta,\; \dot\theta]^T$，矩阵</p>
-$$
+$$<p>估计误差 $\tilde{\mathbf x} = \mathbf x - \hat{\mathbf x}$ 满足 $\dot{\tilde{\mathbf x}} = (A - LC)\tilde{\mathbf x}$。如果 $(A, C)$ 能观，可以把 $A - LC$ 的特征值放在任意位置——通常比控制器极点更靠左，使估计先于控制收敛。</p><p>奇妙的 <strong>分离原理</strong>：控制器与观测器组合后的闭环极点，恰好等于 $A - BK$ 的特征值与 $A - LC$ 的特征值的并集。这意味着两部分可以 <em>独立</em> 设计。</p><hr><h2 id=9-实战案例小车上的倒立摆>9. 实战案例：小车上的倒立摆</h2><p>线性化后状态 $\mathbf x = [x,\; \dot x,\; \theta,\; \dot\theta]^T$，矩阵</p>$$
 A = \begin{pmatrix}
 0 & 1 & 0 & 0 \\
 0 & -b/M & -mg/M & 0 \\
@@ -476,204 +131,5 @@ A = \begin{pmatrix}
 \end{pmatrix},
 \quad
 B = \begin{pmatrix} 0 \\ 1/M \\ 0 \\ -1/(ML) \end{pmatrix}.
-$$<p>观察 $A$ 的特征值，其中一个落在右半平面（开环倒立摆会倒）。我们由 Riccati 解出 $K_\text{LQR}$，然后从 $0.2$ 弧度初始倾角仿真 $\dot{\mathbf x} = (A - BK)\mathbf x$。状态空间图最下排显示：角度平滑衰减、小车回到原点、控制力快速降到一个小的稳态推力——整个设计闭环，不到 30 行 Python。</p>
-<hr>
-<h2 id="10-现代图景">10. 现代图景</h2>
-<p>本章其实是把 ODE 这门课带着 <strong>目标</strong> 重演了一遍。第 7-8 章的稳定性理论关心 <em>系统平衡点能否承受小扰动</em>；控制理论关心 <em>如何工程化地塑造</em> 平衡点和收敛速度。第 4 章的拉普拉斯变换不再只是求显式解，而是直接给出频域鲁棒性指标。第 6 章的矩阵指数则成为状态空间仿真和观测器设计的核心。</p>
-<p>向前还有：</p>
-<ul>
-<li><strong>鲁棒控制</strong> ── $H_\infty$、$\mu$ 综合：在有界模型误差下证明性能。</li>
-<li><strong>自适应控制 / 模型预测控制（MPC）</strong> ── 控制器在线更新，每步求解一个滑动时域优化。</li>
-<li><strong>非线性控制</strong> ── 反馈线性化、滑模控制、控制 Lyapunov 函数。</li>
-<li><strong>强化学习</strong> ── 控制器从经验中 <em>学</em> 出来，而不是被设计；与第 18 章 Neural ODE 形成自然衔接。</li>
-</ul>
-<hr>
-<h2 id="小结">小结</h2>
-<table>
-  <thead>
-      <tr>
-          <th>概念</th>
-          <th>公式 / 工具</th>
-          <th>设计能力</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>传递函数</td>
-          <td>$G(s) = Y/U$（拉氏）</td>
-          <td>经典补偿器、超前/滞后</td>
-      </tr>
-      <tr>
-          <td>PID</td>
-          <td>$u = K_p e + K_i \int e + K_d \dot e$</td>
-          <td>工业 90% 的控制回路</td>
-      </tr>
-      <tr>
-          <td>根轨迹</td>
-          <td>$1 + KL(s) = 0$</td>
-          <td>增益选择、稳定边界</td>
-      </tr>
-      <tr>
-          <td>Bode / Nyquist</td>
-          <td>$L(j\omega)$</td>
-          <td>增益裕度、相位裕度</td>
-      </tr>
-      <tr>
-          <td>状态空间</td>
-          <td>$\dot x = Ax + Bu$</td>
-          <td>MIMO、现代控制</td>
-      </tr>
-      <tr>
-          <td>极点配置</td>
-          <td>$u = -Kx$</td>
-          <td>指定闭环极点</td>
-      </tr>
-      <tr>
-          <td>LQR</td>
-          <td>Riccati 方程</td>
-          <td>最优 $K$</td>
-      </tr>
-      <tr>
-          <td>观测器</td>
-          <td>$\dot{\hat x} = A\hat x + Bu + L(y - C\hat x)$</td>
-          <td>估计隐藏状态</td>
-      </tr>
-  </tbody>
-</table>
-<p>控制理论 <strong>把 ODE 从描述提升为设计</strong>：我们不再只是预测系统怎么动，而是告诉它 <em>应该</em> 怎么动。</p>
-<hr>
-<h2 id="参考资料">参考资料</h2>
-<ul>
-<li>Ogata, <em>Modern Control Engineering</em>, Pearson (2010).</li>
-<li>Franklin, Powell &amp; Emami-Naeini, <em>Feedback Control of Dynamic Systems</em>, Pearson (2015).</li>
-<li>Astrom &amp; Murray, <em>Feedback Systems</em>, Princeton (2008). 免费 PDF。</li>
-<li>Skogestad &amp; Postlethwaite, <em>Multivariable Feedback Control</em>, Wiley (2005).</li>
-</ul>
-<hr>
-<p><strong>系列导航</strong></p>
-<table>
-  <thead>
-      <tr>
-          <th></th>
-          <th></th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>上一章</strong></td>
-          <td><a href="/zh/%e5%b8%b8%e5%be%ae%e5%88%86%e6%96%b9%e7%a8%8b-%e5%8d%81%e4%ba%94-%e7%a7%8d%e7%be%a4%e5%8a%a8%e5%8a%9b%e5%ad%a6/">第十五章：种群动力学</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>当前</strong></td>
-          <td>第十六章：控制理论基础</td>
-      </tr>
-      <tr>
-          <td><strong>下一章</strong></td>
-          <td><a href="/zh/%e5%b8%b8%e5%be%ae%e5%88%86%e6%96%b9%e7%a8%8b-%e5%8d%81%e4%b8%83-%e7%89%a9%e7%90%86%e4%b8%8e%e5%b7%a5%e7%a8%8b%e5%ba%94%e7%94%a8/">第十七章：物理与工程应用</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#本章要点">本章要点</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-开环-vs-闭环">1. 开环 vs 闭环</a></li>
-    <li><a href="#2-传递函数">2. 传递函数</a>
-      <ul>
-        <li><a href="#一阶系统">一阶系统</a></li>
-        <li><a href="#二阶系统">二阶系统</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-pid-控制器">3. PID 控制器</a>
-      <ul>
-        <li><a href="#ziegler-nichols-整定不需要模型的起手式">Ziegler-Nichols 整定（不需要模型的起手式）</a></li>
-      </ul>
-    </li>
-    <li><a href="#4-根轨迹--闭环极点的轨迹">4. 根轨迹 ── 闭环极点的轨迹</a></li>
-    <li><a href="#5-bode-图与稳定裕度">5. Bode 图与稳定裕度</a></li>
-    <li><a href="#6-状态空间表示">6. 状态空间表示</a>
-      <ul>
-        <li><a href="#稳定性能控性能观性">稳定性、能控性、能观性</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-极点配置与-lqr">7. 极点配置与 LQR</a></li>
-    <li><a href="#8-观测器与分离原理">8. 观测器与分离原理</a></li>
-    <li><a href="#9-实战案例小车上的倒立摆">9. 实战案例：小车上的倒立摆</a></li>
-    <li><a href="#10-现代图景">10. 现代图景</a></li>
-    <li><a href="#小结">小结</a></li>
-    <li><a href="#参考资料">参考资料</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">常微分方程</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>8 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3900</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2024</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>观察 $A$ 的特征值，其中一个落在右半平面（开环倒立摆会倒）。我们由 Riccati 解出 $K_\text{LQR}$，然后从 $0.2$ 弧度初始倾角仿真 $\dot{\mathbf x} = (A - BK)\mathbf x$。状态空间图最下排显示：角度平滑衰减、小车回到原点、控制力快速降到一个小的稳态推力——整个设计闭环，不到 30 行 Python。</p><hr><h2 id=10-现代图景>10. 现代图景</h2><p>本章其实是把 ODE 这门课带着 <strong>目标</strong> 重演了一遍。第 7-8 章的稳定性理论关心 <em>系统平衡点能否承受小扰动</em>；控制理论关心 <em>如何工程化地塑造</em> 平衡点和收敛速度。第 4 章的拉普拉斯变换不再只是求显式解，而是直接给出频域鲁棒性指标。第 6 章的矩阵指数则成为状态空间仿真和观测器设计的核心。</p><p>向前还有：</p><ul><li><strong>鲁棒控制</strong> ── $H_\infty$、$\mu$ 综合：在有界模型误差下证明性能。</li><li><strong>自适应控制 / 模型预测控制（MPC）</strong> ── 控制器在线更新，每步求解一个滑动时域优化。</li><li><strong>非线性控制</strong> ── 反馈线性化、滑模控制、控制 Lyapunov 函数。</li><li><strong>强化学习</strong> ── 控制器从经验中 <em>学</em> 出来，而不是被设计；与第 18 章 Neural ODE 形成自然衔接。</li></ul><hr><h2 id=小结>小结</h2><table><thead><tr><th>概念</th><th>公式 / 工具</th><th>设计能力</th></tr></thead><tbody><tr><td>传递函数</td><td>$G(s) = Y/U$（拉氏）</td><td>经典补偿器、超前/滞后</td></tr><tr><td>PID</td><td>$u = K_p e + K_i \int e + K_d \dot e$</td><td>工业 90% 的控制回路</td></tr><tr><td>根轨迹</td><td>$1 + KL(s) = 0$</td><td>增益选择、稳定边界</td></tr><tr><td>Bode / Nyquist</td><td>$L(j\omega)$</td><td>增益裕度、相位裕度</td></tr><tr><td>状态空间</td><td>$\dot x = Ax + Bu$</td><td>MIMO、现代控制</td></tr><tr><td>极点配置</td><td>$u = -Kx$</td><td>指定闭环极点</td></tr><tr><td>LQR</td><td>Riccati 方程</td><td>最优 $K$</td></tr><tr><td>观测器</td><td>$\dot{\hat x} = A\hat x + Bu + L(y - C\hat x)$</td><td>估计隐藏状态</td></tr></tbody></table><p>控制理论 <strong>把 ODE 从描述提升为设计</strong>：我们不再只是预测系统怎么动，而是告诉它 <em>应该</em> 怎么动。</p><hr><h2 id=参考资料>参考资料</h2><ul><li>Ogata, <em>Modern Control Engineering</em>, Pearson (2010).</li><li>Franklin, Powell & Emami-Naeini, <em>Feedback Control of Dynamic Systems</em>, Pearson (2015).</li><li>Astrom & Murray, <em>Feedback Systems</em>, Princeton (2008). 免费 PDF。</li><li>Skogestad & Postlethwaite, <em>Multivariable Feedback Control</em>, Wiley (2005).</li></ul><hr><p><strong>系列导航</strong></p><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>上一章</strong></td><td><a href=/zh/%e5%b8%b8%e5%be%ae%e5%88%86%e6%96%b9%e7%a8%8b-%e5%8d%81%e4%ba%94-%e7%a7%8d%e7%be%a4%e5%8a%a8%e5%8a%9b%e5%ad%a6/>第十五章：种群动力学</a></td></tr><tr><td><strong>当前</strong></td><td>第十六章：控制理论基础</td></tr><tr><td><strong>下一章</strong></td><td><a href=/zh/%e5%b8%b8%e5%be%ae%e5%88%86%e6%96%b9%e7%a8%8b-%e5%8d%81%e4%b8%83-%e7%89%a9%e7%90%86%e4%b8%8e%e5%b7%a5%e7%a8%8b%e5%ba%94%e7%94%a8/>第十七章：物理与工程应用</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#本章要点>本章要点</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-开环-vs-闭环>1. 开环 vs 闭环</a></li><li><a href=#2-传递函数>2. 传递函数</a><ul><li><a href=#一阶系统>一阶系统</a></li><li><a href=#二阶系统>二阶系统</a></li></ul></li><li><a href=#3-pid-控制器>3. PID 控制器</a><ul><li><a href=#ziegler-nichols-整定不需要模型的起手式>Ziegler-Nichols 整定（不需要模型的起手式）</a></li></ul></li><li><a href=#4-根轨迹--闭环极点的轨迹>4. 根轨迹 ── 闭环极点的轨迹</a></li><li><a href=#5-bode-图与稳定裕度>5. Bode 图与稳定裕度</a></li><li><a href=#6-状态空间表示>6. 状态空间表示</a><ul><li><a href=#稳定性能控性能观性>稳定性、能控性、能观性</a></li></ul></li><li><a href=#7-极点配置与-lqr>7. 极点配置与 LQR</a></li><li><a href=#8-观测器与分离原理>8. 观测器与分离原理</a></li><li><a href=#9-实战案例小车上的倒立摆>9. 实战案例：小车上的倒立摆</a></li><li><a href=#10-现代图景>10. 现代图景</a></li><li><a href=#小结>小结</a></li><li><a href=#参考资料>参考资料</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>8 min</strong></div><div class=row><span>Word count</span><strong>3896</strong></div><div class=row><span>Published</span><strong>Mar 2024</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

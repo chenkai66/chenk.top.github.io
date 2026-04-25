@@ -1,1256 +1,384 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/cloud-computing/storage-systems/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Cloud Storage Systems and Distributed Architecture · Chen Kai Blog</title>
-<meta name="description" content="From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/cloud-computing/storage-systems/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/cloud-computing/storage-systems/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/cloud-computing/storage-systems/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/cloud-computing/storage-systems/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Cloud Storage Systems and Distributed Architecture">
-<meta property="og:description" content="From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation.">
-<meta property="og:url" content="https://www.chenk.top/en/cloud-computing/storage-systems/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-2);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Cloud Computing</a>
-         · Chapter 4
-      </div>
-      <h1>Cloud Storage Systems and Distributed Architecture</h1>
-      <p class="deck">From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2023-03-30">March 30, 2023</time> · 18 min read · 3900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/cloud-computing/" class="tag">#Cloud Computing</a><a href="/en/tags/distributed-storage/" class="tag">#Distributed Storage</a><a href="/en/tags/object-storage/" class="tag">#Object Storage</a><a href="/en/tags/hdfs/" class="tag">#HDFS</a><a href="/en/tags/ceph/" class="tag">#Ceph</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/cloud-computing/storage-systems/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>When Netflix stores petabytes of video, when Instagram serves billions of photos, when a quant fund replays a year of market data in minutes &ndash; behind every one of these workloads is a <em>distributed storage system</em>. Storage looks deceptively simple from a developer&rsquo;s window (<code>PUT key</code>, <code>GET key</code>), but the moment you cross the boundary of a single machine, you inherit a stack of problems that has driven decades of research: how to survive disk failures, how to scale linearly, how to provide a consistency model that does not surprise the application, and how to do all of this while paying cents per gigabyte rather than dollars.</p>
-<p>This article walks the entire stack: the <em>theoretical floor</em> (CAP, consistency, consistent hashing), the <em>three storage shapes</em> (object, block, file), the <em>production systems</em> you will actually use (S3, HDFS, Ceph), and the <em>engineering levers</em> (replication, erasure coding, lifecycle, multipart uploads) that turn raw capacity into a service-level guarantee.</p>
-<h2 id="what-you-will-learn">What you will learn</h2>
-<ol>
-<li><strong>The trade-off space</strong> &ndash; CAP, PACELC, and why partition tolerance is mandatory</li>
-<li><strong>The three shapes of cloud storage</strong> &ndash; block, file, object: when each is the right primitive</li>
-<li><strong>Object storage internals</strong> &ndash; partitioning, placement, durability, the request path through S3</li>
-<li><strong>Distributed file systems</strong> &ndash; HDFS (master-based) vs Ceph (CRUSH peer-to-peer)</li>
-<li><strong>Replication vs erasure coding</strong> &ndash; the math behind 11-nines durability at 1.5x overhead</li>
-<li><strong>Operational design</strong> &ndash; consistency models, quorum, multipart uploads, lifecycle policies</li>
-<li><strong>Cost engineering</strong> &ndash; storage classes, compression, deduplication, tiering policies</li>
-</ol>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Comfort with Python and a Unix shell</li>
-<li>Working mental model of TCP, HTTP, and a filesystem</li>
-<li>Parts 1-2 of this series (fundamentals and virtualisation) are recommended</li>
-</ul>
-<hr>
-<h2 id="1-the-shape-of-the-problem">1. The shape of the problem</h2>
-<h3 id="11-why-distributed-storage-is-hard">1.1 Why distributed storage is hard</h3>
-<p>A single SSD can deliver hundreds of thousands of IOPS and survive years. The problem is that <em>one</em> of anything in production is a liability:</p>
-<ul>
-<li>A single disk dies every few years &ndash; in a fleet of 10,000, you replace one or more <em>every day</em>.</li>
-<li>A single machine is a capacity ceiling: you cannot grow past its rack slot or PSU budget.</li>
-<li>A single network path is a SPOF: one ToR switch reload takes the box dark.</li>
-</ul>
-<p>So we replicate. The moment we replicate, we hit <em>two</em> deeper problems: keeping the copies in agreement (consistency), and keeping the service usable when the network splits the copies into islands (partitions). That is the territory the CAP theorem maps out.</p>
-<h3 id="12-object-vs-block-vs-file-pick-the-right-primitive">1.2 Object vs Block vs File: pick the right primitive</h3>
-<p>Before we get to consistency theory, fix the vocabulary. There are three storage <em>shapes</em>, and almost every cloud product is one of them in disguise:</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig1_storage_comparison.png" alt="Object vs Block vs File comparison" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<table>
-  <thead>
-      <tr>
-          <th>Shape</th>
-          <th>Unit of access</th>
-          <th>API</th>
-          <th>Latency</th>
-          <th>Scale</th>
-          <th>Typical product</th>
-          <th>Best for</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Block</strong></td>
-          <td>512 B / 4 KB blocks</td>
-          <td>iSCSI, NVMe, virtio</td>
-          <td>µs - low ms</td>
-          <td>TB per volume</td>
-          <td>EBS, Azure Disk, OSS-disk</td>
-          <td>Databases, VM root disks, anything wanting <code>O_DIRECT</code></td>
-      </tr>
-      <tr>
-          <td><strong>File</strong></td>
-          <td>byte stream in a tree</td>
-          <td>NFS / SMB / POSIX</td>
-          <td>low ms</td>
-          <td>PB per fs</td>
-          <td>EFS, Azure Files, NAS</td>
-          <td>Shared scratch, lift-and-shift legacy apps</td>
-      </tr>
-      <tr>
-          <td><strong>Object</strong></td>
-          <td>immutable blob with metadata</td>
-          <td>HTTP/REST</td>
-          <td>tens of ms</td>
-          <td>exabytes</td>
-          <td>S3, GCS, OSS</td>
-          <td>Web assets, backups, data lakes, ML datasets</td>
-      </tr>
-  </tbody>
-</table>
-<p>A useful mental shortcut: <strong>block storage is a sector</strong>, <strong>file storage is a path</strong>, <strong>object storage is a URL</strong>. Each layer trades latency for scale. Block storage gives you a virtual disk (and the kernel gives you a filesystem on top). File storage gives you a shared filesystem out of the box. Object storage gives up POSIX semantics entirely in exchange for near-infinite scale and a flat key space.</p>
-<p>When in doubt: if the workload is &ldquo;open the file, seek, write&rdquo; you want block or file. If it is &ldquo;upload, download, delete by key&rdquo; you want object.</p>
-<hr>
-<h2 id="2-cap-pacelc-and-the-consistency-menu">2. CAP, PACELC, and the consistency menu</h2>
-<h3 id="21-the-cap-theorem">2.1 The CAP theorem</h3>
-<p>Eric Brewer&rsquo;s CAP conjecture (2000), later proved by Gilbert and Lynch (2002), states: in the presence of a network partition, a distributed system must choose between <strong>C</strong>onsistency and <strong>A</strong>vailability. You cannot have both.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig3_cap_theorem.png" alt="CAP theorem Venn diagram" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<ul>
-<li><strong>Consistency (C)</strong> &ndash; every read returns the most recent committed write (linearisable).</li>
-<li><strong>Availability (A)</strong> &ndash; every non-failing node returns a response in finite time.</li>
-<li><strong>Partition tolerance (P)</strong> &ndash; the system continues to operate even when arbitrary messages between nodes are dropped.</li>
-</ul>
-<p>Because partitions are not optional in a real network &ndash; a switch reload, a fibre cut, a kernel pause &ndash; you do not get to opt out of P. So the real choice is <strong>CP vs AP</strong>. &ldquo;CA&rdquo; describes single-machine systems that pretend partitions cannot happen.</p>
-<table>
-  <thead>
-      <tr>
-          <th>System</th>
-          <th>Class</th>
-          <th>Behaviour during a partition</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>ZooKeeper, etcd, HBase, MongoDB (majority writes)</td>
-          <td>CP</td>
-          <td>Refuse writes on the minority side; the cluster pauses but never disagrees</td>
-      </tr>
-      <tr>
-          <td>Cassandra, DynamoDB, Riak, S3 (legacy overwrite)</td>
-          <td>AP</td>
-          <td>Both sides keep accepting writes; reconciliation happens later</td>
-      </tr>
-      <tr>
-          <td>Single-node Postgres</td>
-          <td>CA-ish</td>
-          <td>Stops working entirely on partition (the partition is &ldquo;the network is down&rdquo;)</td>
-      </tr>
-  </tbody>
-</table>
-<h3 id="22-pacelc-the-part-cap-forgot">2.2 PACELC: the part CAP forgot</h3>
-<p>CAP only describes behaviour <em>during a partition</em>. PACELC (Abadi, 2010) extends it: <strong>if Partitioned, choose A or C; Else, choose Latency or Consistency</strong>.</p>
-<p>This explains why Cassandra is &ldquo;AP/EL&rdquo; (eventual reads in normal operation are faster) while Spanner is &ldquo;CP/EC&rdquo; (it pays a TrueTime delay on every commit to stay strict). Most production decisions are PACELC decisions, not CAP decisions; partitions are rare but the latency-vs-consistency knob is set on every request.</p>
-<h3 id="23-practical-consistency-models">2.3 Practical consistency models</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Model</th>
-          <th>Guarantee</th>
-          <th>Where you see it</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td><strong>Linearisable</strong></td>
-          <td>All operations appear in a single global order matching real time</td>
-          <td>etcd, Spanner, ZooKeeper</td>
-      </tr>
-      <tr>
-          <td><strong>Sequential</strong></td>
-          <td>Single global order, but not necessarily real time</td>
-          <td>classic shared memory</td>
-      </tr>
-      <tr>
-          <td><strong>Read-after-write</strong></td>
-          <td>A client always sees its own writes</td>
-          <td>S3 (since Dec 2020), most session-scoped systems</td>
-      </tr>
-      <tr>
-          <td><strong>Monotonic reads</strong></td>
-          <td>Once a client sees value v, it never sees an older value</td>
-          <td>Common in caches with sticky sessions</td>
-      </tr>
-      <tr>
-          <td><strong>Eventual</strong></td>
-          <td>If writes stop, reads eventually converge</td>
-          <td>Cassandra default, DynamoDB eventually-consistent reads</td>
-      </tr>
-  </tbody>
-</table>
-<p>S3&rsquo;s switch to <strong>strong read-after-write consistency for all operations</strong> in December 2020 is a striking example of how engineering can collapse what looks like a fundamental trade-off: AWS rebuilt the metadata layer (an internal service called <em>witness</em>) to give linearisable behaviour without sacrificing the AP nature of the data path.</p>
-<hr>
-<h2 id="3-consistent-hashing-the-routing-primitive">3. Consistent hashing: the routing primitive</h2>
-<p>Sharding by <code>hash(key) % N</code> works until you add or remove a node, at which point <code>(N -&gt; N+1)</code> reshuffles essentially every key. <strong>Consistent hashing</strong> (Karger et al., 1997) reduces the churn to roughly <code>1/N</code> of keys. It is the placement algorithm beneath DynamoDB, Cassandra, Riak, memcached clients, and (with refinements) Ceph&rsquo;s CRUSH.</p>
-<p>The trick: hash both keys <em>and</em> nodes onto the same circular ring; each key is owned by the next node clockwise. Adding a node only steals keys from its immediate clockwise neighbour. Using <strong>virtual nodes</strong> (each physical node hashed multiple times) smooths the load distribution.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span><span class="lnt">36
-</span><span class="lnt">37
-</span><span class="lnt">38
-</span><span class="lnt">39
-</span><span class="lnt">40
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">bisect</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">hashlib</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">ConsistentHash</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;A minimal consistent-hash ring with virtual nodes.&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vnodes</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">vnodes</span> <span class="o">=</span> <span class="n">vnodes</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">ring</span> <span class="o">=</span> <span class="p">{}</span>              <span class="c1"># hash -&gt; node</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span> <span class="o">=</span> <span class="p">[]</span>       <span class="c1"># sorted hashes</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span> <span class="ow">or</span> <span class="p">[]:</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="nd">@staticmethod</span>
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vnodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span>
-</span></span><span class="line"><span class="cl">            <span class="n">bisect</span><span class="o">.</span><span class="n">insort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vnodes</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">            <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2">#</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">[</span><span class="n">h</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="k">return</span> <span class="kc">None</span>
-</span></span><span class="line"><span class="cl">        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hash</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">idx</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_right</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ring</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">ring</span> <span class="o">=</span> <span class="n">ConsistentHash</span><span class="p">([</span><span class="s2">&#34;s3-az-a&#34;</span><span class="p">,</span> <span class="s2">&#34;s3-az-b&#34;</span><span class="p">,</span> <span class="s2">&#34;s3-az-c&#34;</span><span class="p">])</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">ring</span><span class="o">.</span><span class="n">get_node</span><span class="p">(</span><span class="s2">&#34;user:12345/profile.jpg&#34;</span><span class="p">))</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>Why 128 vnodes?</strong> With 1 vnode per server you get standard-deviation in load of ~30%. With 128 vnodes, the variance drops to a few percent &ndash; close enough to uniform that you can plan capacity by averages.</p>
-<hr>
-<h2 id="4-object-storage-how-s3-actually-works">4. Object storage: how S3 actually works</h2>
-<p>S3 is the de facto standard for cloud object storage and the inspiration for OSS, GCS, R2, Backblaze B2 and dozens of compatible systems. From a 30,000-foot view, S3 is &ldquo;an HTTP server that maps <code>(bucket, key)</code> to bytes&rdquo;. Inside, it is one of the largest distributed systems ever built.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig2_s3_architecture.png" alt="S3-style object store request path" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="41-the-request-path">4.1 The request path</h3>
-<p>A <code>PUT</code> for <code>s3://my-bucket/users/42.jpg</code>:</p>
-<ol>
-<li><strong>DNS + edge</strong> &ndash; the client resolves the regional endpoint and lands at an edge front-end.</li>
-<li><strong>Auth</strong> &ndash; SigV4 signature is verified; bucket ACL / IAM policy / SCP / VPC endpoint policy / object ACL are evaluated.</li>
-<li><strong>Index lookup</strong> &ndash; the bucket name maps to a <em>partition</em> of an internal key-range index. Hot buckets are auto-split (S3 will split a partition once it exceeds an internal QPS or size threshold; this is the historical reason for the &ldquo;key prefix randomisation&rdquo; advice, which is now mostly obsolete).</li>
-<li><strong>Placement</strong> &ndash; the placement service picks an OSD set in the target durability scheme (e.g. 6+3 erasure coding spread across 3 AZs).</li>
-<li><strong>Write</strong> &ndash; bytes are streamed to enough nodes to satisfy the write quorum.</li>
-<li><strong>Acknowledge</strong> &ndash; once durable, S3 returns <code>200 OK</code> with an ETag.</li>
-</ol>
-<h3 id="42-storage-classes----the-cost-lever">4.2 Storage classes &ndash; the cost lever</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Class</th>
-          <th>$/GB-month (US-East-1)</th>
-          <th>Retrieval latency</th>
-          <th>Min storage</th>
-          <th>Retrieval fee</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Standard</td>
-          <td>~$0.023</td>
-          <td>ms</td>
-          <td>none</td>
-          <td>none</td>
-      </tr>
-      <tr>
-          <td>Intelligent-Tiering</td>
-          <td>$0.023 high tier, $0.0125 IA tier</td>
-          <td>ms</td>
-          <td>30 d (auto)</td>
-          <td>none</td>
-      </tr>
-      <tr>
-          <td>Standard-IA</td>
-          <td>$0.0125</td>
-          <td>ms</td>
-          <td>30 d</td>
-          <td>$0.01 / GB</td>
-      </tr>
-      <tr>
-          <td>One Zone-IA</td>
-          <td>$0.01</td>
-          <td>ms</td>
-          <td>30 d</td>
-          <td>$0.01 / GB</td>
-      </tr>
-      <tr>
-          <td>Glacier Instant</td>
-          <td>$0.004</td>
-          <td>ms</td>
-          <td>90 d</td>
-          <td>$0.03 / GB</td>
-      </tr>
-      <tr>
-          <td>Glacier Flexible</td>
-          <td>$0.0036</td>
-          <td>1 min - 12 h</td>
-          <td>90 d</td>
-          <td>$0.01 / GB (std)</td>
-      </tr>
-      <tr>
-          <td>Glacier Deep Archive</td>
-          <td>$0.00099</td>
-          <td>12 - 48 h</td>
-          <td>180 d</td>
-          <td>$0.02 / GB</td>
-      </tr>
-  </tbody>
-</table>
-<p>Two practical implications:</p>
-<ul>
-<li><strong>Cold tiers have minimum retention.</strong> Deleting a Deep Archive object after 30 days still bills you for the full 180. Tier <em>only</em> what you genuinely will not touch.</li>
-<li><strong>Retrieval cost can dwarf storage cost.</strong> An infrequently-accessed object hit unexpectedly often is worse-than-Standard. Intelligent-Tiering exists exactly to defend against this.</li>
-</ul>
-<h3 id="43-the-python-sdk-in-production">4.3 The Python SDK in production</h3>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">boto3</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">botocore.config</span> <span class="kn">import</span> <span class="n">Config</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Tuned client: aggressive timeouts, signature v4, no retries on POSTs</span>
-</span></span><span class="line"><span class="cl"><span class="n">s3</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;s3&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">region_name</span><span class="o">=</span><span class="s2">&#34;us-east-1&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">        <span class="n">signature_version</span><span class="o">=</span><span class="s2">&#34;s3v4&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">retries</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;max_attempts&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&#34;mode&#34;</span><span class="p">:</span> <span class="s2">&#34;adaptive&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="n">connect_timeout</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">read_timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="n">max_pool_connections</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="p">),</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Server-side encryption with KMS, request integrity, intelligent tiering</span>
-</span></span><span class="line"><span class="cl"><span class="n">s3</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;my-app-data&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Key</span><span class="o">=</span><span class="s2">&#34;users/42/profile.jpg&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Body</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/local/profile.jpg&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ContentType</span><span class="o">=</span><span class="s2">&#34;image/jpeg&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">StorageClass</span><span class="o">=</span><span class="s2">&#34;INTELLIGENT_TIERING&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ServerSideEncryption</span><span class="o">=</span><span class="s2">&#34;aws:kms&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">SSEKMSKeyId</span><span class="o">=</span><span class="s2">&#34;alias/app-data&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;user-id&#34;</span><span class="p">:</span> <span class="s2">&#34;42&#34;</span><span class="p">,</span> <span class="s2">&#34;uploader&#34;</span><span class="p">:</span> <span class="s2">&#34;ios-7.2&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">    <span class="n">ChecksumAlgorithm</span><span class="o">=</span><span class="s2">&#34;SHA256&#34;</span><span class="p">,</span>     <span class="c1"># end-to-end integrity</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>Three details that catch teams out:</p>
-<ul>
-<li><strong><code>ChecksumAlgorithm</code></strong> uploads a client-computed checksum that S3 verifies; without it, you only get a TCP/TLS guarantee, not end-to-end.</li>
-<li><strong><code>StorageClass</code></strong> at PUT-time is essentially free; reclassifying later requires a <code>CopyObject</code> and may incur retrieval fees.</li>
-<li><strong>Adaptive retries</strong> back off on 503 SlowDown responses; without them a hot prefix can collapse a fleet.</li>
-</ul>
-<h3 id="44-multipart-uploads">4.4 Multipart uploads</h3>
-<p>Anything over a few hundred MB should be uploaded as multipart: parallelism, resumability, and a per-part checksum. Pre-built code in <code>boto3.s3.transfer</code> handles this; here is the explicit version so you can see what is happening:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">multipart_upload</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">bucket</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                     <span class="n">part_mb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">part_size</span> <span class="o">=</span> <span class="n">part_mb</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
-</span></span><span class="line"><span class="cl">    <span class="n">num_parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">size</span> <span class="o">+</span> <span class="n">part_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">part_size</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="n">init</span> <span class="o">=</span> <span class="n">s3</span><span class="o">.</span><span class="n">create_multipart_upload</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="n">upload_id</span> <span class="o">=</span> <span class="n">init</span><span class="p">[</span><span class="s2">&#34;UploadId&#34;</span><span class="p">]</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">_upload_part</span><span class="p">(</span><span class="n">part_no</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">((</span><span class="n">part_no</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">part_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">            <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">part_size</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">resp</span> <span class="o">=</span> <span class="n">s3</span><span class="o">.</span><span class="n">upload_part</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">PartNumber</span><span class="o">=</span><span class="n">part_no</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">UploadId</span><span class="o">=</span><span class="n">upload_id</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">ChecksumAlgorithm</span><span class="o">=</span><span class="s2">&#34;SHA256&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">{</span><span class="s2">&#34;PartNumber&#34;</span><span class="p">:</span> <span class="n">part_no</span><span class="p">,</span> <span class="s2">&#34;ETag&#34;</span><span class="p">:</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&#34;ETag&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ChecksumSHA256&#34;</span><span class="p">:</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&#34;ChecksumSHA256&#34;</span><span class="p">]}</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">try</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">            <span class="n">parts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_upload_part</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_parts</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s3</span><span class="o">.</span><span class="n">complete_multipart_upload</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">UploadId</span><span class="o">=</span><span class="n">upload_id</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">            <span class="n">MultipartUpload</span><span class="o">=</span><span class="p">{</span><span class="s2">&#34;Parts&#34;</span><span class="p">:</span> <span class="n">parts</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="n">s3</span><span class="o">.</span><span class="n">abort_multipart_upload</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">UploadId</span><span class="o">=</span><span class="n">upload_id</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="k">raise</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The <code>try/except</code> matters: an aborted but un-cleaned multipart upload silently bills you for storage of the orphan parts. Configure a lifecycle rule (<code>AbortIncompleteMultipartUpload</code> after 7 days) on every bucket.</p>
-<hr>
-<h2 id="5-replication-vs-erasure-coding">5. Replication vs erasure coding</h2>
-<p>3-way replication is the easy answer. Erasure coding is the cheap answer. Most modern cloud object stores do both: hot data is replicated, cold data is erasure-coded.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig4_erasure_vs_replication.png" alt="Replication vs erasure coding overhead and durability" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="51-the-math">5.1 The math</h3>
-<p>With <strong>k+m</strong> Reed-Solomon erasure coding, each object is split into <code>k</code> data shards plus <code>m</code> parity shards. The object survives any <code>m</code> shard losses; the storage overhead is <code>m/k</code>.</p>
-<table>
-  <thead>
-      <tr>
-          <th>Scheme</th>
-          <th>Overhead</th>
-          <th>Failures tolerated</th>
-          <th>Read amplification on rebuild</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>3x replication</td>
-          <td>200%</td>
-          <td>2 disks</td>
-          <td>1 (one extra read)</td>
-      </tr>
-      <tr>
-          <td>EC 6+3</td>
-          <td>50%</td>
-          <td>3 shards</td>
-          <td>6 (must read 6 shards to reconstruct)</td>
-      </tr>
-      <tr>
-          <td>EC 10+4</td>
-          <td>40%</td>
-          <td>4 shards</td>
-          <td>10</td>
-      </tr>
-      <tr>
-          <td>EC 12+4</td>
-          <td>33%</td>
-          <td>4 shards</td>
-          <td>12</td>
-      </tr>
-  </tbody>
-</table>
-<p>The trade-off is brutal but predictable:</p>
-<ul>
-<li>Replication: cheap CPU, expensive disks, fast rebuild (just copy one block).</li>
-<li>Erasure coding: cheap disks, expensive CPU + network on rebuild, slower rebuild.</li>
-</ul>
-<p>Hot data wants the replication profile (a single read is one HTTP fetch). Cold data wants the EC profile (you rarely touch it, so rebuild cost amortises across years).</p>
-<h3 id="52-11-nines-durability-is-a-budget">5.2 11-nines durability is a budget</h3>
-<p>S3 advertises &ldquo;eleven nines&rdquo; (99.999999999%) of object durability. That is one expected loss per 100 billion object-years. The number is not magic &ndash; it is engineered:</p>
-<ul>
-<li>Disk AFR ~1%.</li>
-<li>Spread <code>k+m</code> shards across at least 3 AZs.</li>
-<li>Continuous background scrubbing detects bit-rot before it overlaps with a disk failure.</li>
-<li>Repair is bandwidth-throttled but always running.</li>
-</ul>
-<p>The practical lesson: <strong>durability is not &ldquo;we have 3 copies&rdquo;, it is &ldquo;we can repair a copy faster than the next failure arrives&rdquo;</strong>. If you build your own storage, instrument the repair pipeline first.</p>
-<hr>
-<h2 id="6-distributed-file-systems-hdfs-and-ceph">6. Distributed file systems: HDFS and Ceph</h2>
-<p>When you do need POSIX-ish semantics across many machines, two reference designs dominate: HDFS (master-coordinated, append-mostly) and Ceph (peer-to-peer, fully featured).</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig5_distributed_fs.png" alt="HDFS vs Ceph architecture" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<h3 id="61-hdfs----master-coordinated-batch-tuned">6.1 HDFS &ndash; master-coordinated, batch-tuned</h3>
-<p>HDFS is built on three opinions:</p>
-<ol>
-<li><strong>Files are large, written once, and read many times</strong> (logs, parquet, video). The block size default is <strong>128 MB</strong> for exactly this reason.</li>
-<li><strong>Failure is normal</strong>; replicate at the block level, never at the file level.</li>
-<li><strong>Move computation to the data</strong> (the data-locality principle MapReduce was built on).</li>
-</ol>
-<p>Architecture:</p>
-<ul>
-<li><strong>NameNode</strong> &ndash; single source of truth for the namespace and block locations. The active NameNode is paired with a <strong>Standby NameNode</strong> sharing edits via a <strong>JournalNode</strong> quorum (Quorum Journal Manager) for HA.</li>
-<li><strong>DataNodes</strong> &ndash; store the blocks. Default replication factor 3.</li>
-<li><strong>Block placement</strong> &ndash; first replica on the writer&rsquo;s node (or a random one if the writer is outside the cluster), second on a different <em>rack</em>, third on another node in the same rack as the second. This survives a full-rack outage while keeping rack-local reads fast.</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="c">&lt;!-- hdfs-site.xml: production-ready core settings --&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;configuration&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.replication<span class="nt">&lt;/name&gt;</span>             <span class="nt">&lt;value&gt;</span>3<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.blocksize<span class="nt">&lt;/name&gt;</span>               <span class="nt">&lt;value&gt;</span>134217728<span class="nt">&lt;/value&gt;&lt;/property&gt;</span> <span class="c">&lt;!-- 128 MB --&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.namenode.handler.count<span class="nt">&lt;/name&gt;</span>  <span class="nt">&lt;value&gt;</span>100<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.datanode.handler.count<span class="nt">&lt;/name&gt;</span>  <span class="nt">&lt;value&gt;</span>40<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.namenode.name.dir<span class="nt">&lt;/name&gt;</span>       <span class="nt">&lt;value&gt;</span>/data/nn1,/data/nn2<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.datanode.data.dir<span class="nt">&lt;/name&gt;</span>       <span class="nt">&lt;value&gt;</span>/data/dn1,/data/dn2,/data/dn3<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&lt;property&gt;&lt;name&gt;</span>dfs.namenode.shared.edits.dir<span class="nt">&lt;/name&gt;</span>
-</span></span><span class="line"><span class="cl">            <span class="nt">&lt;value&gt;</span>qjournal://jn1:8485;jn2:8485;jn3:8485/cluster1<span class="nt">&lt;/value&gt;&lt;/property&gt;</span>
-</span></span><span class="line"><span class="cl"><span class="nt">&lt;/configuration&gt;</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># Modern HDFS client (PyArrow&#39;s HDFS interface; hdfs3 is unmaintained)</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">pyarrow.fs</span> <span class="k">as</span> <span class="nn">pafs</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">hdfs</span> <span class="o">=</span> <span class="n">pafs</span><span class="o">.</span><span class="n">HadoopFileSystem</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s2">&#34;namenode&#34;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">9000</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s2">&#34;hadoop&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">hdfs</span><span class="o">.</span><span class="n">create_dir</span><span class="p">(</span><span class="s2">&#34;/user/data&#34;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="k">with</span> <span class="n">hdfs</span><span class="o">.</span><span class="n">open_output_stream</span><span class="p">(</span><span class="s2">&#34;/user/data/events.parquet&#34;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&#34;/local/events.parquet&#34;</span><span class="p">,</span> <span class="s2">&#34;rb&#34;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">hdfs</span><span class="o">.</span><span class="n">get_file_info</span><span class="p">(</span><span class="n">pafs</span><span class="o">.</span><span class="n">FileSelector</span><span class="p">(</span><span class="s2">&#34;/user/data&#34;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
-</span></span><span class="line"><span class="cl">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&#34;</span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">path</span><span class="si">:</span><span class="s2">50s</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">size</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2"> bytes&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p><strong>HDFS is the wrong tool</strong> for: small files (each consumes ~150 bytes of NameNode RAM), random writes (it is append-only), or low-latency lookups. For everything else in the Hadoop / Spark ecosystem, it is still excellent.</p>
-<h3 id="62-ceph----one-cluster-three-interfaces">6.2 Ceph &ndash; one cluster, three interfaces</h3>
-<p>Ceph&rsquo;s contribution is <em>unified storage</em>: a single RADOS cluster exposing block (RBD), object (RGW), and file (CephFS) interfaces, all backed by the same OSDs.</p>
-<p>Two ideas make Ceph different from HDFS:</p>
-<ul>
-<li><strong>No central metadata server</strong> for placement. Placement is computed by <strong>CRUSH</strong> (Controlled Replication Under Scalable Hashing), a pseudo-random algorithm that takes the object name and the cluster map and emits a deterministic OSD set. This eliminates the NameNode bottleneck.</li>
-<li><strong>Self-managing OSDs.</strong> Each OSD knows its peers and runs replication, scrubbing, and recovery without a central scheduler.</li>
-</ul>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Modern Ceph deployment uses cephadm + containers</span>
-</span></span><span class="line"><span class="cl">cephadm bootstrap --mon-ip 10.0.1.10
-</span></span><span class="line"><span class="cl">ceph orch host add node2 10.0.1.11
-</span></span><span class="line"><span class="cl">ceph orch host add node3 10.0.1.12
-</span></span><span class="line"><span class="cl">ceph orch apply osd --all-available-devices
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="c1"># Object pool with EC 4+2 (50% overhead, tolerates 2 OSD failures)</span>
-</span></span><span class="line"><span class="cl">ceph osd erasure-code-profile <span class="nb">set</span> ec42 <span class="nv">k</span><span class="o">=</span><span class="m">4</span> <span class="nv">m</span><span class="o">=</span><span class="m">2</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    crush-failure-domain<span class="o">=</span>host
-</span></span><span class="line"><span class="cl">ceph osd pool create cold_objects erasure ec42
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># RBD: a thin-provisioned, snapshottable virtual disk</span>
-</span></span><span class="line"><span class="cl">rbd create --size 100G --pool rbd vm-disk-01
-</span></span><span class="line"><span class="cl">rbd map rbd/vm-disk-01            <span class="c1"># /dev/rbd0 appears</span>
-</span></span><span class="line"><span class="cl">mkfs.xfs /dev/rbd0
-</span></span><span class="line"><span class="cl">rbd snap create rbd/vm-disk-01@before-upgrade
-</span></span></code></pre></td></tr></table>
-</div>
-</div><div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="c1"># RGW: an S3-compatible endpoint on top of the same cluster</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">boto3</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">botocore.client</span> <span class="kn">import</span> <span class="n">Config</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">rgw</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;s3&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">endpoint_url</span><span class="o">=</span><span class="s2">&#34;http://rgw.internal:7480&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">aws_access_key_id</span><span class="o">=</span><span class="s2">&#34;&lt;access&gt;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="s2">&#34;&lt;secret&gt;&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">config</span><span class="o">=</span><span class="n">Config</span><span class="p">(</span><span class="n">signature_version</span><span class="o">=</span><span class="s2">&#34;s3v4&#34;</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">rgw</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;ml-datasets&#34;</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="n">rgw</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;ml-datasets&#34;</span><span class="p">,</span> <span class="n">Key</span><span class="o">=</span><span class="s2">&#34;cifar10.tar&#34;</span><span class="p">,</span> <span class="n">Body</span><span class="o">=</span><span class="sa">b</span><span class="s2">&#34;...&#34;</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>The price of Ceph&rsquo;s flexibility is operational weight: tuning CRUSH rules, balancing PGs, capacity planning OSDs, and monitoring rebuild traffic are full-time activities at scale. Most teams should start with the cloud&rsquo;s managed object/block service and reach for Ceph only when a hard requirement (data sovereignty, on-prem footprint, custom hardware) forces the issue.</p>
-<hr>
-<h2 id="7-replication-strategy-and-operations">7. Replication strategy and operations</h2>
-<h3 id="71-synchronous-vs-asynchronous-replication">7.1 Synchronous vs asynchronous replication</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Aspect</th>
-          <th>Synchronous</th>
-          <th>Asynchronous</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Consistency</td>
-          <td>Strong (write returns only after all replicas ack)</td>
-          <td>Eventual</td>
-      </tr>
-      <tr>
-          <td>Latency</td>
-          <td>RTT-bound by the slowest replica</td>
-          <td>Local disk only</td>
-      </tr>
-      <tr>
-          <td>RPO</td>
-          <td>0</td>
-          <td>seconds - minutes</td>
-      </tr>
-      <tr>
-          <td>Throughput</td>
-          <td>Limited by slowest link</td>
-          <td>Limited by primary disk</td>
-      </tr>
-      <tr>
-          <td>When to use</td>
-          <td>Financial ledgers, primary database HA in one region</td>
-          <td>Cross-region DR, analytics replicas</td>
-      </tr>
-  </tbody>
-</table>
-<p>A common pattern: <strong>synchronous within a region</strong> (across AZs, sub-millisecond) plus <strong>asynchronous across regions</strong> (DR replica with a few-second RPO).</p>
-<h3 id="72-quorum">7.2 Quorum</h3>
-<p>For <code>N</code> replicas and read/write quorums <code>R</code> and <code>W</code>:</p>
-<ul>
-<li><code>W + R &gt; N</code> guarantees a read overlaps with the latest write.</li>
-<li><code>W = N</code> is the strongest writes (no progress on any failure); <code>W = 1</code> is the weakest.</li>
-<li>Dynamo-style stores let the <em>application</em> choose <code>R</code> and <code>W</code> per request; ZooKeeper/etcd hard-code <code>W = R = majority</code>.</li>
-</ul>
-<h3 id="73-lifecycle-policies----automate-the-cost-story">7.3 Lifecycle policies &ndash; automate the cost story</h3>
-<p>Most cost optimisation is a few lines of policy, not engineering work. Move logs to IA at 30 days, Glacier at 90, delete at 365; expire incomplete multipart uploads; transition object versions:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">s3</span><span class="o">.</span><span class="n">put_bucket_lifecycle_configuration</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">Bucket</span><span class="o">=</span><span class="s2">&#34;prod-data&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">LifecycleConfiguration</span><span class="o">=</span><span class="p">{</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;Rules&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ID&#34;</span><span class="p">:</span> <span class="s2">&#34;AbortStuckUploads&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Status&#34;</span><span class="p">:</span> <span class="s2">&#34;Enabled&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;AbortIncompleteMultipartUpload&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;DaysAfterInitiation&#34;</span><span class="p">:</span> <span class="mi">7</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ID&#34;</span><span class="p">:</span> <span class="s2">&#34;TierDataset&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Status&#34;</span><span class="p">:</span> <span class="s2">&#34;Enabled&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Filter&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;Prefix&#34;</span><span class="p">:</span> <span class="s2">&#34;datasets/&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Transitions&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">                    <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>  <span class="s2">&#34;StorageClass&#34;</span><span class="p">:</span> <span class="s2">&#34;STANDARD_IA&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                    <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span>  <span class="s2">&#34;StorageClass&#34;</span><span class="p">:</span> <span class="s2">&#34;GLACIER_IR&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                    <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">365</span><span class="p">,</span> <span class="s2">&#34;StorageClass&#34;</span><span class="p">:</span> <span class="s2">&#34;DEEP_ARCHIVE&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="p">],</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">{</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;ID&#34;</span><span class="p">:</span> <span class="s2">&#34;ExpireOldLogs&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Status&#34;</span><span class="p">:</span> <span class="s2">&#34;Enabled&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Filter&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;Prefix&#34;</span><span class="p">:</span> <span class="s2">&#34;logs/&#34;</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;Expiration&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;Days&#34;</span><span class="p">:</span> <span class="mi">365</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">                <span class="s2">&#34;NoncurrentVersionExpiration&#34;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&#34;NoncurrentDays&#34;</span><span class="p">:</span> <span class="mi">30</span><span class="p">},</span>
-</span></span><span class="line"><span class="cl">            <span class="p">},</span>
-</span></span><span class="line"><span class="cl">        <span class="p">]</span>
-</span></span><span class="line"><span class="cl">    <span class="p">},</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><h3 id="74-backup-rto-and-rpo">7.4 Backup, RTO and RPO</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Strategy</th>
-          <th>RTO</th>
-          <th>RPO</th>
-          <th>Cost</th>
-          <th>Use case</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Hot standby (multi-region active-active)</td>
-          <td>seconds</td>
-          <td>~zero</td>
-          <td>2-3x</td>
-          <td>payments, social feeds</td>
-      </tr>
-      <tr>
-          <td>Warm standby (replica idle, scaled up on failover)</td>
-          <td>minutes</td>
-          <td>seconds</td>
-          <td>1.2-1.5x</td>
-          <td>most production web apps</td>
-      </tr>
-      <tr>
-          <td>Pilot light (data replicated, infra absent)</td>
-          <td>hours</td>
-          <td>minutes</td>
-          <td>1.05-1.1x</td>
-          <td>internal apps</td>
-      </tr>
-      <tr>
-          <td>Backup-restore only</td>
-          <td>hours - days</td>
-          <td>hours</td>
-          <td>1.01x</td>
-          <td>dev / analytics</td>
-      </tr>
-  </tbody>
-</table>
-<p>The right answer is rarely the strictest one &ndash; it is the one whose cost matches the business loss per minute of downtime.</p>
-<hr>
-<h2 id="8-performance-optimisation">8. Performance optimisation</h2>
-<h3 id="81-latency-tail-dominates">8.1 Latency tail dominates</h3>
-<p>The number to watch is <strong>P99 latency</strong>, not the average. In a system that fans out to 10 backends and waits for all, the P99 of the request is roughly the P99 of <em>one</em> backend (Dean &amp; Barroso, <em>The Tail at Scale</em>, 2013). Every dependency is a multiplier.</p>
-<h3 id="82-the-four-levers">8.2 The four levers</h3>
-<ul>
-<li><strong>Parallelism</strong> &ndash; multipart uploads, range GETs, concurrent prefixes.</li>
-<li><strong>Locality</strong> &ndash; co-locate compute and storage (data-locality in HDFS, AZ-affinity in S3 cross-region setups).</li>
-<li><strong>Caching</strong> &ndash; LRU at the application, CloudFront in front of public S3, OSS CDN for hot prefixes.</li>
-<li><strong>Compression</strong> &ndash; zstd is the modern default (level 3 ≈ gzip-6 speed at gzip-9 ratio); use Snappy when CPU is scarce.</li>
-</ul>
-<h3 id="83-a-throughput-rule-of-thumb">8.3 A throughput rule of thumb</h3>
-<p>A single TCP stream on a long-haul link is bandwidth-limited by <code>window / RTT</code>. A 64 KB default window on a 100 ms RTT path tops out at ~5 Mbit/s. To use a 10 Gbit/s pipe you need either a much larger window (kernel auto-tuning helps) or many concurrent streams. Multipart uploads are the explicit form of &ldquo;many streams&rdquo;; this is <em>why</em> they are fast, not just <em>that</em> they are.</p>
-<hr>
-<h2 id="9-cost-engineering">9. Cost engineering</h2>
-<h3 id="91-the-three-line-items">9.1 The three line items</h3>
-<table>
-  <thead>
-      <tr>
-          <th>Bill component</th>
-          <th>Driver</th>
-          <th>Lever</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>Storage</td>
-          <td>GB-month</td>
-          <td>tiering, compression, dedup, expiration</td>
-      </tr>
-      <tr>
-          <td>Requests</td>
-          <td>PUT / GET / LIST count</td>
-          <td>batching, multipart, prefix design</td>
-      </tr>
-      <tr>
-          <td>Egress</td>
-          <td>GB out of region / out of cloud</td>
-          <td>CDN, in-region compute, peering</td>
-      </tr>
-  </tbody>
-</table>
-<p>For most teams, <strong>egress is the surprise on the bill</strong>. A 1 PB cross-region copy at $0.02/GB is $20,000. Use intra-region replication where possible; if you must move data out, schedule it through a cheaper transfer family (Direct Connect, dedicated peering, Aliyun&rsquo;s Cloud Enterprise Network).</p>
-<h3 id="92-a-worked-cost-calculation">9.2 A worked cost calculation</h3>
-<p>A 1 TB dataset accessed twice a day, stored for 1 year:</p>
-<ul>
-<li><strong>Standard:</strong> 1 TB × $0.023 × 12 = **$276/yr**, plus negligible request cost.</li>
-<li><strong>Standard + 30-day lifecycle to IA:</strong> ~$160/yr storage + IA retrieval costs (~$10) ≈ <strong>$170/yr</strong>.</li>
-<li><strong>Lifecycle to Deep Archive after 90 days, with 2 retrievals/year for re-training:</strong> ~$15/yr storage + ~$40 retrieval fees ≈ <strong>$55/yr</strong>.</li>
-</ul>
-<p>The point is not the exact numbers &ndash; list pricing changes &ndash; but the order of magnitude. <strong>Lifecycle is a 5-10x cost lever</strong> and costs nothing to enable.</p>
-<hr>
-<h2 id="10-common-questions">10. Common questions</h2>
-<p><strong>Q: HDFS or S3 for a new data lake?</strong></p>
-<p>S3 (or its equivalent) for almost any greenfield. Modern engines (Trino, Spark, Flink, DuckDB) read object stores natively, you get separation of storage and compute (scale them independently), and you avoid running a NameNode HA cluster. Use HDFS only when an on-prem footprint or extreme data-locality requirement forces the issue.</p>
-<p><strong>Q: When is Ceph worth the operational cost?</strong></p>
-<p>Three situations: regulatory requirement to keep data on owned hardware; high-volume block + object workload that would be expensive on a managed cloud; an existing OpenStack environment that benefits from Ceph&rsquo;s tight integration. For everyone else, the cloud&rsquo;s managed services are cheaper end-to-end once you account for SREs.</p>
-<p><strong>Q: 3 replicas or erasure coding?</strong></p>
-<p>Replication for hot, latency-sensitive data; erasure coding for cold data and large objects. Many systems do both automatically (S3 internally, Ceph via tiering pools). The decision rarely needs to be made by the application.</p>
-<p><strong>Q: How do I size a cache in front of object storage?</strong></p>
-<p>Plot access frequency vs object count and look for the &ldquo;knee&rdquo;. A typical web workload caches the top 1-5% of objects to absorb 80-95% of GETs. Beyond that you are paying RAM for diminishing returns. CloudFront / OSS CDN turns this into a configuration choice, not a capacity decision.</p>
-<hr>
-<h2 id="series-navigation">Series Navigation</h2>
-<table>
-  <thead>
-      <tr>
-          <th>Part</th>
-          <th>Topic</th>
-      </tr>
-  </thead>
-  <tbody>
-      <tr>
-          <td>1</td>
-          <td><a href="/en/cloud-computing-fundamentals/">Fundamentals and Architecture</a>
-</td>
-      </tr>
-      <tr>
-          <td>2</td>
-          <td><a href="/en/cloud-computing-virtualization/">Virtualization Technology Deep Dive</a>
-</td>
-      </tr>
-      <tr>
-          <td><strong>3</strong></td>
-          <td><strong>Storage Systems and Distributed Architecture (you are here)</strong></td>
-      </tr>
-      <tr>
-          <td>4</td>
-          <td><a href="/en/cloud-computing-networking-sdn/">Network Architecture and SDN</a>
-</td>
-      </tr>
-      <tr>
-          <td>5</td>
-          <td><a href="/en/cloud-computing-security-privacy/">Security and Privacy Protection</a>
-</td>
-      </tr>
-      <tr>
-          <td>6</td>
-          <td><a href="/en/cloud-computing-operations-devops/">Operations and DevOps Practices</a>
-</td>
-      </tr>
-      <tr>
-          <td>7</td>
-          <td><a href="/en/cloud-computing-cloud-native-containers/">Cloud-Native and Container Technologies</a>
-</td>
-      </tr>
-      <tr>
-          <td>8</td>
-          <td><a href="/en/cloud-computing-multi-cloud-hybrid/">Multi-Cloud and Hybrid Architecture</a>
-</td>
-      </tr>
-  </tbody>
-</table>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-you-will-learn">What you will learn</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#1-the-shape-of-the-problem">1. The shape of the problem</a>
-      <ul>
-        <li><a href="#11-why-distributed-storage-is-hard">1.1 Why distributed storage is hard</a></li>
-        <li><a href="#12-object-vs-block-vs-file-pick-the-right-primitive">1.2 Object vs Block vs File: pick the right primitive</a></li>
-      </ul>
-    </li>
-    <li><a href="#2-cap-pacelc-and-the-consistency-menu">2. CAP, PACELC, and the consistency menu</a>
-      <ul>
-        <li><a href="#21-the-cap-theorem">2.1 The CAP theorem</a></li>
-        <li><a href="#22-pacelc-the-part-cap-forgot">2.2 PACELC: the part CAP forgot</a></li>
-        <li><a href="#23-practical-consistency-models">2.3 Practical consistency models</a></li>
-      </ul>
-    </li>
-    <li><a href="#3-consistent-hashing-the-routing-primitive">3. Consistent hashing: the routing primitive</a></li>
-    <li><a href="#4-object-storage-how-s3-actually-works">4. Object storage: how S3 actually works</a>
-      <ul>
-        <li><a href="#41-the-request-path">4.1 The request path</a></li>
-        <li><a href="#42-storage-classes----the-cost-lever">4.2 Storage classes &ndash; the cost lever</a></li>
-        <li><a href="#43-the-python-sdk-in-production">4.3 The Python SDK in production</a></li>
-        <li><a href="#44-multipart-uploads">4.4 Multipart uploads</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-replication-vs-erasure-coding">5. Replication vs erasure coding</a>
-      <ul>
-        <li><a href="#51-the-math">5.1 The math</a></li>
-        <li><a href="#52-11-nines-durability-is-a-budget">5.2 11-nines durability is a budget</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-distributed-file-systems-hdfs-and-ceph">6. Distributed file systems: HDFS and Ceph</a>
-      <ul>
-        <li><a href="#61-hdfs----master-coordinated-batch-tuned">6.1 HDFS &ndash; master-coordinated, batch-tuned</a></li>
-        <li><a href="#62-ceph----one-cluster-three-interfaces">6.2 Ceph &ndash; one cluster, three interfaces</a></li>
-      </ul>
-    </li>
-    <li><a href="#7-replication-strategy-and-operations">7. Replication strategy and operations</a>
-      <ul>
-        <li><a href="#71-synchronous-vs-asynchronous-replication">7.1 Synchronous vs asynchronous replication</a></li>
-        <li><a href="#72-quorum">7.2 Quorum</a></li>
-        <li><a href="#73-lifecycle-policies----automate-the-cost-story">7.3 Lifecycle policies &ndash; automate the cost story</a></li>
-        <li><a href="#74-backup-rto-and-rpo">7.4 Backup, RTO and RPO</a></li>
-      </ul>
-    </li>
-    <li><a href="#8-performance-optimisation">8. Performance optimisation</a>
-      <ul>
-        <li><a href="#81-latency-tail-dominates">8.1 Latency tail dominates</a></li>
-        <li><a href="#82-the-four-levers">8.2 The four levers</a></li>
-        <li><a href="#83-a-throughput-rule-of-thumb">8.3 A throughput rule of thumb</a></li>
-      </ul>
-    </li>
-    <li><a href="#9-cost-engineering">9. Cost engineering</a>
-      <ul>
-        <li><a href="#91-the-three-line-items">9.1 The three line items</a></li>
-        <li><a href="#92-a-worked-cost-calculation">9.2 A worked cost calculation</a></li>
-      </ul>
-    </li>
-    <li><a href="#10-common-questions">10. Common questions</a></li>
-    <li><a href="#series-navigation">Series Navigation</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Cloud Computing</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>18 min</strong></div>
-      <div class="row"><span>Word count</span><strong>3900</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2023</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/cloud-computing/storage-systems/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Cloud Storage Systems and Distributed Architecture · Chen Kai Blog</title>
+<meta name=description content="From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/cloud-computing/storage-systems/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/cloud-computing/storage-systems/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/cloud-computing/storage-systems/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/cloud-computing/storage-systems/><meta property="og:type" content="article"><meta property="og:title" content="Cloud Storage Systems and Distributed Architecture"><meta property="og:description" content="From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation."><meta property="og:url" content="https://www.chenk.top/en/cloud-computing/storage-systems/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-2)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Cloud Computing</a>
+· Chapter 4</div><h1>Cloud Storage Systems and Distributed Architecture</h1><p class=deck>From CAP theorem to S3, HDFS, and Ceph -- a deep tour of distributed storage primitives, consistency, replication, erasure coding, and cost optimisation.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2023-03-30>March 30, 2023</time> · 18 min read · 3829 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/cloud-computing/ class=tag>#Cloud Computing</a><a href=/en/tags/distributed-storage/ class=tag>#Distributed Storage</a><a href=/en/tags/object-storage/ class=tag>#Object Storage</a><a href=/en/tags/hdfs/ class=tag>#HDFS</a><a href=/en/tags/ceph/ class=tag>#Ceph</a></div><a class="pill pill-outline" href=/zh/cloud-computing/storage-systems/>Read in English →</a></div></header><div class=prose><p>When Netflix stores petabytes of video, when Instagram serves billions of photos, when a quant fund replays a year of market data in minutes &ndash; behind every one of these workloads is a <em>distributed storage system</em>. Storage looks deceptively simple from a developer&rsquo;s window (<code>PUT key</code>, <code>GET key</code>), but the moment you cross the boundary of a single machine, you inherit a stack of problems that has driven decades of research: how to survive disk failures, how to scale linearly, how to provide a consistency model that does not surprise the application, and how to do all of this while paying cents per gigabyte rather than dollars.</p><p>This article walks the entire stack: the <em>theoretical floor</em> (CAP, consistency, consistent hashing), the <em>three storage shapes</em> (object, block, file), the <em>production systems</em> you will actually use (S3, HDFS, Ceph), and the <em>engineering levers</em> (replication, erasure coding, lifecycle, multipart uploads) that turn raw capacity into a service-level guarantee.</p><h2 id=what-you-will-learn>What you will learn</h2><ol><li><strong>The trade-off space</strong> &ndash; CAP, PACELC, and why partition tolerance is mandatory</li><li><strong>The three shapes of cloud storage</strong> &ndash; block, file, object: when each is the right primitive</li><li><strong>Object storage internals</strong> &ndash; partitioning, placement, durability, the request path through S3</li><li><strong>Distributed file systems</strong> &ndash; HDFS (master-based) vs Ceph (CRUSH peer-to-peer)</li><li><strong>Replication vs erasure coding</strong> &ndash; the math behind 11-nines durability at 1.5x overhead</li><li><strong>Operational design</strong> &ndash; consistency models, quorum, multipart uploads, lifecycle policies</li><li><strong>Cost engineering</strong> &ndash; storage classes, compression, deduplication, tiering policies</li></ol><h2 id=prerequisites>Prerequisites</h2><ul><li>Comfort with Python and a Unix shell</li><li>Working mental model of TCP, HTTP, and a filesystem</li><li>Parts 1-2 of this series (fundamentals and virtualisation) are recommended</li></ul><hr><h2 id=1-the-shape-of-the-problem>1. The shape of the problem</h2><h3 id=11-why-distributed-storage-is-hard>1.1 Why distributed storage is hard</h3><p>A single SSD can deliver hundreds of thousands of IOPS and survive years. The problem is that <em>one</em> of anything in production is a liability:</p><ul><li>A single disk dies every few years &ndash; in a fleet of 10,000, you replace one or more <em>every day</em>.</li><li>A single machine is a capacity ceiling: you cannot grow past its rack slot or PSU budget.</li><li>A single network path is a SPOF: one ToR switch reload takes the box dark.</li></ul><p>So we replicate. The moment we replicate, we hit <em>two</em> deeper problems: keeping the copies in agreement (consistency), and keeping the service usable when the network splits the copies into islands (partitions). That is the territory the CAP theorem maps out.</p><h3 id=12-object-vs-block-vs-file-pick-the-right-primitive>1.2 Object vs Block vs File: pick the right primitive</h3><p>Before we get to consistency theory, fix the vocabulary. There are three storage <em>shapes</em>, and almost every cloud product is one of them in disguise:</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig1_storage_comparison.png alt="Object vs Block vs File comparison" loading=lazy decoding=async></figure></p><table><thead><tr><th>Shape</th><th>Unit of access</th><th>API</th><th>Latency</th><th>Scale</th><th>Typical product</th><th>Best for</th></tr></thead><tbody><tr><td><strong>Block</strong></td><td>512 B / 4 KB blocks</td><td>iSCSI, NVMe, virtio</td><td>µs - low ms</td><td>TB per volume</td><td>EBS, Azure Disk, OSS-disk</td><td>Databases, VM root disks, anything wanting <code>O_DIRECT</code></td></tr><tr><td><strong>File</strong></td><td>byte stream in a tree</td><td>NFS / SMB / POSIX</td><td>low ms</td><td>PB per fs</td><td>EFS, Azure Files, NAS</td><td>Shared scratch, lift-and-shift legacy apps</td></tr><tr><td><strong>Object</strong></td><td>immutable blob with metadata</td><td>HTTP/REST</td><td>tens of ms</td><td>exabytes</td><td>S3, GCS, OSS</td><td>Web assets, backups, data lakes, ML datasets</td></tr></tbody></table><p>A useful mental shortcut: <strong>block storage is a sector</strong>, <strong>file storage is a path</strong>, <strong>object storage is a URL</strong>. Each layer trades latency for scale. Block storage gives you a virtual disk (and the kernel gives you a filesystem on top). File storage gives you a shared filesystem out of the box. Object storage gives up POSIX semantics entirely in exchange for near-infinite scale and a flat key space.</p><p>When in doubt: if the workload is &ldquo;open the file, seek, write&rdquo; you want block or file. If it is &ldquo;upload, download, delete by key&rdquo; you want object.</p><hr><h2 id=2-cap-pacelc-and-the-consistency-menu>2. CAP, PACELC, and the consistency menu</h2><h3 id=21-the-cap-theorem>2.1 The CAP theorem</h3><p>Eric Brewer&rsquo;s CAP conjecture (2000), later proved by Gilbert and Lynch (2002), states: in the presence of a network partition, a distributed system must choose between <strong>C</strong>onsistency and <strong>A</strong>vailability. You cannot have both.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig3_cap_theorem.png alt="CAP theorem Venn diagram" loading=lazy decoding=async></figure></p><ul><li><strong>Consistency (C)</strong> &ndash; every read returns the most recent committed write (linearisable).</li><li><strong>Availability (A)</strong> &ndash; every non-failing node returns a response in finite time.</li><li><strong>Partition tolerance (P)</strong> &ndash; the system continues to operate even when arbitrary messages between nodes are dropped.</li></ul><p>Because partitions are not optional in a real network &ndash; a switch reload, a fibre cut, a kernel pause &ndash; you do not get to opt out of P. So the real choice is <strong>CP vs AP</strong>. &ldquo;CA&rdquo; describes single-machine systems that pretend partitions cannot happen.</p><table><thead><tr><th>System</th><th>Class</th><th>Behaviour during a partition</th></tr></thead><tbody><tr><td>ZooKeeper, etcd, HBase, MongoDB (majority writes)</td><td>CP</td><td>Refuse writes on the minority side; the cluster pauses but never disagrees</td></tr><tr><td>Cassandra, DynamoDB, Riak, S3 (legacy overwrite)</td><td>AP</td><td>Both sides keep accepting writes; reconciliation happens later</td></tr><tr><td>Single-node Postgres</td><td>CA-ish</td><td>Stops working entirely on partition (the partition is &ldquo;the network is down&rdquo;)</td></tr></tbody></table><h3 id=22-pacelc-the-part-cap-forgot>2.2 PACELC: the part CAP forgot</h3><p>CAP only describes behaviour <em>during a partition</em>. PACELC (Abadi, 2010) extends it: <strong>if Partitioned, choose A or C; Else, choose Latency or Consistency</strong>.</p><p>This explains why Cassandra is &ldquo;AP/EL&rdquo; (eventual reads in normal operation are faster) while Spanner is &ldquo;CP/EC&rdquo; (it pays a TrueTime delay on every commit to stay strict). Most production decisions are PACELC decisions, not CAP decisions; partitions are rare but the latency-vs-consistency knob is set on every request.</p><h3 id=23-practical-consistency-models>2.3 Practical consistency models</h3><table><thead><tr><th>Model</th><th>Guarantee</th><th>Where you see it</th></tr></thead><tbody><tr><td><strong>Linearisable</strong></td><td>All operations appear in a single global order matching real time</td><td>etcd, Spanner, ZooKeeper</td></tr><tr><td><strong>Sequential</strong></td><td>Single global order, but not necessarily real time</td><td>classic shared memory</td></tr><tr><td><strong>Read-after-write</strong></td><td>A client always sees its own writes</td><td>S3 (since Dec 2020), most session-scoped systems</td></tr><tr><td><strong>Monotonic reads</strong></td><td>Once a client sees value v, it never sees an older value</td><td>Common in caches with sticky sessions</td></tr><tr><td><strong>Eventual</strong></td><td>If writes stop, reads eventually converge</td><td>Cassandra default, DynamoDB eventually-consistent reads</td></tr></tbody></table><p>S3&rsquo;s switch to <strong>strong read-after-write consistency for all operations</strong> in December 2020 is a striking example of how engineering can collapse what looks like a fundamental trade-off: AWS rebuilt the metadata layer (an internal service called <em>witness</em>) to give linearisable behaviour without sacrificing the AP nature of the data path.</p><hr><h2 id=3-consistent-hashing-the-routing-primitive>3. Consistent hashing: the routing primitive</h2><p>Sharding by <code>hash(key) % N</code> works until you add or remove a node, at which point <code>(N -> N+1)</code> reshuffles essentially every key. <strong>Consistent hashing</strong> (Karger et al., 1997) reduces the churn to roughly <code>1/N</code> of keys. It is the placement algorithm beneath DynamoDB, Cassandra, Riak, memcached clients, and (with refinements) Ceph&rsquo;s CRUSH.</p><p>The trick: hash both keys <em>and</em> nodes onto the same circular ring; each key is owned by the next node clockwise. Adding a node only steals keys from its immediate clockwise neighbour. Using <strong>virtual nodes</strong> (each physical node hashed multiple times) smooths the load distribution.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>bisect</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>hashlib</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>ConsistentHash</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;A minimal consistent-hash ring with virtual nodes.&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>nodes</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>vnodes</span><span class=o>=</span><span class=mi>128</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>vnodes</span> <span class=o>=</span> <span class=n>vnodes</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>ring</span> <span class=o>=</span> <span class=p>{}</span>              <span class=c1># hash -&gt; node</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span> <span class=o>=</span> <span class=p>[]</span>       <span class=c1># sorted hashes</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>node</span> <span class=ow>in</span> <span class=n>nodes</span> <span class=ow>or</span> <span class=p>[]:</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>add_node</span><span class=p>(</span><span class=n>node</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=nd>@staticmethod</span>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_hash</span><span class=p>(</span><span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>int</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>hashlib</span><span class=o>.</span><span class=n>md5</span><span class=p>(</span><span class=n>key</span><span class=o>.</span><span class=n>encode</span><span class=p>())</span><span class=o>.</span><span class=n>hexdigest</span><span class=p>(),</span> <span class=mi>16</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>add_node</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>node</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>vnodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_hash</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>node</span><span class=si>}</span><span class=s2>#</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>[</span><span class=n>h</span><span class=p>]</span> <span class=o>=</span> <span class=n>node</span>
+</span></span><span class=line><span class=cl>            <span class=n>bisect</span><span class=o>.</span><span class=n>insort</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>,</span> <span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>remove_node</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>node</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>vnodes</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>            <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_hash</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>node</span><span class=si>}</span><span class=s2>#</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>h</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=k>del</span> <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>[</span><span class=n>h</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>get_node</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=k>return</span> <span class=kc>None</span>
+</span></span><span class=line><span class=cl>        <span class=n>h</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_hash</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>idx</span> <span class=o>=</span> <span class=n>bisect</span><span class=o>.</span><span class=n>bisect_right</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>,</span> <span class=n>h</span><span class=p>)</span> <span class=o>%</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>ring</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>sorted_keys</span><span class=p>[</span><span class=n>idx</span><span class=p>]]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>ring</span> <span class=o>=</span> <span class=n>ConsistentHash</span><span class=p>([</span><span class=s2>&#34;s3-az-a&#34;</span><span class=p>,</span> <span class=s2>&#34;s3-az-b&#34;</span><span class=p>,</span> <span class=s2>&#34;s3-az-c&#34;</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>ring</span><span class=o>.</span><span class=n>get_node</span><span class=p>(</span><span class=s2>&#34;user:12345/profile.jpg&#34;</span><span class=p>))</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Why 128 vnodes?</strong> With 1 vnode per server you get standard-deviation in load of ~30%. With 128 vnodes, the variance drops to a few percent &ndash; close enough to uniform that you can plan capacity by averages.</p><hr><h2 id=4-object-storage-how-s3-actually-works>4. Object storage: how S3 actually works</h2><p>S3 is the de facto standard for cloud object storage and the inspiration for OSS, GCS, R2, Backblaze B2 and dozens of compatible systems. From a 30,000-foot view, S3 is &ldquo;an HTTP server that maps <code>(bucket, key)</code> to bytes&rdquo;. Inside, it is one of the largest distributed systems ever built.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig2_s3_architecture.png alt="S3-style object store request path" loading=lazy decoding=async></figure></p><h3 id=41-the-request-path>4.1 The request path</h3><p>A <code>PUT</code> for <code>s3://my-bucket/users/42.jpg</code>:</p><ol><li><strong>DNS + edge</strong> &ndash; the client resolves the regional endpoint and lands at an edge front-end.</li><li><strong>Auth</strong> &ndash; SigV4 signature is verified; bucket ACL / IAM policy / SCP / VPC endpoint policy / object ACL are evaluated.</li><li><strong>Index lookup</strong> &ndash; the bucket name maps to a <em>partition</em> of an internal key-range index. Hot buckets are auto-split (S3 will split a partition once it exceeds an internal QPS or size threshold; this is the historical reason for the &ldquo;key prefix randomisation&rdquo; advice, which is now mostly obsolete).</li><li><strong>Placement</strong> &ndash; the placement service picks an OSD set in the target durability scheme (e.g. 6+3 erasure coding spread across 3 AZs).</li><li><strong>Write</strong> &ndash; bytes are streamed to enough nodes to satisfy the write quorum.</li><li><strong>Acknowledge</strong> &ndash; once durable, S3 returns <code>200 OK</code> with an ETag.</li></ol><h3 id=42-storage-classes----the-cost-lever>4.2 Storage classes &ndash; the cost lever</h3><table><thead><tr><th>Class</th><th>$/GB-month (US-East-1)</th><th>Retrieval latency</th><th>Min storage</th><th>Retrieval fee</th></tr></thead><tbody><tr><td>Standard</td><td>~$0.023</td><td>ms</td><td>none</td><td>none</td></tr><tr><td>Intelligent-Tiering</td><td>$0.023 high tier, $0.0125 IA tier</td><td>ms</td><td>30 d (auto)</td><td>none</td></tr><tr><td>Standard-IA</td><td>$0.0125</td><td>ms</td><td>30 d</td><td>$0.01 / GB</td></tr><tr><td>One Zone-IA</td><td>$0.01</td><td>ms</td><td>30 d</td><td>$0.01 / GB</td></tr><tr><td>Glacier Instant</td><td>$0.004</td><td>ms</td><td>90 d</td><td>$0.03 / GB</td></tr><tr><td>Glacier Flexible</td><td>$0.0036</td><td>1 min - 12 h</td><td>90 d</td><td>$0.01 / GB (std)</td></tr><tr><td>Glacier Deep Archive</td><td>$0.00099</td><td>12 - 48 h</td><td>180 d</td><td>$0.02 / GB</td></tr></tbody></table><p>Two practical implications:</p><ul><li><strong>Cold tiers have minimum retention.</strong> Deleting a Deep Archive object after 30 days still bills you for the full 180. Tier <em>only</em> what you genuinely will not touch.</li><li><strong>Retrieval cost can dwarf storage cost.</strong> An infrequently-accessed object hit unexpectedly often is worse-than-Standard. Intelligent-Tiering exists exactly to defend against this.</li></ul><h3 id=43-the-python-sdk-in-production>4.3 The Python SDK in production</h3><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>boto3</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>botocore.config</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Tuned client: aggressive timeouts, signature v4, no retries on POSTs</span>
+</span></span><span class=line><span class=cl><span class=n>s3</span> <span class=o>=</span> <span class=n>boto3</span><span class=o>.</span><span class=n>client</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;s3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>region_name</span><span class=o>=</span><span class=s2>&#34;us-east-1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>config</span><span class=o>=</span><span class=n>Config</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>        <span class=n>signature_version</span><span class=o>=</span><span class=s2>&#34;s3v4&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>retries</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;max_attempts&#34;</span><span class=p>:</span> <span class=mi>5</span><span class=p>,</span> <span class=s2>&#34;mode&#34;</span><span class=p>:</span> <span class=s2>&#34;adaptive&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=n>connect_timeout</span><span class=o>=</span><span class=mi>3</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>read_timeout</span><span class=o>=</span><span class=mi>60</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=n>max_pool_connections</span><span class=o>=</span><span class=mi>64</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Server-side encryption with KMS, request integrity, intelligent tiering</span>
+</span></span><span class=line><span class=cl><span class=n>s3</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;my-app-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Key</span><span class=o>=</span><span class=s2>&#34;users/42/profile.jpg&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Body</span><span class=o>=</span><span class=nb>open</span><span class=p>(</span><span class=s2>&#34;/local/profile.jpg&#34;</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>    <span class=n>ContentType</span><span class=o>=</span><span class=s2>&#34;image/jpeg&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>StorageClass</span><span class=o>=</span><span class=s2>&#34;INTELLIGENT_TIERING&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>ServerSideEncryption</span><span class=o>=</span><span class=s2>&#34;aws:kms&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>SSEKMSKeyId</span><span class=o>=</span><span class=s2>&#34;alias/app-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>Metadata</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;user-id&#34;</span><span class=p>:</span> <span class=s2>&#34;42&#34;</span><span class=p>,</span> <span class=s2>&#34;uploader&#34;</span><span class=p>:</span> <span class=s2>&#34;ios-7.2&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>    <span class=n>ChecksumAlgorithm</span><span class=o>=</span><span class=s2>&#34;SHA256&#34;</span><span class=p>,</span>     <span class=c1># end-to-end integrity</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Three details that catch teams out:</p><ul><li><strong><code>ChecksumAlgorithm</code></strong> uploads a client-computed checksum that S3 verifies; without it, you only get a TCP/TLS guarantee, not end-to-end.</li><li><strong><code>StorageClass</code></strong> at PUT-time is essentially free; reclassifying later requires a <code>CopyObject</code> and may incur retrieval fees.</li><li><strong>Adaptive retries</strong> back off on 503 SlowDown responses; without them a hot prefix can collapse a fleet.</li></ul><h3 id=44-multipart-uploads>4.4 Multipart uploads</h3><p>Anything over a few hundred MB should be uploaded as multipart: parallelism, resumability, and a per-part checksum. Pre-built code in <code>boto3.s3.transfer</code> handles this; here is the explicit version so you can see what is happening:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>from</span> <span class=nn>concurrent.futures</span> <span class=kn>import</span> <span class=n>ThreadPoolExecutor</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>multipart_upload</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>bucket</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                     <span class=n>part_mb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>,</span> <span class=n>workers</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>size</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>path</span><span class=o>.</span><span class=n>getsize</span><span class=p>(</span><span class=n>path</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>part_size</span> <span class=o>=</span> <span class=n>part_mb</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span>
+</span></span><span class=line><span class=cl>    <span class=n>num_parts</span> <span class=o>=</span> <span class=p>(</span><span class=n>size</span> <span class=o>+</span> <span class=n>part_size</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>//</span> <span class=n>part_size</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=n>init</span> <span class=o>=</span> <span class=n>s3</span><span class=o>.</span><span class=n>create_multipart_upload</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=n>upload_id</span> <span class=o>=</span> <span class=n>init</span><span class=p>[</span><span class=s2>&#34;UploadId&#34;</span><span class=p>]</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>_upload_part</span><span class=p>(</span><span class=n>part_no</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>dict</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>f</span><span class=o>.</span><span class=n>seek</span><span class=p>((</span><span class=n>part_no</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>part_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>            <span class=n>data</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>part_size</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>resp</span> <span class=o>=</span> <span class=n>s3</span><span class=o>.</span><span class=n>upload_part</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>,</span> <span class=n>PartNumber</span><span class=o>=</span><span class=n>part_no</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>UploadId</span><span class=o>=</span><span class=n>upload_id</span><span class=p>,</span> <span class=n>Body</span><span class=o>=</span><span class=n>data</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>ChecksumAlgorithm</span><span class=o>=</span><span class=s2>&#34;SHA256&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=p>{</span><span class=s2>&#34;PartNumber&#34;</span><span class=p>:</span> <span class=n>part_no</span><span class=p>,</span> <span class=s2>&#34;ETag&#34;</span><span class=p>:</span> <span class=n>resp</span><span class=p>[</span><span class=s2>&#34;ETag&#34;</span><span class=p>],</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ChecksumSHA256&#34;</span><span class=p>:</span> <span class=n>resp</span><span class=p>[</span><span class=s2>&#34;ChecksumSHA256&#34;</span><span class=p>]}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>try</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=k>with</span> <span class=n>ThreadPoolExecutor</span><span class=p>(</span><span class=n>max_workers</span><span class=o>=</span><span class=n>workers</span><span class=p>)</span> <span class=k>as</span> <span class=n>ex</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>            <span class=n>parts</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>ex</span><span class=o>.</span><span class=n>map</span><span class=p>(</span><span class=n>_upload_part</span><span class=p>,</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>num_parts</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)))</span>
+</span></span><span class=line><span class=cl>        <span class=n>s3</span><span class=o>.</span><span class=n>complete_multipart_upload</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>,</span> <span class=n>UploadId</span><span class=o>=</span><span class=n>upload_id</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>            <span class=n>MultipartUpload</span><span class=o>=</span><span class=p>{</span><span class=s2>&#34;Parts&#34;</span><span class=p>:</span> <span class=n>parts</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>    <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=n>s3</span><span class=o>.</span><span class=n>abort_multipart_upload</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=n>bucket</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=n>key</span><span class=p>,</span> <span class=n>UploadId</span><span class=o>=</span><span class=n>upload_id</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=k>raise</span>
+</span></span></code></pre></td></tr></table></div></div><p>The <code>try/except</code> matters: an aborted but un-cleaned multipart upload silently bills you for storage of the orphan parts. Configure a lifecycle rule (<code>AbortIncompleteMultipartUpload</code> after 7 days) on every bucket.</p><hr><h2 id=5-replication-vs-erasure-coding>5. Replication vs erasure coding</h2><p>3-way replication is the easy answer. Erasure coding is the cheap answer. Most modern cloud object stores do both: hot data is replicated, cold data is erasure-coded.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig4_erasure_vs_replication.png alt="Replication vs erasure coding overhead and durability" loading=lazy decoding=async></figure></p><h3 id=51-the-math>5.1 The math</h3><p>With <strong>k+m</strong> Reed-Solomon erasure coding, each object is split into <code>k</code> data shards plus <code>m</code> parity shards. The object survives any <code>m</code> shard losses; the storage overhead is <code>m/k</code>.</p><table><thead><tr><th>Scheme</th><th>Overhead</th><th>Failures tolerated</th><th>Read amplification on rebuild</th></tr></thead><tbody><tr><td>3x replication</td><td>200%</td><td>2 disks</td><td>1 (one extra read)</td></tr><tr><td>EC 6+3</td><td>50%</td><td>3 shards</td><td>6 (must read 6 shards to reconstruct)</td></tr><tr><td>EC 10+4</td><td>40%</td><td>4 shards</td><td>10</td></tr><tr><td>EC 12+4</td><td>33%</td><td>4 shards</td><td>12</td></tr></tbody></table><p>The trade-off is brutal but predictable:</p><ul><li>Replication: cheap CPU, expensive disks, fast rebuild (just copy one block).</li><li>Erasure coding: cheap disks, expensive CPU + network on rebuild, slower rebuild.</li></ul><p>Hot data wants the replication profile (a single read is one HTTP fetch). Cold data wants the EC profile (you rarely touch it, so rebuild cost amortises across years).</p><h3 id=52-11-nines-durability-is-a-budget>5.2 11-nines durability is a budget</h3><p>S3 advertises &ldquo;eleven nines&rdquo; (99.999999999%) of object durability. That is one expected loss per 100 billion object-years. The number is not magic &ndash; it is engineered:</p><ul><li>Disk AFR ~1%.</li><li>Spread <code>k+m</code> shards across at least 3 AZs.</li><li>Continuous background scrubbing detects bit-rot before it overlaps with a disk failure.</li><li>Repair is bandwidth-throttled but always running.</li></ul><p>The practical lesson: <strong>durability is not &ldquo;we have 3 copies&rdquo;, it is &ldquo;we can repair a copy faster than the next failure arrives&rdquo;</strong>. If you build your own storage, instrument the repair pipeline first.</p><hr><h2 id=6-distributed-file-systems-hdfs-and-ceph>6. Distributed file systems: HDFS and Ceph</h2><p>When you do need POSIX-ish semantics across many machines, two reference designs dominate: HDFS (master-coordinated, append-mostly) and Ceph (peer-to-peer, fully featured).</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/cloud-computing/storage-systems/fig5_distributed_fs.png alt="HDFS vs Ceph architecture" loading=lazy decoding=async></figure></p><h3 id=61-hdfs----master-coordinated-batch-tuned>6.1 HDFS &ndash; master-coordinated, batch-tuned</h3><p>HDFS is built on three opinions:</p><ol><li><strong>Files are large, written once, and read many times</strong> (logs, parquet, video). The block size default is <strong>128 MB</strong> for exactly this reason.</li><li><strong>Failure is normal</strong>; replicate at the block level, never at the file level.</li><li><strong>Move computation to the data</strong> (the data-locality principle MapReduce was built on).</li></ol><p>Architecture:</p><ul><li><strong>NameNode</strong> &ndash; single source of truth for the namespace and block locations. The active NameNode is paired with a <strong>Standby NameNode</strong> sharing edits via a <strong>JournalNode</strong> quorum (Quorum Journal Manager) for HA.</li><li><strong>DataNodes</strong> &ndash; store the blocks. Default replication factor 3.</li><li><strong>Block placement</strong> &ndash; first replica on the writer&rsquo;s node (or a random one if the writer is outside the cluster), second on a different <em>rack</em>, third on another node in the same rack as the second. This survives a full-rack outage while keeping rack-local reads fast.</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-xml data-lang=xml><span class=line><span class=cl><span class=c>&lt;!-- hdfs-site.xml: production-ready core settings --&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;configuration&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.replication<span class=nt>&lt;/name&gt;</span>             <span class=nt>&lt;value&gt;</span>3<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.blocksize<span class=nt>&lt;/name&gt;</span>               <span class=nt>&lt;value&gt;</span>134217728<span class=nt>&lt;/value&gt;&lt;/property&gt;</span> <span class=c>&lt;!-- 128 MB --&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.namenode.handler.count<span class=nt>&lt;/name&gt;</span>  <span class=nt>&lt;value&gt;</span>100<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.datanode.handler.count<span class=nt>&lt;/name&gt;</span>  <span class=nt>&lt;value&gt;</span>40<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.namenode.name.dir<span class=nt>&lt;/name&gt;</span>       <span class=nt>&lt;value&gt;</span>/data/nn1,/data/nn2<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.datanode.data.dir<span class=nt>&lt;/name&gt;</span>       <span class=nt>&lt;value&gt;</span>/data/dn1,/data/dn2,/data/dn3<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl>  <span class=nt>&lt;property&gt;&lt;name&gt;</span>dfs.namenode.shared.edits.dir<span class=nt>&lt;/name&gt;</span>
+</span></span><span class=line><span class=cl>            <span class=nt>&lt;value&gt;</span>qjournal://jn1:8485;jn2:8485;jn3:8485/cluster1<span class=nt>&lt;/value&gt;&lt;/property&gt;</span>
+</span></span><span class=line><span class=cl><span class=nt>&lt;/configuration&gt;</span>
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># Modern HDFS client (PyArrow&#39;s HDFS interface; hdfs3 is unmaintained)</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>pyarrow.fs</span> <span class=k>as</span> <span class=nn>pafs</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>hdfs</span> <span class=o>=</span> <span class=n>pafs</span><span class=o>.</span><span class=n>HadoopFileSystem</span><span class=p>(</span><span class=n>host</span><span class=o>=</span><span class=s2>&#34;namenode&#34;</span><span class=p>,</span> <span class=n>port</span><span class=o>=</span><span class=mi>9000</span><span class=p>,</span> <span class=n>user</span><span class=o>=</span><span class=s2>&#34;hadoop&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>hdfs</span><span class=o>.</span><span class=n>create_dir</span><span class=p>(</span><span class=s2>&#34;/user/data&#34;</span><span class=p>,</span> <span class=n>recursive</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=k>with</span> <span class=n>hdfs</span><span class=o>.</span><span class=n>open_output_stream</span><span class=p>(</span><span class=s2>&#34;/user/data/events.parquet&#34;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>f</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=nb>open</span><span class=p>(</span><span class=s2>&#34;/local/events.parquet&#34;</span><span class=p>,</span> <span class=s2>&#34;rb&#34;</span><span class=p>)</span><span class=o>.</span><span class=n>read</span><span class=p>())</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=n>info</span> <span class=ow>in</span> <span class=n>hdfs</span><span class=o>.</span><span class=n>get_file_info</span><span class=p>(</span><span class=n>pafs</span><span class=o>.</span><span class=n>FileSelector</span><span class=p>(</span><span class=s2>&#34;/user/data&#34;</span><span class=p>,</span> <span class=n>recursive</span><span class=o>=</span><span class=kc>False</span><span class=p>)):</span>
+</span></span><span class=line><span class=cl>    <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>&#34;</span><span class=si>{</span><span class=n>info</span><span class=o>.</span><span class=n>path</span><span class=si>:</span><span class=s2>50s</span><span class=si>}</span><span class=s2>  </span><span class=si>{</span><span class=n>info</span><span class=o>.</span><span class=n>size</span><span class=si>:</span><span class=s2>&gt;12</span><span class=si>}</span><span class=s2> bytes&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>HDFS is the wrong tool</strong> for: small files (each consumes ~150 bytes of NameNode RAM), random writes (it is append-only), or low-latency lookups. For everything else in the Hadoop / Spark ecosystem, it is still excellent.</p><h3 id=62-ceph----one-cluster-three-interfaces>6.2 Ceph &ndash; one cluster, three interfaces</h3><p>Ceph&rsquo;s contribution is <em>unified storage</em>: a single RADOS cluster exposing block (RBD), object (RGW), and file (CephFS) interfaces, all backed by the same OSDs.</p><p>Two ideas make Ceph different from HDFS:</p><ul><li><strong>No central metadata server</strong> for placement. Placement is computed by <strong>CRUSH</strong> (Controlled Replication Under Scalable Hashing), a pseudo-random algorithm that takes the object name and the cluster map and emits a deterministic OSD set. This eliminates the NameNode bottleneck.</li><li><strong>Self-managing OSDs.</strong> Each OSD knows its peers and runs replication, scrubbing, and recovery without a central scheduler.</li></ul><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Modern Ceph deployment uses cephadm + containers</span>
+</span></span><span class=line><span class=cl>cephadm bootstrap --mon-ip 10.0.1.10
+</span></span><span class=line><span class=cl>ceph orch host add node2 10.0.1.11
+</span></span><span class=line><span class=cl>ceph orch host add node3 10.0.1.12
+</span></span><span class=line><span class=cl>ceph orch apply osd --all-available-devices
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1># Object pool with EC 4+2 (50% overhead, tolerates 2 OSD failures)</span>
+</span></span><span class=line><span class=cl>ceph osd erasure-code-profile <span class=nb>set</span> ec42 <span class=nv>k</span><span class=o>=</span><span class=m>4</span> <span class=nv>m</span><span class=o>=</span><span class=m>2</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    crush-failure-domain<span class=o>=</span>host
+</span></span><span class=line><span class=cl>ceph osd pool create cold_objects erasure ec42
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># RBD: a thin-provisioned, snapshottable virtual disk</span>
+</span></span><span class=line><span class=cl>rbd create --size 100G --pool rbd vm-disk-01
+</span></span><span class=line><span class=cl>rbd map rbd/vm-disk-01            <span class=c1># /dev/rbd0 appears</span>
+</span></span><span class=line><span class=cl>mkfs.xfs /dev/rbd0
+</span></span><span class=line><span class=cl>rbd snap create rbd/vm-disk-01@before-upgrade
+</span></span></code></pre></td></tr></table></div></div><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=c1># RGW: an S3-compatible endpoint on top of the same cluster</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>boto3</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>botocore.client</span> <span class=kn>import</span> <span class=n>Config</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>rgw</span> <span class=o>=</span> <span class=n>boto3</span><span class=o>.</span><span class=n>client</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;s3&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>endpoint_url</span><span class=o>=</span><span class=s2>&#34;http://rgw.internal:7480&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>aws_access_key_id</span><span class=o>=</span><span class=s2>&#34;&lt;access&gt;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>aws_secret_access_key</span><span class=o>=</span><span class=s2>&#34;&lt;secret&gt;&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>config</span><span class=o>=</span><span class=n>Config</span><span class=p>(</span><span class=n>signature_version</span><span class=o>=</span><span class=s2>&#34;s3v4&#34;</span><span class=p>),</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>rgw</span><span class=o>.</span><span class=n>create_bucket</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;ml-datasets&#34;</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=n>rgw</span><span class=o>.</span><span class=n>put_object</span><span class=p>(</span><span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;ml-datasets&#34;</span><span class=p>,</span> <span class=n>Key</span><span class=o>=</span><span class=s2>&#34;cifar10.tar&#34;</span><span class=p>,</span> <span class=n>Body</span><span class=o>=</span><span class=sa>b</span><span class=s2>&#34;...&#34;</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The price of Ceph&rsquo;s flexibility is operational weight: tuning CRUSH rules, balancing PGs, capacity planning OSDs, and monitoring rebuild traffic are full-time activities at scale. Most teams should start with the cloud&rsquo;s managed object/block service and reach for Ceph only when a hard requirement (data sovereignty, on-prem footprint, custom hardware) forces the issue.</p><hr><h2 id=7-replication-strategy-and-operations>7. Replication strategy and operations</h2><h3 id=71-synchronous-vs-asynchronous-replication>7.1 Synchronous vs asynchronous replication</h3><table><thead><tr><th>Aspect</th><th>Synchronous</th><th>Asynchronous</th></tr></thead><tbody><tr><td>Consistency</td><td>Strong (write returns only after all replicas ack)</td><td>Eventual</td></tr><tr><td>Latency</td><td>RTT-bound by the slowest replica</td><td>Local disk only</td></tr><tr><td>RPO</td><td>0</td><td>seconds - minutes</td></tr><tr><td>Throughput</td><td>Limited by slowest link</td><td>Limited by primary disk</td></tr><tr><td>When to use</td><td>Financial ledgers, primary database HA in one region</td><td>Cross-region DR, analytics replicas</td></tr></tbody></table><p>A common pattern: <strong>synchronous within a region</strong> (across AZs, sub-millisecond) plus <strong>asynchronous across regions</strong> (DR replica with a few-second RPO).</p><h3 id=72-quorum>7.2 Quorum</h3><p>For <code>N</code> replicas and read/write quorums <code>R</code> and <code>W</code>:</p><ul><li><code>W + R > N</code> guarantees a read overlaps with the latest write.</li><li><code>W = N</code> is the strongest writes (no progress on any failure); <code>W = 1</code> is the weakest.</li><li>Dynamo-style stores let the <em>application</em> choose <code>R</code> and <code>W</code> per request; ZooKeeper/etcd hard-code <code>W = R = majority</code>.</li></ul><h3 id=73-lifecycle-policies----automate-the-cost-story>7.3 Lifecycle policies &ndash; automate the cost story</h3><p>Most cost optimisation is a few lines of policy, not engineering work. Move logs to IA at 30 days, Glacier at 90, delete at 365; expire incomplete multipart uploads; transition object versions:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=n>s3</span><span class=o>.</span><span class=n>put_bucket_lifecycle_configuration</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>Bucket</span><span class=o>=</span><span class=s2>&#34;prod-data&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>LifecycleConfiguration</span><span class=o>=</span><span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;Rules&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;AbortStuckUploads&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;AbortIncompleteMultipartUpload&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;DaysAfterInitiation&#34;</span><span class=p>:</span> <span class=mi>7</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;TierDataset&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Filter&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;datasets/&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Transitions&#34;</span><span class=p>:</span> <span class=p>[</span>
+</span></span><span class=line><span class=cl>                    <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>30</span><span class=p>,</span>  <span class=s2>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;STANDARD_IA&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                    <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>90</span><span class=p>,</span>  <span class=s2>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;GLACIER_IR&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                    <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>365</span><span class=p>,</span> <span class=s2>&#34;StorageClass&#34;</span><span class=p>:</span> <span class=s2>&#34;DEEP_ARCHIVE&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=p>],</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;ID&#34;</span><span class=p>:</span> <span class=s2>&#34;ExpireOldLogs&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Status&#34;</span><span class=p>:</span> <span class=s2>&#34;Enabled&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Filter&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;Prefix&#34;</span><span class=p>:</span> <span class=s2>&#34;logs/&#34;</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;Expiration&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;Days&#34;</span><span class=p>:</span> <span class=mi>365</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>                <span class=s2>&#34;NoncurrentVersionExpiration&#34;</span><span class=p>:</span> <span class=p>{</span><span class=s2>&#34;NoncurrentDays&#34;</span><span class=p>:</span> <span class=mi>30</span><span class=p>},</span>
+</span></span><span class=line><span class=cl>            <span class=p>},</span>
+</span></span><span class=line><span class=cl>        <span class=p>]</span>
+</span></span><span class=line><span class=cl>    <span class=p>},</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><h3 id=74-backup-rto-and-rpo>7.4 Backup, RTO and RPO</h3><table><thead><tr><th>Strategy</th><th>RTO</th><th>RPO</th><th>Cost</th><th>Use case</th></tr></thead><tbody><tr><td>Hot standby (multi-region active-active)</td><td>seconds</td><td>~zero</td><td>2-3x</td><td>payments, social feeds</td></tr><tr><td>Warm standby (replica idle, scaled up on failover)</td><td>minutes</td><td>seconds</td><td>1.2-1.5x</td><td>most production web apps</td></tr><tr><td>Pilot light (data replicated, infra absent)</td><td>hours</td><td>minutes</td><td>1.05-1.1x</td><td>internal apps</td></tr><tr><td>Backup-restore only</td><td>hours - days</td><td>hours</td><td>1.01x</td><td>dev / analytics</td></tr></tbody></table><p>The right answer is rarely the strictest one &ndash; it is the one whose cost matches the business loss per minute of downtime.</p><hr><h2 id=8-performance-optimisation>8. Performance optimisation</h2><h3 id=81-latency-tail-dominates>8.1 Latency tail dominates</h3><p>The number to watch is <strong>P99 latency</strong>, not the average. In a system that fans out to 10 backends and waits for all, the P99 of the request is roughly the P99 of <em>one</em> backend (Dean & Barroso, <em>The Tail at Scale</em>, 2013). Every dependency is a multiplier.</p><h3 id=82-the-four-levers>8.2 The four levers</h3><ul><li><strong>Parallelism</strong> &ndash; multipart uploads, range GETs, concurrent prefixes.</li><li><strong>Locality</strong> &ndash; co-locate compute and storage (data-locality in HDFS, AZ-affinity in S3 cross-region setups).</li><li><strong>Caching</strong> &ndash; LRU at the application, CloudFront in front of public S3, OSS CDN for hot prefixes.</li><li><strong>Compression</strong> &ndash; zstd is the modern default (level 3 ≈ gzip-6 speed at gzip-9 ratio); use Snappy when CPU is scarce.</li></ul><h3 id=83-a-throughput-rule-of-thumb>8.3 A throughput rule of thumb</h3><p>A single TCP stream on a long-haul link is bandwidth-limited by <code>window / RTT</code>. A 64 KB default window on a 100 ms RTT path tops out at ~5 Mbit/s. To use a 10 Gbit/s pipe you need either a much larger window (kernel auto-tuning helps) or many concurrent streams. Multipart uploads are the explicit form of &ldquo;many streams&rdquo;; this is <em>why</em> they are fast, not just <em>that</em> they are.</p><hr><h2 id=9-cost-engineering>9. Cost engineering</h2><h3 id=91-the-three-line-items>9.1 The three line items</h3><table><thead><tr><th>Bill component</th><th>Driver</th><th>Lever</th></tr></thead><tbody><tr><td>Storage</td><td>GB-month</td><td>tiering, compression, dedup, expiration</td></tr><tr><td>Requests</td><td>PUT / GET / LIST count</td><td>batching, multipart, prefix design</td></tr><tr><td>Egress</td><td>GB out of region / out of cloud</td><td>CDN, in-region compute, peering</td></tr></tbody></table><p>For most teams, <strong>egress is the surprise on the bill</strong>. A 1 PB cross-region copy at $0.02/GB is $20,000. Use intra-region replication where possible; if you must move data out, schedule it through a cheaper transfer family (Direct Connect, dedicated peering, Aliyun&rsquo;s Cloud Enterprise Network).</p><h3 id=92-a-worked-cost-calculation>9.2 A worked cost calculation</h3><p>A 1 TB dataset accessed twice a day, stored for 1 year:</p><ul><li><strong>Standard:</strong> 1 TB × $0.023 × 12 = **$276/yr**, plus negligible request cost.</li><li><strong>Standard + 30-day lifecycle to IA:</strong> ~$160/yr storage + IA retrieval costs (~$10) ≈ <strong>$170/yr</strong>.</li><li><strong>Lifecycle to Deep Archive after 90 days, with 2 retrievals/year for re-training:</strong> ~$15/yr storage + ~$40 retrieval fees ≈ <strong>$55/yr</strong>.</li></ul><p>The point is not the exact numbers &ndash; list pricing changes &ndash; but the order of magnitude. <strong>Lifecycle is a 5-10x cost lever</strong> and costs nothing to enable.</p><hr><h2 id=10-common-questions>10. Common questions</h2><p><strong>Q: HDFS or S3 for a new data lake?</strong></p><p>S3 (or its equivalent) for almost any greenfield. Modern engines (Trino, Spark, Flink, DuckDB) read object stores natively, you get separation of storage and compute (scale them independently), and you avoid running a NameNode HA cluster. Use HDFS only when an on-prem footprint or extreme data-locality requirement forces the issue.</p><p><strong>Q: When is Ceph worth the operational cost?</strong></p><p>Three situations: regulatory requirement to keep data on owned hardware; high-volume block + object workload that would be expensive on a managed cloud; an existing OpenStack environment that benefits from Ceph&rsquo;s tight integration. For everyone else, the cloud&rsquo;s managed services are cheaper end-to-end once you account for SREs.</p><p><strong>Q: 3 replicas or erasure coding?</strong></p><p>Replication for hot, latency-sensitive data; erasure coding for cold data and large objects. Many systems do both automatically (S3 internally, Ceph via tiering pools). The decision rarely needs to be made by the application.</p><p><strong>Q: How do I size a cache in front of object storage?</strong></p><p>Plot access frequency vs object count and look for the &ldquo;knee&rdquo;. A typical web workload caches the top 1-5% of objects to absorb 80-95% of GETs. Beyond that you are paying RAM for diminishing returns. CloudFront / OSS CDN turns this into a configuration choice, not a capacity decision.</p><hr><h2 id=series-navigation>Series Navigation</h2><table><thead><tr><th>Part</th><th>Topic</th></tr></thead><tbody><tr><td>1</td><td><a href=/en/cloud-computing-fundamentals/>Fundamentals and Architecture</a></td></tr><tr><td>2</td><td><a href=/en/cloud-computing-virtualization/>Virtualization Technology Deep Dive</a></td></tr><tr><td><strong>3</strong></td><td><strong>Storage Systems and Distributed Architecture (you are here)</strong></td></tr><tr><td>4</td><td><a href=/en/cloud-computing-networking-sdn/>Network Architecture and SDN</a></td></tr><tr><td>5</td><td><a href=/en/cloud-computing-security-privacy/>Security and Privacy Protection</a></td></tr><tr><td>6</td><td><a href=/en/cloud-computing-operations-devops/>Operations and DevOps Practices</a></td></tr><tr><td>7</td><td><a href=/en/cloud-computing-cloud-native-containers/>Cloud-Native and Container Technologies</a></td></tr><tr><td>8</td><td><a href=/en/cloud-computing-multi-cloud-hybrid/>Multi-Cloud and Hybrid Architecture</a></td></tr></tbody></table></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-you-will-learn>What you will learn</a></li><li><a href=#prerequisites>Prerequisites</a></li><li><a href=#1-the-shape-of-the-problem>1. The shape of the problem</a><ul><li><a href=#11-why-distributed-storage-is-hard>1.1 Why distributed storage is hard</a></li><li><a href=#12-object-vs-block-vs-file-pick-the-right-primitive>1.2 Object vs Block vs File: pick the right primitive</a></li></ul></li><li><a href=#2-cap-pacelc-and-the-consistency-menu>2. CAP, PACELC, and the consistency menu</a><ul><li><a href=#21-the-cap-theorem>2.1 The CAP theorem</a></li><li><a href=#22-pacelc-the-part-cap-forgot>2.2 PACELC: the part CAP forgot</a></li><li><a href=#23-practical-consistency-models>2.3 Practical consistency models</a></li></ul></li><li><a href=#3-consistent-hashing-the-routing-primitive>3. Consistent hashing: the routing primitive</a></li><li><a href=#4-object-storage-how-s3-actually-works>4. Object storage: how S3 actually works</a><ul><li><a href=#41-the-request-path>4.1 The request path</a></li><li><a href=#42-storage-classes----the-cost-lever>4.2 Storage classes &ndash; the cost lever</a></li><li><a href=#43-the-python-sdk-in-production>4.3 The Python SDK in production</a></li><li><a href=#44-multipart-uploads>4.4 Multipart uploads</a></li></ul></li><li><a href=#5-replication-vs-erasure-coding>5. Replication vs erasure coding</a><ul><li><a href=#51-the-math>5.1 The math</a></li><li><a href=#52-11-nines-durability-is-a-budget>5.2 11-nines durability is a budget</a></li></ul></li><li><a href=#6-distributed-file-systems-hdfs-and-ceph>6. Distributed file systems: HDFS and Ceph</a><ul><li><a href=#61-hdfs----master-coordinated-batch-tuned>6.1 HDFS &ndash; master-coordinated, batch-tuned</a></li><li><a href=#62-ceph----one-cluster-three-interfaces>6.2 Ceph &ndash; one cluster, three interfaces</a></li></ul></li><li><a href=#7-replication-strategy-and-operations>7. Replication strategy and operations</a><ul><li><a href=#71-synchronous-vs-asynchronous-replication>7.1 Synchronous vs asynchronous replication</a></li><li><a href=#72-quorum>7.2 Quorum</a></li><li><a href=#73-lifecycle-policies----automate-the-cost-story>7.3 Lifecycle policies &ndash; automate the cost story</a></li><li><a href=#74-backup-rto-and-rpo>7.4 Backup, RTO and RPO</a></li></ul></li><li><a href=#8-performance-optimisation>8. Performance optimisation</a><ul><li><a href=#81-latency-tail-dominates>8.1 Latency tail dominates</a></li><li><a href=#82-the-four-levers>8.2 The four levers</a></li><li><a href=#83-a-throughput-rule-of-thumb>8.3 A throughput rule of thumb</a></li></ul></li><li><a href=#9-cost-engineering>9. Cost engineering</a><ul><li><a href=#91-the-three-line-items>9.1 The three line items</a></li><li><a href=#92-a-worked-cost-calculation>9.2 A worked cost calculation</a></li></ul></li><li><a href=#10-common-questions>10. Common questions</a></li><li><a href=#series-navigation>Series Navigation</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>18 min</strong></div><div class=row><span>Word count</span><strong>3829</strong></div><div class=row><span>Published</span><strong>Mar 2023</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

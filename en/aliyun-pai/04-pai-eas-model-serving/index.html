@@ -1,358 +1,56 @@
-<!doctype html>
-<html lang="en" data-translation="/zh/aliyun-pai/04-pai-eas-model-serving/">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie · Chen Kai Blog</title>
-<meta name="description" content="End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn&#39;t blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start.">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="en" href="https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/">
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/aliyun-pai/04-pai-eas-model-serving/">
-
-<link rel="alternate" hreflang="x-default" href="https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/">
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie">
-<meta property="og:description" content="End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn&#39;t blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start.">
-<meta property="og:url" content="https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/">
-<meta property="og:locale" content="en">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/en/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/en/">Home</a>
-      <a href="/en/series/">Series</a>
-      <a href="/en/projects/">Projects</a>
-      <a href="/en/archives/">Archives</a>
-      <a href="/en/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>中文</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/en/">Home</a>
-    <a href="/en/series/">Series</a>
-    <a href="/en/projects/">Projects</a>
-    <a href="/en/archives/">Archives</a>
-    <a href="/en/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/en/series/">Series</a> · <a href="/en/series/">Aliyun PAI</a>
-         · Chapter 4
-      </div>
-      <h1>Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie</h1>
-      <p class="deck">End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn&#39;t blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start.</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2026-03-08">March 8, 2026</time> · 5 min read · 1100 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/en/tags/aliyun-pai/" class="tag">#Aliyun PAI</a><a href="/en/tags/pai-eas/" class="tag">#PAI-EAS</a><a href="/en/tags/model-serving/" class="tag">#Model Serving</a><a href="/en/tags/inference/" class="tag">#Inference</a><a href="/en/tags/auto-scaling/" class="tag">#Auto Scaling</a>
-          
-        </div>
-        
-          <a class="pill pill-outline" href="/zh/aliyun-pai/04-pai-eas-model-serving/">
-            Read in English →
-          </a>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>EAS is where the money goes. DSW costs you a few hundred RMB a month for dev. DLC costs you in spikes. EAS bills 24/7 because someone might call your endpoint, and that &ldquo;minimum replica count&rdquo; line in the autoscaler config is the single highest-leverage knob in the whole platform. This article is what I wish I&rsquo;d known the day before we shipped our first production endpoint.</p>
-<h2 id="what-eas-is-per-the-docs">What EAS is, per the docs</h2>
-<p>The official &ldquo;EAS overview&rdquo; frames it as: &ldquo;deploy trained models as online inference services or AI web applications, with heterogeneous resources, automatic scaling, one-click stress testing, canary releases, and real-time monitoring&rdquo;. The two things to underline:</p>
-<ul>
-<li>It&rsquo;s a <strong>container-runtime serving layer</strong> — your model lives in OSS, your code lives in a container image, EAS pulls the image, mounts OSS at startup, runs your start command, and listens on a port.</li>
-<li>It&rsquo;s <strong>autoscaled by replica count</strong> — not a serverless function model (with one important exception, see below). Replicas are real GPU pods that take 30-120s to come up. Plan for that.</li>
-</ul>
-<h2 id="the-request-path">The request path</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig1_eas_request_path.png" alt="EAS request path" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The four moving parts the docs call out for runtime-image deployment:</p>
-<ol>
-<li><strong>Runtime image</strong> — read-only template with OS, CUDA, Python, deps. Use an official one (<code>vllm:0.11.2-mows0.5.1</code>, <code>pytorch:...</code>) or push your own to ACR.</li>
-<li><strong>Code and model</strong> — <em>not in the image</em>. They live in OSS / NAS. Decoupling them lets you update weights without rebuilding the image.</li>
-<li><strong>Storage mounting</strong> — at startup, EAS FUSE-mounts the OSS path you specified to a directory inside the container, e.g. <code>/mnt/data/</code>.</li>
-<li><strong>Run command</strong> — the first command after the container starts. Typically launches your HTTP server (<code>vllm serve /mnt/data/Qwen/Qwen3-0.6B</code>).</li>
-</ol>
-<blockquote>
-<p><strong>Real-world tip:</strong> Bake <code>/mnt/data/</code> into your code paths from day one. Do not let model paths get hardcoded to <code>/workspace/models/</code>. Switching from local-dev to EAS becomes a one-line config change instead of a code refactor.</p>
-</blockquote>
-<h2 id="three-inference-modes">Three inference modes</h2>
-<p>The docs list three. Pick deliberately — the wrong mode wastes either money or latency.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png" alt="EAS inference modes" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>A practical heuristic:</p>
-<ul>
-<li><strong>Real-time sync</strong> — chatbots, RAG retrieval, ad ranking, search. You care about p99 latency.</li>
-<li><strong>Async</strong> — anything that takes 5+ seconds: image-gen, video-gen, OCR-on-PDF batches. The built-in queue scales replicas based on backlog, which is the right mental model for these workloads.</li>
-<li><strong>Batch</strong> — anything you can wait minutes for: nightly embeddings, voice transcription. Use preemptible instances and cut the bill in half.</li>
-</ul>
-<h2 id="the-quick-start-in-real-config">The Quick Start, in real config</h2>
-<p>The official Quick Start deploys Qwen3-0.6B with vLLM. The console flow is:</p>
-<ol>
-<li><strong>Method:</strong> Image-based deployment.</li>
-<li><strong>Image:</strong> <code>vllm:0.11.2-mows0.5.1</code> (official EAS image — vLLM ≥ 0.8.5 is required for OpenAI-compatible chat).</li>
-<li><strong>Model:</strong> OSS, <code>oss://your-bucket/models/</code>, mount path <code>/mnt/data/</code>.</li>
-<li><strong>Command:</strong> <code>vllm serve /mnt/data/Qwen/Qwen3-0___6B</code>.</li>
-<li><strong>Resource:</strong> <code>ecs.gn7i-c16g1.4xlarge</code> (1 × A10).</li>
-<li><strong>Click Deploy.</strong> ~5 minutes to <code>Running</code>.</li>
-</ol>
-<p>You then get an OpenAI-compatible endpoint at the URL the console gives you. Calling it:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">os</span>
-</span></span><span class="line"><span class="cl"><span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">api_key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&#34;EAS_TOKEN&#34;</span><span class="p">],</span>          <span class="c1"># the token from &#34;View Call Information&#34;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">base_url</span><span class="o">=</span><span class="s2">&#34;https://YOUR-ENDPOINT.cn-shanghai.pai-eas.aliyuncs.com/v1&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">resp</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">    <span class="n">model</span><span class="o">=</span><span class="s2">&#34;Qwen3-0.6B&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&#34;role&#34;</span><span class="p">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="s2">&#34;content&#34;</span><span class="p">:</span> <span class="s2">&#34;What is EAS in one sentence?&#34;</span><span class="p">}],</span>
-</span></span><span class="line"><span class="cl"><span class="p">)</span>
-</span></span><span class="line"><span class="cl"><span class="nb">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>If that returns a sentence, your endpoint is alive and you can go back to your colleagues looking like a wizard.</p>
-<h2 id="auto-scaling-done-right">Auto-scaling done right</h2>
-<p>This is the part the docs do not really hammer home. Default autoscaler behaviour (scale on request rate, min replicas = 1) is a recipe for either cold-start latency tickets or surprise bills.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig3_eas_autoscaling.png" alt="EAS auto-scaling — replicas track QPS" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>The three settings that actually matter:</p>
-<ul>
-<li><strong><code>min_replicas</code></strong> — never set to zero in production. A cold start on a 7B vLLM container is 60-120 seconds; the user gives up at 5. I default to 2 (one for HA, one for redundancy). For asynchronous services you can do 0 and rely on the queue.</li>
-<li><strong><code>max_replicas</code></strong> — the budget brake. Calculate as: <code>(p99_qps_per_replica) * 2</code>. If you don&rsquo;t know your per-replica QPS, run the one-click stress test. The docs cover this under &ldquo;Service stress testing&rdquo;.</li>
-<li><strong>Scaling metric</strong> — by default it&rsquo;s <code>qps</code>. For LLM serving, switch to <code>concurrent_requests</code> (or vLLM&rsquo;s <code>running</code> metric). QPS is misleading because long generations don&rsquo;t show up as more requests.</li>
-</ul>
-<blockquote>
-<p><strong>Real-world tip:</strong> The single biggest wasted spend I have ever seen on PAI was a <code>max_replicas=50</code> autoscaler with <code>min_replicas=10</code> on a service that got 0.5 QPS off-peak. 5 idle A10s, 24/7, for two months. Always look at the Saturday-night dashboard before you go on holiday.</p>
-</blockquote>
-<h2 id="canary-bluegreen-and-traffic-mirroring">Canary, blue/green, and traffic mirroring</h2>
-<p>EAS does this with <strong>service groups</strong>: a routing front-end that points at multiple service versions and splits traffic by percentage. The same primitive supports <strong>traffic mirroring</strong> — a copy of real traffic gets sent to a candidate version, but the response is discarded so users see no impact. This is the safest possible way to test a new model on production traffic.</p>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig4_eas_canary_release.png" alt="EAS service groups — canary and mirror" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>I use a 90/10 split for the first 24 hours of any model swap, then 50/50, then 0/100. If any of those steps shows degradation in the success-rate or p99 metrics, rollback is immediate — service groups change traffic weights in seconds.</p>
-<h2 id="stress-testing--actually-do-this">Stress testing — actually do this</h2>
-<p>The docs have a whole section on the one-click stress tester. Use it. It auto-ramps QPS, charts replica scale-out, and tells you the per-replica saturation point. That number is what you build your autoscaler around. Going to prod without one is the most common cause of &ldquo;the model fell over at the 3pm peak&rdquo; tickets.</p>
-<h2 id="the-180-day-gotcha">The 180-day gotcha</h2>
-<p>Buried in the docs: &ldquo;If an EAS service remains in a non-Running state for 180 consecutive days, the system automatically deletes the service.&rdquo; Set a calendar reminder. I lost a service config once because the team that owned it dissolved and no one paid the bill. Restoring took an afternoon of re-bisecting which <code>vllm</code> version was on which weights.</p>
-<h2 id="whats-next">What&rsquo;s next</h2>
-<p>Article 5 closes the series with the honest pitch for <strong>Designer</strong> and <strong>Model Gallery</strong> — the two zero/low-code surfaces. They are not what most engineers reach for, but they earn their keep when used right, and there is a specific set of jobs where they are obviously the correct answer.</p>
-
-    </div>
-
-    <nav class="series-nav" aria-label="In this series">
-  <div class="nav-item prev-item">
-    
-      <div class="label">← Previous</div>
-      <a href="https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/"><span class="title">Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</span></a>
-    
-  </div>
-  <div class="nav-item next-item">
-    
-      <div class="label">Next →</div>
-      <a href="https://www.chenk.top/en/aliyun-pai/05-pai-designer-vs-quickstart/"><span class="title">Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep</span></a>
-    
-  </div>
-</nav>
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#what-eas-is-per-the-docs">What EAS is, per the docs</a></li>
-    <li><a href="#the-request-path">The request path</a></li>
-    <li><a href="#three-inference-modes">Three inference modes</a></li>
-    <li><a href="#the-quick-start-in-real-config">The Quick Start, in real config</a></li>
-    <li><a href="#auto-scaling-done-right">Auto-scaling done right</a></li>
-    <li><a href="#canary-bluegreen-and-traffic-mirroring">Canary, blue/green, and traffic mirroring</a></li>
-    <li><a href="#stress-testing--actually-do-this">Stress testing — actually do this</a></li>
-    <li><a href="#the-180-day-gotcha">The 180-day gotcha</a></li>
-    <li><a href="#whats-next">What&rsquo;s next</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/en/series/" style="color: var(--accent);">Aliyun PAI</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>5 min</strong></div>
-      <div class="row"><span>Word count</span><strong>1100</strong></div>
-      <div class="row"><span>Published</span><strong>Mar 2026</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/en/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/recommendation-systems/">Recommendation-Systems</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/nlp/">NLP</a></li>
-          
-            <li><a href="https://www.chenk.top/en/series/reinforcement-learning/">Reinforcement Learning</a></li>
-          
-          <li><a href="/en/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/en/about/">About</a></li>
-          <li><a href="/en/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+<!doctype html><html lang=en data-translation=/zh/aliyun-pai/04-pai-eas-model-serving/><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie · Chen Kai Blog</title>
+<meta name=description content="End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn't blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start."><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=en href=https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/aliyun-pai/04-pai-eas-model-serving/><link rel=alternate hreflang=x-default href=https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/><meta property="og:type" content="article"><meta property="og:title" content="Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie"><meta property="og:description" content="End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn't blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start."><meta property="og:url" content="https://www.chenk.top/en/aliyun-pai/04-pai-eas-model-serving/"><meta property="og:locale" content="en"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/en/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>中文</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/en/>Home</a>
+<a href=/en/series/>Series</a>
+<a href=/en/projects/>Projects</a>
+<a href=/en/archives/>Archives</a>
+<a href=/en/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/en/series/>Series</a> · <a href=/en/series/>Aliyun PAI</a>
+· Chapter 4</div><h1>Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie</h1><p class=deck>End-to-end PAI-EAS for production: image-based deploy from OSS-mounted weights, the three inference modes, an autoscaler that doesn't blow your budget, and canary releases via service groups. Includes a working vLLM Qwen3 deployment from the official Quick Start.</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2026-03-08>March 8, 2026</time> · 5 min read · 1008 words</span></div></div><div class=article-meta-row><div class=meta><a href=/en/tags/aliyun-pai/ class=tag>#Aliyun PAI</a><a href=/en/tags/pai-eas/ class=tag>#PAI-EAS</a><a href=/en/tags/model-serving/ class=tag>#Model Serving</a><a href=/en/tags/inference/ class=tag>#Inference</a><a href=/en/tags/auto-scaling/ class=tag>#Auto Scaling</a></div><a class="pill pill-outline" href=/zh/aliyun-pai/04-pai-eas-model-serving/>Read in English →</a></div></header><div class=prose><p>EAS is where the money goes. DSW costs you a few hundred RMB a month for dev. DLC costs you in spikes. EAS bills 24/7 because someone might call your endpoint, and that &ldquo;minimum replica count&rdquo; line in the autoscaler config is the single highest-leverage knob in the whole platform. This article is what I wish I&rsquo;d known the day before we shipped our first production endpoint.</p><h2 id=what-eas-is-per-the-docs>What EAS is, per the docs</h2><p>The official &ldquo;EAS overview&rdquo; frames it as: &ldquo;deploy trained models as online inference services or AI web applications, with heterogeneous resources, automatic scaling, one-click stress testing, canary releases, and real-time monitoring&rdquo;. The two things to underline:</p><ul><li>It&rsquo;s a <strong>container-runtime serving layer</strong> — your model lives in OSS, your code lives in a container image, EAS pulls the image, mounts OSS at startup, runs your start command, and listens on a port.</li><li>It&rsquo;s <strong>autoscaled by replica count</strong> — not a serverless function model (with one important exception, see below). Replicas are real GPU pods that take 30-120s to come up. Plan for that.</li></ul><h2 id=the-request-path>The request path</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig1_eas_request_path.png alt="EAS request path" loading=lazy decoding=async></figure></p><p>The four moving parts the docs call out for runtime-image deployment:</p><ol><li><strong>Runtime image</strong> — read-only template with OS, CUDA, Python, deps. Use an official one (<code>vllm:0.11.2-mows0.5.1</code>, <code>pytorch:...</code>) or push your own to ACR.</li><li><strong>Code and model</strong> — <em>not in the image</em>. They live in OSS / NAS. Decoupling them lets you update weights without rebuilding the image.</li><li><strong>Storage mounting</strong> — at startup, EAS FUSE-mounts the OSS path you specified to a directory inside the container, e.g. <code>/mnt/data/</code>.</li><li><strong>Run command</strong> — the first command after the container starts. Typically launches your HTTP server (<code>vllm serve /mnt/data/Qwen/Qwen3-0.6B</code>).</li></ol><blockquote><p><strong>Real-world tip:</strong> Bake <code>/mnt/data/</code> into your code paths from day one. Do not let model paths get hardcoded to <code>/workspace/models/</code>. Switching from local-dev to EAS becomes a one-line config change instead of a code refactor.</p></blockquote><h2 id=three-inference-modes>Three inference modes</h2><p>The docs list three. Pick deliberately — the wrong mode wastes either money or latency.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig2_eas_inference_modes.png alt="EAS inference modes" loading=lazy decoding=async></figure></p><p>A practical heuristic:</p><ul><li><strong>Real-time sync</strong> — chatbots, RAG retrieval, ad ranking, search. You care about p99 latency.</li><li><strong>Async</strong> — anything that takes 5+ seconds: image-gen, video-gen, OCR-on-PDF batches. The built-in queue scales replicas based on backlog, which is the right mental model for these workloads.</li><li><strong>Batch</strong> — anything you can wait minutes for: nightly embeddings, voice transcription. Use preemptible instances and cut the bill in half.</li></ul><h2 id=the-quick-start-in-real-config>The Quick Start, in real config</h2><p>The official Quick Start deploys Qwen3-0.6B with vLLM. The console flow is:</p><ol><li><strong>Method:</strong> Image-based deployment.</li><li><strong>Image:</strong> <code>vllm:0.11.2-mows0.5.1</code> (official EAS image — vLLM ≥ 0.8.5 is required for OpenAI-compatible chat).</li><li><strong>Model:</strong> OSS, <code>oss://your-bucket/models/</code>, mount path <code>/mnt/data/</code>.</li><li><strong>Command:</strong> <code>vllm serve /mnt/data/Qwen/Qwen3-0___6B</code>.</li><li><strong>Resource:</strong> <code>ecs.gn7i-c16g1.4xlarge</code> (1 × A10).</li><li><strong>Click Deploy.</strong> ~5 minutes to <code>Running</code>.</li></ol><p>You then get an OpenAI-compatible endpoint at the URL the console gives you. Calling it:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>os</span>
+</span></span><span class=line><span class=cl><span class=kn>from</span> <span class=nn>openai</span> <span class=kn>import</span> <span class=n>OpenAI</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>client</span> <span class=o>=</span> <span class=n>OpenAI</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>api_key</span><span class=o>=</span><span class=n>os</span><span class=o>.</span><span class=n>environ</span><span class=p>[</span><span class=s2>&#34;EAS_TOKEN&#34;</span><span class=p>],</span>          <span class=c1># the token from &#34;View Call Information&#34;</span>
+</span></span><span class=line><span class=cl>    <span class=n>base_url</span><span class=o>=</span><span class=s2>&#34;https://YOUR-ENDPOINT.cn-shanghai.pai-eas.aliyuncs.com/v1&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>resp</span> <span class=o>=</span> <span class=n>client</span><span class=o>.</span><span class=n>chat</span><span class=o>.</span><span class=n>completions</span><span class=o>.</span><span class=n>create</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>    <span class=n>model</span><span class=o>=</span><span class=s2>&#34;Qwen3-0.6B&#34;</span><span class=p>,</span>
+</span></span><span class=line><span class=cl>    <span class=n>messages</span><span class=o>=</span><span class=p>[{</span><span class=s2>&#34;role&#34;</span><span class=p>:</span> <span class=s2>&#34;user&#34;</span><span class=p>,</span> <span class=s2>&#34;content&#34;</span><span class=p>:</span> <span class=s2>&#34;What is EAS in one sentence?&#34;</span><span class=p>}],</span>
+</span></span><span class=line><span class=cl><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=nb>print</span><span class=p>(</span><span class=n>resp</span><span class=o>.</span><span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>message</span><span class=o>.</span><span class=n>content</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>If that returns a sentence, your endpoint is alive and you can go back to your colleagues looking like a wizard.</p><h2 id=auto-scaling-done-right>Auto-scaling done right</h2><p>This is the part the docs do not really hammer home. Default autoscaler behaviour (scale on request rate, min replicas = 1) is a recipe for either cold-start latency tickets or surprise bills.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig3_eas_autoscaling.png alt="EAS auto-scaling — replicas track QPS" loading=lazy decoding=async></figure></p><p>The three settings that actually matter:</p><ul><li><strong><code>min_replicas</code></strong> — never set to zero in production. A cold start on a 7B vLLM container is 60-120 seconds; the user gives up at 5. I default to 2 (one for HA, one for redundancy). For asynchronous services you can do 0 and rely on the queue.</li><li><strong><code>max_replicas</code></strong> — the budget brake. Calculate as: <code>(p99_qps_per_replica) * 2</code>. If you don&rsquo;t know your per-replica QPS, run the one-click stress test. The docs cover this under &ldquo;Service stress testing&rdquo;.</li><li><strong>Scaling metric</strong> — by default it&rsquo;s <code>qps</code>. For LLM serving, switch to <code>concurrent_requests</code> (or vLLM&rsquo;s <code>running</code> metric). QPS is misleading because long generations don&rsquo;t show up as more requests.</li></ul><blockquote><p><strong>Real-world tip:</strong> The single biggest wasted spend I have ever seen on PAI was a <code>max_replicas=50</code> autoscaler with <code>min_replicas=10</code> on a service that got 0.5 QPS off-peak. 5 idle A10s, 24/7, for two months. Always look at the Saturday-night dashboard before you go on holiday.</p></blockquote><h2 id=canary-bluegreen-and-traffic-mirroring>Canary, blue/green, and traffic mirroring</h2><p>EAS does this with <strong>service groups</strong>: a routing front-end that points at multiple service versions and splits traffic by percentage. The same primitive supports <strong>traffic mirroring</strong> — a copy of real traffic gets sent to a candidate version, but the response is discarded so users see no impact. This is the safest possible way to test a new model on production traffic.</p><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/en/aliyun-pai/04-pai-eas-model-serving/fig4_eas_canary_release.png alt="EAS service groups — canary and mirror" loading=lazy decoding=async></figure></p><p>I use a 90/10 split for the first 24 hours of any model swap, then 50/50, then 0/100. If any of those steps shows degradation in the success-rate or p99 metrics, rollback is immediate — service groups change traffic weights in seconds.</p><h2 id=stress-testing--actually-do-this>Stress testing — actually do this</h2><p>The docs have a whole section on the one-click stress tester. Use it. It auto-ramps QPS, charts replica scale-out, and tells you the per-replica saturation point. That number is what you build your autoscaler around. Going to prod without one is the most common cause of &ldquo;the model fell over at the 3pm peak&rdquo; tickets.</p><h2 id=the-180-day-gotcha>The 180-day gotcha</h2><p>Buried in the docs: &ldquo;If an EAS service remains in a non-Running state for 180 consecutive days, the system automatically deletes the service.&rdquo; Set a calendar reminder. I lost a service config once because the team that owned it dissolved and no one paid the bill. Restoring took an afternoon of re-bisecting which <code>vllm</code> version was on which weights.</p><h2 id=whats-next>What&rsquo;s next</h2><p>Article 5 closes the series with the honest pitch for <strong>Designer</strong> and <strong>Model Gallery</strong> — the two zero/low-code surfaces. They are not what most engineers reach for, but they earn their keep when used right, and there is a specific set of jobs where they are obviously the correct answer.</p></div><nav class=series-nav aria-label="In this series"><div class="nav-item prev-item"><div class=label>← Previous</div><a href=https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/><span class=title>Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</span></a></div><div class="nav-item next-item"><div class=label>Next →</div><a href=https://www.chenk.top/en/aliyun-pai/05-pai-designer-vs-quickstart/><span class=title>Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep</span></a></div></nav><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#what-eas-is-per-the-docs>What EAS is, per the docs</a></li><li><a href=#the-request-path>The request path</a></li><li><a href=#three-inference-modes>Three inference modes</a></li><li><a href=#the-quick-start-in-real-config>The Quick Start, in real config</a></li><li><a href=#auto-scaling-done-right>Auto-scaling done right</a></li><li><a href=#canary-bluegreen-and-traffic-mirroring>Canary, blue/green, and traffic mirroring</a></li><li><a href=#stress-testing--actually-do-this>Stress testing — actually do this</a></li><li><a href=#the-180-day-gotcha>The 180-day gotcha</a></li><li><a href=#whats-next>What&rsquo;s next</a></li></ul></nav></nav><nav class="aside-block aside-chapters" aria-label="In the series"><div class=label><a href=/en/series/ class=series-name>Aliyun PAI</a>
+<span class=count>5</span></div><ol class=chapter-list><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/01-platform-overview/><span class=chapter-num>01</span>
+<span class=chapter-title>Aliyun PAI (1): Platform Overview and the Product Family Map</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/02-pai-dsw-notebook/><span class=chapter-num>02</span>
+<span class=chapter-title>Aliyun PAI (2): PAI-DSW — Notebooks That Don't Eat Your Weights</span></a></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/03-pai-dlc-distributed-training/><span class=chapter-num>03</span>
+<span class=chapter-title>Aliyun PAI (3): PAI-DLC — Distributed Training Without the Cluster Pain</span></a></li><li class="chapter-item is-current"><span class=chapter-link aria-current=true><span class=chapter-num>04</span>
+<span class=chapter-title>Aliyun PAI (4): PAI-EAS — Model Serving, Cold Starts, and the TPS Lie</span></span></li><li class=chapter-item><a class=chapter-link href=https://www.chenk.top/en/aliyun-pai/05-pai-designer-vs-quickstart/><span class=chapter-num>05</span>
+<span class=chapter-title>Aliyun PAI (5): Designer vs Model Gallery — When the GUIs Actually Earn Their Keep</span></a></li></ol></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>5 min</strong></div><div class=row><span>Word count</span><strong>1008</strong></div><div class=row><span>Published</span><strong>Mar 2026</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/en/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/en/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/en/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/en/series/recommendation-systems/>Recommendation-Systems</a></li><li><a href=https://www.chenk.top/en/series/nlp/>NLP</a></li><li><a href=https://www.chenk.top/en/series/reinforcement-learning/>Reinforcement Learning</a></li><li><a href=/en/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/en/about/>About</a></li><li><a href=/en/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>

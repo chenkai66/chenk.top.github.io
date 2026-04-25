@@ -1,501 +1,120 @@
-<!doctype html>
-<html lang="zh" data-translation="">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fdfcf9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
-<title>强化学习（九）：多智能体强化学习 · Chen Kai Blog</title>
-<meta name="description" content="系统讲透多智能体强化学习：马尔可夫博弈、非稳态与信用分配、CTDE 范式、值分解（VDN/QMIX）、反事实基线（COMA）、MADDPG，以及 AlphaStar 与 OpenAI Five 的联赛训练，附可运行的 QMIX 混合网络 PyTorch 实现。">
-<meta name="author" content="Chen Kai">
-<link rel="canonical" href="https://www.chenk.top/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E">
-
-
-
-<link rel="alternate" hreflang="zh" href="https://www.chenk.top/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
-
-
-
-
-<meta property="og:type" content="article">
-<meta property="og:title" content="强化学习（九）：多智能体强化学习">
-<meta property="og:description" content="系统讲透多智能体强化学习：马尔可夫博弈、非稳态与信用分配、CTDE 范式、值分解（VDN/QMIX）、反事实基线（COMA）、MADDPG，以及 AlphaStar 与 OpenAI Five 的联赛训练，附可运行的 QMIX 混合网络 PyTorch 实现。">
-<meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">
-<meta property="og:locale" content="zh">
-<meta name="twitter:card" content="summary_large_image">
-
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'\\[',right:'\\]',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
-
-<link rel="stylesheet" href="/css/site.min.f327c2dbe5672c41d57d255a9bd36137bead80a580d20d69ff8f425d83d0b775.css">
-<script defer src="/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js"></script>
-
-
-<script>
-  (function(){var s=localStorage.getItem("chenk-theme");if(s==="dark"||s==="light"){document.documentElement.setAttribute("data-theme",s)}else if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.setAttribute("data-theme","dark")}})();
-</script>
-
-
-
-</head>
-<body class="article-page">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="/zh/" aria-label="Chen Kai Blog">
-      <span class="brand-mark"></span>
-      <span>chenk<span class="brand-dot">.</span>top</span>
-    </a>
-
-    <nav class="nav" aria-label="Primary">
-      <a href="/zh/">Home</a>
-      <a href="/zh/series/">Series</a>
-      <a href="/zh/projects/">Projects</a>
-      <a href="/zh/archives/">Archives</a>
-      <a href="/zh/about/">About</a>
-      
-    </nav>
-
-    <div class="header-tools">
-      <button class="icon-btn" data-search-open type="button" aria-label="Search (Cmd+K)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-      <button class="icon-btn" data-theme-toggle type="button" aria-label="Toggle dark mode">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <a class="lang-switch" href="#" data-lang-switch>EN</a>
-      <button class="icon-btn menu-toggle" data-drawer-open type="button" aria-label="Open menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
-
-<aside class="drawer" aria-hidden="true">
-  <div class="drawer-head">
-    <span class="brand"><span class="brand-mark"></span> chenk<span class="brand-dot">.</span>top</span>
-    <button class="icon-btn" data-drawer-close type="button" aria-label="Close menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <nav>
-    <a href="/zh/">Home</a>
-    <a href="/zh/series/">Series</a>
-    <a href="/zh/projects/">Projects</a>
-    <a href="/zh/archives/">Archives</a>
-    <a href="/zh/about/">About</a>
-    
-  </nav>
-</aside>
-
-
-<div class="search-overlay" aria-hidden="true">
-  <div class="search-modal">
-    <div class="search-input-row">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="search" placeholder="Search articles, series, and tags…" autocomplete="off" spellcheck="false">
-      <span class="kbd">esc</span>
-    </div>
-    <div class="search-results">
-      <div class="search-empty">Search articles, series, and tags…</div>
-    </div>
-  </div>
-</div>
-
-<div class="read-progress" aria-hidden="true"></div>
-<main>
-<article class="article-shell" style="--accent: var(--hue-1);">
-  <div class="article-main">
-    <header class="article-header">
-      <div class="crumbs">
-        <a href="/zh/series/">Series</a> · <a href="/zh/series/">强化学习</a>
-         · Chapter 9
-      </div>
-      <h1>强化学习（九）：多智能体强化学习</h1>
-      <p class="deck">系统讲透多智能体强化学习：马尔可夫博弈、非稳态与信用分配、CTDE 范式、值分解（VDN/QMIX）、反事实基线（COMA）、MADDPG，以及 AlphaStar 与 OpenAI Five 的联赛训练，附可运行的 QMIX 混合网络 PyTorch 实现。</p>
-      <div class="byline">
-        <div class="avatar">CK</div>
-        <div class="byline-info">
-          <span class="name">Chen Kai</span>
-          <span class="meta-line"><time datetime="2025-09-10">September 10, 2025</time> · 10 min read · 4900 words</span>
-        </div>
-      </div>
-      <div class="article-meta-row">
-        <div class="meta">
-          
-            <a href="/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" class="tag">#强化学习</a><a href="/zh/tags/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93/" class="tag">#多智能体</a><a href="/zh/tags/qmix/" class="tag">#QMIX</a><a href="/zh/tags/maddpg/" class="tag">#MADDPG</a><a href="/zh/tags/%E5%8D%9A%E5%BC%88%E8%AE%BA/" class="tag">#博弈论</a>
-          
-        </div>
-        
-      </div>
-    </header>
-
-    <div class="prose">
-      <p>单智能体 RL 有一个安静却影响深远的前提：环境是稳态的，转移核不会因为智能体在学习而改变。但只要有第二个学习者出现，这个前提立刻崩塌——每个智能体看到的环境动力学，会随同伴的更新而漂移；奖励在智能体之间彼此纠缠；联合动作空间随人数指数膨胀。这些都不是工程小麻烦，而是为什么多智能体 RL（MARL）需要自己的一整套算法、而不是简单地&quot;并行跑 n 个 DQN&quot;。</p>
-<p>把这些问题啃下来的回报很大：AlphaStar 在《星际争霸 II》天梯上达到宗师段位，OpenAI Five 在《Dota 2》击败世界冠军，仓储机器人调度、信号灯控制、多 LLM 协作系统也都是合作型 MARL 的天然舞台。本章把概念骨架——马尔可夫博弈、CTDE、值分解、反事实信用——讲透，最后落到一段可以直接拿去训练的 QMIX 混合网络代码。</p>
-<h2 id="你将学到什么">你将学到什么</h2>
-<ul>
-<li>MARL 区别于单智能体的四大难题：<strong>非稳态性</strong>、<strong>信用分配</strong>、<strong>部分可观测</strong>、<strong>可扩展性</strong></li>
-<li>必要的博弈论词汇：马尔可夫博弈、纳什均衡、Pareto 最优、社会困境</li>
-<li><strong>CTDE</strong>（集中训练、分散执行）为什么是当今的统治范式</li>
-<li><strong>值分解</strong>：VDN、QMIX，以及让贪心执行可证正确的单调性约束</li>
-<li><strong>多智能体 Actor-Critic</strong>：MADDPG（每个智能体一个集中评论家）与 <strong>COMA</strong>（反事实基线）</li>
-<li><strong>通信</strong>：广播、稀疏、注意力路由各自的适用场景</li>
-<li><strong>AlphaStar 联赛训练</strong>与 <strong>OpenAI Five</strong> 的工业级训练流水线</li>
-</ul>
-<h2 id="前置知识">前置知识</h2>
-<ul>
-<li>Q-Learning 与 DQN（<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/">第 2 篇</a>
-）</li>
-<li>Actor-Critic 与策略梯度（<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/">第 3 篇</a>
-、<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/">第 6 篇</a>
-）</li>
-<li>期望与条件概率的基本直觉；正式的博弈论我们只用到最低限度</li>
-</ul>
-<hr>
-<h2 id="1-为什么-marl-比单智能体-rl-真的更难">1. 为什么 MARL 比单智能体 RL 真的更难</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig1_scenarios.png" alt="合作、竞争、混合动机三类多智能体场景" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>奖励结构几乎决定了其他一切。<strong>合作型</strong>博弈中所有智能体共享团队奖励——足球配合、群体物流、星际微操；<strong>竞争型</strong>是零和博弈，一方所得即另一方所失，主流武器是某种形式的自我对弈；最有趣的是中间的<strong>混合动机</strong>（一般和）博弈——市场、交通、谈判、拥塞控制——短期个人利益往往会摧毁长期集体福利（囚徒困境就是教科书式的 2×2 例子，也对应图中第三个收益矩阵）。</p>
-<p>无论身处哪种范式，下面四个障碍都会让单智能体那套工具失效。</p>
-<p><strong>非稳态性</strong>。从智能体 $i$ 的视角看，转移是 $P(s' \mid s, a_i, a_{-i})$，这里 $a_{-i}$ 表示其他人的动作。当其他人的策略 $\pi_{-i}$ 在训练中持续更新，$i$ 看到的<em>有效</em>转移核就一直在漂。DQN 这类离策略方法假设数据生成分布固定，在 MARL 里很容易发散或震荡。</p>
-<p><strong>信用分配</strong>。一局合作下来团队只拿到一个 $r$，到底是谁的功劳？朴素的共享梯度会鼓励搭便车——什么也不干的智能体获得和挑大梁的同样的信用。COMA 的反事实基线（第 5 节）和值分解（第 4 节）是两种有原则的解法。</p>
-<p><strong>部分可观测</strong>。每个智能体只看见自己的观测 $o_i$，执行时根本拿不到马尔可夫状态。常见的临时方案是循环网络加上&quot;信念状态&quot;风格的表征，但更深层的解法是从架构上让<em>集中评论家</em>在训练时看到比执行时更多的信息。</p>
-<p><strong>可扩展性</strong>。$n$ 个智能体、每人 $|A|$ 个动作，联合动作空间就是 $|A|^n$。不利用结构，连规模适中的合作任务都会爆炸。</p>
-<p>四个问题统一的解法——也是本章的概念主轴——是 <strong>CTDE</strong>。</p>
-<hr>
-<h2 id="2-ctde训练时全信息执行时几乎零信息">2. CTDE：训练时全信息，执行时几乎零信息</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig2_ctde.png" alt="集中训练、分散执行示意图" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>它的精髓是<strong>不对称</strong>：训练阶段允许算法看到完整状态以及每个智能体的动作——一个<em>集中</em>的评论家、混合器或值函数；部署阶段只保留以局部观测为条件的各自策略。执行接口分散，优化接口集中。</p>
-<p>CTDE 行得通，是因为让 MARL 难的那些东西（非稳态、信用分配、部分可观测）属于<em>学习阶段</em>的性质，而让 MARL 实用的那些约束（带宽有限、异步控制、隐私）属于<em>执行阶段</em>的性质。CTDE 把两类问题各自归位。今天几乎所有主流的合作型 MARL 算法——VDN、QMIX、MADDPG、COMA、MAPPO——都是 CTDE 方法，它们的差别仅仅在于<em>集中对象是什么</em>以及<em>怎么把它分解回去</em>。</p>
-<hr>
-<h2 id="3-马尔可夫博弈与纳什均衡够用就好">3. 马尔可夫博弈与纳什均衡：够用就好</h2>
-<p><strong>马尔可夫博弈</strong>把 MDP 推广到 $n$ 个智能体：</p>
-$$
+<!doctype html><html lang=zh data-translation><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="#fdfcf9" media="(prefers-color-scheme: light)"><meta name=theme-color content="#0f1117" media="(prefers-color-scheme: dark)"><title>强化学习（九）：多智能体强化学习 · Chen Kai Blog</title>
+<meta name=description content="系统讲透多智能体强化学习：马尔可夫博弈、非稳态与信用分配、CTDE 范式、值分解（VDN/QMIX）、反事实基线（COMA）、MADDPG，以及 AlphaStar 与 OpenAI Five 的联赛训练，附可运行的 QMIX 混合网络 PyTorch 实现。"><meta name=author content="Chen Kai"><link rel=canonical href=https://www.chenk.top/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/><link rel=icon type=image/svg+xml href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext x='50' y='66' font-family='Georgia,serif' font-size='52' font-weight='700' text-anchor='middle' fill='white'%3Eck%3C/text%3E%3C/svg%3E"><link rel=alternate hreflang=zh href=https://www.chenk.top/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/><meta property="og:type" content="article"><meta property="og:title" content="强化学习（九）：多智能体强化学习"><meta property="og:description" content="系统讲透多智能体强化学习：马尔可夫博弈、非稳态与信用分配、CTDE 范式、值分解（VDN/QMIX）、反事实基线（COMA）、MADDPG，以及 AlphaStar 与 OpenAI Five 的联赛训练，附可运行的 QMIX 混合网络 PyTorch 实现。"><meta property="og:url" content="https://www.chenk.top/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/"><meta property="og:locale" content="zh"><meta name=twitter:card content="summary_large_image"><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js onload='renderMathInElement(document.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"\\[",right:"\\]",display:!0},{left:"$",right:"$",display:!1},{left:"\\(",right:"\\)",display:!1}],throwOnError:!1})'></script><link rel=stylesheet href=/css/site.min.35c5e3ebc9dd2f4481350bb611f7e2ad14722f4c5a743bc1fecfcc07bbf7890a.css><script defer src=/js/site.min.e8912b1aa2791a914bb67341d6424a10477dca2a9e2e7017525ebc79e9a57219.js></script><script>(function(){var e=localStorage.getItem("chenk-theme");e==="dark"||e==="light"?document.documentElement.setAttribute("data-theme",e):window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches&&document.documentElement.setAttribute("data-theme","dark")})()</script></head><body class=article-page><header class=site-header><div class="shell header-inner"><a class=brand href=/zh/ aria-label="Chen Kai Blog"><span class=brand-mark></span>
+<span>chenk<span class=brand-dot>.</span>top</span></a><nav class=nav aria-label=Primary><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav><div class=header-tools><button class=icon-btn data-search-open type=button aria-label="Search (Cmd+K)">
+<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+</button>
+<button class=icon-btn data-theme-toggle type=button aria-label="Toggle dark mode">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+</button>
+<a class=lang-switch href=# data-lang-switch>EN</a>
+<button class="icon-btn menu-toggle" data-drawer-open type=button aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button></div></div></header><aside class=drawer aria-hidden=true><div class=drawer-head><span class=brand><span class=brand-mark></span> chenk<span class=brand-dot>.</span>top</span>
+<button class=icon-btn data-drawer-close type=button aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><nav><a href=/zh/>Home</a>
+<a href=/zh/series/>Series</a>
+<a href=/zh/projects/>Projects</a>
+<a href=/zh/archives/>Archives</a>
+<a href=/zh/about/>About</a></nav></aside><div class=search-overlay aria-hidden=true><div class=search-modal><div class=search-input-row><svg viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type=search placeholder="Search articles, series, and tags…" autocomplete=off spellcheck=false>
+<span class=kbd>esc</span></div><div class=search-results><div class=search-empty>Search articles, series, and tags…</div></div></div></div><div class=read-progress aria-hidden=true></div><main><article class=article-shell style=--accent:var(--hue-1)><div class=article-main><header class=article-header><div class=crumbs><a href=/zh/series/>Series</a> · <a href=/zh/series/>强化学习</a>
+· Chapter 9</div><h1>强化学习（九）：多智能体强化学习</h1><p class=deck>系统讲透多智能体强化学习：马尔可夫博弈、非稳态与信用分配、CTDE 范式、值分解（VDN/QMIX）、反事实基线（COMA）、MADDPG，以及 AlphaStar 与 OpenAI Five 的联赛训练，附可运行的 QMIX 混合网络 PyTorch 实现。</p><div class=byline><div class=avatar>CK</div><div class=byline-info><span class=name>Chen Kai</span>
+<span class=meta-line><time datetime=2025-09-10>September 10, 2025</time> · 10 min read · 4885 words</span></div></div><div class=article-meta-row><div class=meta><a href=/zh/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/ class=tag>#强化学习</a><a href=/zh/tags/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93/ class=tag>#多智能体</a><a href=/zh/tags/qmix/ class=tag>#QMIX</a><a href=/zh/tags/maddpg/ class=tag>#MADDPG</a><a href=/zh/tags/%E5%8D%9A%E5%BC%88%E8%AE%BA/ class=tag>#博弈论</a></div></div></header><div class=prose><p>单智能体 RL 有一个安静却影响深远的前提：环境是稳态的，转移核不会因为智能体在学习而改变。但只要有第二个学习者出现，这个前提立刻崩塌——每个智能体看到的环境动力学，会随同伴的更新而漂移；奖励在智能体之间彼此纠缠；联合动作空间随人数指数膨胀。这些都不是工程小麻烦，而是为什么多智能体 RL（MARL）需要自己的一整套算法、而不是简单地"并行跑 n 个 DQN"。</p><p>把这些问题啃下来的回报很大：AlphaStar 在《星际争霸 II》天梯上达到宗师段位，OpenAI Five 在《Dota 2》击败世界冠军，仓储机器人调度、信号灯控制、多 LLM 协作系统也都是合作型 MARL 的天然舞台。本章把概念骨架——马尔可夫博弈、CTDE、值分解、反事实信用——讲透，最后落到一段可以直接拿去训练的 QMIX 混合网络代码。</p><h2 id=你将学到什么>你将学到什么</h2><ul><li>MARL 区别于单智能体的四大难题：<strong>非稳态性</strong>、<strong>信用分配</strong>、<strong>部分可观测</strong>、<strong>可扩展性</strong></li><li>必要的博弈论词汇：马尔可夫博弈、纳什均衡、Pareto 最优、社会困境</li><li><strong>CTDE</strong>（集中训练、分散执行）为什么是当今的统治范式</li><li><strong>值分解</strong>：VDN、QMIX，以及让贪心执行可证正确的单调性约束</li><li><strong>多智能体 Actor-Critic</strong>：MADDPG（每个智能体一个集中评论家）与 <strong>COMA</strong>（反事实基线）</li><li><strong>通信</strong>：广播、稀疏、注意力路由各自的适用场景</li><li><strong>AlphaStar 联赛训练</strong>与 <strong>OpenAI Five</strong> 的工业级训练流水线</li></ul><h2 id=前置知识>前置知识</h2><ul><li>Q-Learning 与 DQN（<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%ba%8c-Q-Learning%e4%b8%8e%e6%b7%b1%e5%ba%a6Q%e7%bd%91%e7%bb%9c/>第 2 篇</a>
+）</li><li>Actor-Critic 与策略梯度（<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e4%b8%89-Policy-Gradient%e4%b8%8eActor-Critic%e6%96%b9%e6%b3%95/>第 3 篇</a>
+、<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ad-PPO%e4%b8%8eTRPO-%e4%bf%a1%e4%bb%bb%e5%9f%9f%e7%ad%96%e7%95%a5%e4%bc%98%e5%8c%96/>第 6 篇</a>
+）</li><li>期望与条件概率的基本直觉；正式的博弈论我们只用到最低限度</li></ul><hr><h2 id=1-为什么-marl-比单智能体-rl-真的更难>1. 为什么 MARL 比单智能体 RL 真的更难</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig1_scenarios.png alt=合作、竞争、混合动机三类多智能体场景 loading=lazy decoding=async></figure></p><p>奖励结构几乎决定了其他一切。<strong>合作型</strong>博弈中所有智能体共享团队奖励——足球配合、群体物流、星际微操；<strong>竞争型</strong>是零和博弈，一方所得即另一方所失，主流武器是某种形式的自我对弈；最有趣的是中间的<strong>混合动机</strong>（一般和）博弈——市场、交通、谈判、拥塞控制——短期个人利益往往会摧毁长期集体福利（囚徒困境就是教科书式的 2×2 例子，也对应图中第三个收益矩阵）。</p><p>无论身处哪种范式，下面四个障碍都会让单智能体那套工具失效。</p><p><strong>非稳态性</strong>。从智能体 $i$ 的视角看，转移是 $P(s' \mid s, a_i, a_{-i})$，这里 $a_{-i}$ 表示其他人的动作。当其他人的策略 $\pi_{-i}$ 在训练中持续更新，$i$ 看到的<em>有效</em>转移核就一直在漂。DQN 这类离策略方法假设数据生成分布固定，在 MARL 里很容易发散或震荡。</p><p><strong>信用分配</strong>。一局合作下来团队只拿到一个 $r$，到底是谁的功劳？朴素的共享梯度会鼓励搭便车——什么也不干的智能体获得和挑大梁的同样的信用。COMA 的反事实基线（第 5 节）和值分解（第 4 节）是两种有原则的解法。</p><p><strong>部分可观测</strong>。每个智能体只看见自己的观测 $o_i$，执行时根本拿不到马尔可夫状态。常见的临时方案是循环网络加上"信念状态"风格的表征，但更深层的解法是从架构上让<em>集中评论家</em>在训练时看到比执行时更多的信息。</p><p><strong>可扩展性</strong>。$n$ 个智能体、每人 $|A|$ 个动作，联合动作空间就是 $|A|^n$。不利用结构，连规模适中的合作任务都会爆炸。</p><p>四个问题统一的解法——也是本章的概念主轴——是 <strong>CTDE</strong>。</p><hr><h2 id=2-ctde训练时全信息执行时几乎零信息>2. CTDE：训练时全信息，执行时几乎零信息</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig2_ctde.png alt=集中训练、分散执行示意图 loading=lazy decoding=async></figure></p><p>它的精髓是<strong>不对称</strong>：训练阶段允许算法看到完整状态以及每个智能体的动作——一个<em>集中</em>的评论家、混合器或值函数；部署阶段只保留以局部观测为条件的各自策略。执行接口分散，优化接口集中。</p><p>CTDE 行得通，是因为让 MARL 难的那些东西（非稳态、信用分配、部分可观测）属于<em>学习阶段</em>的性质，而让 MARL 实用的那些约束（带宽有限、异步控制、隐私）属于<em>执行阶段</em>的性质。CTDE 把两类问题各自归位。今天几乎所有主流的合作型 MARL 算法——VDN、QMIX、MADDPG、COMA、MAPPO——都是 CTDE 方法，它们的差别仅仅在于<em>集中对象是什么</em>以及<em>怎么把它分解回去</em>。</p><hr><h2 id=3-马尔可夫博弈与纳什均衡够用就好>3. 马尔可夫博弈与纳什均衡：够用就好</h2><p><strong>马尔可夫博弈</strong>把 MDP 推广到 $n$ 个智能体：</p>$$
 \langle \mathcal{N}, \mathcal{S}, \{A_i\}_{i\in\mathcal{N}}, P, \{r_i\}_{i\in\mathcal{N}}, \gamma \rangle.
-$$<p>每个智能体 $i$ 拥有自己的动作集 $A_i$ 和奖励 $r_i(s, a_1, \ldots, a_n)$。<strong>纳什均衡</strong>指一个联合策略 $\pi^* = (\pi_1^*, \ldots, \pi_n^*)$，没有任何一个智能体能单方面改善：</p>
-$$
+$$<p>每个智能体 $i$ 拥有自己的动作集 $A_i$ 和奖励 $r_i(s, a_1, \ldots, a_n)$。<strong>纳什均衡</strong>指一个联合策略 $\pi^* = (\pi_1^*, \ldots, \pi_n^*)$，没有任何一个智能体能单方面改善：</p>$$
 V_i(\pi_i^*, \pi_{-i}^*) \;\geq\; V_i(\pi_i, \pi_{-i}^*) \qquad \forall \pi_i,\, \forall i.
-$$<p>有两件事让纳什均衡这个目标颇为滑溜：第一，它通常不唯一；第二，它未必 Pareto 最优。但在<em>完全合作</em>情形下（$r_1 = \cdots = r_n$），画面骤然简化——问题退化为最大化单一团队回报，纳什均衡和 Pareto 最优重合。这正是为什么本章大多数算法机器先针对合作场景设计；竞争与混合动机的方案在此基础上叠加自我对弈、对手建模、正则化等额外想法。</p>
-<hr>
-<h2 id="4-值分解vdn-与-qmix">4. 值分解：VDN 与 QMIX</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig3_qmix.png" alt="QMIX 架构与单调因式分解" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>值分解是合作场景下的一种 CTDE 配方：执行用每个智能体自己的值函数 $Q_i(o_i, a_i)$，训练用一个<em>合并</em>的 $Q_\text{tot}(s, \mathbf{a})$，并对二者关系施加约束，使得在 $Q_i$ 上的分散贪心选择等价于在 $Q_\text{tot}$ 上的联合贪心选择。这就是 <strong>Individual-Global-Max（IGM）</strong> 性质：</p>
-$$
+$$<p>有两件事让纳什均衡这个目标颇为滑溜：第一，它通常不唯一；第二，它未必 Pareto 最优。但在<em>完全合作</em>情形下（$r_1 = \cdots = r_n$），画面骤然简化——问题退化为最大化单一团队回报，纳什均衡和 Pareto 最优重合。这正是为什么本章大多数算法机器先针对合作场景设计；竞争与混合动机的方案在此基础上叠加自我对弈、对手建模、正则化等额外想法。</p><hr><h2 id=4-值分解vdn-与-qmix>4. 值分解：VDN 与 QMIX</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig3_qmix.png alt="QMIX 架构与单调因式分解" loading=lazy decoding=async></figure></p><p>值分解是合作场景下的一种 CTDE 配方：执行用每个智能体自己的值函数 $Q_i(o_i, a_i)$，训练用一个<em>合并</em>的 $Q_\text{tot}(s, \mathbf{a})$，并对二者关系施加约束，使得在 $Q_i$ 上的分散贪心选择等价于在 $Q_\text{tot}$ 上的联合贪心选择。这就是 <strong>Individual-Global-Max（IGM）</strong> 性质：</p>$$
 \arg\max_{\mathbf{a}} Q_\text{tot}(s, \mathbf{a}) \;=\; \big(\arg\max_{a_1} Q_1(o_1, a_1),\; \ldots,\; \arg\max_{a_n} Q_n(o_n, a_n)\big).
-$$<h3 id="vdn加性分解">VDN：加性分解</h3>
-<p><a href="https://arxiv.org/abs/1706.05296" target="_blank" rel="noopener noreferrer">Sunehag 等, 2017 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- 取了最简单的充分条件：</p>
-$$
+$$<h3 id=vdn加性分解>VDN：加性分解</h3><p><a href=https://arxiv.org/abs/1706.05296 target=_blank rel="noopener noreferrer">Sunehag 等, 2017 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+取了最简单的充分条件：</p>$$
 Q_\text{tot}(s, \mathbf{a}) \;=\; \sum_{i=1}^{n} Q_i(o_i, a_i).
-$$<p>求和对每个被加项天然单调，所以 IGM 平凡成立。代价是表达能力——VDN 完全无法表示智能体之间的非加性交互。</p>
-<h3 id="qmix单调混合">QMIX：单调混合</h3>
-<p><a href="https://arxiv.org/abs/1803.11485" target="_blank" rel="noopener noreferrer">QMIX <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- 保留 IGM，但把&quot;加性&quot;放宽到&quot;单调&quot;。一个神经<strong>混合网络</strong>把 $Q_i$ 合成 $Q_\text{tot}$，并满足</p>
-$$
+$$<p>求和对每个被加项天然单调，所以 IGM 平凡成立。代价是表达能力——VDN 完全无法表示智能体之间的非加性交互。</p><h3 id=qmix单调混合>QMIX：单调混合</h3><p><a href=https://arxiv.org/abs/1803.11485 target=_blank rel="noopener noreferrer">QMIX <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+保留 IGM，但把"加性"放宽到"单调"。一个神经<strong>混合网络</strong>把 $Q_i$ 合成 $Q_\text{tot}$，并满足</p>$$
 \frac{\partial Q_\text{tot}}{\partial Q_i} \;\geq\; 0 \qquad \forall i.
-$$<p>实现上，约束是通过<em>构造</em>混合器的权重为非负来强制的——直接对权重取绝对值或过 softplus 即可。关键在于这些权重本身由一个以全局状态 $s$ 为输入的<strong>超网络</strong>（hypernetwork）产生，因此在不同状态下，不同智能体可以被赋予不同的权重，混合器也能表达出纯求和无法表示的智能体间交互。图右侧画出了由此得到的 $Q_\text{tot}$ 曲面：对每个 $Q_i$ 单调，所以联合 argmax 与各自 argmax 的组合一致。</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span><span class="lnt">21
-</span><span class="lnt">22
-</span><span class="lnt">23
-</span><span class="lnt">24
-</span><span class="lnt">25
-</span><span class="lnt">26
-</span><span class="lnt">27
-</span><span class="lnt">28
-</span><span class="lnt">29
-</span><span class="lnt">30
-</span><span class="lnt">31
-</span><span class="lnt">32
-</span><span class="lnt">33
-</span><span class="lnt">34
-</span><span class="lnt">35
-</span></code></pre></td>
-<td class="lntd">
-<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch</span>
-</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="k">class</span> <span class="nc">QMixer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">    <span class="s2">&#34;&#34;&#34;QMIX 混合网络，权重由超网络生成并保持非负。&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_agents</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">):</span>
-</span></span><span class="line"><span class="cl">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span> <span class="o">=</span> <span class="n">n_agents</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">hidden_dim</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="c1"># 超网络：state -&gt; 混合权重（取 abs 强制非负）</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_w1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">n_agents</span> <span class="o">*</span> <span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_w2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="c1"># 末层标量偏置无符号约束</span>
-</span></span><span class="line"><span class="cl">        <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">state_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-</span></span><span class="line"><span class="cl">            <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span></span><span class="line"><span class="cl">        <span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_qs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-</span></span><span class="line"><span class="cl">        <span class="s2">&#34;&#34;&#34;agent_qs: (B, n_agents)   state: (B, state_dim)   -&gt;  (B, 1)&#34;&#34;&#34;</span>
-</span></span><span class="line"><span class="cl">        <span class="n">B</span> <span class="o">=</span> <span class="n">agent_qs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">agent_qs</span> <span class="o">=</span> <span class="n">agent_qs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">w1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hyper_w1</span><span class="p">(</span><span class="n">state</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_agents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">b1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b1</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">hidden</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">elu</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">agent_qs</span><span class="p">,</span> <span class="n">w1</span><span class="p">)</span> <span class="o">+</span> <span class="n">b1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">        <span class="n">w2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hyper_w2</span><span class="p">(</span><span class="n">state</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">b2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyper_b2</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span><span class="line"><span class="cl">        <span class="n">q_tot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">w2</span><span class="p">)</span> <span class="o">+</span> <span class="n">b2</span>
-</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="n">q_tot</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span></span></code></pre></td></tr></table>
-</div>
-</div><p>训练方式与 DQN 完全一致：从回放池采样转移，在 $Q_\text{tot}$ 上构造 TD 目标，再把梯度反传到混合器以及每个智能体网络。执行时每个智能体只跑自己的 $Q_i$，根本不会触碰混合器。</p>
-<p>一个工程细节：QMIX 不能表示<em>所有</em>满足 IGM 的可分解函数（单调性是充分但非必要的）。<a href="https://arxiv.org/abs/1905.05408" target="_blank" rel="noopener noreferrer">QTRAN <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- 与 <a href="https://arxiv.org/abs/2008.01062" target="_blank" rel="noopener noreferrer">QPLEX <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- 把这一边界继续往前推，但代价是更复杂的损失与工程实现。</p>
-<hr>
-<h2 id="5-多智能体-actor-criticmaddpg-与-coma">5. 多智能体 Actor-Critic：MADDPG 与 COMA</h2>
-<h3 id="maddpg每个智能体一个集中评论家">MADDPG：每个智能体一个集中评论家</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig5_maddpg.png" alt="MADDPG：集中评论家、分散执行者" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><a href="https://arxiv.org/abs/1706.02275" target="_blank" rel="noopener noreferrer">MADDPG <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- 是 DDPG 在 CTDE 下的自然扩展。每个智能体 $i$ 拥有：</p>
-<ul>
-<li><strong>执行者</strong> $\mu_i(o_i)$，仅依赖局部观测；</li>
-<li><strong>评论家</strong> $Q_i(s, a_1, \ldots, a_n)$，输入完整状态以及<em>所有</em>智能体的动作。</li>
-</ul>
-<p>执行者用确定性策略梯度通过自己的评论家更新；评论家则用全员目标执行者构造 TD 目标：</p>
-$$
+$$<p>实现上，约束是通过<em>构造</em>混合器的权重为非负来强制的——直接对权重取绝对值或过 softplus 即可。关键在于这些权重本身由一个以全局状态 $s$ 为输入的<strong>超网络</strong>（hypernetwork）产生，因此在不同状态下，不同智能体可以被赋予不同的权重，混合器也能表达出纯求和无法表示的智能体间交互。图右侧画出了由此得到的 $Q_\text{tot}$ 曲面：对每个 $Q_i$ 单调，所以联合 argmax 与各自 argmax 的组合一致。</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch</span>
+</span></span><span class=line><span class=cl><span class=kn>import</span> <span class=nn>torch.nn</span> <span class=k>as</span> <span class=nn>nn</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>QMixer</span><span class=p>(</span><span class=n>nn</span><span class=o>.</span><span class=n>Module</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>    <span class=s2>&#34;&#34;&#34;QMIX 混合网络，权重由超网络生成并保持非负。&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n_agents</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>state_dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>32</span><span class=p>):</span>
+</span></span><span class=line><span class=cl>        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>n_agents</span> <span class=o>=</span> <span class=n>n_agents</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hidden_dim</span> <span class=o>=</span> <span class=n>hidden_dim</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=c1># 超网络：state -&gt; 混合权重（取 abs 强制非负）</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hyper_w1</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>n_agents</span> <span class=o>*</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hyper_b1</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hyper_w2</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=c1># 末层标量偏置无符号约束</span>
+</span></span><span class=line><span class=cl>        <span class=bp>self</span><span class=o>.</span><span class=n>hyper_b2</span> <span class=o>=</span> <span class=n>nn</span><span class=o>.</span><span class=n>Sequential</span><span class=p>(</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>state_dim</span><span class=p>,</span> <span class=n>hidden_dim</span><span class=p>),</span> <span class=n>nn</span><span class=o>.</span><span class=n>ReLU</span><span class=p>(),</span>
+</span></span><span class=line><span class=cl>            <span class=n>nn</span><span class=o>.</span><span class=n>Linear</span><span class=p>(</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span>
+</span></span><span class=line><span class=cl>        <span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>    <span class=k>def</span> <span class=nf>forward</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>agent_qs</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>,</span> <span class=n>state</span><span class=p>:</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>torch</span><span class=o>.</span><span class=n>Tensor</span><span class=p>:</span>
+</span></span><span class=line><span class=cl>        <span class=s2>&#34;&#34;&#34;agent_qs: (B, n_agents)   state: (B, state_dim)   -&gt;  (B, 1)&#34;&#34;&#34;</span>
+</span></span><span class=line><span class=cl>        <span class=n>B</span> <span class=o>=</span> <span class=n>agent_qs</span><span class=o>.</span><span class=n>size</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>agent_qs</span> <span class=o>=</span> <span class=n>agent_qs</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_agents</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>w1</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>hyper_w1</span><span class=p>(</span><span class=n>state</span><span class=p>))</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n_agents</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>b1</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>hyper_b1</span><span class=p>(</span><span class=n>state</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_dim</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>hidden</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>nn</span><span class=o>.</span><span class=n>functional</span><span class=o>.</span><span class=n>elu</span><span class=p>(</span><span class=n>torch</span><span class=o>.</span><span class=n>bmm</span><span class=p>(</span><span class=n>agent_qs</span><span class=p>,</span> <span class=n>w1</span><span class=p>)</span> <span class=o>+</span> <span class=n>b1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>        <span class=n>w2</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>hyper_w2</span><span class=p>(</span><span class=n>state</span><span class=p>))</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>hidden_dim</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>b2</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>hyper_b2</span><span class=p>(</span><span class=n>state</span><span class=p>)</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span><span class=line><span class=cl>        <span class=n>q_tot</span> <span class=o>=</span> <span class=n>torch</span><span class=o>.</span><span class=n>bmm</span><span class=p>(</span><span class=n>hidden</span><span class=p>,</span> <span class=n>w2</span><span class=p>)</span> <span class=o>+</span> <span class=n>b2</span>
+</span></span><span class=line><span class=cl>        <span class=k>return</span> <span class=n>q_tot</span><span class=o>.</span><span class=n>view</span><span class=p>(</span><span class=n>B</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+</span></span></code></pre></td></tr></table></div></div><p>训练方式与 DQN 完全一致：从回放池采样转移，在 $Q_\text{tot}$ 上构造 TD 目标，再把梯度反传到混合器以及每个智能体网络。执行时每个智能体只跑自己的 $Q_i$，根本不会触碰混合器。</p><p>一个工程细节：QMIX 不能表示<em>所有</em>满足 IGM 的可分解函数（单调性是充分但非必要的）。<a href=https://arxiv.org/abs/1905.05408 target=_blank rel="noopener noreferrer">QTRAN <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+与 <a href=https://arxiv.org/abs/2008.01062 target=_blank rel="noopener noreferrer">QPLEX <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+把这一边界继续往前推，但代价是更复杂的损失与工程实现。</p><hr><h2 id=5-多智能体-actor-criticmaddpg-与-coma>5. 多智能体 Actor-Critic：MADDPG 与 COMA</h2><h3 id=maddpg每个智能体一个集中评论家>MADDPG：每个智能体一个集中评论家</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig5_maddpg.png alt=MADDPG：集中评论家、分散执行者 loading=lazy decoding=async></figure></p><p><a href=https://arxiv.org/abs/1706.02275 target=_blank rel="noopener noreferrer">MADDPG <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+是 DDPG 在 CTDE 下的自然扩展。每个智能体 $i$ 拥有：</p><ul><li><strong>执行者</strong> $\mu_i(o_i)$，仅依赖局部观测；</li><li><strong>评论家</strong> $Q_i(s, a_1, \ldots, a_n)$，输入完整状态以及<em>所有</em>智能体的动作。</li></ul><p>执行者用确定性策略梯度通过自己的评论家更新；评论家则用全员目标执行者构造 TD 目标：</p>$$
 y \;=\; r_i \;+\; \gamma \, Q_i^{\text{tgt}}\!\left(s', \mu_1^{\text{tgt}}(o_1'), \ldots, \mu_n^{\text{tgt}}(o_n')\right).
-$$<p>由于评论家把 $a_{-i}$ 也作为输入，<em>在评论家眼里</em>环境就重新变得稳态——会变的那些东西已经被显式喂进来了。执行者保持分散，部署时不受影响。MADDPG 在合作、竞争、混合动机三类场景中都能用，回放池只需存储联合轨迹。</p>
-<h3 id="coma反事实信用分配">COMA：反事实信用分配</h3>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig4_coma.png" alt="COMA 反事实基线" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><a href="https://arxiv.org/abs/1705.08926" target="_blank" rel="noopener noreferrer">COMA <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
- 直击信用分配难题。它使用单一的集中评论家 $Q(s, \mathbf{a})$，并为每个智能体 $i$ 构造一个<strong>反事实基线</strong>——固定其他人的动作不动，仅对 $i$ 自己的动作按其策略求平均：</p>
-$$
+$$<p>由于评论家把 $a_{-i}$ 也作为输入，<em>在评论家眼里</em>环境就重新变得稳态——会变的那些东西已经被显式喂进来了。执行者保持分散，部署时不受影响。MADDPG 在合作、竞争、混合动机三类场景中都能用，回放池只需存储联合轨迹。</p><h3 id=coma反事实信用分配>COMA：反事实信用分配</h3><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig4_coma.png alt="COMA 反事实基线" loading=lazy decoding=async></figure></p><p><a href=https://arxiv.org/abs/1705.08926 target=_blank rel="noopener noreferrer">COMA <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+直击信用分配难题。它使用单一的集中评论家 $Q(s, \mathbf{a})$，并为每个智能体 $i$ 构造一个<strong>反事实基线</strong>——固定其他人的动作不动，仅对 $i$ 自己的动作按其策略求平均：</p>$$
 A_i(s, \mathbf{a}) \;=\; Q(s, \mathbf{a}) \;-\; \sum_{a_i'} \pi_i(a_i' \mid o_i) \, Q\!\left(s, (a_i', a_{-i})\right).
-$$<p>仔细读这条公式：第一项是真实发生的价值；第二项是<em>在其他人完全照旧的前提下</em>，$i$ 如果换一个动作的<em>期望</em>价值。两者之差正好是 $i$ 的边际贡献。在共享团队奖励下，这正是策略梯度应该追逐的对象——它去掉了 $a_{-i}$ 带来的噪声，又不引入偏差。图中给出了四动作示例：只有真正被选择的动作得到非平凡的优势值。</p>
-<p>让 COMA 实际可算的小技巧是：集中评论家一次性输出 $i$ 所有候选动作的 $Q$ 值，于是基线只是策略概率与 $Q$ 向量的一次内积，无需任何额外的环境交互。</p>
-<hr>
-<h2 id="6-通信智能体彼此该说多少">6. 通信：智能体彼此该说多少？</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig6_communication.png" alt="通信拓扑：广播、稀疏、注意力" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p>有时候完全分散的执行确实太苛刻——智能体在测试时也确实需要交换信息。这条设计谱有几个关键档位。</p>
-<p><strong>广播</strong>——每个智能体向其他每个智能体发送固定大小的消息。概念清爽，但消息量按 $O(n^2)$ 增长，超过几十个智能体就难以为继。</p>
-<p><strong>稀疏 / k-NN</strong>——每个智能体只与最近的 $k$ 个邻居（在空间、图、角色上）通信。固定 $k$ 时复杂度线性。CommNet、IC3Net、TarMAC 都属于这一档。</p>
-<p><strong>注意力</strong>——软的、可学习的路由：每个智能体发出 query，邻居返回 keys，消息权重由 softmax 决定。注意力得分本身仍是 $O(n^2)$，但消息可以被狠狠剪枝（top-$k$ 注意力），整个结构端到端可微。它是当下 MARL 的主流，也天然桥接到多 LLM 智能体系统——注意力路由几乎可以原样搬过去做工具调用与 agent 编排。</p>
-<p>具体怎么选取决于任务：紧密耦合的机器人小队，密集通信完全可以；几千个微服务或车辆，稀疏或注意力剪枝几乎是唯一可行的设计。</p>
-<hr>
-<h2 id="7-marl-工业级训练alphastaropenai-five-与联赛训练">7. MARL 工业级训练：AlphaStar、OpenAI Five 与联赛训练</h2>
-<p><figure>
-  <img src="https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig7_league.png" alt="AlphaStar 联赛训练与两大旗舰系统" loading="lazy" decoding="async">
-  
-</figure>
-</p>
-<p><a href="https://www.nature.com/articles/s41586-019-1724-z" target="_blank" rel="noopener noreferrer">AlphaStar <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-（星际争霸 II）和 <a href="https://arxiv.org/abs/1912.06680" target="_blank" rel="noopener noreferrer">OpenAI Five <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-（Dota 2）能成功，关键在于把<em>训练种群设计</em>当成一等公民来工程化。朴素自我对弈往往陷入循环——A 学会克制 B，B 又学会克制 A 的新策略并忘记了为什么自己曾能赢 A 的旧策略，如此往复。<strong>AlphaStar 联赛</strong>显式拆出三类种群：</p>
-<ul>
-<li><strong>主智能体</strong>——真正要部署的对象，是优化目标；</li>
-<li><strong>主剥削者</strong>——专门去找主智能体的弱点，逼它把短板补上；</li>
-<li><strong>联赛剥削者</strong>——周期性重置，维护<em>策略多样性</em>，防止整个联赛塌缩到单一风格。</li>
-</ul>
-<p>一个保存<em>历史冻结快照</em>的对手池通过优先虚拟自我对弈（PFSP）匹配给当前学习者——它倾向于配对那些当前学习者刚好能勉强赢下的对手。这些机制合在一起，正是为了避免朴素自我对弈下的灾难性遗忘。</p>
-<p>OpenAI Five 的切法不同。每个英雄由独立的 LSTM 控制，参数共享；团队级协调被交给手工奖励塑形和巨大算力——大约是<em>每天 180 年的人类等效自我对弈</em>。两套系统给出的同一个教训是：到了工业规模，<em>训练课程</em>的重要性丝毫不亚于单智能体算法。</p>
-<p>这些思想正在向游戏之外迁移。RLHF（<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-RLHF%e4%b8%8e%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e5%ba%94%e7%94%a8/">第 12 篇</a>
-）和工具调用 agent 编排，越来越像多种群训练——一群策略、一群评估者，加上两者之间的优先匹配。</p>
-<hr>
-<h2 id="常见问题">常见问题</h2>
-<h3 id="为什么-qmix-必须有单调性约束">为什么 QMIX 必须有单调性约束？</h3>
-<p>为了保证分散贪心执行与集中联合优化是一致的。如果 $\partial Q_\text{tot}/\partial Q_i$ 可以为负，那么一个智能体在自己 $Q_i$ 上贪心反而可能<em>降低</em>团队价值。单调性让&quot;各自 argmax&quot;与&quot;联合 argmax&quot;重合。</p>
-<h3 id="marl-系统什么时候会陷在次优均衡里">MARL 系统什么时候会陷在次优均衡里？</h3>
-<p>当最优联合动作需要<em>协调式</em>探索时——必须双方同时尝试那个有风险的组合才能看到它的好处。如果随机探索几乎不可能撞到这个联合动作，系统就会收敛到一个更安全但被 Pareto 支配的均衡。补救手段是联合探索（committed-exploration）、显式通信、对手建模。</p>
-<h3 id="样本复杂度如何随智能体数量扩展">样本复杂度如何随智能体数量扩展？</h3>
-<p>对值分解适用的合作任务，样本复杂度大致随 $n$ 线性增长——这正是 QMIX 的全部意义。没有分解，直接学 $Q(s, \mathbf{a})$ 在联合动作空间上是指数级。</p>
-<h3 id="独立学习者-vs-ctdectde-永远值得吗">独立学习者 vs CTDE，CTDE 永远值得吗？</h3>
-<p>种群很小或者全局状态确实不可得时，独立 Q-learning 也能跑，实现也简单很多。一旦信用分配开始重要，或者团队超过 3–4 个智能体，CTDE 方法的优势就拉开，且差距随着规模迅速扩大。</p>
-<h3 id="这些思想能迁移到多-llm-agent-系统吗">这些思想能迁移到多 LLM agent 系统吗？</h3>
-<p>能。集中评论家对应外层评估器，分散执行者对应子 agent，注意力通信对应工具路由，联赛训练对应&quot;评估者种群&quot;——后者已是 agentic RLHF 中越来越主流的模式。</p>
-<hr>
-<h2 id="参考文献">参考文献</h2>
-<ul>
-<li>Sunehag et al., <em>Value-Decomposition Networks for Cooperative Multi-Agent Learning</em>, AAMAS 2018. <a href="https://arxiv.org/abs/1706.05296" target="_blank" rel="noopener noreferrer">arXiv:1706.05296 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Rashid et al., <em>QMIX: Monotonic Value Function Factorisation for Deep Multi-Agent RL</em>, ICML 2018. <a href="https://arxiv.org/abs/1803.11485" target="_blank" rel="noopener noreferrer">arXiv:1803.11485 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Lowe et al., <em>Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments</em>（MADDPG），NeurIPS 2017. <a href="https://arxiv.org/abs/1706.02275" target="_blank" rel="noopener noreferrer">arXiv:1706.02275 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Foerster et al., <em>Counterfactual Multi-Agent Policy Gradients</em>（COMA），AAAI 2018. <a href="https://arxiv.org/abs/1705.08926" target="_blank" rel="noopener noreferrer">arXiv:1705.08926 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Vinyals et al., <em>Grandmaster level in StarCraft II using multi-agent reinforcement learning</em>, Nature 575, 2019.</li>
-<li>OpenAI et al., <em>Dota 2 with Large Scale Deep Reinforcement Learning</em>, 2019. <a href="https://arxiv.org/abs/1912.06680" target="_blank" rel="noopener noreferrer">arXiv:1912.06680 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-<li>Yu et al., <em>The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games</em>（MAPPO），NeurIPS 2022. <a href="https://arxiv.org/abs/2103.01955" target="_blank" rel="noopener noreferrer">arXiv:2103.01955 <span aria-hidden="true" style="font-size:0.75em; opacity:0.55; margin-left:2px;">↗</span></a>
-</li>
-</ul>
-<hr>
-<h2 id="系列导航">系列导航</h2>
-<ul>
-<li><strong>上一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ab-AlphaGo%e4%b8%8e%e8%92%99%e7%89%b9%e5%8d%a1%e6%b4%9b%e6%a0%91%e6%90%9c%e7%b4%a2/">第 8 篇 — AlphaGo 与蒙特卡洛树搜索</a>
-</li>
-<li><strong>下一篇</strong>：<a href="/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e7%a6%bb%e7%ba%bf%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/">第 10 篇 — 离线强化学习</a>
-</li>
-<li><a href="/tags/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/">查看完整 12 篇 RL 系列</a>
-</li>
-</ul>
-
-    </div>
-
-    
-
-    <div class="article-end">
-      <h4>Liked this piece?</h4>
-      <p>Follow on GitHub for the next one — usually one a week.</p>
-      <a class="btn btn-primary" href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub <span class="arrow">→</span></a>
-    </div>
-  </div>
-
-  <aside class="article-aside">
-    <nav class="toc" aria-label="Table of contents">
-  <div class="toc-title">In this article</div>
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#你将学到什么">你将学到什么</a></li>
-    <li><a href="#前置知识">前置知识</a></li>
-    <li><a href="#1-为什么-marl-比单智能体-rl-真的更难">1. 为什么 MARL 比单智能体 RL 真的更难</a></li>
-    <li><a href="#2-ctde训练时全信息执行时几乎零信息">2. CTDE：训练时全信息，执行时几乎零信息</a></li>
-    <li><a href="#3-马尔可夫博弈与纳什均衡够用就好">3. 马尔可夫博弈与纳什均衡：够用就好</a></li>
-    <li><a href="#4-值分解vdn-与-qmix">4. 值分解：VDN 与 QMIX</a>
-      <ul>
-        <li><a href="#vdn加性分解">VDN：加性分解</a></li>
-        <li><a href="#qmix单调混合">QMIX：单调混合</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-多智能体-actor-criticmaddpg-与-coma">5. 多智能体 Actor-Critic：MADDPG 与 COMA</a>
-      <ul>
-        <li><a href="#maddpg每个智能体一个集中评论家">MADDPG：每个智能体一个集中评论家</a></li>
-        <li><a href="#coma反事实信用分配">COMA：反事实信用分配</a></li>
-      </ul>
-    </li>
-    <li><a href="#6-通信智能体彼此该说多少">6. 通信：智能体彼此该说多少？</a></li>
-    <li><a href="#7-marl-工业级训练alphastaropenai-five-与联赛训练">7. MARL 工业级训练：AlphaStar、OpenAI Five 与联赛训练</a></li>
-    <li><a href="#常见问题">常见问题</a>
-      <ul>
-        <li><a href="#为什么-qmix-必须有单调性约束">为什么 QMIX 必须有单调性约束？</a></li>
-        <li><a href="#marl-系统什么时候会陷在次优均衡里">MARL 系统什么时候会陷在次优均衡里？</a></li>
-        <li><a href="#样本复杂度如何随智能体数量扩展">样本复杂度如何随智能体数量扩展？</a></li>
-        <li><a href="#独立学习者-vs-ctdectde-永远值得吗">独立学习者 vs CTDE，CTDE 永远值得吗？</a></li>
-        <li><a href="#这些思想能迁移到多-llm-agent-系统吗">这些思想能迁移到多 LLM agent 系统吗？</a></li>
-      </ul>
-    </li>
-    <li><a href="#参考文献">参考文献</a></li>
-    <li><a href="#系列导航">系列导航</a></li>
-  </ul>
-</nav>
-</nav>
-    <div class="aside-block">
-      <div class="label">In the series</div>
-      <p style="font-family: var(--font-serif); font-size: 1.05rem; margin: 0;"><a href="/zh/series/" style="color: var(--accent);">强化学习</a></p>
-    </div>
-    <div class="aside-block aside-stat">
-      <div class="row"><span>Reading time</span><strong>10 min</strong></div>
-      <div class="row"><span>Word count</span><strong>4900</strong></div>
-      <div class="row"><span>Published</span><strong>Sep 2025</strong></div>
-    </div>
-  </aside>
-</article>
-
-</main>
-<footer class="site-footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h5>About this site</h5>
-        <p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p>
-      </div>
-      <div class="footer-col">
-        <h5>Series</h5>
-        <ul>
-          
-            <li><a href="https://www.chenk.top/zh/series/terraform-agents/">Terraform-Agents</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-pai/">Aliyun-Pai</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/aliyun-bailian/">Aliyun-Bailian</a></li>
-          
-            <li><a href="https://www.chenk.top/zh/series/linux/">Linux</a></li>
-          
-          <li><a href="/zh/series/">All series →</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h5>Elsewhere</h5>
-        <ul>
-          <li><a href="https://github.com/chenkai66" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="mailto:chenkai.nb.666@gmail.com">Email</a></li>
-          <li><a href="/zh/about/">About</a></li>
-          <li><a href="/zh/me/">Chen Kai</a></li>
-          <li><a href="https://llm4marketing.com" target="_blank" rel="noopener">llm4marketing.com</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
-      <span class="signature">Made in Beijing &amp; Shanghai.</span>
-    </div>
-  </div>
-</footer>
-
-</body>
-</html>
+$$<p>仔细读这条公式：第一项是真实发生的价值；第二项是<em>在其他人完全照旧的前提下</em>，$i$ 如果换一个动作的<em>期望</em>价值。两者之差正好是 $i$ 的边际贡献。在共享团队奖励下，这正是策略梯度应该追逐的对象——它去掉了 $a_{-i}$ 带来的噪声，又不引入偏差。图中给出了四动作示例：只有真正被选择的动作得到非平凡的优势值。</p><p>让 COMA 实际可算的小技巧是：集中评论家一次性输出 $i$ 所有候选动作的 $Q$ 值，于是基线只是策略概率与 $Q$ 向量的一次内积，无需任何额外的环境交互。</p><hr><h2 id=6-通信智能体彼此该说多少>6. 通信：智能体彼此该说多少？</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig6_communication.png alt=通信拓扑：广播、稀疏、注意力 loading=lazy decoding=async></figure></p><p>有时候完全分散的执行确实太苛刻——智能体在测试时也确实需要交换信息。这条设计谱有几个关键档位。</p><p><strong>广播</strong>——每个智能体向其他每个智能体发送固定大小的消息。概念清爽，但消息量按 $O(n^2)$ 增长，超过几十个智能体就难以为继。</p><p><strong>稀疏 / k-NN</strong>——每个智能体只与最近的 $k$ 个邻居（在空间、图、角色上）通信。固定 $k$ 时复杂度线性。CommNet、IC3Net、TarMAC 都属于这一档。</p><p><strong>注意力</strong>——软的、可学习的路由：每个智能体发出 query，邻居返回 keys，消息权重由 softmax 决定。注意力得分本身仍是 $O(n^2)$，但消息可以被狠狠剪枝（top-$k$ 注意力），整个结构端到端可微。它是当下 MARL 的主流，也天然桥接到多 LLM 智能体系统——注意力路由几乎可以原样搬过去做工具调用与 agent 编排。</p><p>具体怎么选取决于任务：紧密耦合的机器人小队，密集通信完全可以；几千个微服务或车辆，稀疏或注意力剪枝几乎是唯一可行的设计。</p><hr><h2 id=7-marl-工业级训练alphastaropenai-five-与联赛训练>7. MARL 工业级训练：AlphaStar、OpenAI Five 与联赛训练</h2><p><figure><img src=https://blog-pic-ck.oss-cn-beijing.aliyuncs.com/posts/zh/reinforcement-learning/09-%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/fig7_league.png alt="AlphaStar 联赛训练与两大旗舰系统" loading=lazy decoding=async></figure></p><p><a href=https://www.nature.com/articles/s41586-019-1724-z target=_blank rel="noopener noreferrer">AlphaStar <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+（星际争霸 II）和 <a href=https://arxiv.org/abs/1912.06680 target=_blank rel="noopener noreferrer">OpenAI Five <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a>
+（Dota 2）能成功，关键在于把<em>训练种群设计</em>当成一等公民来工程化。朴素自我对弈往往陷入循环——A 学会克制 B，B 又学会克制 A 的新策略并忘记了为什么自己曾能赢 A 的旧策略，如此往复。<strong>AlphaStar 联赛</strong>显式拆出三类种群：</p><ul><li><strong>主智能体</strong>——真正要部署的对象，是优化目标；</li><li><strong>主剥削者</strong>——专门去找主智能体的弱点，逼它把短板补上；</li><li><strong>联赛剥削者</strong>——周期性重置，维护<em>策略多样性</em>，防止整个联赛塌缩到单一风格。</li></ul><p>一个保存<em>历史冻结快照</em>的对手池通过优先虚拟自我对弈（PFSP）匹配给当前学习者——它倾向于配对那些当前学习者刚好能勉强赢下的对手。这些机制合在一起，正是为了避免朴素自我对弈下的灾难性遗忘。</p><p>OpenAI Five 的切法不同。每个英雄由独立的 LSTM 控制，参数共享；团队级协调被交给手工奖励塑形和巨大算力——大约是<em>每天 180 年的人类等效自我对弈</em>。两套系统给出的同一个教训是：到了工业规模，<em>训练课程</em>的重要性丝毫不亚于单智能体算法。</p><p>这些思想正在向游戏之外迁移。RLHF（<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81%e4%ba%8c-RLHF%e4%b8%8e%e5%a4%a7%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e5%ba%94%e7%94%a8/>第 12 篇</a>
+）和工具调用 agent 编排，越来越像多种群训练——一群策略、一群评估者，加上两者之间的优先匹配。</p><hr><h2 id=常见问题>常见问题</h2><h3 id=为什么-qmix-必须有单调性约束>为什么 QMIX 必须有单调性约束？</h3><p>为了保证分散贪心执行与集中联合优化是一致的。如果 $\partial Q_\text{tot}/\partial Q_i$ 可以为负，那么一个智能体在自己 $Q_i$ 上贪心反而可能<em>降低</em>团队价值。单调性让"各自 argmax"与"联合 argmax"重合。</p><h3 id=marl-系统什么时候会陷在次优均衡里>MARL 系统什么时候会陷在次优均衡里？</h3><p>当最优联合动作需要<em>协调式</em>探索时——必须双方同时尝试那个有风险的组合才能看到它的好处。如果随机探索几乎不可能撞到这个联合动作，系统就会收敛到一个更安全但被 Pareto 支配的均衡。补救手段是联合探索（committed-exploration）、显式通信、对手建模。</p><h3 id=样本复杂度如何随智能体数量扩展>样本复杂度如何随智能体数量扩展？</h3><p>对值分解适用的合作任务，样本复杂度大致随 $n$ 线性增长——这正是 QMIX 的全部意义。没有分解，直接学 $Q(s, \mathbf{a})$ 在联合动作空间上是指数级。</p><h3 id=独立学习者-vs-ctdectde-永远值得吗>独立学习者 vs CTDE，CTDE 永远值得吗？</h3><p>种群很小或者全局状态确实不可得时，独立 Q-learning 也能跑，实现也简单很多。一旦信用分配开始重要，或者团队超过 3–4 个智能体，CTDE 方法的优势就拉开，且差距随着规模迅速扩大。</p><h3 id=这些思想能迁移到多-llm-agent-系统吗>这些思想能迁移到多 LLM agent 系统吗？</h3><p>能。集中评论家对应外层评估器，分散执行者对应子 agent，注意力通信对应工具路由，联赛训练对应"评估者种群"——后者已是 agentic RLHF 中越来越主流的模式。</p><hr><h2 id=参考文献>参考文献</h2><ul><li>Sunehag et al., <em>Value-Decomposition Networks for Cooperative Multi-Agent Learning</em>, AAMAS 2018. <a href=https://arxiv.org/abs/1706.05296 target=_blank rel="noopener noreferrer">arXiv:1706.05296 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Rashid et al., <em>QMIX: Monotonic Value Function Factorisation for Deep Multi-Agent RL</em>, ICML 2018. <a href=https://arxiv.org/abs/1803.11485 target=_blank rel="noopener noreferrer">arXiv:1803.11485 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Lowe et al., <em>Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments</em>（MADDPG），NeurIPS 2017. <a href=https://arxiv.org/abs/1706.02275 target=_blank rel="noopener noreferrer">arXiv:1706.02275 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Foerster et al., <em>Counterfactual Multi-Agent Policy Gradients</em>（COMA），AAAI 2018. <a href=https://arxiv.org/abs/1705.08926 target=_blank rel="noopener noreferrer">arXiv:1705.08926 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Vinyals et al., <em>Grandmaster level in StarCraft II using multi-agent reinforcement learning</em>, Nature 575, 2019.</li><li>OpenAI et al., <em>Dota 2 with Large Scale Deep Reinforcement Learning</em>, 2019. <a href=https://arxiv.org/abs/1912.06680 target=_blank rel="noopener noreferrer">arXiv:1912.06680 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li><li>Yu et al., <em>The Surprising Effectiveness of PPO in Cooperative Multi-Agent Games</em>（MAPPO），NeurIPS 2022. <a href=https://arxiv.org/abs/2103.01955 target=_blank rel="noopener noreferrer">arXiv:2103.01955 <span aria-hidden=true style=font-size:.75em;opacity:.55;margin-left:2px>↗</span></a></li></ul><hr><h2 id=系列导航>系列导航</h2><ul><li><strong>上一篇</strong>：<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%85%ab-AlphaGo%e4%b8%8e%e8%92%99%e7%89%b9%e5%8d%a1%e6%b4%9b%e6%a0%91%e6%90%9c%e7%b4%a2/>第 8 篇 — AlphaGo 与蒙特卡洛树搜索</a></li><li><strong>下一篇</strong>：<a href=/zh/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0-%e5%8d%81-%e7%a6%bb%e7%ba%bf%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/>第 10 篇 — 离线强化学习</a></li><li><a href=/tags/%e5%bc%ba%e5%8c%96%e5%ad%a6%e4%b9%a0/>查看完整 12 篇 RL 系列</a></li></ul></div><div class=article-end><h4>Liked this piece?</h4><p>Follow on GitHub for the next one — usually one a week.</p><a class="btn btn-primary" href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub <span class=arrow>→</span></a></div></div><aside class=article-aside><nav class=toc aria-label="Table of contents"><div class=toc-title>In this article</div><nav id=TableOfContents><ul><li><a href=#你将学到什么>你将学到什么</a></li><li><a href=#前置知识>前置知识</a></li><li><a href=#1-为什么-marl-比单智能体-rl-真的更难>1. 为什么 MARL 比单智能体 RL 真的更难</a></li><li><a href=#2-ctde训练时全信息执行时几乎零信息>2. CTDE：训练时全信息，执行时几乎零信息</a></li><li><a href=#3-马尔可夫博弈与纳什均衡够用就好>3. 马尔可夫博弈与纳什均衡：够用就好</a></li><li><a href=#4-值分解vdn-与-qmix>4. 值分解：VDN 与 QMIX</a><ul><li><a href=#vdn加性分解>VDN：加性分解</a></li><li><a href=#qmix单调混合>QMIX：单调混合</a></li></ul></li><li><a href=#5-多智能体-actor-criticmaddpg-与-coma>5. 多智能体 Actor-Critic：MADDPG 与 COMA</a><ul><li><a href=#maddpg每个智能体一个集中评论家>MADDPG：每个智能体一个集中评论家</a></li><li><a href=#coma反事实信用分配>COMA：反事实信用分配</a></li></ul></li><li><a href=#6-通信智能体彼此该说多少>6. 通信：智能体彼此该说多少？</a></li><li><a href=#7-marl-工业级训练alphastaropenai-five-与联赛训练>7. MARL 工业级训练：AlphaStar、OpenAI Five 与联赛训练</a></li><li><a href=#常见问题>常见问题</a><ul><li><a href=#为什么-qmix-必须有单调性约束>为什么 QMIX 必须有单调性约束？</a></li><li><a href=#marl-系统什么时候会陷在次优均衡里>MARL 系统什么时候会陷在次优均衡里？</a></li><li><a href=#样本复杂度如何随智能体数量扩展>样本复杂度如何随智能体数量扩展？</a></li><li><a href=#独立学习者-vs-ctdectde-永远值得吗>独立学习者 vs CTDE，CTDE 永远值得吗？</a></li><li><a href=#这些思想能迁移到多-llm-agent-系统吗>这些思想能迁移到多 LLM agent 系统吗？</a></li></ul></li><li><a href=#参考文献>参考文献</a></li><li><a href=#系列导航>系列导航</a></li></ul></nav></nav><div class="aside-block aside-stat"><div class=row><span>Reading time</span><strong>10 min</strong></div><div class=row><span>Word count</span><strong>4885</strong></div><div class=row><span>Published</span><strong>Sep 2025</strong></div></div></aside></article></main><footer class=site-footer><div class=shell><div class=footer-grid><div class=footer-col><h5>About this site</h5><p>A long-form notebook by Chen Kai. Machine learning, mathematics, and the cloud — written in two languages, no fluff.</p></div><div class=footer-col><h5>Series</h5><ul><li><a href=https://www.chenk.top/zh/series/terraform-agents/>Terraform-Agents</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-pai/>Aliyun-Pai</a></li><li><a href=https://www.chenk.top/zh/series/aliyun-bailian/>Aliyun-Bailian</a></li><li><a href=https://www.chenk.top/zh/series/linux/>Linux</a></li><li><a href=/zh/series/>All series →</a></li></ul></div><div class=footer-col><h5>Elsewhere</h5><ul><li><a href=https://github.com/chenkai66 target=_blank rel=noopener>GitHub</a></li><li><a href=mailto:chenkai.nb.666@gmail.com>Email</a></li><li><a href=/zh/about/>About</a></li><li><a href=/zh/me/>Chen Kai</a></li><li><a href=https://llm4marketing.com target=_blank rel=noopener>llm4marketing.com</a></li></ul></div></div><div class=footer-bottom><span>© 2026 Chen Kai. Built with Hugo, deployed on GitHub Pages.</span>
+<span class=signature>Made in Beijing & Shanghai.</span></div></div></footer></body></html>
